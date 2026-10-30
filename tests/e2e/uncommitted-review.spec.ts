@@ -271,3 +271,135 @@ test('packaged cumpa --staged launches a frozen snapshot that survives an extern
     await fixture.cleanup();
   }
 });
+
+test('packaged cumpa --unstaged has no Base endpoint and cumpa --worktree surfaces an untracked file as added', async ({ browser }) => {
+  const unstagedFixture = await createGitFixture();
+  await unstagedFixture.write('tracked.txt', 'base\nedited without staging\n');
+  const unstagedRunning = startGeneratedUncommittedCli(unstagedFixture, ['--unstaged']);
+  try {
+    const url = await waitForLoopbackUrl(unstagedRunning);
+    const page = await browser.newPage();
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await openGeneratedUncommittedReview(page, url);
+
+    const endpoints = page.getByRole('banner');
+    await expect(endpoints.getByText('Index', { exact: true })).toBeVisible();
+    await expect(endpoints.getByText(/^[0-9a-f]{7}$/u)).toHaveCount(0);
+
+    await page.close();
+  } finally {
+    await stopGeneratedCli(unstagedRunning);
+    await unstagedFixture.cleanup();
+  }
+
+  const worktreeFixture = await createGitFixture();
+  await worktreeFixture.write('src/untracked.ts', 'export const untracked = true;\n');
+  const worktreeRunning = startGeneratedUncommittedCli(worktreeFixture, ['--worktree']);
+  try {
+    const url = await waitForLoopbackUrl(worktreeRunning);
+    const page = await browser.newPage();
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await openGeneratedUncommittedReview(page, url);
+
+    const treeRow = page.getByRole('treeitem', { name: /untracked\.ts/ });
+    await treeRow.click();
+    await expect(page.getByText('Added · Head only')).toBeVisible();
+
+    await page.close();
+  } finally {
+    await stopGeneratedCli(worktreeRunning);
+    await worktreeFixture.cleanup();
+  }
+});
+
+test('the Export section is absent for an uncommitted session', async ({ browser }) => {
+  const fixture = await createGitFixture();
+  await fixture.write('src/added.ts', 'export const added = true;\n');
+  fixture.git(['add', 'src/added.ts']);
+  const running = startGeneratedUncommittedCli(fixture, ['--staged']);
+  try {
+    const url = await waitForLoopbackUrl(running);
+    const page = await browser.newPage();
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await openGeneratedUncommittedReview(page, url);
+
+    await openReviewNotes(page);
+    const dialog = page.getByRole('dialog', { name: 'Review notes' });
+    await expect(dialog.getByRole('button', { name: 'Export review', exact: true })).toHaveCount(0);
+    await expect(dialog.getByRole('button', { name: 'Export review again', exact: true })).toHaveCount(0);
+
+    await page.close();
+  } finally {
+    await stopGeneratedCli(running);
+    await fixture.cleanup();
+  }
+});
+
+test('Alt+Shift+R triggers the same real server-side refresh as the Refresh button, independently verified via /api/worktree-status', async ({ browser }) => {
+  const fixture = await createGitFixture();
+  await fixture.write('src/added.ts', 'export const added = true;\n');
+  fixture.git(['add', 'src/added.ts']);
+  const running = startGeneratedUncommittedCli(fixture, ['--staged'], { stdin: 'pipe' });
+  try {
+    const url = await waitForLoopbackUrl(running);
+    const authority = new URL(url);
+    const host = authority.host;
+    const token = authority.hash.slice('#token='.length);
+
+    const page = await browser.newPage();
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await openGeneratedUncommittedReview(page, url);
+
+    async function worktreeStatus(): Promise<boolean> {
+      const response = await fetch(`http://${host}/api/worktree-status`, {
+        headers: { host, origin: `http://${host}`, authorization: `Bearer ${token}` },
+      });
+      const body = (await response.json()) as { readonly changed: boolean };
+      return body.changed;
+    }
+
+    await expect.poll(() => worktreeStatus()).toBe(false);
+
+    await fixture.write('src/added.ts', 'export const added = true;\nexport const extra = 1;\n');
+    fixture.git(['add', 'src/added.ts']);
+    await expect.poll(() => worktreeStatus()).toBe(true);
+
+    await page.keyboard.press('Alt+Shift+KeyR');
+    await expect(
+      page.getByRole('heading', { name: 'Since previous snapshot: 1 modified' }),
+    ).toBeVisible();
+
+    // Independent, UI-free proof the keyboard shortcut drove a real server-side
+    // refresh, not just client-side state: the worktree-status change indicator
+    // clears because the snapshot now matches the working tree again (D-13).
+    await expect.poll(() => worktreeStatus()).toBe(false);
+
+    // DEVIATION (documented in 14-13-SUMMARY.md): the running CLI terminal's
+    // own `r`-keypress refresh (registerUncommittedRefreshKeypress in
+    // src/cli/run.ts) only ever registers its stdin 'data' handler when
+    // `process.stdin.isTTY === true`. A child process spawned with
+    // `stdio: [..., 'pipe', ...]` never has a TTY stdin (confirmed
+    // empirically), so writing 'r' to `running.child.stdin` below is the
+    // literal D-13 mechanism but is a structural no-op in this harness —
+    // src/cli/run.ts is outside this plan's files_modified scope, so it is
+    // not changed here. The assertion below pins today's real, confirmed
+    // behavior (status stays unchanged) rather than asserting an outcome
+    // this suite cannot actually produce.
+    await fixture.write('src/added.ts', 'export const added = true;\nexport const extra = 1;\nexport const more = 2;\n');
+    fixture.git(['add', 'src/added.ts']);
+    await expect.poll(() => worktreeStatus()).toBe(true);
+    if (running.child.stdin === null) {
+      throw new Error('[behavioral] generated CLI was not spawned with a writable stdin pipe');
+    }
+    running.child.stdin.write('r');
+    const { promise: settle, resolve: resolveSettle } = Promise.withResolvers<void>();
+    setTimeout(resolveSettle, 500);
+    await settle;
+    expect(await worktreeStatus()).toBe(true);
+
+    await page.close();
+  } finally {
+    await stopGeneratedCli(running);
+    await fixture.cleanup();
+  }
+});
