@@ -5,16 +5,16 @@ milestone_name: Artifact Review
 current_phase: 14
 current_phase_name: Uncommitted Source Review & Frozen Snapshots
 status: verifying
-stopped_at: Completed 14-13-PLAN.md (final plan, Phase 14)
-last_updated: "2026-10-30T22:22:02.224Z"
+stopped_at: Completed 14-14-PLAN.md
+last_updated: "2026-10-30T23:22:50.220Z"
 last_activity: 2026-10-30
 last_activity_desc: Phase 13 complete, transitioned to Phase 14
 progress:
   total_phases: 7
-  completed_phases: 2
-  total_plans: 18
-  completed_plans: 18
-  percent: 29
+  completed_phases: 1
+  total_plans: 21
+  completed_plans: 19
+  percent: 14
 ---
 
 # Project State
@@ -80,6 +80,7 @@ Last activity: 2026-10-30 — Phase 13 complete, transitioned to Phase 14
 | Phase 14-uncommitted-source-review-frozen-snapshots P11 | 25min | 2 tasks | 3 files |
 | Phase 14-uncommitted-source-review-frozen-snapshots P12 | 70min | 2 tasks | 3 files |
 | Phase 14-uncommitted-source-review-frozen-snapshots P13 | 70min | 2 tasks | 1 files |
+| Phase 14 P14 | 70min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -130,6 +131,7 @@ Decisions are logged in PROJECT.md Key Decisions.
 - [Phase 14-uncommitted-source-review-frozen-snapshots]: 14-12: D-19 relaunch-recovery browser trigger not added, confirmed out of reachable scope — 14-09's findUncommittedDraftCandidate only prints a CLI notice; no server signal reaches /api/draft for a different-digest candidate, and building one requires draft-loader.ts/capabilities.ts/contracts changes outside this plan's files_modified
 - [Phase 14-uncommitted-source-review-frozen-snapshots]: 14-13: terminal r-keypress refresh is untestable via piped child_process stdio — registerUncommittedRefreshKeypress (src/cli/run.ts) gates its stdin handler behind process.stdin.isTTY===true, never satisfied by piped stdio; confirmed empirically against the real packaged CLI. Alt+Shift+R proven instead; terminal keypress documented as an out-of-scope gap in 14-13-SUMMARY.md
 - [Phase 14-uncommitted-source-review-frozen-snapshots]: 14-13: StaleAnchorNotice never becomes visible after Refresh — performRefresh() (src/web/App.vue) never calls workspace.replaceComments(...)/re-fetches /api/draft, so client-side comment status never resyncs even though server-side reclassification (orphaned, not stale, per exact-blobOid anchor lookup) and the RefreshSummaryPanel's own count are both correct. Documented as an out-of-scope gap in 14-13-SUMMARY.md
+- [Phase 14]: 14-14: fixed reconciledWorkspaceComments() discarding fresh comment status/exactFile/fileId on every call — Merge logic spread stale previous client comment then only overwrote state/body (a no-op, since both already derive from the same server draft), silently clobbering status/exactFile/fileId/recordedAnchor; blocked SNAP-05's StaleAnchorNotice resync. Fixed by returning the fresh reconcileDraftComments() output directly.
 
 ### Pending Todos
 
@@ -143,6 +145,7 @@ None yet.
 - [Phase 5 owner decision] Plan a fresh CI-built stable candidate, actual new digest-bound approval and unchanged-byte publication in the same workflow run/attempt, per 05-CONTEXT.md. The old Phase 4 archive (SHA-256 e7766d43f7f804b138e694b298480cdec62ebfc16960f86d4c1e3c7959cf1dca, 3513998 bytes) and sealed evidence (3bf27f13de08b85527240c76ddc1e4df6c37dc06a5e1bbf006ab9d45f94fb379) remain immutable history. Do not publish that old artifact as a fallback or mutate any remote state under planning approval.
 - [Publication boundary] Phase 3 published commit ff72519969da8d2c0761c9533ccb27b809cd17bb. Later local evidence and completion commits are not automatically authorized for pushing.
 - Phase 14 verification: two confirmed gaps from 14-13's e2e coverage need remediation decisions — (1) registerUncommittedRefreshKeypress's TTY requirement blocks terminal r-keypress e2e verification (src/cli/run.ts, outside 14-13 scope); (2) performRefresh() never resyncs client-side comment status so StaleAnchorNotice never appears after Refresh (src/web/App.vue, outside 14-13 scope). See 14-13-SUMMARY.md Deviations for full detail and remediation options.
+- tests/e2e/complete-review-draft.spec.ts (8/8) fails against the packaged build: the default-selected file on load for its fixture is single-pane-rendered since Phase 13, while the test still asserts .monaco-diff-editor. Pre-existing Phase 13 regression, unrelated to 14-14; discovered during 14-14 Task 3's sanity check, not fixed (out of scope).
 
 ### Roadmap Evolution
 
@@ -179,6 +182,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-30T22:21:46.644Z
-Stopped at: Completed 14-13-PLAN.md (final plan, Phase 14)
+Last session: 2026-10-30T23:22:40.518Z
+Stopped at: Completed 14-14-PLAN.md
 Resume file: None
