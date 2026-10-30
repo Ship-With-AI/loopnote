@@ -2,7 +2,9 @@
 import { computed, ref } from 'vue';
 
 import type { SessionFile } from '../../contracts/api.js';
+import { singlePaneSideFor, wasModeKind } from '../model/single-pane-layout.js';
 import PathDisplay from './PathDisplay.vue';
+import StatusBadge from './StatusBadge.vue';
 
 const props = defineProps<{
   readonly filesCollapsed: boolean;
@@ -22,6 +24,29 @@ const effectivePath = computed(() => {
   return file.status.kind === 'deleted'
     ? file.oldPath?.display ?? props.selectedPath
     : file.newPath?.display ?? file.oldPath?.display ?? props.selectedPath;
+});
+const singlePaneSide = computed(() =>
+  props.selectedFile === undefined
+    ? undefined
+    : singlePaneSideFor(
+        props.selectedFile.status.kind,
+        props.selectedFile.availability,
+      ),
+);
+const layoutLabel = computed(() => {
+  if (singlePaneSide.value === undefined || props.selectedFile === undefined) {
+    return undefined;
+  }
+  switch (props.selectedFile.status.kind) {
+    case 'added':
+      return 'Added · Head only';
+    case 'deleted':
+      return 'Deleted · Base only';
+    case 'type-changed':
+      return `Type changed · Head only (was ${wasModeKind(props.selectedFile.oldMode)})`;
+    default:
+      return undefined;
+  }
 });
 const counts = computed(() => props.selectedFile !== undefined
   && props.selectedFile.additions !== null
@@ -51,7 +76,13 @@ defineExpose({ focusFilesToggle, focusHeading });
       <PathDisplay v-if="selectedFile !== undefined" :file="selectedFile" basename />
       <template v-else>{{ selectedPath }}</template>
     </h1>
-    <span v-if="selectedFile !== undefined" class="review-toolbar__status">{{ selectedFile.status.kind }}</span>
+    <template v-if="selectedFile !== undefined">
+      <template v-if="layoutLabel !== undefined">
+        <StatusBadge :kind="selectedFile.status.kind" reviewable />
+        <span class="review-toolbar__status">{{ layoutLabel }}</span>
+      </template>
+      <span v-else class="review-toolbar__status">{{ selectedFile.status.kind }}</span>
+    </template>
     <span v-if="counts !== undefined" class="review-toolbar__counts">{{ counts }}</span>
     <button
       ref="filesToggle"
