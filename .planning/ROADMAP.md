@@ -105,7 +105,7 @@ Plans:
 - [x] 14-07-PLAN.md — worktree-snapshot.ts: torn-capture retry, index-race guard, refresh()
 - [x] 14-08-PLAN.md — Server session wiring: capability registry, /api/refresh, relaunch recovery
 - [x] 14-09-PLAN.md — CLI flags (--staged/--unstaged/--worktree/--base), launch wiring, 'r' refresh
-- [ ] 14-10-PLAN.md — IdentityHeader.vue: comparison strip, Refresh button, change indicator
+- [x] 14-10-PLAN.md — IdentityHeader.vue: comparison strip, Refresh button, change indicator
 - [ ] 14-11-PLAN.md — InlineNotice dismissible prop, FileRow markers, RefreshSummaryPanel.vue
 - [ ] 14-12-PLAN.md — App.vue integration: empty state, banner, polling, shortcuts, export gating
 - [ ] 14-13-PLAN.md — Playwright e2e coverage: picker/Refresh/reclassify/summary-panel flows
