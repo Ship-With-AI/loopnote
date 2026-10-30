@@ -33,6 +33,10 @@ const unsupportedAvailability: Readonly<
   oversized: Object.freeze({ kind: 'unsupported', reason: 'oversized' }),
   submodule: Object.freeze({ kind: 'unsupported', reason: 'submodule' }),
   symlink: Object.freeze({ kind: 'unsupported', reason: 'symlink' }),
+  'changed-during-capture': Object.freeze({
+    kind: 'unsupported',
+    reason: 'changed-during-capture',
+  }),
 });
 const fatalUtf8Decoder = new TextDecoder('utf-8', { fatal: true });
 

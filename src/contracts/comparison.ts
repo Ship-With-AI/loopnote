@@ -97,6 +97,7 @@ export const UnsupportedAvailabilityReasonSchema = z.enum([
   'submodule',
   'symlink',
   'mode-or-type',
+  'changed-during-capture',
 ]);
 
 export const AvailabilitySchema = z
@@ -130,6 +131,38 @@ export const ChangedFileSchema = z
   })
   .readonly();
 
+export const UncommittedScopeSchema = z
+  .strictObject({
+    kind: z.literal('uncommitted'),
+    sourceKind: z.enum(['staged', 'unstaged', 'worktree']),
+    repositoryRoot: z.string().min(1),
+    objectFormat: z.enum(['sha1', 'sha256']),
+    baseCommitOid: GitObjectIdSchema.optional(),
+    mergeBaseOid: GitObjectIdSchema.optional(),
+    changedFiles: z.array(ChangedFileSchema).readonly(),
+  })
+  .superRefine((scope, context) => {
+    const hasBase = scope.baseCommitOid !== undefined;
+    const hasMergeBase = scope.mergeBaseOid !== undefined;
+    if (scope.sourceKind === 'unstaged') {
+      if (hasBase || hasMergeBase) {
+        context.addIssue({
+          code: 'custom',
+          message: 'Unstaged comparisons must not have a base commit.',
+          path: ['baseCommitOid'],
+        });
+      }
+    } else if (!hasBase || !hasMergeBase) {
+      context.addIssue({
+        code: 'custom',
+        message:
+          'Staged and Working tree comparisons require a base commit.',
+        path: ['baseCommitOid'],
+      });
+    }
+  })
+  .readonly();
+
 export const PinnedComparisonSchema = z.strictObject({
   repositoryRoot: z.string().min(1),
   objectFormat: z.enum(['sha1', 'sha256']),
@@ -146,6 +179,7 @@ export type PinnedComparison = z.infer<typeof PinnedComparisonSchema>;
 export type RangeReviewScope = z.infer<typeof RangeReviewScopeSchema>;
 export type ExactPatchValidationTarget = z.infer<typeof ExactPatchValidationTargetSchema>;
 export type ExactPatchScope = z.infer<typeof ExactPatchScopeSchema>;
+export type UncommittedScope = z.infer<typeof UncommittedScopeSchema>;
 export interface GroundedExactPatch {
   readonly repositoryRoot: string;
   readonly objectFormat: 'sha1' | 'sha256';
