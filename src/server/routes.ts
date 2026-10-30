@@ -21,6 +21,7 @@ import {
   SupportStartRequestSchema,
   SupportStartResultSchema,
   SupportStatusSchema,
+  UncommittedDraftRecoveryResultSchema,
   type DraftMutationResult as ApiDraftMutationResult,
   type DraftRecoveryResult as ApiDraftRecoveryResult,
 } from '../contracts/api.js';
@@ -263,6 +264,23 @@ export function registerSessionRoutes(app: FastifyInstance, capabilities: Capabi
           return unavailable(reply, 400);
         }
         return await capabilities.worktreeChangeIndicator!();
+      },
+    );
+  }
+
+  if (capabilities.recoverUncommittedDraft !== undefined) {
+    app.post<{ Querystring: Record<string, never>; Body: unknown }>(
+      '/api/uncommitted/recover-draft',
+      { schema: { querystring: EMPTY_QUERY_SCHEMA }, bodyLimit: 1 },
+      async (request, reply) => {
+        if (
+          request.body !== undefined ||
+          (request.headers['content-length'] !== undefined && request.headers['content-length'] !== '0') ||
+          request.headers['content-type'] !== undefined
+        ) {
+          return unavailable(reply, 400);
+        }
+        return UncommittedDraftRecoveryResultSchema.parse(await capabilities.recoverUncommittedDraft!());
       },
     );
   }

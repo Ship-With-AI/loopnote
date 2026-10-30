@@ -24,6 +24,7 @@ import {
 import type {
   AttachedCompletionStatus,
   FinishReviewResult,
+  UncommittedDraftRecoveryResult,
 } from '../contracts/api.js';
 import { AttachedCompletionCoordinator } from './attached-completion.js';
 import {
@@ -42,7 +43,7 @@ import {
   createSelectorDriftObserver,
   type SelectorDriftObserver,
 } from '../git/selector-drift.js';
-import { createDraftStore, type DraftStore } from './draft-store.js';
+import { createDraftStore, loadUncommittedDraftCandidateComments, type DraftStore } from './draft-store.js';
 import { assertAttachedStorageScope } from './draft-loader.js';
 import {
   buildReviewExportV1,
@@ -115,6 +116,7 @@ export type CapabilityRegistryOptions = Readonly<{
   readonly selectorDriftObserver?: SelectorDriftObserver;
   readonly attachedCompletion?: AttachedCompletionOptions;
   readonly support?: SupportCapability;
+  readonly uncommittedRecoveryCandidate?: Readonly<{ readonly path: string }>;
 }>;
 
 export type AttachedCompletionOptions = Readonly<{
@@ -138,6 +140,7 @@ export type CapabilityRegistry = Readonly<{
     readonly orphanedCount: number;
   }>>;
   readonly worktreeChangeIndicator?: () => Promise<Readonly<{ readonly changed: boolean }>>;
+  readonly recoverUncommittedDraft?: () => Promise<UncommittedDraftRecoveryResult>;
   readonly isExactPatch?: true;
   readonly attachedCompletion?: Readonly<{
     readonly status: () => AttachedCompletionStatus;
@@ -910,6 +913,7 @@ export async function createUncommittedCapabilityRegistry(
         ...(scope.baseCommitOid === undefined ? {} : { baseCommitOid: scope.baseCommitOid }),
         reviewKey,
         changedFileCount: files.length,
+        ...(options.uncommittedRecoveryCandidate === undefined ? {} : { recoveryAvailable: true as const }),
       },
       files: files.map((file) => ({
         fileId: file.id,
@@ -1055,6 +1059,32 @@ export async function createUncommittedCapabilityRegistry(
       }
       return { changed: false };
     },
+    ...(options.uncommittedRecoveryCandidate === undefined ? {} : {
+      async recoverUncommittedDraft() {
+        const comments = await loadUncommittedDraftCandidateComments(options.uncommittedRecoveryCandidate!.path);
+        if (comments === undefined) return { kind: 'unavailable' as const };
+        const state = await draftStore.loadState();
+        let revision = state.kind === 'current' ? state.draft.revision : 0;
+        for (const comment of comments) {
+          const added = await draftStore.mutate({
+            expectedRevision: revision,
+            mutation: { type: 'addComment', body: comment.body, anchor: comment.anchor },
+          });
+          if (added.kind === 'invalidTarget') continue;
+          if (added.kind !== 'accepted') return { kind: 'unavailable' as const };
+          revision = added.draft.revision;
+          if (comment.state !== 'resolved') continue;
+          const newId = added.draft.comments[added.draft.comments.length - 1]!.id;
+          const resolved = await draftStore.mutate({
+            expectedRevision: revision,
+            mutation: { type: 'resolveComment', commentId: newId },
+          });
+          if (resolved.kind !== 'accepted') return { kind: 'unavailable' as const };
+          revision = resolved.draft.revision;
+        }
+        return { kind: 'recovered' as const };
+      },
+    }),
     async lookup(fileId) {
       options.onCapabilityLookup?.(fileId);
       const file = (await snapshot.files()).find((candidate) => candidate.id === fileId);
