@@ -473,17 +473,17 @@ CONTEXT.md left four items to the agent's discretion; each is resolved here as a
 
 **If this table is small:** both remaining claims are mechanically verifiable during planning/implementation via fixture tests already called for elsewhere in this document (D-08's fixture-testing requirement, Required Focus 3's fault-injection suite) — neither requires a new user decision.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Exact field enumeration of `ReviewExportV4Schema`'s uncommitted provenance block**
+1. **DEFERRED — Phase 17 scope.** Exact field enumeration of `ReviewExportV4Schema`'s uncommitted provenance block
    - What we know: it must carry `sourceKind`, `baseCommitOid?`, and the snapshot chain/status, following `ExactPatchExportScopeSchema`'s existing shape (`digest`, `validationTarget`, `reviewKey`, `snapshot: { status, files }`).
-   - What's unclear: the exact field names/nesting, since export schema work is explicitly Phase 17 scope per CONTEXT's Deferred Ideas.
+   - What's unclear: the exact field names/nesting, since export schema work is explicitly Phase 17 scope per CONTEXT's Deferred Ideas — this does not block Phase 14 execution; no Phase 14 plan depends on the answer.
    - Recommendation: Phase 17's research should treat this phase's `WorktreeSnapshotManifestSchema` (sourceKind, baseCommitOid?, chain, entries) as the given input shape to wrap in a V4-superset, exactly how `ReviewExportV3Schema` wraps `ExactPatchExportScopeSchema` today.
 
-2. **Draft-index lookup for D-19's relaunch recovery (same `sourceKind`/`baseCommitOid`, different digest)**
+2. **RESOLVED.** Draft-index lookup for D-19's relaunch recovery (same `sourceKind`/`baseCommitOid`, different digest)
    - What we know: the review key does not expose `sourceKind`/`baseCommitOid` in plaintext (it's a hash), so finding "a previous draft for the same source+base but different content" requires either an index file or scanning `.cumpa/drafts/*.json` and reading each candidate's `comparison` block.
    - What's unclear: whether a lightweight secondary index (e.g. `.cumpa/drafts/uncommitted-index.json` mapping `(sourceKind, baseCommitOid) → [reviewKey, ...]`) is worth the added write-path complexity versus a bounded directory scan (draft counts per repository are small — this is a local single-developer tool, not a server with many concurrent drafts).
-   - Recommendation: start with a bounded directory scan (read every `.cumpa/drafts/*.json`, parse just the `comparison` block, filter by `sourceKind`+`baseCommitOid`) during planning; only add an index file if the scan proves measurably slow in practice, consistent with this project's general "no premature optimization" posture evidenced by the exact-patch/range code paths never needing one.
+   - Recommendation (implemented by 14-08 Task 3's `findUncommittedDraftCandidate`): start with a bounded directory scan (read every `.cumpa/drafts/*.json`, parse just the `comparison` block, filter by `sourceKind`+`baseCommitOid`) during planning; only add an index file if the scan proves measurably slow in practice, consistent with this project's general "no premature optimization" posture evidenced by the exact-patch/range code paths never needing one.
 
 ## Sources
 

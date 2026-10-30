@@ -94,7 +94,20 @@ Plans:
   4. User triggers Refresh to capture a new snapshot of the same source and scope, and sees a summary of which files were added, removed, or modified since the previous snapshot.
   5. After Refresh, every existing comment is reclassified as current, stale, or orphaned with its recorded evidence intact and never moved to a different line; two different working-tree states against the same base never share or overwrite a draft.
 
-**Plans**: TBD
+**Plans**: 13 plans across 6 waves
+- [ ] 14-01-PLAN.md — Extract shared snapshot-fs.ts file-IO primitives from patch-snapshot.ts
+- [ ] 14-02-PLAN.md — UncommittedScopeSchema, changed-during-capture availability reason, UncommittedDraftComparisonSchema
+- [ ] 14-03-PLAN.md — uncommittedReviewKey() draft/anchor identity hash
+- [ ] 14-04-PLAN.md — worktree-inventory.ts: Staged/Unstaged/Working-tree file-set discovery
+- [ ] 14-05-PLAN.md — worktree-content.ts: CRLF-safe content resolution + synthetic blobOid
+- [ ] 14-06-PLAN.md — CLI picker: Uncommitted group, HEAD-preselected Base flow
+- [ ] 14-07-PLAN.md — worktree-snapshot.ts: torn-capture retry, index-race guard, refresh()
+- [ ] 14-08-PLAN.md — Server session wiring: capability registry, /api/refresh, relaunch recovery
+- [ ] 14-09-PLAN.md — CLI flags (--staged/--unstaged/--worktree/--base), launch wiring, 'r' refresh
+- [ ] 14-10-PLAN.md — IdentityHeader.vue: comparison strip, Refresh button, change indicator
+- [ ] 14-11-PLAN.md — InlineNotice dismissible prop, FileRow markers, RefreshSummaryPanel.vue
+- [ ] 14-12-PLAN.md — App.vue integration: empty state, banner, polling, shortcuts, export gating
+- [ ] 14-13-PLAN.md — Playwright e2e coverage: picker/Refresh/reclassify/summary-panel flows
 **UI hint**: yes
 **Research flag**: yes — content-digest key derivation for uncommitted drafts/anchors (Pitfall 1), CRLF/filter normalization between index and worktree reads, and torn-snapshot/race detection design need verification during planning, per `research/SUMMARY.md`.
 
