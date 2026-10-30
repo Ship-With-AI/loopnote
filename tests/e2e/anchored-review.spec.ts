@@ -131,7 +131,7 @@ async function stopGeneratedCli(running: RunningCli): Promise<void> {
 
 async function openGeneratedReview(page: Page, url: string): Promise<void> {
   await page.goto(url, { waitUntil: 'domcontentloaded' });
-  await expect(page.locator('.monaco-diff-editor')).toBeVisible();
+  await expect(page.locator('.diff-workspace__editor')).toBeVisible();
   const endpoints = page.getByRole('banner');
   await expect(endpoints.getByText('BASE', { exact: true })).toBeVisible();
   await expect(endpoints.getByText('HEAD', { exact: true })).toBeVisible();
@@ -167,6 +167,34 @@ async function activateMonacoLine(
   await line.click();
   const affordance = page.getByRole('button', {
     name: `Add comment to ${side} line ${lineNumber}`,
+  });
+  await expect(affordance).toBeVisible();
+  await affordance.click();
+}
+
+async function activateSinglePaneLine(
+  page: Page,
+  side: 'base' | 'head',
+  text: string,
+  lineNumber: number,
+): Promise<void> {
+  const sideWord = side === 'base' ? 'BASE' : 'HEAD';
+  const editorSurface = page
+    .locator('.diff-workspace__editor .monaco-scrollable-element.editor-scrollable')
+    .first();
+  await editorSurface.click({ position: { x: 16, y: 16 } });
+  await page.keyboard.press('Meta+g');
+  await page.keyboard.insertText(String(lineNumber));
+  await page.keyboard.press('Enter');
+  const line = page
+    .locator('.diff-workspace__editor')
+    .locator('.view-line')
+    .filter({ hasText: text });
+  await expect(line).toBeVisible();
+  await line.hover();
+  await line.click();
+  const affordance = page.getByRole('button', {
+    name: `Add comment to ${sideWord} line ${lineNumber}`,
   });
   await expect(affordance).toBeVisible();
   await affordance.click();
@@ -333,4 +361,117 @@ test('packaged changed files dialog returns to the diff heading', async ({ brows
     await stopGeneratedCli(initial);
     await fixture.cleanup();
   }
+});
+
+test('packaged review renders an added file as one single-pane and accepts a comment', async ({ browser, page }, testInfo) => {
+  assertChromium(browser, testInfo);
+  const fixture = await createGitFixture({ anchoredReview: true });
+  const draftsPath = join(fixture.root, '.cumpa', 'drafts');
+  const commentBody = 'Packaged comment on the added file head line one.';
+  const running = startGeneratedCli(fixture);
+
+  try {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await openGeneratedReview(page, await waitForLoopbackUrl(running));
+
+    const treeRow = page.getByRole('treeitem', { name: /added\.ts/ });
+    await expect(treeRow).toHaveAccessibleName(/single pane/i);
+    await treeRow.click();
+    await expect(page.getByText('Added · Head only')).toBeVisible();
+    await expect(page.locator('.diff-workspace__editor')).toHaveCount(1);
+    await expect(page.locator('.monaco-diff-editor')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Next change' })).toHaveCount(0);
+
+    await activateSinglePaneLine(page, 'head', 'export const added = true;', 1);
+    const composer = page.locator('.monaco-anchor-zone--composer textarea');
+    await expect(composer).toHaveCount(1);
+    await expect(page.locator('.inline-comment-composer__header')).toContainText(
+      'src/added.ts · Head line 1',
+    );
+    await composer.fill(commentBody);
+    const addResponse = page.waitForResponse((response) => response.url().includes('/api/draft/mutations'));
+    await page.locator('.monaco-anchor-zone--composer button').filter({ hasText: 'Add comment' }).click();
+    expect((await addResponse).status()).toBe(201);
+    await expect(composer).toHaveCount(0);
+  } finally {
+    await stopGeneratedCli(running);
+  }
+
+  const [draftFile] = readdirSync(draftsPath).filter((file) => file.endsWith('.json'));
+  expect(draftFile).toBeDefined();
+  const draft = JSON.parse(readFileSync(join(draftsPath, draftFile!), 'utf8')) as {
+    comments: Array<{ anchor: { line: number; selectedText: string; side: string }; body: string }>;
+  };
+  expect(draft.comments).toEqual([
+    expect.objectContaining({
+      body: commentBody,
+      anchor: expect.objectContaining({
+        line: 1,
+        selectedText: 'export const added = true;',
+        side: 'head',
+      }),
+    }),
+  ]);
+
+  await fixture.cleanup();
+});
+
+test('packaged review renders a deleted file as one single-pane and accepts a comment', async ({ browser, page }, testInfo) => {
+  assertChromium(browser, testInfo);
+  const fixture = await createGitFixture({ anchoredReview: true });
+  const draftsPath = join(fixture.root, '.cumpa', 'drafts');
+  const commentBody = 'Packaged comment on the deleted file base line one.';
+  const running = startGeneratedCli(fixture);
+
+  try {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await openGeneratedReview(page, await waitForLoopbackUrl(running));
+
+    const treeRow = page.getByRole('treeitem', { name: /deleted\.ts/ });
+    await expect(treeRow).toHaveAccessibleName(/single pane/i);
+    await treeRow.click();
+    await expect(page.getByText('Deleted · Base only')).toBeVisible();
+    await expect(page.locator('.diff-workspace__editor')).toHaveCount(1);
+    await expect(page.locator('.monaco-diff-editor')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Next change' })).toHaveCount(0);
+
+    await activateSinglePaneLine(page, 'base', 'export const deleted = true;', 1);
+    const composer = page.locator('.monaco-anchor-zone--composer textarea');
+    await expect(composer).toHaveCount(1);
+    await expect(page.locator('.inline-comment-composer__header')).toContainText(
+      'src/deleted.ts · Base line 1',
+    );
+    await composer.fill(commentBody);
+    const addResponse = page.waitForResponse((response) => response.url().includes('/api/draft/mutations'));
+    await page.locator('.monaco-anchor-zone--composer button').filter({ hasText: 'Add comment' }).click();
+    expect((await addResponse).status()).toBe(201);
+    await expect(composer).toHaveCount(0);
+
+    await page.getByRole('treeitem', { name: /changed\.ts/ }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'src/changed.ts' })).toBeVisible();
+    await expect(
+      page.getByText(/Added · Head only|Deleted · Base only|Type changed · Head only/),
+    ).toHaveCount(0);
+    await expect(page.locator('.monaco-diff-editor')).toHaveCount(1);
+  } finally {
+    await stopGeneratedCli(running);
+  }
+
+  const [draftFile] = readdirSync(draftsPath).filter((file) => file.endsWith('.json'));
+  expect(draftFile).toBeDefined();
+  const draft = JSON.parse(readFileSync(join(draftsPath, draftFile!), 'utf8')) as {
+    comments: Array<{ anchor: { line: number; selectedText: string; side: string }; body: string }>;
+  };
+  expect(draft.comments).toEqual([
+    expect.objectContaining({
+      body: commentBody,
+      anchor: expect.objectContaining({
+        line: 1,
+        selectedText: 'export const deleted = true;',
+        side: 'base',
+      }),
+    }),
+  ]);
+
+  await fixture.cleanup();
 });
