@@ -27,9 +27,9 @@ files_reviewed_list:
   - tests/unit/single-pane-layout.test.ts
 findings:
   critical: 0
-  warning: 2
-  info: 2
-  total: 4
+  warning: 0
+  info: 5
+  total: 5
 status: issues_found
 ---
 
@@ -42,75 +42,44 @@ status: issues_found
 
 ## Summary
 
-Reviewed the single-pane rendering surface (plain-`ICodeEditor` adapter, `DiffWorkspace.vue` layout branch, `StatusBadge`/`ActiveFileToolbar` markers, `oldMode` threading through `api.ts`/`capabilities.ts`/`patch-snapshot.ts`) end to end, including the newly added unit and e2e coverage. The D-01..D-14 decisions are implemented correctly for the paths the current `App.vue` wiring actually exercises: `singlePaneSideFor`/`wasModeKind` are pure and well-tested, the plain-editor adapter correctly omits all diff-only Monaco options and diff decorations (D-02/D-04), `oldMode` is threaded consistently through both session-building code paths and validated with the same `FileMetadataResponseSchema`, and the e2e specs genuinely exercise added/deleted single-pane commenting through the packaged CLI.
+Re-review of the single-pane file rendering surface after fix commits `1b8d174` (WR-01) and `59f2381` (WR-02). Both previously-filed warnings are confirmed **resolved**, not merely relocated:
 
-No crash, data-loss, or security-class defects were found. Two warnings are worth fixing: a latent resource-leak path in `DiffWorkspace.vue`'s new `editorKind` watcher (currently unreachable through `App.vue`'s wiring, but this surface is explicitly meant to be reused by Phases 14–16, so the latent bug will become reachable), and duplicated single-pane status-kind logic between `single-pane-layout.ts` and `StatusBadge.vue` that risks silently drifting the accessibility label away from actual behavior. Two informational items round out the review.
+- **WR-01** (`DiffWorkspace.vue` / `diff-adapter.ts`): the `editorKind` watcher now calls `unmountZone()` before `adapter?.dispose()` (`DiffWorkspace.vue:311-313`), matching the content watcher's ordering, so the `CommentComposer`/accepted-comment Vue tree is torn down with `render(null, zoneRoot)` while its host DOM node is still owned by the live adapter. Separately, `PublicMonacoDiffAdapter.dispose()` now sets `disposed = true` and invokes `this.pendingSetFileReady?.()` (`diff-adapter.ts:363-369`), which disposes the one-off `onDidUpdateDiff` listener and resolves the `ready` promise created in `setFile()`. `setFile()` itself now awaits that promise and immediately bails (`if (this.disposed) { return; }`, `diff-adapter.ts:233-236`) without touching the already-disposed `diffEditor`/models. Traced the full call path (`loadContent()` → `adapter.setFile()` → `await ready` → dispose-triggered resolve → early return → `loadVersion` guard discards the stale continuation) and found no remaining hang, no double-resolve risk (`resolveReady()` is idempotent and the listener is disposed before any second fire could occur), and no post-dispose interaction with torn-down Monaco state.
+- **WR-02** (`StatusBadge.vue` / `single-pane-layout.ts`): `StatusBadge.vue` now imports and calls `isSinglePaneStatusKind()` (`StatusBadge.vue:5,31`) instead of re-implementing the `added`/`deleted`/`type-changed` check. The new export (`single-pane-layout.ts:36-38`) is a one-line `kind in singlePaneStatusSides` lookup against the same `singlePaneStatusSides` table `singlePaneSideFor` already uses, so the two can no longer drift.
 
-## Warnings
-
-### WR-01: `editorKind` watcher disposes the live adapter without tearing down its comment-composer zone, and can hang the diff adapter's in-flight `setFile()` promise
-
-**File:** `src/web/components/DiffWorkspace.vue:311-323`
-**Issue:** When `editorKind` (derived from `singlePaneSide`) changes while the component stays mounted, this watcher calls `adapter?.dispose()` synchronously and recreates a new adapter of the other kind in `nextTick`. Two problems:
-
-1. Unlike the sibling `watch(() => props.content, ...)` handler two blocks above (line 302-309), this watcher never calls `unmountZone()` first. If a comment composer (or accepted-comment card) is currently rendered into the adapter's `.monaco-anchor-zone--composer` view zone, `adapter.dispose()` tears down the Monaco view zone's DOM node out from under the live Vue render tree mounted into `zoneRoot` via `render(h(CommentComposer, …), zone)` — the `CommentComposer` instance (and its watchers/effects) is never explicitly unmounted via `render(null, zoneRoot)`, leaking the component instance.
-2. If the adapter being disposed is a `PublicMonacoDiffAdapter` with a `setFile()` call still in flight (its `await ready` is tied to a one-off `onDidUpdateDiff` listener created inside `setFile`, `diff-adapter.ts:221-226`), disposing the diff editor before that event fires means the listener never disposes and the `ready` promise never resolves — the stale `loadContent()` call (and anything chained after its `await adapter.setFile(...)`) hangs forever, and the one-off listener closure leaks.
-
-Today this is latent rather than live: `App.vue` always resets `selectedContent.value = undefined` before loading a new file's content (`App.vue:304`, `App.vue:780`), and `DiffWorkspace`'s `v-else-if="selectedContent !== undefined"` gate (`App.vue:1187`) means the component fully unmounts/remounts on every file switch — so `editorKind` never actually changes on a *live* instance through the current app flow, and there is no component-level test for `DiffWorkspace.vue` that exercises this watcher directly. However, `13-CONTEXT.md` explicitly says this single-pane surface "is reused by Phases 14–16, so it should be a reusable path, not a special case" — the first future caller that updates `content`/`singlePaneSide` without going through a full remount will hit this.
-
-**Fix:** Mirror the content watcher: call `unmountZone()` before disposing, and make the diff adapter's `setFile()` resilient to disposal mid-flight (e.g. guard the `ready` executor with a `disposed` check, or register the one-off listener in `staticDisposables` so `dispose()` cleans it up even if it never fired):
-
-```ts
-watch(editorKind, () => {
-  unmountZone();
-  adapter?.dispose();
-  adapter = undefined;
-  void nextTick(() => {
-    if (host.value === undefined) return;
-    adapter = props.singlePaneSide !== undefined
-      ? createMonacoSinglePaneAdapter(host.value, languageForPath, syncAdapterState, props.singlePaneSide)
-      : createMonacoDiffAdapter(host.value, languageForPath, syncAdapterState);
-    syncCodeDensity();
-    syncSideNames();
-    void loadContent();
-  });
-});
-```
-
-### WR-02: Single-pane status-kind set is duplicated and can drift between `single-pane-layout.ts` and `StatusBadge.vue`
-
-**File:** `src/web/components/StatusBadge.vue:29-36` (vs. `src/web/model/single-pane-layout.ts:7-13`)
-**Issue:** `singlePaneSideFor`'s routing table (`added`/`deleted`/`type-changed`) is the single source of truth for which statuses render single-pane (D-05). `StatusBadge.vue`'s `singlePaneSuffix` computed re-implements the same status-kind check independently (`kind === 'added' || kind === 'deleted' || kind === 'type-changed'`) instead of importing it. D-09 requires the tree's hidden label to say "single pane" exactly for files that actually render single-pane; if a future phase changes `singlePaneStatusSides` (e.g. adds/removes a status kind) without remembering to touch this second copy, the accessibility label will silently lie about the file's actual rendering, which is exactly the color-independent-identification guarantee D-09/PANE-03 exist to protect.
-**Fix:** Export a shared predicate from `single-pane-layout.ts` and reuse it:
-
-```ts
-// single-pane-layout.ts
-export function isSinglePaneStatusKind(kind: ChangedFileStatusKind): boolean {
-  return kind in singlePaneStatusSides;
-}
-```
-
-```ts
-// StatusBadge.vue
-import { isSinglePaneStatusKind } from '../model/single-pane-layout.js';
-const singlePaneSuffix = computed(() =>
-  props.reviewable && isSinglePaneStatusKind(props.kind) ? ', single pane' : '',
-);
-```
+A fresh adversarial pass across the full file list (including the untouched `api.ts`, `capabilities.ts`, `patch-snapshot.ts`, `App.vue`, `ActiveFileToolbar.vue`, `FileRow.vue`, `ReviewToolbar.vue`, and test files) found no new Critical or Warning issues. `App.vue` still fully unmounts/remounts `DiffWorkspace` on every file switch (`selectedContent.value = undefined` at `App.vue:304`/`App.vue:780` plus the `v-else-if="selectedContent !== undefined"` gate at `App.vue:1187`), so the `editorKind`-watcher race the WR-01 fix guards against remains latent in the current app, exactly as before — the fix is correctly defensive for the reusable-component path Phases 14-16 are expected to exercise. No hardcoded secrets, dangerous functions, debug artifacts, or empty catch blocks were found in any reviewed file. Five Info-level items remain or were newly observed; none block shipping.
 
 ## Info
 
-### IN-01: `diff-workspace--single-pane` CSS class has no matching rule
+### IN-01: `diff-workspace--single-pane` CSS class still has no matching rule
 
-**File:** `src/web/components/DiffWorkspace.vue:360`
-**Issue:** The single-pane `<section>` root carries both `diff-workspace` and `diff-workspace--single-pane` classes, but `src/web/styles.css` defines no `.diff-workspace--single-pane` rule (only `.diff-workspace__side-labels--single-pane` at `styles.css:1576`). It currently has no visual effect; either it's an intentional styling hook for later phases or dead weight.
-**Fix:** If it's forward-looking (likely, given Phase 15/16 reuse), a short code comment next to the class in the template would save the next implementer a grep. If unintended, drop the modifier class.
+**File:** `src/web/components/DiffWorkspace.vue:361` (vs. `src/web/styles.css`)
+**Issue:** Carried forward from the prior review — unchanged by the fix commits. The single-pane `<section>` root still carries both `diff-workspace` and `diff-workspace--single-pane` classes, but `styles.css` defines no `.diff-workspace--single-pane` rule (only `.diff-workspace__side-labels--single-pane` at `styles.css:1576`). Confirmed still true against current `styles.css`.
+**Fix:** If forward-looking for Phase 15/16 reuse, add a short code comment next to the class; otherwise drop the unused modifier.
 
-### IN-02: No direct automated coverage for the empty-file notice or the type-changed header copy
+### IN-02: Empty-file notice and type-changed header copy still lack direct automated coverage
 
 **File:** `tests/unit/single-pane-layout.test.ts`, `tests/e2e/anchored-review.spec.ts`
-**Issue:** `tests/unit/single-pane-layout.test.ts` covers `singlePaneSideFor`/`wasModeKind` as pure functions, and `anchored-review.spec.ts` covers the added/deleted single-pane commenting flow end to end, but nothing exercises `DiffWorkspace.vue`'s `isSinglePaneFileEmpty` → `InlineNotice` "Empty file (0 bytes)" branch (D-07), and nothing exercises the `Type changed · Head only (was symlink)` header copy (D-06, `ActiveFileToolbar.vue:46`) through a mounted component or browser. `13-VERIFICATION.md` already notes the empty-file gap as a known, accepted non-blocking item, so this is a reminder rather than a new finding.
-**Fix:** A small Playwright fixture with a 0-byte added file, and one with a type-changed (symlink→file) fixture reaching the header, would close both gaps with the same harness already used by `anchored-review.spec.ts`/`pinned-session.spec.ts`.
+**Issue:** Carried forward from the prior review — unchanged by the fix commits. `single-pane-layout.test.ts` still only covers `singlePaneSideFor`/`wasModeKind`; `anchored-review.spec.ts:453` asserts the layout-label text is *absent* in one scenario but nothing exercises `DiffWorkspace.vue`'s `isSinglePaneFileEmpty` → `InlineNotice` "Empty file (0 bytes)" branch, or renders the `Type changed · Head only (was symlink)` copy (`ActiveFileToolbar.vue:46`). `13-VERIFICATION.md` already records this as an accepted, non-blocking gap.
+**Fix:** Add a 0-byte added-file fixture and a type-changed (symlink→file) fixture to the existing Playwright harness.
+
+### IN-03: WR-01's dispose/in-flight-`setFile` race has no regression test
+
+**File:** `src/web/monaco/diff-adapter.ts:222-236,363-369`, `tests/unit/monaco-diff-adapter.test.ts`
+**Issue:** The fix commit `1b8d174` changed only `DiffWorkspace.vue` and `diff-adapter.ts` — no test was added or updated. `monaco-diff-adapter.test.ts` has no case that calls `dispose()` while a `setFile()` promise is still pending on the mocked `onDidUpdateDiff` listener, so nothing guards against a future edit silently reintroducing the hang (e.g. someone later reordering the `pendingSetFileReady?.()` call after `this.diffEditor.dispose()`, or dropping the `this.disposed` bail-out check).
+**Fix:** Add a unit test that calls `adapter.setFile(file)` without firing the mocked `onDidUpdateDiff` callback, then calls `adapter.dispose()`, and asserts the `setFile()` promise settles (doesn't hang) and no post-dispose Monaco API calls occur.
+
+### IN-04: WR-02's shared predicate has no direct test, and `StatusBadge.vue` has zero test coverage anywhere
+
+**File:** `src/web/model/single-pane-layout.ts:36-38`, `src/web/components/StatusBadge.vue`
+**Issue:** `grep` across `tests/` for `StatusBadge` or `isSinglePaneStatusKind` returns no matches. The new exported predicate — whose entire purpose (per its own doc comment) is to prevent the accessibility label from drifting from the routing table — is untested, and so is the component that consumes it. The fix closes the *duplication* risk but not the *regression* risk: a future edit to `singlePaneStatusSides` could still silently change the "single pane" announcement without any test catching it.
+**Fix:** Add a `single-pane-layout.test.ts` case for `isSinglePaneStatusKind` mirroring the existing `singlePaneSideFor` cases, and a minimal `StatusBadge.vue` component test (or Playwright assertion) that checks the visually-hidden label includes ", single pane" for `added`/`deleted`/`type-changed` and excludes it for `modified`/`renamed`/`copied`/`unsupported`.
+
+### IN-05: `Promise.withResolvers()` is now used in browser-bundled code for the first time, with no explicit minimum-browser target
+
+**File:** `src/web/monaco/diff-adapter.ts:222`
+**Issue:** `Promise.withResolvers` (Baseline ~2024; Chrome 119+, Safari 17.4+, Firefox 121+) is already used elsewhere in the codebase (`src/server/attached-completion.ts`, `src/cli/run.ts`, `src/git/candidates.ts`), but those are Node-targeted (`engines.node >= 24` in `package.json` covers them). This is its first use inside `src/web/`, which ships to end-user browsers via Vite (`vite.config.ts` sets no explicit `build.target`, so Vite's default `"modules"` baseline applies — it transpiles syntax but does not polyfill missing runtime APIs). On a browser without native `Promise.withResolvers`, the `editorKind` watcher's `setFile()` call would throw a `TypeError` at `diff-adapter.ts:222` instead of degrading gracefully.
+**Fix:** If the project's supported-browser baseline already excludes pre-2024 browsers (plausible for a local developer review tool), this is fine as-is — consider recording that baseline once (e.g. a `browserslist` field or a comment) so future contributors don't need to re-derive it. Otherwise, replace with the manual `new Promise<void>((resolve) => { ... })` + externally-captured `resolve` pattern the code used before `1b8d174`.
 
 ---
 
