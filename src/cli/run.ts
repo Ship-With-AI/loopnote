@@ -9,14 +9,19 @@ import { z } from 'zod';
 import { confirmPinnedComparison } from './confirm.js';
 import { AgentRequestError, readAgentReviewRequest } from './request.js';
 import {
-  pickOrderedSources,
+  pickSource,
+  type PickedSource,
   type PickerRecoveryOptions,
+  type UncommittedRowKind,
 } from './picker.js';
 import {
   ComparisonSelectionSchema,
+  GitObjectIdSchema,
+  UncommittedScopeSchema,
   type GroundedExactPatch,
   type ComparisonSelection,
   type PinnedComparison,
+  type UncommittedScope,
 } from '../contracts/comparison.js';
 import type {
   OrderedSources,
@@ -26,6 +31,11 @@ import type {
 import { isLaunchError, type LaunchError } from '../domain/errors.js';
 import { discoverSourceCandidates } from '../git/candidates.js';
 import type { SourceDiscovery } from '../git/candidates.js';
+import { discoverGitRepository } from '../git/repository.js';
+import type { GitRepository } from '../git/repository.js';
+import { createGitRunner, GitRunnerError } from '../git/runner.js';
+import type { GitRunner } from '../git/runner.js';
+import { createWorktreeChangedFileInventory } from '../git/worktree-inventory.js';
 import {
   createPinnedComparison,
   createPinnedRangeComparison,
@@ -40,6 +50,8 @@ import {
   createConfiguredSupportCapability,
   createExactPatchSessionApp,
   createSessionApp,
+  createUncommittedSessionApp,
+  type CreateUncommittedSessionAppOptions,
   type SessionApp,
 } from '../server/app.js';
 import {
@@ -52,6 +64,7 @@ import type {
   SupportCapability,
 } from '../server/capabilities.js';
 import { PatchSnapshotError } from '../server/patch-snapshot.js';
+import { findUncommittedDraftCandidate } from '../server/draft-store.js';
 import {
   createShutdownController,
   type ShutdownController,
@@ -161,11 +174,12 @@ export interface RunCliDependencies {
       readonly candidateEnrichment?: SourceDiscovery['candidateEnrichment'];
       readonly startCandidateEnrichment?: SourceDiscovery['startCandidateEnrichment'];
       readonly suggestedHeadId?: string;
+      readonly preselectedBaseId?: string;
       readonly initialBase?: SourceCandidate;
       readonly initialHead?: SourceCandidate;
       readonly recovery?: PickerRecoveryOptions;
     },
-  ) => Promise<OrderedSources>;
+  ) => Promise<PickedSource>;
   readonly createDescriptor?: (
     options: CreatePinnedComparisonOptions,
   ) => Promise<PinnedComparison>;
@@ -175,6 +189,13 @@ export interface RunCliDependencies {
   readonly launchComparison?: (
     comparison: PinnedComparison,
   ) => Promise<unknown>;
+  readonly openBrowser?: (url: string) => Promise<unknown>;
+  readonly webRoot?: string;
+  readonly revealDraftFile?: DraftRevealPort;
+  readonly signalSource?: ShutdownSignalSource;
+  readonly support?: SupportCapability;
+  readonly createUncommittedSessionApp?: typeof createUncommittedSessionApp;
+  readonly findUncommittedDraftCandidate?: typeof findUncommittedDraftCandidate;
   readonly output?: (message: string) => void;
   readonly setExitStatus?: (status: number) => void;
 }
@@ -190,6 +211,8 @@ export interface OrdinaryActionDependencies {
   readonly createGroundedExactPatch?: typeof createGroundedExactPatch;
   readonly createSessionApp?: typeof createSessionApp;
   readonly createExactPatchSessionApp?: typeof createExactPatchSessionApp;
+  readonly createUncommittedSessionApp?: typeof createUncommittedSessionApp;
+  readonly findUncommittedDraftCandidate?: typeof findUncommittedDraftCandidate;
   readonly openBrowser?: (url: string) => Promise<unknown>;
   readonly webRoot?: string;
   readonly revealDraftFile?: DraftRevealPort;
@@ -397,6 +420,352 @@ function reportFatalLaunchError(
 ): void {
   output(error.message);
   setExitStatus(1);
+}
+
+const UNSTAGED_BASE_CONFLICT_MESSAGE =
+  '--base cannot be used with --unstaged — Unstaged always compares the index against the working tree.';
+
+export function resolveUncommittedFlagSelection(cliOptions: {
+  readonly staged?: boolean;
+  readonly unstaged?: boolean;
+  readonly worktree?: boolean;
+}): UncommittedRowKind | undefined {
+  if (cliOptions.staged === true) {
+    return 'staged';
+  }
+  if (cliOptions.unstaged === true) {
+    return 'unstaged';
+  }
+  if (cliOptions.worktree === true) {
+    return 'worktree';
+  }
+  return undefined;
+}
+
+export function validateUncommittedFlags(cliOptions: {
+  readonly staged?: boolean;
+  readonly unstaged?: boolean;
+  readonly worktree?: boolean;
+  readonly base?: string;
+}): void {
+  const selectedCount = [
+    cliOptions.staged,
+    cliOptions.unstaged,
+    cliOptions.worktree,
+  ].filter((flag) => flag === true).length;
+  if (selectedCount > 1) {
+    throw new Error(
+      '--staged, --unstaged, and --worktree are mutually exclusive. Choose exactly one.',
+    );
+  }
+  if (cliOptions.unstaged === true && cliOptions.base !== undefined) {
+    throw new Error(UNSTAGED_BASE_CONFLICT_MESSAGE);
+  }
+}
+
+async function resolveUncommittedObjectFormat(
+  repositoryRoot: string,
+  runner: GitRunner,
+  signal?: AbortSignal,
+): Promise<'sha1' | 'sha256'> {
+  const result = await runner.run(
+    ['rev-parse', '--show-object-format=storage'],
+    { cwd: repositoryRoot, signal },
+  );
+  const objectFormat = result.stdout.toString('utf8').trim();
+  if (objectFormat !== 'sha1' && objectFormat !== 'sha256') {
+    throw new Error('Git repository reports an unsupported object format.');
+  }
+  return objectFormat;
+}
+
+async function resolveUncommittedBaseCommitOid(
+  baseRef: string | undefined,
+  repository: GitRepository,
+  runner: GitRunner,
+  signal?: AbortSignal,
+): Promise<string> {
+  const revision = baseRef ?? repository.headOid;
+  try {
+    const result = await runner.run(
+      ['rev-parse', '--verify', '--end-of-options', `${revision}^{commit}`],
+      { cwd: repository.root, signal },
+    );
+    return GitObjectIdSchema.parse(result.stdout.toString('ascii').trim());
+  } catch (error) {
+    if (signal?.aborted) {
+      throw error;
+    }
+    throw new Error(
+      `Base ref "${revision}" could not be resolved to a commit.`,
+    );
+  }
+}
+
+async function resolveUncommittedMergeBaseOid(
+  baseCommitOid: string,
+  headOid: string,
+  repositoryRoot: string,
+  runner: GitRunner,
+  signal?: AbortSignal,
+): Promise<string> {
+  let stdout: Buffer = Buffer.alloc(0);
+  try {
+    const result = await runner.run(
+      ['merge-base', '--all', baseCommitOid, headOid],
+      { cwd: repositoryRoot, signal },
+    );
+    stdout = result.stdout;
+  } catch (error) {
+    if (
+      !(
+        error instanceof GitRunnerError &&
+        error.kind === 'exit' &&
+        error.exitCode === 1 &&
+        error.stderr.length === 0
+      )
+    ) {
+      throw error;
+    }
+  }
+  const mergeBases = stdout
+    .toString('ascii')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+  if (mergeBases.length === 0) {
+    throw new Error(
+      'Base and HEAD have unrelated histories; Git could not find a merge base.',
+    );
+  }
+  if (mergeBases.length > 1) {
+    throw new Error(
+      'Base and HEAD have multiple merge bases, so this comparison cannot be resolved unambiguously.',
+    );
+  }
+  return GitObjectIdSchema.parse(mergeBases[0]);
+}
+
+function registerUncommittedRefreshKeypress(
+  authority: string,
+  token: string,
+  output: (message: string) => void,
+  shutdown: ShutdownController,
+): () => void {
+  const stdin = process.stdin;
+  if (stdin.isTTY !== true) {
+    return () => undefined;
+  }
+  const wasRaw = stdin.isRaw === true;
+  stdin.setRawMode(true);
+  stdin.resume();
+  const onData = (chunk: Buffer): void => {
+    const key = chunk.toString('utf8');
+    if (key === '\u0003') {
+      shutdown.shutdown(130).catch((error: unknown) => {
+        console.error('Cumpa shutdown failed.', error);
+      });
+      return;
+    }
+    if (key === 'r') {
+      void fetch(`http://${authority}/api/refresh`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((response) => {
+          output(
+            response.ok
+              ? 'Refreshed the uncommitted session snapshot.'
+              : 'Could not refresh the uncommitted session snapshot.',
+          );
+        })
+        .catch(() => {
+          output('Could not refresh the uncommitted session snapshot.');
+        });
+    }
+  };
+  stdin.on('data', onData);
+  return () => {
+    stdin.off('data', onData);
+    if (stdin.isTTY === true) {
+      stdin.setRawMode(wasRaw);
+    }
+  };
+}
+
+async function launchUncommittedSession(
+  selection: Readonly<{
+    readonly sourceKind: UncommittedRowKind;
+    readonly baseRef?: string;
+  }>,
+  dependencies: OrdinaryActionDependencies,
+  options: RunCliOptions,
+): Promise<void> {
+  const output = dependencies.output ?? console.error;
+  const support = dependencies.support ?? createConfiguredSupportCapability();
+  const openBrowser = dependencies.openBrowser ?? createBrowserUrlOpener();
+  const revealDraftFile =
+    dependencies.revealDraftFile ??
+    (async (canonicalPath: string) => {
+      await open(canonicalPath);
+    });
+  const createApp =
+    dependencies.createUncommittedSessionApp ??
+    ((scope: UncommittedScope, appOptions: CreateUncommittedSessionAppOptions) =>
+      createUncommittedSessionApp(scope, appOptions));
+  const findDraftCandidate =
+    dependencies.findUncommittedDraftCandidate ?? findUncommittedDraftCandidate;
+  const activeGit = new AbortController();
+  let app: SessionApp | undefined;
+  let stopRefreshKeypress: (() => void) | undefined;
+
+  const shutdown = createShutdownController({
+    signalSource: dependencies.signalSource,
+    abortActiveWork: () => {
+      activeGit.abort();
+    },
+    closeListener: async () => {
+      stopRefreshKeypress?.();
+      if (app !== undefined) {
+        await app.close();
+      }
+    },
+    setExitStatus: dependencies.setExitStatus,
+    reportError: (error) => {
+      console.error('Cumpa shutdown failed.', error);
+    },
+  });
+
+  try {
+    const runner = createGitRunner();
+    const repository = await discoverGitRepository(
+      options.cwd,
+      runner,
+      activeGit.signal,
+    );
+    const objectFormat = await resolveUncommittedObjectFormat(
+      repository.root,
+      runner,
+      activeGit.signal,
+    );
+
+    let baseCommitOid: string | undefined;
+    let mergeBaseOid: string | undefined;
+    if (selection.sourceKind !== 'unstaged') {
+      baseCommitOid = await resolveUncommittedBaseCommitOid(
+        selection.baseRef,
+        repository,
+        runner,
+        activeGit.signal,
+      );
+      mergeBaseOid = await resolveUncommittedMergeBaseOid(
+        baseCommitOid,
+        repository.headOid,
+        repository.root,
+        runner,
+        activeGit.signal,
+      );
+    }
+
+    const changedFiles = await createWorktreeChangedFileInventory(
+      {
+        sourceKind: selection.sourceKind,
+        repositoryRoot: repository.root,
+        objectFormat,
+        signal: activeGit.signal,
+        ...(mergeBaseOid === undefined ? {} : { mergeBaseOid }),
+      },
+      { runner },
+    );
+
+    const scope: UncommittedScope = UncommittedScopeSchema.parse({
+      kind: 'uncommitted',
+      sourceKind: selection.sourceKind,
+      repositoryRoot: repository.root,
+      objectFormat,
+      changedFiles,
+      ...(baseCommitOid === undefined ? {} : { baseCommitOid }),
+      ...(mergeBaseOid === undefined ? {} : { mergeBaseOid }),
+    });
+
+    const recoveryCandidate = await findDraftCandidate(
+      repository.root,
+      selection.sourceKind,
+      baseCommitOid,
+    );
+    if (recoveryCandidate !== undefined) {
+      output(
+        'A previous uncommitted review draft exists for this source. Cumpa will offer to resume it if the reviewed content has changed.',
+      );
+    }
+
+    if (shutdown.isShuttingDown) {
+      await shutdown.shutdown();
+      return;
+    }
+
+    const token = randomBytes(32).toString('base64url');
+    app = await createApp(scope, {
+      webRoot: dependencies.webRoot,
+      support,
+      sessionToken: token,
+      revealDraftFile,
+      diagnostics: ({ correlationId, reason }) => {
+        console.error(`Cumpa request denied [${correlationId}]: ${reason}.`);
+      },
+    });
+    await app.listen({ host: '127.0.0.1', port: 0 });
+    if (shutdown.isShuttingDown) {
+      await shutdown.shutdown();
+      return;
+    }
+
+    const address = app.server.address();
+    if (
+      address === null ||
+      typeof address === 'string' ||
+      address.address !== '127.0.0.1' ||
+      address.port === 0
+    ) {
+      throw new Error(
+        'Fastify did not bind the required IPv4 loopback address',
+      );
+    }
+    const authority = `127.0.0.1:${address.port}`;
+    app.bindSessionSecurity({
+      expectedHost: authority,
+      expectedOrigin: `http://${authority}`,
+    });
+    const url = `http://${authority}/#token=${token}`;
+
+    output(url);
+    output(browserFallback);
+    try {
+      await openBrowser(url);
+    } catch {
+      output(
+        'Browser did not open automatically. Open the URL above manually.',
+      );
+    }
+
+    stopRefreshKeypress = registerUncommittedRefreshKeypress(
+      authority,
+      token,
+      output,
+      shutdown,
+    );
+  } catch (error) {
+    if (shutdown.isShuttingDown) {
+      await shutdown.shutdown();
+      return;
+    }
+    await shutdown.shutdown(1);
+    if (error instanceof Error) {
+      output(error.message);
+      return;
+    }
+    throw error;
+  }
 }
 
 function writeStdout(bytes: Uint8Array): Promise<void> {
@@ -618,7 +987,8 @@ export async function runCli(
 ): Promise<void> {
   const discoverCandidates =
     dependencies.discoverCandidates ?? discoverSourceCandidates;
-  const pickSources = dependencies.pickSources ?? pickOrderedSources;
+  const pickSources =
+    dependencies.pickSources ?? ((pickOptions) => pickSource(pickOptions));
   const createDescriptor =
     dependencies.createDescriptor ?? createComparisonLaunchDescriptor;
   const confirmComparison =
@@ -656,18 +1026,37 @@ export async function runCli(
         candidate.isCurrentCheckout &&
         candidate.availability !== 'unavailable',
     );
-    const selected = await pickSources({
+    const picked = await pickSources({
       candidates,
       searchBranches,
       candidateEnrichment: discovery.candidateEnrichment,
       startCandidateEnrichment: discovery.startCandidateEnrichment,
       ...(suggestedHead === undefined
         ? {}
-        : { suggestedHeadId: suggestedHead.id }),
+        : {
+            suggestedHeadId: suggestedHead.id,
+            preselectedBaseId: suggestedHead.id,
+          }),
       ...(initialBase === undefined ? {} : { initialBase }),
       ...(initialHead === undefined ? {} : { initialHead }),
       ...(recovery === undefined ? {} : { recovery }),
     });
+
+    if (picked.kind === 'uncommitted') {
+      await launchUncommittedSession(
+        {
+          sourceKind: picked.sourceKind,
+          ...(picked.base === undefined
+            ? {}
+            : { baseRef: selectionForCandidate(picked.base).revision }),
+        },
+        dependencies,
+        options,
+      );
+      return;
+    }
+
+    const selected = picked;
     let comparison: PinnedComparison;
     try {
       comparison = await createDescriptor({
@@ -755,7 +1144,34 @@ export async function run(
     .name('cumpa')
     .description('Local-first review of pinned Git comparisons')
     .version(await readPackageVersionFromManifest())
-    .action(async () => {
+    .option('--staged', 'Review staged changes (HEAD→index) against a base')
+    .option('--unstaged', 'Review unstaged changes (index→working tree)')
+    .option('--worktree', 'Review all working-tree changes (HEAD→working tree), including untracked files')
+    .option('--base <ref>', 'Base ref or registered worktree to compare against (default: HEAD); rejected with --unstaged')
+    .action(async (cliOptions: {
+      readonly staged?: boolean;
+      readonly unstaged?: boolean;
+      readonly worktree?: boolean;
+      readonly base?: string;
+    }) => {
+      try {
+        validateUncommittedFlags(cliOptions);
+      } catch (error) {
+        console.error(error instanceof Error ? error.message : String(error));
+        process.exitCode = 1;
+        return;
+      }
+
+      const uncommittedSourceKind = resolveUncommittedFlagSelection(cliOptions);
+      if (uncommittedSourceKind !== undefined) {
+        await launchUncommittedSession(
+          { sourceKind: uncommittedSourceKind, baseRef: cliOptions.base },
+          {},
+          { cwd: process.cwd() },
+        );
+        return;
+      }
+
       const serializedLaunchOptions = process.env.CUMPA_LAUNCH_OPTIONS;
       if (serializedLaunchOptions === undefined) {
         await runOrdinaryAction({ cwd: process.cwd() });
