@@ -59,7 +59,13 @@ deferred from v2.0.
   1. Reviewer opens an added file and sees its entire content in one full-width pane with no empty Base side, and can comment on any line (anchored to Head).
   2. Reviewer opens a deleted file and sees its entire removed content in one full-width pane with no empty Head side, and can comment on any line (anchored to Base).
   3. Reviewer can tell, from the file header and file tree without relying on color, which files are single-pane (entirely added/deleted) versus side-by-side (modified, renamed, copied).
-**Plans**: TBD
+**Plans**: 5 plans
+Plans:
+- [ ] 13-01-PLAN.md — Single-pane Monaco editor adapter (unpaired comment-anchor/view-zone wiring)
+- [ ] 13-02-PLAN.md — Single-pane layout/type-changed-label pure functions; SessionFileSchema oldMode field
+- [ ] 13-03-PLAN.md — Wire single-pane layout through App.vue, DiffWorkspace.vue, ReviewToolbar.vue
+- [ ] 13-04-PLAN.md — StatusBadge/FileRow/ActiveFileToolbar header and tree single-pane markers
+- [ ] 13-05-PLAN.md — Playwright e2e coverage for added/deleted single-pane flows
 **UI hint**: yes
 
 ### Phase 14: Uncommitted Source Review & Frozen Snapshots
