@@ -50,6 +50,8 @@ import {
   createSelectorDriftState,
   type SelectorDriftState,
 } from './model/selector-drift-state.js';
+import { singlePaneSideFor } from './model/single-pane-layout.js';
+import { controlSafeDisplay } from '../domain/path-bytes.js';
 import type { DraftMutationRequest } from '../contracts/api.js';
 
 type CanonicalReviewDraft = Readonly<{
@@ -145,6 +147,17 @@ const exactPatchSession = computed(() =>
   session.value !== undefined && 'patch' in session.value ? session.value : undefined,
 );
 const isExactPatchSession = computed(() => exactPatchSession.value !== undefined);
+const singlePaneSide = computed(() =>
+  selectedFile.value === undefined
+    ? undefined
+    : singlePaneSideFor(selectedFile.value.status.kind, selectedFile.value.availability),
+);
+const singlePaneBaseOid = computed(() =>
+  pinnedSession.value === undefined ? undefined : controlSafeDisplay(pinnedSession.value.base.oid.slice(0, 7)),
+);
+const singlePaneHeadOid = computed(() =>
+  pinnedSession.value === undefined ? undefined : controlSafeDisplay(pinnedSession.value.head.oid.slice(0, 7)),
+);
 const supportEnabled = computed(() => session.value?.support?.enabled === true);
 
 const patchSnapshotUnavailable = computed(() => patchStatus.value?.kind === 'snapshotUnavailable');
@@ -1128,6 +1141,7 @@ onBeforeUnmount(() => {
           :at-first-file="atFirstFile"
           :at-last-file="atLastFile"
           :has-active-file="selectedFile?.availability.kind === 'text'"
+          :single-pane="singlePaneSide !== undefined"
           @previous-file="previousFile"
           @next-file="nextFile"
           @previous-change="previousChange"
@@ -1177,6 +1191,9 @@ onBeforeUnmount(() => {
           :content="selectedContent"
           :path="selectedPath"
           :source-kind="isExactPatchSession ? 'exact-patch' : 'range'"
+          :single-pane-side="singlePaneSide"
+          :base-oid="singlePaneBaseOid"
+          :head-oid="singlePaneHeadOid"
           :mutations-locked="attachedMutationLocked"
           @activate="(side, line) => dispatchWorkspace({ type: 'activate-line', side, line })"
           @add="dispatchWorkspace({ type: 'add-comment' })"
