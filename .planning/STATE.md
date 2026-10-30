@@ -5,15 +5,15 @@ milestone_name: Artifact Review
 current_phase: 14
 current_phase_name: Uncommitted Source Review & Frozen Snapshots
 status: executing
-stopped_at: Completed 14-07-PLAN.md
-last_updated: "2026-10-30T22:45:00.000Z"
+stopped_at: Completed 14-12-PLAN.md
+last_updated: "2026-10-30T21:52:28.808Z"
 last_activity: 2026-10-30
 last_activity_desc: Phase 13 complete, transitioned to Phase 14
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 18
-  completed_plans: 16
+  completed_plans: 17
   percent: 14
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-09-09)
 ## Current Position
 
 Phase: 14 — Uncommitted Source Review & Frozen Snapshots
-Plan: 12 of 13
+Plan: 13 of 13
 Status: Ready to execute
 Last activity: 2026-10-30 — Phase 13 complete, transitioned to Phase 14
 
@@ -78,6 +78,7 @@ Last activity: 2026-10-30 — Phase 13 complete, transitioned to Phase 14
 | Phase 14 P09 | 95min | 2 tasks | 3 files |
 | Phase 14-uncommitted-source-review-frozen-snapshots P10 | 25min | 2 tasks | 2 files |
 | Phase 14-uncommitted-source-review-frozen-snapshots P11 | 25min | 2 tasks | 3 files |
+| Phase 14-uncommitted-source-review-frozen-snapshots P12 | 70min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -124,6 +125,8 @@ Decisions are logged in PROJECT.md Key Decisions.
 - [Phase 14]: 14-10: uncommitted BASE candidate label reuses literal 'Repository object' fallback text — baseCommitOid carries no human-readable candidate name on the wire contract, so the Staged/Working-tree BASE endpoint reuses the exact string the exact-patch branch's PREIMAGE endpoint already renders rather than inventing new copy
 - [Phase 14]: 14-11: FileRow's tree-row__refresh-marker span is an independent sibling element to .availability-marker, not a variant of it, since the two can in principle coexist on the same row — matches UI-SPEC's explicit "no extra visual rule needed" note
 - [Phase 14]: 14-11: RefreshSummaryPanel.vue's select-file event carries a path string (not a fileId), per the plan's literal prop contract — App.vue wiring to the actual file-activation mechanism is explicitly deferred to 14-12
+- [Phase 14-uncommitted-source-review-frozen-snapshots]: 14-12: targeted App.vue's existing non-reviewable pane (not ActiveFileToolbar.vue) for changed-during-capture copy — ActiveFileToolbar.vue has no non-reviewable-reason rendering; UI-SPEC's File Ownership Map row naming it was imprecise
+- [Phase 14-uncommitted-source-review-frozen-snapshots]: 14-12: D-19 relaunch-recovery browser trigger not added, confirmed out of reachable scope — 14-09's findUncommittedDraftCandidate only prints a CLI notice; no server signal reaches /api/draft for a different-digest candidate, and building one requires draft-loader.ts/capabilities.ts/contracts changes outside this plan's files_modified
 
 ### Pending Todos
 
@@ -172,6 +175,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-30T21:15:45.017Z
-Stopped at: Completed 14-07-PLAN.md
+Last session: 2026-10-30T21:52:28.804Z
+Stopped at: Completed 14-12-PLAN.md
 Resume file: None
