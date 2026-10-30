@@ -195,6 +195,7 @@ function createFiles(): readonly SessionFile[] {
     {
       fileId: opaqueFileId(1),
       status: { kind: 'modified' },
+      oldMode: '100644',
       newPath: exactPath('00-src/components/alpha.ts'),
       additions: 12,
       deletions: 4,
@@ -203,6 +204,7 @@ function createFiles(): readonly SessionFile[] {
     {
       fileId: opaqueFileId(2),
       status: { kind: 'renamed', similarity: 100 },
+      oldMode: '100644',
       oldPath: exactPath('00-src/components/previous/deeply/nested/beta-before-a-very-long-rename.ts'),
       newPath: exactPath('00-src/components/current/deeply/nested/beta-after-a-very-long-rename.ts'),
       additions: 8,
@@ -214,6 +216,7 @@ function createFiles(): readonly SessionFile[] {
       return {
         fileId: opaqueFileId(index),
         status: { kind: offset % 2 === 0 ? 'added' : 'modified' },
+        oldMode: offset % 2 === 0 ? '000000' : '100644',
         newPath: exactPath(
           `packages/feature-${String(offset).padStart(2, '0')}/deeply/nested/file-${offset}.ts`,
         ),

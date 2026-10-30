@@ -49,6 +49,7 @@ function sessionFile(
         ? {}
         : { similarity: options.similarity }),
     }),
+    oldMode: (options.kind ?? 'modified') === 'added' ? '000000' : '100644',
     ...(options.oldPath === undefined ? {} : { oldPath: options.oldPath }),
     ...(options.newPath === undefined ? {} : { newPath: options.newPath }),
     additions: 1,

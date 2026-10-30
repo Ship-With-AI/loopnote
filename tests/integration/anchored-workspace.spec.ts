@@ -71,6 +71,7 @@ let session: SessionResponse = {
     {
       fileId: firstFileId,
       status: { kind: 'modified' },
+      oldMode: '100644',
       newPath: path('src/first.ts'),
       additions: 1,
       deletions: 1,
@@ -79,6 +80,7 @@ let session: SessionResponse = {
     {
       fileId: secondFileId,
       status: { kind: 'modified' },
+      oldMode: '100644',
       newPath: path('src/second.ts'),
       additions: 1,
       deletions: 1,

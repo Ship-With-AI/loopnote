@@ -1037,6 +1037,7 @@ test('availability states', async ({ browser, context, page }, testInfo) => {
     {
       fileId: ids.supported,
       status: { kind: 'renamed', similarity: 91 },
+      oldMode: '100644',
       oldPath,
       newPath,
       additions: 12,
@@ -1046,6 +1047,7 @@ test('availability states', async ({ browser, context, page }, testInfo) => {
     {
       fileId: ids.binary,
       status: { kind: 'modified' },
+      oldMode: '100644',
       newPath: exactPath('assets/image.dat'),
       additions: null,
       deletions: null,
@@ -1054,6 +1056,7 @@ test('availability states', async ({ browser, context, page }, testInfo) => {
     {
       fileId: ids.nonUtf8,
       status: { kind: 'modified' },
+      oldMode: '100644',
       newPath: nonUtf8Path,
       additions: null,
       deletions: null,
@@ -1062,6 +1065,7 @@ test('availability states', async ({ browser, context, page }, testInfo) => {
     {
       fileId: ids.oversized,
       status: { kind: 'added' },
+      oldMode: '000000',
       newPath: exactPath('generated/oversized.txt'),
       additions: null,
       deletions: null,
@@ -1070,6 +1074,7 @@ test('availability states', async ({ browser, context, page }, testInfo) => {
     {
       fileId: ids.submodule,
       status: { kind: 'modified' },
+      oldMode: '160000',
       newPath: exactPath('vendor/module'),
       additions: null,
       deletions: null,
@@ -1078,6 +1083,7 @@ test('availability states', async ({ browser, context, page }, testInfo) => {
     {
       fileId: ids.symlink,
       status: { kind: 'type-changed' },
+      oldMode: '120000',
       newPath: exactPath('links/current'),
       additions: null,
       deletions: null,
@@ -1086,6 +1092,7 @@ test('availability states', async ({ browser, context, page }, testInfo) => {
     {
       fileId: ids.modeOrType,
       status: { kind: 'type-changed' },
+      oldMode: '040000',
       newPath: exactPath('special/device'),
       additions: null,
       deletions: null,
@@ -1094,6 +1101,7 @@ test('availability states', async ({ browser, context, page }, testInfo) => {
     {
       fileId: ids.missingObject,
       status: { kind: 'deleted' },
+      oldMode: '100644',
       oldPath: exactPath('removed/missing.txt'),
       additions: null,
       deletions: null,

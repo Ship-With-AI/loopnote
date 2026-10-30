@@ -55,6 +55,7 @@ const file = (
 ): SessionFile => ({
   fileId,
   status: { kind: 'modified' },
+  oldMode: '100644',
   ...(paths.base === undefined ? {} : { oldPath: paths.base }),
   ...(paths.head === undefined ? {} : { newPath: paths.head }),
   additions: 1,

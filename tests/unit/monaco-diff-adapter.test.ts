@@ -68,7 +68,7 @@ const mocks = vi.hoisted(() => {
   return {
     codeEditor,
     createDiffEditor: vi.fn(() => diffEditor),
-    createEditor: vi.fn(() => codeEditor()),
+    createEditor: vi.fn((_container: HTMLElement, _options: Record<string, unknown>) => codeEditor()),
     createModel: vi.fn(() => ({
       dispose: vi.fn(),
       getLineCount: vi.fn(() => 20),
