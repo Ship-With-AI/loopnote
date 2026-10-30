@@ -1,20 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.6
-milestone_name: Workspace Restyle
-current_phase: none
-current_phase_name: milestone-complete
-status: complete
-stopped_at: v1.6 Workspace Restyle and v1.5 MIT Distribution both archived and reconciled on main; DEBT-01 and ACC-04 carried forward
-last_updated: "2026-09-15T15:30:00Z"
-last_activity: 2026-09-15
-last_activity_desc: Merged restyle into main and re-applied the v1.6 close on main's planning history
+milestone: v2.0
+milestone_name: Artifact Review
+status: planning
+last_updated: "2026-10-30T08:56:41.894Z"
+last_activity: 2026-10-30
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 23
-  completed_plans: 23
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -28,13 +24,10 @@ See: .planning/PROJECT.md (updated 2026-09-09)
 
 ## Current Position
 
-Phase: 07 (clean-public-artifact-acceptance) PARTIALLY BLOCKED
-Plan: 7 7
-Status: Partially blocked
-Checkpoint: Six committed public-global, public-npx, and marketplace pre/post reports regenerated the hardened record. ACC-01, ACC-02, and ACC-03 passed their installation-plus-review axis; ACC-04 is `partially-blocked` because every verified row remains `live-entitlement-unavailable` with `substituted: false`. The restored public-global post-Restore linkage finding records the observed false successful Restore while status stayed unverified and the modal stayed non-terminal; no second sign-in, publishing, deployment, or hosted-service change is permitted.
-Last activity: 2026-09-16 — Completed quick task 260916-ide: deployed coupon support to hosted production and published @shipwithai/cumpa@1.6.1 as latest with verified provenance.
-
-Progress: [██████████] 100% — 23 23 milestone plans complete
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-10-30 — Milestone v2.0 started
 
 ## Performance Metrics
 

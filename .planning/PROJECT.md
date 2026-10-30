@@ -2,7 +2,7 @@
 
 ## What This Is
 
-Cumpa is a local-first code review application for developers who want a GitHub pull-request-style review experience without publishing branches or worktrees to a remote host. A CLI launched inside a Git repository opens a browser workspace where the developer selects two local branches or registered worktrees, reviews PR-style changes side by side, leaves line comments and an overall summary, and exports the result as Markdown plus canonical JSON that a coding agent can apply.
+Cumpa is a local-first review workspace for anything a coding agent produces: code, plans, decisions, and documentation. A CLI launched inside a Git repository opens a browser workspace where the developer reviews a change set between two local branches or registered worktrees, uncommitted work (staged, unstaged, or the whole working tree including untracked files) against HEAD or any chosen base, or a named set of files. Modified files render side by side; added, deleted, and standalone files render full width; Markdown can be read rendered. The developer leaves line comments and an overall summary, then exports Markdown plus canonical JSON a coding agent can apply. Agents can request the same review over stdin and receive the canonical result.
 
 ## Core Value
 
@@ -61,10 +61,22 @@ The repository gate runs the full Playwright suite (94 tests) on every push to `
 it found and forced fixes for a composer draft-loss race and a roving-tabindex defect
 within hours of being widened.
 
-## Next Milestone Goals
+## Current Milestone: v2.0 Artifact Review
 
-No milestone is active. Start the next one with `/gsd:new-milestone`, which defines fresh
-requirements and a new roadmap. Candidates carried forward from v1.5:
+**Goal:** Make Cumpa a local review workspace for any artifact a coding agent produces (code, plans, decisions, docs), including uncommitted work, while keeping feedback precise and drift-detectable.
+
+**Target features:**
+- Single-pane, full-width view for added and deleted files (no empty side).
+- Uncommitted sources at launch: Staged (HEAD→index), Unstaged (index→worktree), and Working tree including untracked files (HEAD→worktree) as separate Head choices; compared against HEAD by default or any chosen branch/worktree base.
+- Working-tree snapshot frozen at session start plus an explicit Refresh action; comments on changed content are classified stale/orphaned as today.
+- Standalone file review: CLI paths/globs open the named files (changed or not) full width and commentable.
+- Rendered Markdown preview toggle; comments stay anchored to source lines.
+- Agent stdin request extended to uncommitted and standalone-file review, returning canonical JSON.
+- Product repositioning from "code review" to "agent artifact review" across What This Is, README, CLI help, and the marketplace skill.
+
+**Reversals:** v2.0 brings working-tree review into scope (previously Out of Scope) and supersedes the "committed Git objects only" decision for worktree sources; frozen session snapshots keep the drift-detectable guarantee.
+
+Candidates carried forward from v1.5 (not in v2.0 scope):
 
 - Make Restore propagate a false or failed RPC result into a non-completion response, then
   obtain a permitted genuine live entitlement and close ACC-04 by rerunning only the
@@ -215,15 +227,21 @@ be genuinely reached (`live-entitlement-unavailable`, `substituted: false`) unde
 
 ### Active
 
-None. Start the next milestone with `/gsd:new-milestone` to define fresh requirements.
+- [ ] Added and deleted files render as a single full-width pane.
+- [ ] User can choose Staged, Unstaged, or Working tree (with untracked files) as the Head source, against HEAD or any chosen branch/worktree base.
+- [ ] Working-tree sessions review a frozen snapshot and offer an explicit Refresh that reclassifies existing comments.
+- [ ] User can review named files or globs outside any diff, full width and commentable.
+- [ ] User can toggle a rendered Markdown preview without losing source-line comment anchoring.
+- [ ] Coding agents can request uncommitted and standalone-file review over stdin and receive canonical JSON.
+- [ ] Product copy positions Cumpa as review for any agent-produced artifact.
 
 ### Out of Scope
 
-- Automatic review of staged, unstaged, or untracked worktree state — v1.3 accepts only an exact agent-supplied patch proven against repository/worktree content; Cumpa does not discover or synthesize a working-tree diff.
+- ~~Automatic review of staged, unstaged, untracked worktree state~~ — **moved into scope for v2.0** (Artifact Review); sessions review a frozen snapshot with explicit Refresh.
 - Hosting reviews remotely or supporting multiple simultaneous reviewers — the product is a single-developer local tool.
 - Posting reviews to GitHub, GitLab, or another forge — export files are the integration boundary for v1.
 - Applying requested changes from inside the application — a separate coding agent consumes the export.
-- Image, notebook, document, or binary diff rendering — v1 reviews text; unsupported files are identified but not rendered inline.
+- Image, notebook, binary diff rendering — Cumpa reviews text; Markdown gains a rendered preview in v2.0, other unsupported files are identified but not rendered inline.
 - Full GitHub review mechanics such as replies, suggestion patches, approvals, and pending-review submission — v1 provides line comments, resolution, and an overall summary.
 - Publishing credentials, confidential operational material, or content without publication rights — public-source release requires review of tracked content and history; destructive remediation needs separate approval.
 - Shipping TypeScript source, source maps, tests, planning files, or repository history in npm artifacts — consumers receive the compiled runtime-only distribution.
@@ -327,4 +345,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with the current product state and feedback.
 
 ---
-*Last updated: 2026-09-15 after `restyle` merged into `main`, reconciling the v1.6 Workspace Restyle close with the v1.5 MIT Distribution close. v1.6 audit status `tech_debt` with DEBT-01 accepted into the ROADMAP Backlog; v1.5 at 18/19 requirements with ACC-04 blocked under D-07/D-08 and `latest` published as 1.5.2.*
+*Last updated: 2026-10-30 at the start of milestone v2.0 Artifact Review (working-tree sources, single-pane added/deleted/standalone files, rendered Markdown, agent requests for uncommitted work, repositioning).*
