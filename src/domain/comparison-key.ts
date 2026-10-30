@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 
 const DOMAIN = Buffer.from('cumpa-comparison-key-v1', 'utf8');
 const RANGE_DOMAIN = Buffer.from('cumpa-range-review-key-v1', 'utf8');
+const UNCOMMITTED_DOMAIN = Buffer.from('cumpa-uncommitted-review-key-v1', 'utf8');
 const encoder = new TextEncoder();
 
 function frame(value: string): Buffer {
@@ -35,5 +36,18 @@ export function rangeReviewKey(
   for (const pathspec of pathspecs) {
     hash.update(frame(pathspec));
   }
+  return hash.digest('hex');
+}
+
+export function uncommittedReviewKey(
+  sourceKind: 'staged' | 'unstaged' | 'worktree',
+  baseCommitOid: string | undefined,
+  firstSnapshotDigest: string,
+): string {
+  const hash = createHash('sha256');
+  hash.update(UNCOMMITTED_DOMAIN);
+  hash.update(frame(sourceKind));
+  hash.update(frame(baseCommitOid ?? ''));
+  hash.update(frame(firstSnapshotDigest));
   return hash.digest('hex');
 }
