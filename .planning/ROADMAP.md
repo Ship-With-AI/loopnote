@@ -94,7 +94,7 @@ Plans:
   4. User triggers Refresh to capture a new snapshot of the same source and scope, and sees a summary of which files were added, removed, or modified since the previous snapshot.
   5. After Refresh, every existing comment is reclassified as current, stale, or orphaned with its recorded evidence intact and never moved to a different line; two different working-tree states against the same base never share or overwrite a draft.
 
-**Plans**: 8/13 plans executed
+**Plans**: 9/13 plans executed
 
 - [x] 14-01-PLAN.md — Extract shared snapshot-fs.ts file-IO primitives from patch-snapshot.ts
 - [x] 14-02-PLAN.md — UncommittedScopeSchema, changed-during-capture availability reason, UncommittedDraftComparisonSchema
@@ -104,7 +104,7 @@ Plans:
 - [x] 14-06-PLAN.md — CLI picker: Uncommitted group, HEAD-preselected Base flow
 - [x] 14-07-PLAN.md — worktree-snapshot.ts: torn-capture retry, index-race guard, refresh()
 - [x] 14-08-PLAN.md — Server session wiring: capability registry, /api/refresh, relaunch recovery
-- [ ] 14-09-PLAN.md — CLI flags (--staged/--unstaged/--worktree/--base), launch wiring, 'r' refresh
+- [x] 14-09-PLAN.md — CLI flags (--staged/--unstaged/--worktree/--base), launch wiring, 'r' refresh
 - [ ] 14-10-PLAN.md — IdentityHeader.vue: comparison strip, Refresh button, change indicator
 - [ ] 14-11-PLAN.md — InlineNotice dismissible prop, FileRow markers, RefreshSummaryPanel.vue
 - [ ] 14-12-PLAN.md — App.vue integration: empty state, banner, polling, shortcuts, export gating
@@ -194,7 +194,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 13. Single-Pane File Rendering | 5/5 | Complete    | 2026-10-30 |
-| 14. Uncommitted Source Review & Frozen Snapshots | 8/13 | In Progress|  |
+| 14. Uncommitted Source Review & Frozen Snapshots | 9/13 | In Progress|  |
 | 15. Standalone File Review | 0/TBD | Not started | - |
 | 16. Rendered Markdown Preview | 0/TBD | Not started | - |
 | 17. Agent Protocol Extension & Marketplace Skill | 0/TBD | Not started | - |
