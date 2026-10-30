@@ -4,17 +4,17 @@ milestone: v2.0
 milestone_name: Artifact Review
 current_phase: 14
 current_phase_name: Uncommitted Source Review & Frozen Snapshots
-status: executing
-stopped_at: Completed 14-12-PLAN.md
-last_updated: "2026-10-30T21:52:28.808Z"
+status: verifying
+stopped_at: Completed 14-13-PLAN.md (final plan, Phase 14)
+last_updated: "2026-10-30T22:22:02.224Z"
 last_activity: 2026-10-30
 last_activity_desc: Phase 13 complete, transitioned to Phase 14
 progress:
   total_phases: 7
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 18
-  completed_plans: 17
-  percent: 14
+  completed_plans: 18
+  percent: 29
 ---
 
 # Project State
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-09-09)
 
 Phase: 14 — Uncommitted Source Review & Frozen Snapshots
 Plan: 13 of 13
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-10-30 — Phase 13 complete, transitioned to Phase 14
 
 ## Performance Metrics
@@ -79,6 +79,7 @@ Last activity: 2026-10-30 — Phase 13 complete, transitioned to Phase 14
 | Phase 14-uncommitted-source-review-frozen-snapshots P10 | 25min | 2 tasks | 2 files |
 | Phase 14-uncommitted-source-review-frozen-snapshots P11 | 25min | 2 tasks | 3 files |
 | Phase 14-uncommitted-source-review-frozen-snapshots P12 | 70min | 2 tasks | 3 files |
+| Phase 14-uncommitted-source-review-frozen-snapshots P13 | 70min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -127,6 +128,8 @@ Decisions are logged in PROJECT.md Key Decisions.
 - [Phase 14]: 14-11: RefreshSummaryPanel.vue's select-file event carries a path string (not a fileId), per the plan's literal prop contract — App.vue wiring to the actual file-activation mechanism is explicitly deferred to 14-12
 - [Phase 14-uncommitted-source-review-frozen-snapshots]: 14-12: targeted App.vue's existing non-reviewable pane (not ActiveFileToolbar.vue) for changed-during-capture copy — ActiveFileToolbar.vue has no non-reviewable-reason rendering; UI-SPEC's File Ownership Map row naming it was imprecise
 - [Phase 14-uncommitted-source-review-frozen-snapshots]: 14-12: D-19 relaunch-recovery browser trigger not added, confirmed out of reachable scope — 14-09's findUncommittedDraftCandidate only prints a CLI notice; no server signal reaches /api/draft for a different-digest candidate, and building one requires draft-loader.ts/capabilities.ts/contracts changes outside this plan's files_modified
+- [Phase 14-uncommitted-source-review-frozen-snapshots]: 14-13: terminal r-keypress refresh is untestable via piped child_process stdio — registerUncommittedRefreshKeypress (src/cli/run.ts) gates its stdin handler behind process.stdin.isTTY===true, never satisfied by piped stdio; confirmed empirically against the real packaged CLI. Alt+Shift+R proven instead; terminal keypress documented as an out-of-scope gap in 14-13-SUMMARY.md
+- [Phase 14-uncommitted-source-review-frozen-snapshots]: 14-13: StaleAnchorNotice never becomes visible after Refresh — performRefresh() (src/web/App.vue) never calls workspace.replaceComments(...)/re-fetches /api/draft, so client-side comment status never resyncs even though server-side reclassification (orphaned, not stale, per exact-blobOid anchor lookup) and the RefreshSummaryPanel's own count are both correct. Documented as an out-of-scope gap in 14-13-SUMMARY.md
 
 ### Pending Todos
 
@@ -139,6 +142,7 @@ None yet.
 - [Phase 3 accepted risk] Retain artifacts 9907668126 and 9928300866 and their private backups under the owner's exact disposition despite the unremediated notice finding; do not claim third-party permission/compliance or change retention settings.
 - [Phase 5 owner decision] Plan a fresh CI-built stable candidate, actual new digest-bound approval and unchanged-byte publication in the same workflow run/attempt, per 05-CONTEXT.md. The old Phase 4 archive (SHA-256 e7766d43f7f804b138e694b298480cdec62ebfc16960f86d4c1e3c7959cf1dca, 3513998 bytes) and sealed evidence (3bf27f13de08b85527240c76ddc1e4df6c37dc06a5e1bbf006ab9d45f94fb379) remain immutable history. Do not publish that old artifact as a fallback or mutate any remote state under planning approval.
 - [Publication boundary] Phase 3 published commit ff72519969da8d2c0761c9533ccb27b809cd17bb. Later local evidence and completion commits are not automatically authorized for pushing.
+- Phase 14 verification: two confirmed gaps from 14-13's e2e coverage need remediation decisions — (1) registerUncommittedRefreshKeypress's TTY requirement blocks terminal r-keypress e2e verification (src/cli/run.ts, outside 14-13 scope); (2) performRefresh() never resyncs client-side comment status so StaleAnchorNotice never appears after Refresh (src/web/App.vue, outside 14-13 scope). See 14-13-SUMMARY.md Deviations for full detail and remediation options.
 
 ### Roadmap Evolution
 
@@ -175,6 +179,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-30T21:52:28.804Z
-Stopped at: Completed 14-12-PLAN.md
+Last session: 2026-10-30T22:21:46.644Z
+Stopped at: Completed 14-13-PLAN.md (final plan, Phase 14)
 Resume file: None

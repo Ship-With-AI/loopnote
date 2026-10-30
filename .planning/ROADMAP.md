@@ -44,7 +44,7 @@ deferred from v2.0.
 - Decimal phases (13.1, 13.2, …) are urgent insertions, not planned here.
 
 - [x] **Phase 13: Single-Pane File Rendering** - Added/deleted files render as one full-width commentable pane instead of a diff with an empty side. (completed 2026-10-30)
-- [ ] **Phase 14: Uncommitted Source Review & Frozen Snapshots** - Staged/Unstaged/Working-tree review against any base, frozen at session start with explicit, comment-safe Refresh.
+- [x] **Phase 14: Uncommitted Source Review & Frozen Snapshots** - Staged/Unstaged/Working-tree review against any base, frozen at session start with explicit, comment-safe Refresh. (completed 2026-10-30)
 - [ ] **Phase 15: Standalone File Review** - Named files/globs open and review full width without choosing Base/Head.
 - [ ] **Phase 16: Rendered Markdown Preview** - Any Markdown file toggles between source and rendered view with block-anchored commenting.
 - [ ] **Phase 17: Agent Protocol Extension & Marketplace Skill** - Agents request uncommitted/standalone review over stdin and through the marketplace skill with versioned exports.
@@ -94,7 +94,7 @@ Plans:
   4. User triggers Refresh to capture a new snapshot of the same source and scope, and sees a summary of which files were added, removed, or modified since the previous snapshot.
   5. After Refresh, every existing comment is reclassified as current, stale, or orphaned with its recorded evidence intact and never moved to a different line; two different working-tree states against the same base never share or overwrite a draft.
 
-**Plans**: 12/13 plans executed
+**Plans**: 13/13 plans complete
 
 - [x] 14-01-PLAN.md — Extract shared snapshot-fs.ts file-IO primitives from patch-snapshot.ts
 - [x] 14-02-PLAN.md — UncommittedScopeSchema, changed-during-capture availability reason, UncommittedDraftComparisonSchema
@@ -108,7 +108,7 @@ Plans:
 - [x] 14-10-PLAN.md — IdentityHeader.vue: comparison strip, Refresh button, change indicator
 - [x] 14-11-PLAN.md — InlineNotice dismissible prop, FileRow markers, RefreshSummaryPanel.vue
 - [x] 14-12-PLAN.md — App.vue integration: empty state, banner, polling, shortcuts, export gating
-- [ ] 14-13-PLAN.md — Playwright e2e coverage: picker/Refresh/reclassify/summary-panel flows
+- [x] 14-13-PLAN.md — Playwright e2e coverage: picker/Refresh/reclassify/summary-panel flows
 
 **UI hint**: yes
 **Research flag**: yes — content-digest key derivation for uncommitted drafts/anchors (Pitfall 1), CRLF/filter normalization between index and worktree reads, and torn-snapshot/race detection design need verification during planning, per `research/SUMMARY.md`.
@@ -194,7 +194,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 13. Single-Pane File Rendering | 5/5 | Complete    | 2026-10-30 |
-| 14. Uncommitted Source Review & Frozen Snapshots | 12/13 | In Progress|  |
+| 14. Uncommitted Source Review & Frozen Snapshots | 13/13 | Complete   | 2026-10-30 |
 | 15. Standalone File Review | 0/TBD | Not started | - |
 | 16. Rendered Markdown Preview | 0/TBD | Not started | - |
 | 17. Agent Protocol Extension & Marketplace Skill | 0/TBD | Not started | - |
