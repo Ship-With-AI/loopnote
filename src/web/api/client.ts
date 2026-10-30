@@ -40,9 +40,11 @@ import {
   PatchStatusResponseSchema,
   type PatchStatusResponse,
   SessionResponseSchema,
+  UncommittedDraftRecoveryResultSchema,
   type AttachedCompletionStatus,
   type FinishReviewResult,
   type SessionResponse,
+  type UncommittedDraftRecoveryResult,
 } from '../../contracts/api.js';
 
 export const SECURITY_FAILURE_MESSAGE =
@@ -101,6 +103,7 @@ export interface SessionClient {
   startSupportAction(action: SupportAction): Promise<SupportStartResult>;
   refreshSupportStatus(): Promise<SupportStatus>;
   refreshWorktreeSnapshot(): Promise<RefreshResult>;
+  recoverUncommittedDraft(): Promise<UncommittedDraftRecoveryResult>;
   getWorktreeStatus(): Promise<Readonly<{ readonly changed: boolean }>>;
 }
 
@@ -198,6 +201,15 @@ export function createSessionClient(environment: SessionClientEnvironment = {}):
     async refreshWorktreeSnapshot() {
       const result = RefreshResultSchema.safeParse(
         await requestJson('/api/refresh', 'POST', 'session'),
+      );
+      if (!result.success) {
+        throw new SessionClientError('session', SESSION_UNAVAILABLE_MESSAGE);
+      }
+      return result.data;
+    },
+    async recoverUncommittedDraft() {
+      const result = UncommittedDraftRecoveryResultSchema.safeParse(
+        await requestJson('/api/uncommitted/recover-draft', 'POST', 'session'),
       );
       if (!result.success) {
         throw new SessionClientError('session', SESSION_UNAVAILABLE_MESSAGE);
