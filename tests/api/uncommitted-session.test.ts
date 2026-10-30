@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { FastifyInstance } from 'fastify';
@@ -291,5 +291,111 @@ describe('uncommitted session apps', () => {
     expect(refresh.statusCode).toBe(404);
     const status = await app.inject({ method: 'GET', url: '/api/worktree-status', headers });
     expect(status.statusCode).toBe(404);
+  });
+
+  test('recovers a prior uncommitted draft\'s comments into the current draft without touching the candidate file', async () => {
+    const fixture = await makeFixture();
+    await fixture.write('tracked.txt', 'recovery line one\nrecovery line two\n');
+    const scope = scopeFor(fixture, 'unstaged');
+    const snapshotRoot = await makeRoot();
+    const snapshot = await materializeWorktreeSnapshot(scope, { root: snapshotRoot });
+    const throwawayRegistry = await createUncommittedCapabilityRegistry(scope, snapshot, {});
+
+    const files = await snapshot.files();
+    const file = files.find((candidate) => candidate.newPath?.utf8 === 'tracked.txt');
+    expect(file).toBeDefined();
+    const content = await throwawayRegistry.readContent(file!.id);
+    const headSide = content?.head;
+    expect(headSide?.exists).toBe(true);
+    if (headSide === undefined || !headSide.exists) throw new Error('Expected head-side content to exist.');
+
+    const openAnchor = buildDurableAnchor({
+      path: headSide.path,
+      safeDisplayPath: headSide.path.display,
+      side: 'head',
+      blobOid: headSide.blobOid,
+      line: 1,
+      text: headSide.text,
+    });
+    const resolvedAnchor = buildDurableAnchor({
+      path: headSide.path,
+      safeDisplayPath: headSide.path.display,
+      side: 'head',
+      blobOid: headSide.blobOid,
+      line: 2,
+      text: headSide.text,
+    });
+
+    const directory = join(fixture.root, '.cumpa', 'drafts');
+    await mkdir(directory, { recursive: true });
+    const candidatePath = join(directory, `${'7'.repeat(64)}.json`);
+    const priorDraft = {
+      schemaVersion: 1,
+      comparison: {
+        kind: 'uncommitted' as const,
+        sourceKind: 'unstaged' as const,
+        reviewKey: '7'.repeat(64),
+        snapshotChain: ['8'.repeat(64)],
+      },
+      revision: 0,
+      summary: '',
+      comments: [
+        {
+          id: 'comment_00000000-0000-4000-8000-000000000001',
+          state: 'open' as const,
+          body: 'Open comment body.',
+          anchor: openAnchor,
+          createdAt: '2026-01-01T00:00:00.000Z',
+          updatedAt: '2026-01-01T00:00:00.000Z',
+        },
+        {
+          id: 'comment_00000000-0000-4000-8000-000000000002',
+          state: 'resolved' as const,
+          body: 'Resolved comment body.',
+          anchor: resolvedAnchor,
+          createdAt: '2026-01-01T00:00:00.000Z',
+          updatedAt: '2026-01-01T00:00:00.000Z',
+          resolvedAt: '2026-01-01T00:00:00.000Z',
+        },
+      ],
+    };
+    const originalBytes = Buffer.from(JSON.stringify(priorDraft));
+    await writeFile(candidatePath, originalBytes);
+
+    const app = await buildApp(scope, { uncommittedRecoveryCandidate: { path: candidatePath } });
+
+    const session = await app.inject({ method: 'GET', url: '/api/session', headers });
+    expect(session.json().uncommitted.recoveryAvailable).toBe(true);
+
+    const recovered = await app.inject({ method: 'POST', url: '/api/uncommitted/recover-draft', headers });
+    expect(recovered.statusCode).toBe(200);
+    expect(recovered.json()).toEqual({ kind: 'recovered' });
+
+    const draft = await app.inject({ method: 'GET', url: '/api/draft', headers });
+    expect(draft.json()).toMatchObject({
+      kind: 'current',
+      draft: {
+        comments: [
+          { body: 'Open comment body.', state: 'open', verification: { state: 'verified', reason: 'exact-match' } },
+          { body: 'Resolved comment body.', state: 'resolved', verification: { state: 'verified', reason: 'exact-match' } },
+        ],
+      },
+    });
+
+    const bytesAfterRecovery = await readFile(candidatePath);
+    expect(bytesAfterRecovery.equals(originalBytes)).toBe(true);
+  });
+
+  test('omits recoveryAvailable and 404s POST /api/uncommitted/recover-draft when no recovery candidate was supplied', async () => {
+    const fixture = await makeFixture();
+    await fixture.write('tracked.txt', 'no candidate here\n');
+    const scope = scopeFor(fixture, 'unstaged');
+    const app = await buildApp(scope);
+
+    const session = await app.inject({ method: 'GET', url: '/api/session', headers });
+    expect('recoveryAvailable' in session.json().uncommitted).toBe(false);
+
+    const recovered = await app.inject({ method: 'POST', url: '/api/uncommitted/recover-draft', headers });
+    expect(recovered.statusCode).toBe(404);
   });
 });
