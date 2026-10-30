@@ -147,14 +147,17 @@ Plans:
 
 ### Phase 17.1: Full Project Rename (INSERTED)
 
-**Goal:** [Urgent work - to be planned]
-**Requirements**: TBD
-**Depends on:** Phase 17
-**Plans:** 5/5 plans complete
-
-Plans:
-
-- [ ] TBD (run $gsd-plan-phase 17.1 to break down)
+**Goal**: The product ships under a new name (to be chosen by the user) everywhere it lives: npm package, CLI command, display name, repo-local and per-user state directories, agent protocol kinds, code identifiers, env vars, scripts, docs, and the marketplace skill. The v2.0 milestone releases once as `<new-package>@2.0.0`, and the old package is deprecated.
+**Depends on**: Phase 17 (protocol modes and skill draft PR exist to rename); blocks Phase 18 (copy is written under the new name)
+**Requirements**: REN-01, REN-02, REN-03, REN-04, REN-05
+**Success Criteria** (what must be TRUE):
+  1. User installs and runs the product under the new package and command; `--help`, the browser workspace and exports show only the new name.
+  2. Coding agent requests and receives results with the new protocol kinds; a request with the old `cumpa.*` kind fails before launch with a specific error naming the new kind.
+  3. The product reads and writes only the new repo-local state directory; an existing supporter's `support.json` is copied once from the old per-user state directory.
+  4. A `grep -i cumpa` audit of live code, config, tests, scripts and docs finds only the allowed exceptions (history, old-kind rejection, supporter-state migration source, old-dir exclusion).
+  5. A manual release checklist covers the GitHub repo rename, npm publish of 2.0.0 and deprecation of `@shipwithai/cumpa`, Supabase/Stripe renames, and the updated marketplace skill draft PR (prerequisite `>=2.0.0 <3.0.0`).
+**Plans**: TBD
+**Blocked on**: the new name. Execution starts with a human checkpoint that supplies it.
 
 ### Phase 18: Product Repositioning Copy
 
