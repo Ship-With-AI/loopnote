@@ -63,7 +63,7 @@ deferred from v2.0.
   2. Reviewer opens a deleted file and sees its entire removed content in one full-width pane with no empty Head side, and can comment on any line (anchored to Base).
   3. Reviewer can tell, from the file header and file tree without relying on color, which files are single-pane (entirely added/deleted) versus side-by-side (modified, renamed, copied).
 
-**Plans**: 3/5 plans executed
+**Plans**: 4/5 plans executed
 Plans:
 **Wave 1**
 
@@ -73,7 +73,7 @@ Plans:
 **Wave 2** *(blocked on Wave 1 completion)*
 
 - [x] 13-03-PLAN.md — Wire single-pane layout through App.vue, DiffWorkspace.vue, ReviewToolbar.vue
-- [ ] 13-04-PLAN.md — StatusBadge/FileRow/ActiveFileToolbar header and tree single-pane markers
+- [x] 13-04-PLAN.md — StatusBadge/FileRow/ActiveFileToolbar header and tree single-pane markers
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -162,7 +162,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 13. Single-Pane File Rendering | 3/5 | In Progress|  |
+| 13. Single-Pane File Rendering | 4/5 | In Progress|  |
 | 14. Uncommitted Source Review & Frozen Snapshots | 0/TBD | Not started | - |
 | 15. Standalone File Review | 0/TBD | Not started | - |
 | 16. Rendered Markdown Preview | 0/TBD | Not started | - |
