@@ -22,6 +22,27 @@ const support = ref<HTMLButtonElement>();
 
 const isExactPatch = computed(() => 'patch' in props.session);
 const pinnedSession = computed(() => 'base' in props.session ? props.session : undefined);
+const isUncommitted = computed(() => 'uncommitted' in props.session);
+const uncommittedSession = computed(() =>
+  isUncommitted.value
+    ? (props.session as Extract<SessionResponse, { uncommitted: unknown }>).uncommitted
+    : undefined,
+);
+const sourceLabel = computed(() => {
+  switch (uncommittedSession.value?.sourceKind) {
+    case 'staged': return 'Staged';
+    case 'unstaged': return 'Unstaged';
+    case 'worktree': return 'Working tree';
+    default: return '';
+  }
+});
+const shortDigest = computed(() =>
+  controlSafeDisplay(uncommittedSession.value?.reviewKey.slice(0, 7) ?? ''),
+);
+const baseCandidateLabel = computed(() => controlSafeDisplay('Repository object'));
+const baseCandidateOid = computed(() =>
+  controlSafeDisplay(uncommittedSession.value?.baseCommitOid?.slice(0, 7) ?? ''),
+);
 const baseLabel = computed(() =>
   controlSafeDisplay(pinnedSession.value?.base.label ?? 'Repository object'),
 );
@@ -35,7 +56,7 @@ const headOid = computed(() =>
   controlSafeDisplay(pinnedSession.value?.head.oid.slice(0, 7) ?? ''),
 );
 const dirtyEndpoints = computed(() =>
-  isExactPatch.value
+  isExactPatch.value || isUncommitted.value
     ? []
     : [
         { role: 'Base', worktree: pinnedSession.value!.base.worktree },
@@ -82,6 +103,18 @@ defineExpose({ focusSupport });
             <span class="session-header__selector" title="Implemented content">Implemented content</span>
           </span>
         </template>
+        <template v-else-if="isUncommitted">
+          <span class="session-header__endpoint">
+            <span class="session-header__endpoint-label">BASE</span>
+            <span v-if="uncommittedSession?.sourceKind === 'unstaged'" class="session-header__selector">Index</span>
+            <span v-else class="session-header__selector" :title="baseCandidateLabel">{{ baseCandidateLabel }} · {{ baseCandidateOid }}</span>
+          </span>
+          <span aria-hidden="true">→</span>
+          <span class="session-header__endpoint">
+            <span class="session-header__endpoint-label">HEAD</span>
+            <span class="session-header__selector" :title="sourceLabel">{{ sourceLabel }} · snapshot {{ shortDigest }}</span>
+          </span>
+        </template>
         <template v-else>
           <span class="session-header__endpoint">
             <span class="session-header__endpoint-label">BASE</span>
@@ -96,7 +129,7 @@ defineExpose({ focusSupport });
       </div>
     </div>
     <div class="header-facts">
-      <span class="pin-cue">{{ isExactPatch ? 'Frozen patch' : 'Pinned comparison' }}</span>
+      <span class="pin-cue">{{ isExactPatch ? 'Frozen patch' : isUncommitted ? 'Frozen snapshot' : 'Pinned comparison' }}</span>
       <span
         v-for="endpoint in dirtyEndpoints"
         :key="endpoint.role"
