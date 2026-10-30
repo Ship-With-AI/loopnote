@@ -141,6 +141,7 @@ describe('frozen opaque session capabilities', () => {
         {
           fileId,
           status: { kind: 'renamed', similarity: 100 },
+          oldMode: '100644',
           oldPath: path('src/old.ts'),
           newPath: path('src/new.ts'),
           additions: 4,
@@ -150,6 +151,7 @@ describe('frozen opaque session capabilities', () => {
         {
           fileId: `file_${'b'.repeat(43)}`,
           status: { kind: 'deleted' },
+          oldMode: '100644',
           oldPath: path('src/vanished.ts'),
           additions: 0,
           deletions: 1,
