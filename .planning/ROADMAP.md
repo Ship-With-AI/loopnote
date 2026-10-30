@@ -43,7 +43,7 @@ deferred from v2.0.
 - Integer phases continue from the last shipped milestone (v1.6 ended at Phase 12); v2.0 starts at Phase 13.
 - Decimal phases (13.1, 13.2, …) are urgent insertions, not planned here.
 
-- [ ] **Phase 13: Single-Pane File Rendering** - Added/deleted files render as one full-width commentable pane instead of a diff with an empty side.
+- [x] **Phase 13: Single-Pane File Rendering** - Added/deleted files render as one full-width commentable pane instead of a diff with an empty side. (completed 2026-10-30)
 - [ ] **Phase 14: Uncommitted Source Review & Frozen Snapshots** - Staged/Unstaged/Working-tree review against any base, frozen at session start with explicit, comment-safe Refresh.
 - [ ] **Phase 15: Standalone File Review** - Named files/globs open and review full width without choosing Base/Head.
 - [ ] **Phase 16: Rendered Markdown Preview** - Any Markdown file toggles between source and rendered view with block-anchored commenting.
@@ -63,7 +63,7 @@ deferred from v2.0.
   2. Reviewer opens a deleted file and sees its entire removed content in one full-width pane with no empty Head side, and can comment on any line (anchored to Base).
   3. Reviewer can tell, from the file header and file tree without relying on color, which files are single-pane (entirely added/deleted) versus side-by-side (modified, renamed, copied).
 
-**Plans**: 4/5 plans executed
+**Plans**: 5/5 plans complete
 Plans:
 **Wave 1**
 
@@ -77,7 +77,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 13-05-PLAN.md — Playwright e2e coverage for added/deleted single-pane flows
+- [x] 13-05-PLAN.md — Playwright e2e coverage for added/deleted single-pane flows
 
 **UI hint**: yes
 
@@ -162,7 +162,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 13. Single-Pane File Rendering | 4/5 | In Progress|  |
+| 13. Single-Pane File Rendering | 5/5 | Complete   | 2026-10-30 |
 | 14. Uncommitted Source Review & Frozen Snapshots | 0/TBD | Not started | - |
 | 15. Standalone File Review | 0/TBD | Not started | - |
 | 16. Rendered Markdown Preview | 0/TBD | Not started | - |
