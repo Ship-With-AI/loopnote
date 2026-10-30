@@ -380,17 +380,19 @@ D-08's "binary, oversized, unsupported files keep today's non-reviewable placeho
 
 **All other claims in this research were verified directly against source files read in this session** (`diff-adapter.ts`, `comparison.ts`, `anchor.ts`, `file-tree.ts`, `availability.ts`, `DiffWorkspace.vue`, `ActiveFileToolbar.vue`, `StatusBadge.vue`, `CommentComposer.vue`, `ReviewToolbar.vue`, `InlineNotice.vue`, `theme.ts`, `render-review-markdown.ts`, `App.vue`, installed `monaco-editor` type defs, `package.json`, `.planning/config.json`) or cited from `13-CONTEXT.md`/`13-UI-SPEC.md`/`REQUIREMENTS.md`/`ROADMAP.md`/`.claude/CLAUDE.md` — no user confirmation needed beyond A1/A2, both already flagged as the user's explicit discretion.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Exact final module boundary (sibling file vs. same file) for the single-pane factory**
    - What we know: CONTEXT.md explicitly defers this to "Claude's Discretion." The UI-SPEC's File Ownership Map lists `diff-adapter.ts` as owning "New plain-editor creation path parallel `createDiffEditor`," implying same-file.
    - What's unclear: Whether the planner wants a hard file-size/separation-of-concerns split given `diff-adapter.ts` is already 634 lines.
    - Recommendation: Default to same-file (per UI-SPEC's File Ownership Map wording), sharing `CODE_DENSITIES`/`TOKENS`/`applyCumpaTheme()` imports; only split into a sibling file if the planner determines line-count/readability warrants it. Either choice has zero behavioral difference.
+   - **(RESOLVED):** Same-file, per the recommendation above. `13-01-PLAN.md` places `PublicMonacoSinglePaneAdapter` directly inside `diff-adapter.ts` (Task 1), sharing the existing `CODE_DENSITIES`/`TOKENS`/`applyCumpaTheme()` module-scope imports rather than introducing a sibling file.
 
 2. **Prop shape for threading layout decision from `App.vue` into `DiffWorkspace.vue`**
    - What we know: `DiffWorkspace.vue` currently has no `status` prop; `sourceKind` is the only existing discriminator prop and demonstrates the pattern (string literal union, `withDefaults`).
    - What's unclear: Whether to pass the raw `ChangedFileStatus` object, just `kind: ChangedFileStatusKind`, or a pre-computed boolean/enum like `layout: 'single-pane' | 'side-by-side'` computed once in `App.vue`.
    - Recommendation: Pass a minimal computed prop (e.g. `singlePaneSide: 'base' | 'head' | undefined`, pre-resolved in `App.vue` from `status.kind`) rather than the full status object — keeps `DiffWorkspace.vue` decoupled from the full `ChangedFileStatus` shape and mirrors the existing narrow-prop style (`sourceKind`, not the full session object).
+   - **(RESOLVED):** Minimal computed prop, per the recommendation above. `13-03-PLAN.md` threads `singlePaneSide: DiffSide | undefined` as a narrow, pre-resolved prop into `DiffWorkspace.vue` (Task 1), computed in `App.vue` from `selectedFile.status.kind`/`availability` via `singlePaneSideFor` rather than passing the full status object.
 
 ## Security Domain
 
