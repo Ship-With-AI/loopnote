@@ -71,7 +71,7 @@ const sharedDiffOptions = [
 const cumpaPath = Buffer.from('.cumpa', 'ascii');
 const cumpaPathPrefix = Buffer.from('.cumpa/', 'ascii');
 
-function isCumpaInternalPath(path: ExactPath | undefined): boolean {
+export function isCumpaInternalPath(path: ExactPath | undefined): boolean {
   if (path === undefined) {
     return false;
   }
@@ -86,7 +86,7 @@ function isCumpaInternalPath(path: ExactPath | undefined): boolean {
   );
 }
 
-function recordIdentity(record: RawDiffRecord): string {
+export function recordIdentity(record: RawDiffRecord): string {
   return JSON.stringify([
     record.status,
     record.similarity,
@@ -98,7 +98,7 @@ function recordIdentity(record: RawDiffRecord): string {
   ]);
 }
 
-function opaqueFileId(namespace: Uint8Array, record: RawDiffRecord): string {
+export function opaqueFileId(namespace: Uint8Array, record: RawDiffRecord): string {
   const digest = createHash('sha256')
     .update(namespace)
     .update(Buffer.from([0]))
@@ -107,7 +107,7 @@ function opaqueFileId(namespace: Uint8Array, record: RawDiffRecord): string {
   return `file_${digest}`;
 }
 
-function validateObjectFormat(
+export function validateObjectFormat(
   record: RawDiffRecord,
   objectFormat: 'sha1' | 'sha256',
 ): void {
@@ -123,7 +123,7 @@ function validateObjectFormat(
 }
 
 
-function inventoryPaths(record: RawDiffRecord): {
+export function inventoryPaths(record: RawDiffRecord): {
   readonly oldPath?: ExactPath;
   readonly newPath?: ExactPath;
 } {
