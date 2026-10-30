@@ -601,6 +601,357 @@ class PublicMonacoDiffAdapter {
   }
 }
 
+type SinglePaneSavedState = {
+  viewState: monaco.editor.ICodeEditorViewState | null;
+  focusedLine: number | undefined;
+  composer: ActiveComposer | undefined;
+};
+
+class PublicMonacoSinglePaneAdapter {
+  private readonly editor: monaco.editor.IStandaloneCodeEditor;
+  private readonly side: DiffSide;
+  private readonly stateByFileId = new Map<string, SinglePaneSavedState>();
+  private readonly staticDisposables: monaco.IDisposable[] = [];
+  private readonly selectionDecorations: monaco.editor.IEditorDecorationsCollection;
+  private model: monaco.editor.ITextModel | undefined;
+  private decorations: monaco.editor.IEditorDecorationsCollection | undefined;
+  private currentFile: ImmutableDiffFile | undefined;
+  private activeComposer: ActiveComposer | undefined;
+  private focusedLine: number | undefined;
+  private anchorAffordance: AnchorAffordanceTarget | undefined;
+  private zone: { id: string; zone: monaco.editor.IViewZone } | undefined;
+  private disposed = false;
+
+  constructor(
+    private readonly host: HTMLElement,
+    private readonly languageForPath: (path: string) => string,
+    private readonly onChange: () => void,
+    side: DiffSide,
+  ) {
+    this.side = side;
+    applyCumpaTheme();
+    this.editor = monaco.editor.create(host, {
+      ariaLabel: side === 'base' ? 'Immutable base only' : 'Immutable head only',
+      automaticLayout: false,
+      fontFamily: CODE_FONT_FAMILY,
+      fontSize: CODE_FONT_SIZE,
+      lineHeight: CODE_LINE_HEIGHT,
+      glyphMargin: true,
+      minimap: { enabled: false },
+      occurrencesHighlight: 'off',
+      readOnly: true,
+      lineNumbers: 'on',
+    });
+    this.selectionDecorations = this.editor.createDecorationsCollection();
+    this.editor.getContainerDomNode().classList.add(`monaco-diff-pane--${side}`);
+    this.staticDisposables.push(
+      this.editor.onDidFocusEditorText(() => this.captureFocusedSide()),
+      this.editor.onDidChangeCursorPosition((event) => this.captureCursor(event.position.lineNumber)),
+      this.editor.onDidChangeCursorSelection(() => this.refreshSelectionDecorations()),
+      this.editor.onDidChangeModel(() => this.refreshSelectionDecorations()),
+      this.editor.onMouseMove((event) => this.captureAffordance(event.target.position?.lineNumber)),
+      this.editor.onMouseDown((event) => this.captureAffordance(event.target.position?.lineNumber)),
+      this.editor.onDidScrollChange(() => this.refreshAnchorAffordance()),
+      this.editor.addAction({
+        id: `cumpa.add-${side}-comment`,
+        label: `Add comment to ${side} line`,
+        keybindings: [monaco.KeyMod.Alt | monaco.KeyCode.Enter],
+        run: () => this.activateFocusedAnchor(),
+      }),
+    );
+  }
+
+  setCodeDensity(density: 'wide' | 'default' | 'compact'): void {
+    this.editor.updateOptions(CODE_DENSITIES[density]);
+  }
+
+  setSideNames({ original, modified }: { readonly original: string; readonly modified: string }): void {
+    const picked = this.side === 'base' ? original : modified;
+    this.editor.updateOptions({ ariaLabel: `Immutable ${picked} only` });
+  }
+
+  async setFile(file: ImmutableDiffFile): Promise<void> {
+    this.saveOutgoingState();
+    this.removeZone();
+    this.disposeModel();
+    this.currentFile = file;
+    const saved = this.stateByFileId.get(file.id);
+    const sideFile = this.side === 'base' ? file.base : file.head;
+    const encodedPath = sideFile.path.split('/').map(encodeURIComponent).join('/');
+    this.model = monaco.editor.createModel(
+      sideFile.text,
+      this.languageForPath(sideFile.path),
+      monaco.Uri.parse(`inmemory://cumpa/${encodeURIComponent(file.id)}/${this.side}/${encodedPath}`),
+    );
+    this.editor.setModel(this.model);
+    this.editor.restoreViewState(saved?.viewState ?? null);
+    this.refreshSelectionDecorations();
+    const inFlightComposer = this.activeComposer?.fileId === file.id ? this.activeComposer : undefined;
+    const activeComposer = inFlightComposer ?? saved?.composer;
+    this.focusedLine = inFlightComposer === undefined ? saved?.focusedLine : inFlightComposer.line;
+    this.activeComposer = activeComposer;
+    this.rebuildAnchoredLayout();
+    if (this.focusedLine !== undefined) {
+      this.editor.setPosition({ lineNumber: this.focusedLine, column: 1 });
+      this.editor.revealLineInCenter(this.focusedLine);
+      this.editor.focus();
+    }
+    this.layout();
+    this.onChange();
+  }
+
+  activateAnchor(side: DiffSide, line: number): void {
+    if (side !== this.side || this.currentFile === undefined || !this.isValidLine(line)) {
+      return;
+    }
+    this.focusedLine = line;
+    this.activeComposer = {
+      fileId: this.currentFile.id,
+      side: this.side,
+      line,
+      text: this.activeComposer?.fileId === this.currentFile.id && this.activeComposer.line === line
+        ? this.activeComposer.text
+        : '',
+    };
+    this.editor.setPosition({ lineNumber: line, column: 1 });
+    this.editor.revealLineInCenter(line);
+    this.editor.focus();
+    this.captureAffordance(line);
+    this.rebuildAnchoredLayout();
+    this.onChange();
+  }
+
+  clearAnchor(): void {
+    this.activeComposer = undefined;
+    this.rebuildAnchoredLayout();
+    this.onChange();
+  }
+
+  getActiveAnchor(): Anchor | undefined {
+    return this.activeComposer === undefined
+      ? undefined
+      : { fileId: this.activeComposer.fileId, side: this.activeComposer.side, line: this.activeComposer.line };
+  }
+
+  getAnchorAffordance(): AnchorAffordanceTarget | undefined {
+    return this.anchorAffordance;
+  }
+
+  getAnchorAffordanceAt(side: DiffSide, line: number): AnchorAffordanceTarget | undefined {
+    if (side !== this.side || !this.isValidLine(line)) {
+      return undefined;
+    }
+    const visible = this.editor.getScrolledVisiblePosition({ lineNumber: line, column: 1 });
+    return {
+      side: this.side,
+      line,
+      top: this.host.offsetTop + (visible?.top ?? this.editor.getTopForLineNumber(line) - this.editor.getScrollTop()),
+    };
+  }
+
+  setActiveAnchor(anchor: Anchor | undefined): void {
+    if (anchor === undefined || anchor.side !== this.side || this.currentFile?.id !== anchor.fileId || !this.isValidLine(anchor.line)) {
+      this.activeComposer = undefined;
+      this.rebuildAnchoredLayout();
+      this.onChange();
+      return;
+    }
+    this.activeComposer = {
+      fileId: anchor.fileId,
+      side: this.side,
+      line: anchor.line,
+      text: this.activeComposer?.fileId === anchor.fileId && this.activeComposer.line === anchor.line
+        ? this.activeComposer.text
+        : '',
+    };
+    this.rebuildAnchoredLayout();
+    this.onChange();
+  }
+
+  revealAnchor(anchor: Anchor): void {
+    if (this.currentFile?.id !== anchor.fileId || anchor.side !== this.side) {
+      return;
+    }
+    this.activateAnchor(anchor.side, anchor.line);
+  }
+
+  goToChange(_direction: 'next' | 'previous'): void {
+    // A single pane has no paired hunks to navigate between; nothing to do.
+  }
+
+  layout(): void {
+    this.editor.layout();
+    this.refreshAnchorAffordance();
+  }
+
+  setAnchorZoneHeight(heightInPx: number): void {
+    if (this.zone === undefined) {
+      return;
+    }
+    this.zone.zone.heightInPx = heightInPx;
+    this.editor.changeViewZones((accessor) => accessor.layoutZone(this.zone?.id ?? ''));
+  }
+
+  getDiagnostics(): AdapterDiagnostics {
+    const liveModels = monaco.editor.getModels().filter((model) => model.uri.scheme === 'inmemory' && model.uri.authority === 'cumpa').length;
+    return {
+      diffUpdates: 0,
+      liveModels,
+      listenerCount: this.staticDisposables.length,
+      pairedZoneCount: this.zone === undefined ? 0 : 1,
+      activeComposerCount: this.activeComposer === undefined ? 0 : 1,
+      contextMode: 'all-revealed',
+    };
+  }
+
+  dispose(): void {
+    if (this.disposed) {
+      return;
+    }
+    this.disposed = true;
+    this.removeZone();
+    this.disposeModel();
+    for (const disposable of this.staticDisposables) {
+      disposable.dispose();
+    }
+    this.staticDisposables.length = 0;
+    this.editor.dispose();
+  }
+
+  private captureFocusedSide(): void {
+    const position = this.editor.getPosition();
+    if (position !== null) {
+      this.focusedLine = position.lineNumber;
+      this.captureAffordance(position.lineNumber);
+    }
+  }
+
+  private captureCursor(line: number): void {
+    this.focusedLine = line;
+    this.captureAffordance(line);
+  }
+
+  private captureAffordance(line: number | undefined): void {
+    if (line === undefined || !this.isValidLine(line)) {
+      this.clearAnchorAffordance();
+      return;
+    }
+    const visible = this.editor.getScrolledVisiblePosition({ lineNumber: line, column: 1 });
+    const top = this.host.offsetTop + (visible?.top ?? this.editor.getTopForLineNumber(line) - this.editor.getScrollTop());
+    const next = { side: this.side, line, top };
+    if (this.anchorAffordance?.line === next.line && this.anchorAffordance.top === next.top) {
+      return;
+    }
+    this.anchorAffordance = next;
+    this.onChange();
+  }
+
+  private clearAnchorAffordance(): void {
+    if (this.anchorAffordance === undefined) {
+      return;
+    }
+    this.anchorAffordance = undefined;
+    this.onChange();
+  }
+
+  private refreshAnchorAffordance(): void {
+    if (this.anchorAffordance !== undefined) {
+      this.captureAffordance(this.anchorAffordance.line);
+    }
+  }
+
+  private activateFocusedAnchor(): void {
+    const position = this.editor.getPosition();
+    if (position !== null) {
+      this.activateAnchor(this.side, position.lineNumber);
+    }
+  }
+
+  private saveOutgoingState(): void {
+    if (this.currentFile === undefined) {
+      return;
+    }
+    this.stateByFileId.set(this.currentFile.id, {
+      viewState: this.editor.saveViewState(),
+      focusedLine: this.focusedLine,
+      composer: this.activeComposer,
+    });
+  }
+
+  private isValidLine(line: number): boolean {
+    return this.model !== undefined && line > 0 && line <= this.model.getLineCount();
+  }
+
+  private disposeModel(): void {
+    this.decorations?.clear();
+    this.decorations = undefined;
+    this.selectionDecorations.clear();
+    this.editor.setModel(null);
+    this.model?.dispose();
+    this.model = undefined;
+  }
+
+  private removeZone(): void {
+    if (this.zone !== undefined) {
+      this.editor.changeViewZones((accessor) => accessor.removeZone(this.zone?.id ?? ''));
+    }
+    this.zone = undefined;
+  }
+
+  private refreshSelectionDecorations(): void {
+    const decorations = (this.editor.getSelections() ?? [])
+      .filter((selection) => !selection.isEmpty())
+      .map((selection) => ({
+        range: selection,
+        options: {
+          inlineClassName: 'monaco-selection-contrast-foreground',
+          inlineClassNameAffectsLetterSpacing: false,
+        },
+      }));
+    this.selectionDecorations.set(decorations);
+  }
+
+  private rebuildAnchoredLayout(): void {
+    if (this.activeComposer === undefined || this.currentFile === undefined) {
+      this.removeZone();
+      this.decorations?.clear();
+      return;
+    }
+    const anchor = this.activeComposer;
+    if (anchor.fileId !== this.currentFile.id || !this.isValidLine(anchor.line)) {
+      return;
+    }
+    this.removeZone();
+    this.decorations?.clear();
+    const zone = this.createComposerZone(anchor);
+    const zoneId = this.addZone(zone);
+    this.zone = { id: zoneId, zone };
+    this.decorations = this.editor.createDecorationsCollection([this.anchorDecoration(anchor.line)]);
+  }
+
+  private anchorDecoration(line: number): monaco.editor.IModelDeltaDecoration {
+    return {
+      range: new monaco.Range(line, 1, line, 1),
+      options: { isWholeLine: true, className: 'monaco-anchor-line' },
+    };
+  }
+
+  private createComposerZone(anchor: ActiveComposer): monaco.editor.IViewZone {
+    const container = document.createElement('section');
+    container.className = 'monaco-anchor-zone monaco-anchor-zone--composer';
+    container.setAttribute('aria-label', `Comment on ${anchor.side} line ${anchor.line}`);
+    return { afterLineNumber: anchor.line, domNode: container, heightInPx: 280, suppressMouseDown: false };
+  }
+
+  private addZone(zone: monaco.editor.IViewZone): string {
+    let zoneId = '';
+    this.editor.changeViewZones((accessor) => {
+      zoneId = accessor.addZone(zone);
+    });
+    return zoneId;
+  }
+}
+
 /**
  * Executes only commands that belong to the public Monaco adapter surface.
  * State transitions, persistence, and DOM focus remain owned by workspace composition.
@@ -631,4 +982,13 @@ export function createMonacoDiffAdapter(
   onChange: () => void,
 ): MonacoDiffAdapter {
   return new PublicMonacoDiffAdapter(host, languageForPath, onChange);
+}
+
+export function createMonacoSinglePaneAdapter(
+  host: HTMLElement,
+  languageForPath: (path: string) => string,
+  onChange: () => void,
+  side: DiffSide,
+): MonacoDiffAdapter {
+  return new PublicMonacoSinglePaneAdapter(host, languageForPath, onChange, side);
 }

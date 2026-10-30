@@ -13,7 +13,7 @@ const mocks = vi.hoisted(() => {
     const removeZone = vi.fn();
     const layoutZone = vi.fn();
     return {
-      addAction: vi.fn(),
+      addAction: vi.fn(() => disposable()),
       addZone,
       changeViewZones: vi.fn((change: (accessor: { addZone: typeof addZone; layoutZone: typeof layoutZone; removeZone: typeof removeZone }) => void) =>
         change({ addZone, layoutZone, removeZone })),
@@ -318,7 +318,7 @@ describe('PublicMonacoSinglePaneAdapter construction', () => {
       head: { path: 'src/example.ts', text: 'const head = 2;' },
     });
 
-    expect(mockEditor.setModel).toHaveBeenCalledOnce();
+    expect(mockEditor.setModel).toHaveBeenLastCalledWith(mocks.createModel.mock.results.at(-1)?.value);
     expect(mocks.diffUpdateListeners).toHaveLength(0);
   });
 
