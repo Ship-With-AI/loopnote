@@ -145,6 +145,17 @@ Plans:
 **Plans**: TBD
 **Research flag**: yes — exact `ReviewExportV4Schema`/`V5Schema` field shapes (uncommitted/standalone provenance metadata) aren't fully specified in any research file; finalize during planning against the established V1→V2→V3 superset pattern, per `research/SUMMARY.md`.
 
+### Phase 17.1: Full Project Rename (INSERTED)
+
+**Goal:** [Urgent work - to be planned]
+**Requirements**: TBD
+**Depends on:** Phase 17
+**Plans:** 5/5 plans complete
+
+Plans:
+
+- [ ] TBD (run $gsd-plan-phase 17.1 to break down)
+
 ### Phase 18: Product Repositioning Copy
 
 **Goal**: Cumpa's README, npm page, CLI copy, and browser workspace text describe it as local review for any agent-produced artifact, not just code diffs, with no hosted or multi-reviewer overclaim.
@@ -162,7 +173,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 13. Single-Pane File Rendering | 5/5 | Complete   | 2026-10-30 |
+| 13. Single-Pane File Rendering | 5/5 | Complete    | 2026-10-30 |
 | 14. Uncommitted Source Review & Frozen Snapshots | 0/TBD | Not started | - |
 | 15. Standalone File Review | 0/TBD | Not started | - |
 | 16. Rendered Markdown Preview | 0/TBD | Not started | - |
