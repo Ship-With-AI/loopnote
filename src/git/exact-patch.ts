@@ -424,7 +424,7 @@ function applyText(preimage: Buffer, lines: readonly string[]): Buffer {
   return Buffer.from(output.join(''), 'utf8');
 }
 
-function blobOid(bytes: Buffer, format: 'sha1' | 'sha256'): string {
+export function blobOid(bytes: Buffer, format: 'sha1' | 'sha256'): string {
   return createHash(format).update(`blob ${bytes.length}\0`, 'ascii').update(bytes).digest('hex');
 }
 
