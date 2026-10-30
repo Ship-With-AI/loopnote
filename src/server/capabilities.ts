@@ -2,7 +2,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { lstat, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import type { GroundedExactPatch, PinnedComparison, ChangedFile } from '../contracts/comparison.js';
+import type { GroundedExactPatch, PinnedComparison, ChangedFile, UncommittedScope } from '../contracts/comparison.js';
 import {
   ExportReviewResultSchema,
   AppendCumpaIgnoreResultSchema,
@@ -32,7 +32,7 @@ import {
   type AnchorVerification,
   type DurableAnchorV1,
 } from '../domain/anchor.js';
-import { comparisonKey } from '../domain/comparison-key.js';
+import { comparisonKey, uncommittedReviewKey } from '../domain/comparison-key.js';
 import { MAX_INLINE_TEXT_BYTES } from '../git/availability.js';
 import { createObjectReader } from '../git/objects.js';
 import type { ObjectReader } from '../git/objects.js';
@@ -55,6 +55,7 @@ import { assertManagedExportsRoot, ensureManagedExportsRoot, publishReviewExport
 import { inspectCumpaIgnore } from '../git/ignore-status.js';
 import { appendCumpaIgnoreRule } from './gitignore-capability.js';
 import { PatchSnapshot } from './patch-snapshot.js';
+import { type WorktreeSnapshot } from './worktree-snapshot.js';
 
 import type { HostedSupportClient } from './support-client.js';
 import type { SupportStore } from './support-store.js';
@@ -137,8 +138,8 @@ export type CapabilityRegistry = Readonly<{
   readonly readContent: (fileId: string) => Promise<FileContentResponse | undefined>;
   readonly verifyAnchor: (anchor: DurableAnchorV1) => Promise<AnchorVerification>;
   readonly revealDraftFile: () => Promise<void>;
-  readonly revealExportDirectory: () => Promise<void>;
-  readonly exportReview: (input: ExportReviewRequest) => Promise<ExportReviewResult>;
+  readonly revealExportDirectory?: () => Promise<void>;
+  readonly exportReview?: (input: ExportReviewRequest) => Promise<ExportReviewResult>;
   readonly inspectCumpaIgnore: () => Promise<CumpaIgnoreStatus>;
   readonly appendCumpaIgnoreRule: () => Promise<AppendCumpaIgnoreResult>;
   readonly support?: SupportCapability;
@@ -869,6 +870,137 @@ export async function createExactPatchCapabilityRegistry(
         },
         files: published.receipt.files,
       });
+    },
+    async inspectCumpaIgnore() {
+      return CumpaIgnoreStatusSchema.parse({ kind: 'unavailable' });
+    },
+    async appendCumpaIgnoreRule() {
+      return AppendCumpaIgnoreResultSchema.parse({ kind: 'unconfirmed' });
+    },
+  });
+}
+
+export async function createUncommittedCapabilityRegistry(
+  scope: UncommittedScope,
+  snapshot: WorktreeSnapshot,
+  options: CapabilityRegistryOptions = {},
+): Promise<CapabilityRegistry> {
+  const storageScope = options.attachedCompletion === undefined
+    ? undefined
+    : assertAttachedStorageScope(options.attachedCompletion.storageScope);
+  const snapshotSession = await snapshot.session();
+  const reviewKey = uncommittedReviewKey(scope.sourceKind, scope.baseCommitOid, snapshotSession.chain[0]!);
+
+  const sessionResponse = async () => {
+    const files = await snapshot.files();
+    return SessionResponseSchema.parse({
+      uncommitted: {
+        kind: 'uncommitted' as const,
+        sourceKind: scope.sourceKind,
+        ...(scope.baseCommitOid === undefined ? {} : { baseCommitOid: scope.baseCommitOid }),
+        reviewKey,
+        changedFileCount: files.length,
+      },
+      files: files.map((file) => ({
+        fileId: file.id,
+        status: file.status.similarity === null ? { kind: file.status.kind } : { kind: file.status.kind, similarity: file.status.similarity },
+        oldMode: file.oldMode,
+        ...(file.oldPath === undefined ? {} : { oldPath: file.oldPath }),
+        ...(file.newPath === undefined ? {} : { newPath: file.newPath }),
+        additions: file.additions,
+        deletions: file.deletions,
+        availability: file.availability,
+      })),
+      ...(options.attachedCompletion === undefined ? {} : { attached: { kind: 'agent-review' as const } }),
+      ...(options.support === undefined ? {} : { support: { enabled: true as const } }),
+    });
+  };
+
+  const draftStore = options.draftStore ?? createDraftStore({
+    repositoryRoot: scope.repositoryRoot,
+    comparison: {
+      kind: 'uncommitted',
+      sourceKind: scope.sourceKind,
+      ...(scope.baseCommitOid === undefined ? {} : { baseCommitOid: scope.baseCommitOid }),
+      reviewKey,
+      snapshotChain: snapshotSession.chain,
+    },
+    ...(storageScope === undefined ? {} : { storageScope }),
+  });
+
+  const verifyAnchor = async (anchor: DurableAnchorV1): Promise<AnchorVerification> => {
+    const file = (await snapshot.files()).find((candidate) => {
+      const path = anchor.side === 'base' ? candidate.oldPath : candidate.newPath;
+      const blobOid = anchor.side === 'base' ? candidate.oldBlobOid : candidate.newBlobOid;
+      return path?.bytesBase64url === anchor.path.bytesBase64url && blobOid === anchor.blobOid;
+    });
+    if (file === undefined) return { state: 'orphaned', reason: 'anchor-unavailable' };
+    const content = await snapshot.readContent(file.id);
+    const bytes = anchor.side === 'base' ? content?.preimage : content?.postimage;
+    const path = anchor.side === 'base' ? file.oldPath : file.newPath;
+    if (bytes === undefined || path === undefined) return { state: 'orphaned', reason: 'anchor-unavailable' };
+    return verifyDurableAnchor(
+      anchor,
+      buildDurableAnchor({
+        path,
+        safeDisplayPath: path.display,
+        side: anchor.side,
+        blobOid: anchor.blobOid,
+        line: anchor.line,
+        text: strictTextDecoder.decode(bytes),
+      }),
+    );
+  };
+
+  return Object.freeze({
+    session: sessionResponse,
+    onAnchorAdd: options.onAnchorAdd,
+    draftStore,
+    support: options.support,
+    async lookup(fileId) {
+      options.onCapabilityLookup?.(fileId);
+      const file = (await snapshot.files()).find((candidate) => candidate.id === fileId);
+      if (file === undefined) return undefined;
+      return FileMetadataResponseSchema.parse({
+        fileId: file.id,
+        status: file.status.similarity === null ? { kind: file.status.kind } : { kind: file.status.kind, similarity: file.status.similarity },
+        oldMode: file.oldMode,
+        newMode: file.newMode,
+        ...(file.oldPath === undefined ? {} : { oldPath: file.oldPath }),
+        ...(file.newPath === undefined ? {} : { newPath: file.newPath }),
+        additions: file.additions,
+        deletions: file.deletions,
+        availability: file.availability,
+      });
+    },
+    async readContent(fileId) {
+      const content = await snapshot.readContent(fileId);
+      if (content === undefined) return undefined;
+      const { file, preimage, postimage } = content;
+      const makeSide = (
+        bytes: Buffer | undefined,
+        path: ChangedFile['oldPath'],
+        mode: string,
+        blobOid: string,
+      ) => bytes === undefined || path === undefined || mode === '000000'
+        ? { exists: false as const }
+        : {
+            exists: true as const,
+            path,
+            language: languageForPath(path.utf8),
+            blobOid,
+            text: strictTextDecoder.decode(bytes),
+          };
+      return FileContentResponseSchema.parse({
+        fileId,
+        base: makeSide(preimage, file.oldPath, file.oldMode, file.oldBlobOid),
+        head: makeSide(postimage, file.newPath, file.newMode, file.newBlobOid),
+      });
+    },
+    verifyAnchor,
+    async revealDraftFile() {
+      if (options.revealDraftFile === undefined) throw new Error('Draft reveal adapter is unavailable.');
+      await options.revealDraftFile(draftStore.canonicalPath);
     },
     async inspectCumpaIgnore() {
       return CumpaIgnoreStatusSchema.parse({ kind: 'unavailable' });

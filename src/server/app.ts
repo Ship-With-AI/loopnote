@@ -1,13 +1,16 @@
+import { randomUUID } from 'node:crypto';
 import * as fs from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
+import { tmpdir } from 'node:os';
+import { dirname, join, resolve } from 'node:path';
 import fastifyStatic from '@fastify/static';
 import Fastify from 'fastify';
 import type { FastifyInstance } from 'fastify';
 
-import type { GroundedExactPatch, PinnedComparison } from '../contracts/comparison.js';
+import type { GroundedExactPatch, PinnedComparison, UncommittedScope } from '../contracts/comparison.js';
 import {
   createCapabilityRegistry,
   createExactPatchCapabilityRegistry,
+  createUncommittedCapabilityRegistry,
   createSupportCapability,
   type CapabilityRegistryOptions,
   type SupportCapability,
@@ -21,6 +24,7 @@ import {
 } from './draft-store.js';
 import { registerSessionRoutes } from './routes.js';
 import { materializePatchSnapshot } from './patch-snapshot.js';
+import { materializeWorktreeSnapshot } from './worktree-snapshot.js';
 import {
   registerSessionSecurity,
   type SecurityDiagnostic,
@@ -37,6 +41,10 @@ export interface CreateSessionAppOptions extends CapabilityRegistryOptions {
 export interface CreateExactPatchSessionAppOptions extends CreateSessionAppOptions {
   readonly snapshotParent?: string;
   readonly observePatchTarget?: () => Promise<boolean>;
+}
+
+export interface CreateUncommittedSessionAppOptions extends CreateSessionAppOptions {
+  readonly snapshotRoot?: string;
 }
 
 export interface SessionApp extends FastifyInstance {
@@ -175,6 +183,32 @@ export async function createExactPatchSessionApp(
   app.addHook('onClose', async () => support?.close());
   app.decorate('bindSessionSecurity', security.bind);
   app.addHook('onClose', async () => snapshot.dispose());
+  registerSessionRoutes(app, capabilities);
+  void app.register(fastifyStatic, {
+    root: webRoot,
+    index: ['index.html'],
+  });
+  return app;
+}
+
+export async function createUncommittedSessionApp(
+  scope: UncommittedScope,
+  options: CreateUncommittedSessionAppOptions,
+): Promise<SessionApp> {
+  const snapshot = await materializeWorktreeSnapshot(scope, {
+    root: options.snapshotRoot ?? join(tmpdir(), `cumpa-worktree-${randomUUID()}`),
+  });
+  const app = Fastify({
+    logger: false,
+    ajv: { customOptions: { removeAdditional: false } },
+  }) as unknown as SessionApp;
+  const webRoot = options.webRoot ?? resolve(import.meta.dirname, '../web');
+  const support = options.support ?? createConfiguredSupportCapability();
+  const capabilities = await createUncommittedCapabilityRegistry(scope, snapshot, { ...options, support });
+  const security = registerSessionSecurity(app, options);
+
+  app.addHook('onClose', async () => support?.close());
+  app.decorate('bindSessionSecurity', security.bind);
   registerSessionRoutes(app, capabilities);
   void app.register(fastifyStatic, {
     root: webRoot,

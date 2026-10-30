@@ -14,6 +14,7 @@ import {
   AnchorVerificationSchema,
   CommentBodySchema,
   CommentIdSchema,
+  DraftComparisonSchema,
   DurableAnchorV1Schema,
   RevisionSchema,
   ReviewDraftV1Schema,
@@ -94,14 +95,7 @@ const DraftCommentViewSchema = z
 export const DraftViewSchema = z
   .strictObject({
     schemaVersion: z.literal(1),
-    comparison: z
-      .strictObject({
-        baseCommitOid: GitObjectIdSchema,
-        headCommitOid: GitObjectIdSchema,
-        mergeBaseOid: GitObjectIdSchema,
-        range: RangeReviewScopeSchema.optional(),
-      })
-      .readonly(),
+    comparison: DraftComparisonSchema,
     revision: RevisionSchema,
     summary: SummaryMarkdownSchema,
     comments: z.array(DraftCommentViewSchema).max(10_000).readonly(),
@@ -410,8 +404,25 @@ const ExactPatchSessionResponseSchema = z
   })
   .readonly();
 
+const UncommittedSessionResponseSchema = z
+  .strictObject({
+    uncommitted: z
+      .strictObject({
+        kind: z.literal('uncommitted'),
+        sourceKind: z.enum(['staged', 'unstaged', 'worktree']),
+        baseCommitOid: GitObjectIdSchema.optional(),
+        reviewKey: z.string().regex(/^[0-9a-f]{64}$/u),
+        changedFileCount: z.number().int().nonnegative(),
+      })
+      .readonly(),
+    files: z.array(SessionFileSchema).readonly(),
+    attached: AttachedSessionMarkerSchema.optional(),
+    support: SessionSupportCapabilitySchema.optional(),
+  })
+  .readonly();
+
 export const SessionResponseSchema = z
-  .union([PinnedSessionResponseSchema, ExactPatchSessionResponseSchema])
+  .union([PinnedSessionResponseSchema, ExactPatchSessionResponseSchema, UncommittedSessionResponseSchema])
   .readonly();
 
 export const SelectorDriftRoleSchema = z.enum(['base', 'head']);
