@@ -232,6 +232,41 @@ export function registerSessionRoutes(app: FastifyInstance, capabilities: Capabi
     );
   }
 
+  if (capabilities.refresh !== undefined) {
+    app.post<{ Querystring: Record<string, never>; Body: unknown }>(
+      '/api/refresh',
+      { schema: { querystring: EMPTY_QUERY_SCHEMA }, bodyLimit: 1 },
+      async (request, reply) => {
+        if (
+          request.body !== undefined ||
+          (request.headers['content-length'] !== undefined && request.headers['content-length'] !== '0') ||
+          request.headers['content-type'] !== undefined
+        ) {
+          return unavailable(reply, 400);
+        }
+        return await capabilities.refresh!();
+      },
+    );
+  }
+
+  if (capabilities.worktreeChangeIndicator !== undefined) {
+    app.get<{ Querystring: Record<string, never> }>(
+      '/api/worktree-status',
+      { schema: { querystring: EMPTY_QUERY_SCHEMA } },
+      async (request, reply) => {
+        if (
+          Object.keys(request.query).length !== 0 ||
+          request.body !== undefined ||
+          request.headers['content-length'] !== undefined ||
+          request.headers['content-type'] !== undefined
+        ) {
+          return unavailable(reply, 400);
+        }
+        return await capabilities.worktreeChangeIndicator!();
+      },
+    );
+  }
+
   app.get<{ Params: { fileId: string } }>(
     '/api/files/:fileId',
     {

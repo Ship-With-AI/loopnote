@@ -33,9 +33,11 @@ import {
   type DurableAnchorV1,
 } from '../domain/anchor.js';
 import { comparisonKey, uncommittedReviewKey } from '../domain/comparison-key.js';
+import { decodeBase64url } from '../domain/path-bytes.js';
 import { MAX_INLINE_TEXT_BYTES } from '../git/availability.js';
 import { createObjectReader } from '../git/objects.js';
 import type { ObjectReader } from '../git/objects.js';
+import { createGitRunner } from '../git/runner.js';
 import {
   createSelectorDriftObserver,
   type SelectorDriftObserver,
@@ -128,6 +130,14 @@ export type CapabilityRegistry = Readonly<{
   readonly draftStore: DraftStore;
   readonly selectorDriftObserver?: SelectorDriftObserver;
   readonly patchStatus?: () => Promise<PatchStatusResponse>;
+  readonly refresh?: () => Promise<Readonly<{
+    readonly added: readonly string[];
+    readonly removed: readonly string[];
+    readonly modified: readonly string[];
+    readonly staleCount: number;
+    readonly orphanedCount: number;
+  }>>;
+  readonly worktreeChangeIndicator?: () => Promise<Readonly<{ readonly changed: boolean }>>;
   readonly isExactPatch?: true;
   readonly attachedCompletion?: Readonly<{
     readonly status: () => AttachedCompletionStatus;
@@ -952,11 +962,99 @@ export async function createUncommittedCapabilityRegistry(
     );
   };
 
+  const diskPathFor = (file: ChangedFile): string | undefined => {
+    const path = file.newPath ?? file.oldPath;
+    if (path === undefined) return undefined;
+    return join(scope.repositoryRoot, Buffer.from(decodeBase64url(path.bytesBase64url)).toString('utf8'));
+  };
+
+  const indexStatIdentity = async (): Promise<Readonly<{ readonly size: number; readonly mtimeMs: number }>> => {
+    const runner = createGitRunner();
+    const result = await runner.run(['rev-parse', '--git-path', 'index'], { cwd: scope.repositoryRoot });
+    const indexPathRaw = result.stdout.toString('utf8').trim();
+    const resolvedIndexPath = indexPathRaw.startsWith('/') ? indexPathRaw : join(scope.repositoryRoot, indexPathRaw);
+    const info = await lstat(resolvedIndexPath);
+    return { size: info.size, mtimeMs: info.mtimeMs };
+  };
+
+  type StatIdentity = Readonly<{ readonly size: number; readonly mtimeMs: number }>;
+
+  const captureChangeBaseline = async (): Promise<Readonly<{
+    readonly index: StatIdentity;
+    readonly files: ReadonlyMap<string, StatIdentity | undefined>;
+  }>> => {
+    const index = await indexStatIdentity();
+    const files = await snapshot.files();
+    const fileStats = new Map<string, StatIdentity | undefined>();
+    for (const file of files) {
+      const diskPath = diskPathFor(file);
+      if (diskPath === undefined) continue;
+      try {
+        const info = await lstat(diskPath);
+        fileStats.set(file.id, { size: info.size, mtimeMs: info.mtimeMs });
+      } catch {
+        fileStats.set(file.id, undefined);
+      }
+    }
+    return Object.freeze({ index, files: fileStats });
+  };
+
+  let changeBaseline = await captureChangeBaseline();
+
   return Object.freeze({
     session: sessionResponse,
     onAnchorAdd: options.onAnchorAdd,
     draftStore,
     support: options.support,
+    async refresh() {
+      const stateBefore = await draftStore.loadState();
+      const commentsBefore = stateBefore.kind === 'current' ? stateBefore.draft.comments : [];
+      const verificationBefore = new Map<string, AnchorVerification>();
+      for (const comment of commentsBefore) {
+        verificationBefore.set(comment.id, await verifyAnchor(comment.anchor));
+      }
+      const delta = await snapshot.refresh();
+      changeBaseline = await captureChangeBaseline();
+      let staleCount = 0;
+      let orphanedCount = 0;
+      for (const comment of commentsBefore) {
+        if (verificationBefore.get(comment.id)?.state !== 'verified') continue;
+        const after = await verifyAnchor(comment.anchor);
+        if (after.state === 'stale') staleCount += 1;
+        else if (after.state === 'orphaned') orphanedCount += 1;
+      }
+      return {
+        added: delta.added,
+        removed: delta.removed,
+        modified: delta.modified,
+        staleCount,
+        orphanedCount,
+      };
+    },
+    async worktreeChangeIndicator() {
+      const index = await indexStatIdentity();
+      if (index.size !== changeBaseline.index.size || index.mtimeMs !== changeBaseline.index.mtimeMs) {
+        return { changed: true };
+      }
+      const files = await snapshot.files();
+      for (const file of files) {
+        const diskPath = diskPathFor(file);
+        if (diskPath === undefined) continue;
+        const expected = changeBaseline.files.get(file.id);
+        let actual: StatIdentity | undefined;
+        try {
+          const info = await lstat(diskPath);
+          actual = { size: info.size, mtimeMs: info.mtimeMs };
+        } catch {
+          actual = undefined;
+        }
+        const changed = expected === undefined
+          ? actual !== undefined
+          : actual === undefined || actual.size !== expected.size || actual.mtimeMs !== expected.mtimeMs;
+        if (changed) return { changed: true };
+      }
+      return { changed: false };
+    },
     async lookup(fileId) {
       options.onCapabilityLookup?.(fileId);
       const file = (await snapshot.files()).find((candidate) => candidate.id === fileId);

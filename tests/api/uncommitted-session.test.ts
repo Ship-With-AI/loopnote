@@ -4,8 +4,8 @@ import { join } from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import { afterEach, describe, expect, test } from 'vitest';
 
-import type { UncommittedScope } from '../../src/contracts/comparison.js';
-import { createUncommittedSessionApp, type CreateUncommittedSessionAppOptions } from '../../src/server/app.js';
+import type { PinnedComparison, UncommittedScope } from '../../src/contracts/comparison.js';
+import { createSessionApp, createUncommittedSessionApp, type CreateUncommittedSessionAppOptions } from '../../src/server/app.js';
 import { createUncommittedCapabilityRegistry } from '../../src/server/capabilities.js';
 import { materializeWorktreeSnapshot } from '../../src/server/worktree-snapshot.js';
 import { buildDurableAnchor } from '../../src/domain/anchor.js';
@@ -52,6 +52,18 @@ function scopeFor(
     baseCommitOid: options?.baseCommitOid,
     mergeBaseOid: options?.mergeBaseOid,
     changedFiles: [],
+  };
+}
+
+function pinnedComparison(repositoryRoot: string): PinnedComparison {
+  return {
+    repositoryRoot,
+    objectFormat: 'sha1',
+    base: { label: 'moving-base', oid: '1'.repeat(40) },
+    head: { label: 'moving-head', oid: '2'.repeat(40) },
+    mergeBaseOid: '3'.repeat(40),
+    changedFiles: [],
+    hasCommittedChanges: true,
   };
 }
 
@@ -181,5 +193,103 @@ describe('uncommitted session apps', () => {
     const fileId = first.json().files[0].fileId as string;
     const content = await app.inject({ method: 'GET', url: `/api/files/${fileId}/content`, headers });
     expect(content.json()).toMatchObject({ head: { text: 'worktree once edit\n' } });
+  });
+
+  test('rejects a non-empty POST /api/refresh body or content-type without invoking the refresh capability', async () => {
+    const fixture = await makeFixture();
+    await fixture.write('tracked.txt', 'unstaged edit before refresh\n');
+    const scope = scopeFor(fixture, 'unstaged');
+    const app = await buildApp(scope);
+
+    const session = await app.inject({ method: 'GET', url: '/api/session', headers });
+    const fileId = (session.json().files as ReadonlyArray<{ readonly fileId: string }>)[0]!.fileId;
+
+    await fixture.write('tracked.txt', 'unstaged edit after rejected refresh attempts\n');
+
+    const withBody = await app.inject({ method: 'POST', url: '/api/refresh', headers, payload: { noop: true } });
+    expect(withBody.statusCode).toBe(400);
+
+    const withContentType = await app.inject({
+      method: 'POST',
+      url: '/api/refresh',
+      headers: { ...headers, 'content-type': 'application/json' },
+    });
+    expect(withContentType.statusCode).toBe(400);
+
+    const content = await app.inject({ method: 'GET', url: `/api/files/${fileId}/content`, headers });
+    expect(content.json()).toMatchObject({ head: { text: 'unstaged edit before refresh\n' } });
+  });
+
+  test('refreshes the frozen snapshot and reports exactly the delta and stale/orphaned transition counts', async () => {
+    const fixture = await makeFixture();
+    const baseOid = headOid(fixture);
+    await fixture.write('tracked.txt', 'first captured line\n');
+    const scope = scopeFor(fixture, 'worktree', { baseCommitOid: baseOid, mergeBaseOid: baseOid });
+    const app = await buildApp(scope);
+
+    const session = await app.inject({ method: 'GET', url: '/api/session', headers });
+    const trackedFile = (session.json().files as ReadonlyArray<{ readonly fileId: string; readonly newPath?: { readonly utf8?: string } }>)
+      .find((candidate) => candidate.newPath?.utf8 === 'tracked.txt');
+    expect(trackedFile).toBeDefined();
+
+    const added = await app.inject({
+      method: 'POST',
+      url: '/api/draft/mutations',
+      headers,
+      payload: { type: 'addComment', expectedRevision: 0, fileId: trackedFile!.fileId, side: 'head', line: 1, body: 'Checking this line.' },
+    });
+    expect(added.statusCode).toBe(201);
+
+    const beforeDraft = await app.inject({ method: 'GET', url: '/api/draft', headers });
+    expect(beforeDraft.json()).toMatchObject({
+      kind: 'current',
+      draft: { comments: [{ verification: { state: 'verified', reason: 'exact-match' } }] },
+    });
+
+    await fixture.write('tracked.txt', 'second refreshed line\n');
+    await fixture.write('new-untracked.txt', 'brand new after capture\n');
+
+    const refresh = await app.inject({ method: 'POST', url: '/api/refresh', headers });
+    expect(refresh.statusCode).toBe(200);
+    const refreshBody = refresh.json();
+    expect(Object.keys(refreshBody)).toEqual(['added', 'removed', 'modified', 'staleCount', 'orphanedCount']);
+    expect(refreshBody.modified).toContain('tracked.txt');
+    expect(refreshBody.added).toContain('new-untracked.txt');
+    expect(refreshBody.staleCount).toBe(1);
+    expect(refreshBody.orphanedCount).toBe(0);
+
+    const afterDraft = await app.inject({ method: 'GET', url: '/api/draft', headers });
+    expect(afterDraft.json()).toMatchObject({
+      kind: 'current',
+      draft: { comments: [{ verification: { state: 'stale', reason: 'anchor-mismatch' } }] },
+    });
+  });
+
+  test('reports worktree-status changed only after an on-disk edit since the current snapshot', async () => {
+    const fixture = await makeFixture();
+    await fixture.write('tracked.txt', 'status check baseline\n');
+    const scope = scopeFor(fixture, 'unstaged');
+    const app = await buildApp(scope);
+
+    const before = await app.inject({ method: 'GET', url: '/api/worktree-status', headers });
+    expect(before.statusCode).toBe(200);
+    expect(before.json()).toEqual({ changed: false });
+
+    await fixture.write('tracked.txt', 'status check mutated\n');
+
+    const after = await app.inject({ method: 'GET', url: '/api/worktree-status', headers });
+    expect(after.json()).toEqual({ changed: true });
+  });
+
+  test('leaves POST /api/refresh and GET /api/worktree-status absent (404) for non-uncommitted sessions', async () => {
+    const root = await makeRoot();
+    const app = createSessionApp(pinnedComparison(root), { sessionToken: token });
+    app.bindSessionSecurity({ expectedHost: host, expectedOrigin: `http://${host}` });
+    apps.add(app);
+
+    const refresh = await app.inject({ method: 'POST', url: '/api/refresh', headers });
+    expect(refresh.statusCode).toBe(404);
+    const status = await app.inject({ method: 'GET', url: '/api/worktree-status', headers });
+    expect(status.statusCode).toBe(404);
   });
 });
