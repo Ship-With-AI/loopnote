@@ -206,6 +206,13 @@ export const DraftRevealResultSchema = z
   ])
   .readonly();
 
+export const UncommittedDraftRecoveryResultSchema = z
+  .discriminatedUnion('kind', [
+    z.strictObject({ kind: z.literal('recovered') }).readonly(),
+    z.strictObject({ kind: z.literal('unavailable') }).readonly(),
+  ])
+  .readonly();
+
 export const ExportReviewRequestSchema = z
   .strictObject({
     expectedRevision: RevisionSchema,
@@ -413,6 +420,7 @@ const UncommittedSessionResponseSchema = z
         baseCommitOid: GitObjectIdSchema.optional(),
         reviewKey: z.string().regex(/^[0-9a-f]{64}$/u),
         changedFileCount: z.number().int().nonnegative(),
+        recoveryAvailable: z.literal(true).optional(),
       })
       .readonly(),
     files: z.array(SessionFileSchema).readonly(),
@@ -730,6 +738,7 @@ export type DraftLoadResponse = z.infer<typeof DraftLoadResponseSchema>;
 export type DraftRecoveryRequest = z.infer<typeof DraftRecoveryRequestSchema>;
 export type DraftRecoveryResult = z.infer<typeof DraftRecoveryResultSchema>;
 export type DraftRevealResult = z.infer<typeof DraftRevealResultSchema>;
+export type UncommittedDraftRecoveryResult = z.infer<typeof UncommittedDraftRecoveryResultSchema>;
 export type FileContentResponse = z.infer<typeof FileContentResponseSchema>;
 export type SelectorDriftStatus = z.infer<typeof SelectorDriftStatusSchema>;
 export type SelectorDriftResponse = z.infer<typeof SelectorDriftResponseSchema>;

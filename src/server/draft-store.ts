@@ -421,3 +421,27 @@ export async function findUncommittedDraftCandidate(
   }
   return undefined;
 }
+
+export async function loadUncommittedDraftCandidateComments(
+  path: string,
+): Promise<readonly Pick<ReviewDraftV1['comments'][number], 'body' | 'state' | 'anchor'>[] | undefined> {
+  let raw: string;
+  try {
+    raw = await fs.readFile(path, 'utf8');
+  } catch {
+    return undefined;
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return undefined;
+  }
+  const result = ReviewDraftV1Schema.safeParse(parsed);
+  if (!result.success) return undefined;
+  return result.data.comments.map((comment) => ({
+    body: comment.body,
+    state: comment.state,
+    anchor: comment.anchor,
+  }));
+}
