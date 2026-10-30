@@ -3,7 +3,9 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   createBrowserUrlOpener,
   launchPinnedComparison,
+  resolveUncommittedFlagSelection,
   runCli,
+  validateUncommittedFlags,
   type RunCliDependencies,
 } from '../../src/cli/run.js';
 import {
@@ -168,7 +170,11 @@ describe('pre-session terminal failure ownership', () => {
       const setExitStatus = vi.fn();
       const launchComparison = vi.fn();
       const pickCalls: unknown[] = [];
-      const selected = { base: baseCandidate, head: headCandidate } as const;
+      const selected = {
+        kind: 'committed',
+        base: baseCandidate,
+        head: headCandidate,
+      } as const;
       const pickSources: NonNullable<RunCliDependencies['pickSources']> = async (
         options,
       ) => {
@@ -232,7 +238,7 @@ describe('pre-session terminal failure ownership', () => {
           sourceDiscovery([baseCandidate, headCandidate]),
         pickSources: async (options) => {
           pickCalls.push(options);
-          return { base: baseCandidate, head: headCandidate };
+          return { kind: 'committed', base: baseCandidate, head: headCandidate };
         },
         createDescriptor: async () => {
           attempts += 1;
@@ -286,9 +292,9 @@ describe('pre-session terminal failure ownership', () => {
         pickSources: async (options) => {
           pickCalls.push(options);
           if (attempts === 0) {
-            return { base: baseCandidate, head: worktreeCandidate };
+            return { kind: 'committed', base: baseCandidate, head: worktreeCandidate };
           }
-          return { base: baseCandidate, head: headCandidate };
+          return { kind: 'committed', base: baseCandidate, head: headCandidate };
         },
         createDescriptor: async () => {
           attempts += 1;
@@ -333,7 +339,7 @@ describe('pre-session terminal failure ownership', () => {
           sourceDiscovery([baseCandidate, headCandidate]),
         pickSources: async (options) => {
           pickCalls.push(options);
-          return { base: baseCandidate, head: headCandidate };
+          return { kind: 'committed', base: baseCandidate, head: headCandidate };
         },
         createDescriptor: async () => {
           attempts += 1;
@@ -453,8 +459,8 @@ describe('pre-session terminal failure ownership', () => {
         pickSources: async (options) => {
           pickCalls.push(options);
           return attempts === 0
-            ? { base: baseCandidate, head: headCandidate }
-            : { base: baseCandidate, head: freshHead };
+            ? { kind: 'committed', base: baseCandidate, head: headCandidate }
+            : { kind: 'committed', base: baseCandidate, head: freshHead };
         },
         createDescriptor: async () => {
           attempts += 1;
@@ -501,7 +507,7 @@ describe('pre-session terminal failure ownership', () => {
         },
         pickSources: async (options) => {
           pickCalls.push(options);
-          return { base: baseCandidate, head: headCandidate };
+          return { kind: 'committed', base: baseCandidate, head: headCandidate };
         },
         createDescriptor: async () => {
           attempts += 1;
@@ -592,5 +598,54 @@ describe('browser URL opener routing', () => {
 
     expect(openSystemBrowser).not.toHaveBeenCalled();
     expect(runCmux).toHaveBeenCalledExactlyOnceWith('cmux', ['open', url]);
+  });
+});
+
+describe('uncommitted flag validation', () => {
+  it('resolves exactly one source row per flag and undefined when none are set', () => {
+    expect(resolveUncommittedFlagSelection({})).toBeUndefined();
+    expect(resolveUncommittedFlagSelection({ staged: true })).toBe('staged');
+    expect(resolveUncommittedFlagSelection({ unstaged: true })).toBe(
+      'unstaged',
+    );
+    expect(resolveUncommittedFlagSelection({ worktree: true })).toBe(
+      'worktree',
+    );
+  });
+
+  it('accepts a single source flag with no base, and --staged/--worktree with --base', () => {
+    expect(() => validateUncommittedFlags({})).not.toThrow();
+    expect(() => validateUncommittedFlags({ staged: true })).not.toThrow();
+    expect(() =>
+      validateUncommittedFlags({ staged: true, base: 'main' }),
+    ).not.toThrow();
+    expect(() =>
+      validateUncommittedFlags({ worktree: true, base: 'main' }),
+    ).not.toThrow();
+  });
+
+  it('rejects more than one of --staged/--unstaged/--worktree', () => {
+    expect(() =>
+      validateUncommittedFlags({ staged: true, unstaged: true }),
+    ).toThrow(
+      '--staged, --unstaged, and --worktree are mutually exclusive. Choose exactly one.',
+    );
+    expect(() =>
+      validateUncommittedFlags({
+        staged: true,
+        unstaged: true,
+        worktree: true,
+      }),
+    ).toThrow(
+      '--staged, --unstaged, and --worktree are mutually exclusive. Choose exactly one.',
+    );
+  });
+
+  it('rejects --base combined with --unstaged with the exact UI-SPEC message', () => {
+    expect(() =>
+      validateUncommittedFlags({ unstaged: true, base: 'main' }),
+    ).toThrow(
+      '--base cannot be used with --unstaged — Unstaged always compares the index against the working tree.',
+    );
   });
 });

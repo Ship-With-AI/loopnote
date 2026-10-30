@@ -24,6 +24,7 @@ import type {
   PinnedComparison,
 } from '../../src/contracts/comparison.js';
 import type { SessionApp } from '../../src/server/app.js';
+import { createDirtyGitFixture } from '../helpers/git-fixture.js';
 import { ExactPatchGroundingError } from '../../src/git/exact-patch.js';
 import { PatchSnapshotError } from '../../src/server/patch-snapshot.js';
 import type {
@@ -608,7 +609,7 @@ describe('staged source discovery', () => {
         pickSources: async (options) => {
           events.push('pick');
           expect(options.candidates).toEqual(eagerCandidates);
-          return { base: eagerCandidates[0], head: eagerCandidates[1] };
+          return { kind: 'committed', base: eagerCandidates[0], head: eagerCandidates[1] };
         },
         createDescriptor: async () => comparison,
         confirmComparison: async () => 'launch',
@@ -685,7 +686,7 @@ describe('pinned comparison confirmation and CLI integration', () => {
         },
         pickSources: async () => {
           events.push('pick-base-head');
-          return { base: candidates[0], head: candidates[2] };
+          return { kind: 'committed', base: candidates[0], head: candidates[2] };
         },
         createDescriptor: async (options) => {
           events.push('pin-comparison');
@@ -816,6 +817,75 @@ describe('exact patch CLI dispatch', () => {
       );
 
       expect(output).toEqual(['Exact patch review could not be prepared.']);
+    }
+  });
+});
+
+describe('uncommitted CLI launch wiring', () => {
+  it('launches createUncommittedSessionApp with the picker-resolved uncommitted scope', async () => {
+    const fixture = await createDirtyGitFixture('branch-to-branch', 20);
+    try {
+      const events: string[] = [];
+      const app = {
+        listen: async () => {
+          events.push('listen');
+        },
+        server: {
+          address: () => ({ address: '127.0.0.1', port: 43141 }),
+        },
+        bindSessionSecurity: () => {
+          events.push('security');
+        },
+        close: async () => undefined,
+      } as unknown as SessionApp;
+
+      let receivedScope:
+        | Readonly<{
+            readonly sourceKind: string;
+            readonly baseCommitOid?: string;
+            readonly mergeBaseOid?: string;
+          }>
+        | undefined;
+
+      await runCli(
+        { cwd: fixture.root },
+        {
+          discoverCandidates: async () => ({
+            initialCandidates: [],
+            candidateEnrichment: Promise.resolve([]),
+            startCandidateEnrichment: () => undefined,
+            searchBranches: async () => [],
+          }),
+          pickSources: async () => ({
+            kind: 'uncommitted',
+            sourceKind: 'staged',
+            base: {
+              kind: 'branch',
+              id: 'branch:refs/heads/main',
+              label: 'main',
+              refName: fixture.baseRef,
+              commitOid: '0'.repeat(40),
+              shortOid: '0'.repeat(12),
+            },
+          }),
+          createUncommittedSessionApp: async (scope) => {
+            receivedScope = scope;
+            events.push('app');
+            return app;
+          },
+          findUncommittedDraftCandidate: async () => undefined,
+          openBrowser: async () => {
+            events.push('browser');
+          },
+        } satisfies RunCliDependencies,
+      );
+
+      expect(events).toEqual(['app', 'listen', 'security', 'browser']);
+      expect(receivedScope?.sourceKind).toBe('staged');
+      expect(receivedScope?.baseCommitOid).toMatch(/^[0-9a-f]{40}$/u);
+      expect(receivedScope?.mergeBaseOid).toMatch(/^[0-9a-f]{40}$/u);
+    } finally {
+      await fixture.cleanup();
     }
   });
 });
