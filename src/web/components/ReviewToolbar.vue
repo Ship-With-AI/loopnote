@@ -6,6 +6,7 @@ defineProps<{
   atFirstFile: boolean;
   atLastFile: boolean;
   hasActiveFile: boolean;
+  singlePane: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -44,7 +45,7 @@ const emit = defineEmits<{
         </button>
       </UiTooltip>
     </div>
-    <div class="review-toolbar__group" aria-label="Change navigation">
+    <div v-if="!singlePane" class="review-toolbar__group" aria-label="Change navigation">
       <span class="review-toolbar__label" aria-hidden="true">Change</span>
       <UiTooltip text="Previous change · Shift+F7">
         <button
