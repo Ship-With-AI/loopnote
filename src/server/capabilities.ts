@@ -353,6 +353,7 @@ export function createCapabilityRegistry(
       const sessionFile = {
         fileId: file.id,
         status,
+        oldMode: file.oldMode,
         ...(file.oldPath === undefined ? {} : { oldPath: file.oldPath }),
         ...(file.newPath === undefined ? {} : { newPath: file.newPath }),
         additions: file.additions,

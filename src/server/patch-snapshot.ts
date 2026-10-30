@@ -461,6 +461,7 @@ export class PatchSnapshot {
       files: Object.freeze(manifest.entries.map(({ file }) => ({
         fileId: file.id,
         status: file.status.similarity === null ? { kind: file.status.kind } : { kind: file.status.kind, similarity: file.status.similarity },
+        oldMode: file.oldMode,
         ...(file.oldPath === undefined ? {} : { oldPath: file.oldPath }),
         ...(file.newPath === undefined ? {} : { newPath: file.newPath }),
         additions: file.additions,

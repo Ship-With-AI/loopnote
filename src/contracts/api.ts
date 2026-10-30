@@ -312,6 +312,7 @@ export const SessionFileSchema = z
   .strictObject({
     fileId: OpaqueFileIdSchema,
     status: ApiFileStatusSchema,
+    oldMode: GitModeSchema,
     oldPath: ExactPathSchema.optional(),
     newPath: ExactPathSchema.optional(),
     additions: z.number().int().nonnegative().nullable(),
