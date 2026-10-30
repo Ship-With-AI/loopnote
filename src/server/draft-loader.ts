@@ -53,10 +53,7 @@ function fingerprint(raw: Buffer): string {
 }
 
 function sameComparison(left: DraftComparison, right: DraftComparison): boolean {
-  if ('kind' in left && 'kind' in right && left.kind === 'uncommitted' && right.kind === 'uncommitted') {
-    return left.reviewKey === right.reviewKey;
-  }
-  if ('kind' in left || 'kind' in right) {
+  if (('kind' in left && left.kind === 'exact-patch') || ('kind' in right && right.kind === 'exact-patch')) {
     return (
       'kind' in left &&
       'kind' in right &&
@@ -64,6 +61,17 @@ function sameComparison(left: DraftComparison, right: DraftComparison): boolean 
       right.kind === 'exact-patch' &&
       left.digest === right.digest &&
       left.validationTarget.kind === right.validationTarget.kind &&
+      left.reviewKey === right.reviewKey
+    );
+  }
+  if (('kind' in left && left.kind === 'uncommitted') || ('kind' in right && right.kind === 'uncommitted')) {
+    return (
+      'kind' in left &&
+      'kind' in right &&
+      left.kind === 'uncommitted' &&
+      right.kind === 'uncommitted' &&
+      left.sourceKind === right.sourceKind &&
+      left.baseCommitOid === right.baseCommitOid &&
       left.reviewKey === right.reviewKey
     );
   }

@@ -5,8 +5,9 @@ import { join } from 'node:path';
 
 import { afterEach, describe, expect, test } from 'vitest';
 
-import { comparisonKey, rangeReviewKey } from '../../src/domain/comparison-key.js';
+import { comparisonKey, rangeReviewKey, uncommittedReviewKey } from '../../src/domain/comparison-key.js';
 import { createDraftLoader, draftPaths } from '../../src/server/draft-loader.js';
+import { findUncommittedDraftCandidate } from '../../src/server/draft-store.js';
 import type { DraftIssue } from '../../src/server/draft-loader.js';
 
 const comparison = {
@@ -47,6 +48,33 @@ async function rangeFixture(scope: { readonly range: { readonly reviewKey: strin
   const directory = join(root, '.cumpa', 'drafts');
   await mkdir(directory, { recursive: true });
   await writeFile(join(directory, `${scope.range.reviewKey}.json`), bytes);
+  return root;
+}
+
+function uncommittedComparison(overrides: Readonly<{
+  readonly sourceKind?: 'staged' | 'unstaged' | 'worktree';
+  readonly baseCommitOid?: string;
+  readonly snapshotChain?: readonly string[];
+  readonly reviewKey?: string;
+}> = {}) {
+  const sourceKind = overrides.sourceKind ?? 'staged';
+  const baseCommitOid = overrides.baseCommitOid ?? '4'.repeat(40);
+  const snapshotChain = overrides.snapshotChain ?? ['5'.repeat(64)];
+  const reviewKey = overrides.reviewKey ?? uncommittedReviewKey(sourceKind, baseCommitOid, snapshotChain[0]!);
+  return {
+    kind: 'uncommitted' as const,
+    sourceKind,
+    baseCommitOid,
+    reviewKey,
+    snapshotChain,
+  };
+}
+
+async function uncommittedFixture(scope: { readonly reviewKey: string }, bytes: Buffer): Promise<string> {
+  const root = await fixture();
+  const directory = join(root, '.cumpa', 'drafts');
+  await mkdir(directory, { recursive: true });
+  await writeFile(join(directory, `${scope.reviewKey}.json`), bytes);
   return root;
 }
 
@@ -180,5 +208,80 @@ describe('raw draft load classification', () => {
     }
     expect(state.raw.equals(bytes)).toBe(true);
     expect('fingerprint' in state).toBe(false);
+  });
+});
+
+describe('uncommitted comparison provenance', () => {
+  test('loads current when a persisted uncommitted comparison matches every requested field', async () => {
+    const expected = uncommittedComparison();
+    const bytes = current({ comparison: expected });
+    const root = await uncommittedFixture(expected, bytes);
+    const state = await createDraftLoader({ repositoryRoot: root, comparison: expected }).load();
+    expect(state).toMatchObject({ kind: 'current', draft: { comparison: expected } });
+  });
+
+  test('rejects an uncommitted comparison differing only in reviewKey without changing canonical bytes', async () => {
+    const expected = uncommittedComparison();
+    const differentChain = ['6'.repeat(64)];
+    const persisted = uncommittedComparison({
+      snapshotChain: differentChain,
+      reviewKey: uncommittedReviewKey(expected.sourceKind, expected.baseCommitOid, differentChain[0]!),
+    });
+    const bytes = current({ comparison: persisted });
+    const root = await uncommittedFixture(expected, bytes);
+    const state = await createDraftLoader({ repositoryRoot: root, comparison: expected }).load();
+
+    expect(state).toMatchObject({ kind: 'schemaInvalid', fingerprint: fingerprint(bytes) });
+    if (state.kind !== 'schemaInvalid') {
+      throw new Error('Expected schema-invalid draft state');
+    }
+    expect(state.raw.equals(bytes)).toBe(true);
+  });
+
+  test('rejects an exact-patch-shaped persisted comparison against a requested uncommitted comparison without throwing', async () => {
+    const expected = uncommittedComparison();
+    const persisted = {
+      kind: 'exact-patch' as const,
+      digest: '7'.repeat(64),
+      validationTarget: { kind: 'repository' as const },
+      reviewKey: expected.reviewKey,
+    };
+    const bytes = current({ comparison: persisted });
+    const root = await uncommittedFixture(expected, bytes);
+    const state = await createDraftLoader({ repositoryRoot: root, comparison: expected }).load();
+
+    expect(state).toMatchObject({ kind: 'schemaInvalid', fingerprint: fingerprint(bytes) });
+  });
+});
+
+describe('findUncommittedDraftCandidate', () => {
+  test('finds only the draft matching sourceKind and baseCommitOid via a bounded scan', async () => {
+    const root = await fixture();
+    const directory = join(root, '.cumpa', 'drafts');
+    await mkdir(directory, { recursive: true });
+    const baseCommitOid = '8'.repeat(40);
+
+    const matching = uncommittedComparison({ sourceKind: 'staged', baseCommitOid, snapshotChain: ['9'.repeat(64)] });
+    await writeFile(join(directory, `${matching.reviewKey}.json`), current({ comparison: matching }));
+
+    const differentSourceKind = uncommittedComparison({ sourceKind: 'worktree', baseCommitOid, snapshotChain: ['a'.repeat(64)] });
+    await writeFile(join(directory, `${differentSourceKind.reviewKey}.json`), current({ comparison: differentSourceKind }));
+
+    const exactPatch = {
+      kind: 'exact-patch' as const,
+      digest: 'b'.repeat(64),
+      validationTarget: { kind: 'repository' as const },
+      reviewKey: 'c'.repeat(64),
+    };
+    await writeFile(join(directory, `${exactPatch.reviewKey}.json`), current({ comparison: exactPatch }));
+
+    const candidate = await findUncommittedDraftCandidate(root, 'staged', baseCommitOid);
+    expect(candidate).toEqual({ reviewKey: matching.reviewKey, path: join(directory, `${matching.reviewKey}.json`) });
+  });
+
+  test('returns undefined when no stored draft matches the requested source and base', async () => {
+    const root = await fixture();
+    const candidate = await findUncommittedDraftCandidate(root, 'unstaged', undefined);
+    expect(candidate).toBeUndefined();
   });
 });

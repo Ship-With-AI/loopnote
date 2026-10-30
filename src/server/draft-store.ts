@@ -388,3 +388,36 @@ export function createDraftStore(options: Readonly<{
     },
   });
 }
+
+export async function findUncommittedDraftCandidate(
+  repositoryRoot: string,
+  sourceKind: 'staged' | 'unstaged' | 'worktree',
+  baseCommitOid: string | undefined,
+): Promise<Readonly<{ readonly reviewKey: string; readonly path: string }> | undefined> {
+  const directory = join(repositoryRoot, '.cumpa', 'drafts');
+  let entries: string[];
+  try {
+    entries = await fs.readdir(directory);
+  } catch {
+    return undefined;
+  }
+  for (const entry of entries) {
+    if (!entry.endsWith('.json')) continue;
+    const candidatePath = join(directory, entry);
+    try {
+      const parsed: unknown = JSON.parse(await fs.readFile(candidatePath, 'utf8'));
+      if (typeof parsed !== 'object' || parsed === null || !('comparison' in parsed)) continue;
+      const comparison = parsed.comparison;
+      if (typeof comparison !== 'object' || comparison === null) continue;
+      if (!('kind' in comparison) || comparison.kind !== 'uncommitted') continue;
+      if (!('sourceKind' in comparison) || comparison.sourceKind !== sourceKind) continue;
+      const storedBaseCommitOid = 'baseCommitOid' in comparison ? comparison.baseCommitOid : undefined;
+      if (storedBaseCommitOid !== baseCommitOid) continue;
+      if (!('reviewKey' in comparison) || typeof comparison.reviewKey !== 'string') continue;
+      return Object.freeze({ reviewKey: comparison.reviewKey, path: candidatePath });
+    } catch {
+      continue;
+    }
+  }
+  return undefined;
+}
