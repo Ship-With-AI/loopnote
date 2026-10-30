@@ -5,15 +5,15 @@ milestone_name: Artifact Review
 current_phase: 14
 current_phase_name: Uncommitted Source Review & Frozen Snapshots
 status: executing
-stopped_at: Completed 14-02-PLAN.md
-last_updated: "2026-10-30T18:16:23.273Z"
+stopped_at: Completed 14-04-PLAN.md
+last_updated: "2026-10-30T18:44:45.023Z"
 last_activity: 2026-10-30
 last_activity_desc: Phase 13 complete, transitioned to Phase 14
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 18
-  completed_plans: 8
+  completed_plans: 9
   percent: 14
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-09-09)
 ## Current Position
 
 Phase: 14 — Uncommitted Source Review & Frozen Snapshots
-Plan: 4 of 13
+Plan: 5 of 13
 Status: Ready to execute
 Last activity: 2026-10-30 — Phase 13 complete, transitioned to Phase 14
 
@@ -70,6 +70,7 @@ Last activity: 2026-10-30 — Phase 13 complete, transitioned to Phase 14
 | Phase 14 P01 | 15min | 1 tasks | 2 files |
 | Phase 14 P02 | 35min | 2 tasks | 6 files |
 | Phase 14 P03 | 10min | 1 tasks | 2 files |
+| Phase 14 P04 | 55min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -104,6 +105,8 @@ Decisions are logged in PROJECT.md Key Decisions.
 - [Phase 14]: 14-02: UncommittedScopeSchema placed after ChangedFileSchema, not after ExactPatchScopeSchema — Avoids a const-TDZ ReferenceError since UncommittedScopeSchema.changedFiles reuses ChangedFileSchema, declared later in comparison.ts
 - [Phase 14]: 14-02: Widened DraftComparisonSchema union (3 members) required narrowing sameComparison() and buildReviewExportV3() in draft-loader.ts/review-export.ts — 'kind' in comparison no longer uniquely implies exact-patch shape; fixed minimally per RESEARCH.md guidance, deferring 14-08's full D-19 relaunch-recovery behavior
 - [Phase 14]: 14-03: npm run typecheck substitution — npx tsc --noEmit --project tsconfig.json, same pre-existing gap recorded in 14-01/14-02
+- [Phase 14]: 14-04: classifyWorktreeSideAvailability() is a new standalone function (not a modification of classifyAvailability()), since availability.ts was excluded from files_modified — Mirrors classifyAvailability's cascade for the worktree-resident side via bounded fs read + per-segment lstat defense (PatchSnapshot.worktreeEntry() discipline), duplicated because src/git/ never depends on src/server/
+- [Phase 14]: 14-04: added hasNumstat flag to classifyWorktreeSideAvailability (default true) — Fixed a real bug where untracked files' additions===null/deletions===null (no numstat line exists for them) was misread as git's numstat binary flag, wrongly classifying all untracked text files as unsupported/binary; untracked call site passes hasNumstat=false to force the real embedded-NUL content check
 
 ### Pending Todos
 
@@ -152,6 +155,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-30T18:16:15.811Z
-Stopped at: Completed 14-02-PLAN.md
+Last session: 2026-10-30T18:44:45.019Z
+Stopped at: Completed 14-04-PLAN.md
 Resume file: None
