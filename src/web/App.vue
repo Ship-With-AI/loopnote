@@ -147,6 +147,13 @@ const exactPatchSession = computed(() =>
   session.value !== undefined && 'patch' in session.value ? session.value : undefined,
 );
 const isExactPatchSession = computed(() => exactPatchSession.value !== undefined);
+const isUncommittedSession = computed(() => session.value !== undefined && 'uncommitted' in session.value);
+const uncommittedSession = computed(() =>
+  isUncommittedSession.value
+    ? (session.value as Extract<SessionResponse, { uncommitted: unknown }>).uncommitted
+    : undefined,
+);
+const uncommittedBaseLabel = 'Repository object';
 const singlePaneSide = computed(() =>
   selectedFile.value === undefined
     ? undefined
@@ -180,6 +187,14 @@ const emptyFilesCopy = computed(() => {
         ? 'The pinned commits contain no changed files selected by this scope.'
         : 'The pinned commits contain no changed files.',
     };
+  }
+  if (isUncommittedSession.value) {
+    const message = uncommittedSession.value?.sourceKind === 'staged'
+      ? 'There is nothing staged. Refresh after staging changes, or relaunch with a different source.'
+      : uncommittedSession.value?.sourceKind === 'unstaged'
+        ? 'The working tree matches the index. Refresh after editing files, or relaunch with a different source.'
+        : `The working tree matches ${uncommittedBaseLabel}. Refresh after editing files, or relaunch with a different source.`;
+    return { heading: 'No changes', message };
   }
   return {
     heading: 'No PR-style changes in this pinned comparison',
@@ -1163,7 +1178,7 @@ onBeforeUnmount(() => {
         </section>
         <section v-else-if="selectedFile?.availability.kind !== 'text'" class="empty-state">
           <h2>Diff unavailable for this file</h2>
-          <p>{{ selectedFile?.availability.kind === 'unsupported' ? `unsupported: ${selectedFile.availability.reason}` : 'unavailable: missing-object' }}. Select another changed file to continue reviewing.</p>
+          <p>{{ selectedFile?.availability.kind === 'unsupported' && selectedFile.availability.reason === 'changed-during-capture' ? 'This file changed while Cumpa was capturing the snapshot and could not be read consistently. Refresh to recapture it.' : `${selectedFile?.availability.kind === 'unsupported' ? `unsupported: ${selectedFile.availability.reason}` : 'unavailable: missing-object'}. Select another changed file to continue reviewing.` }}</p>
         </section>
         <section v-else-if="diffLoading" class="diff-state">Loading diff…</section>
         <section v-else-if="diffError !== ''" class="empty-state" :role="isRangeSession || isExactPatchSession ? 'alert' : undefined">

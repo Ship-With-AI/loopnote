@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 import {
   DraftLoadResponseSchema,
   DraftMutationResultSchema,
@@ -66,6 +68,19 @@ export class SessionClientError extends Error {
   }
 }
 
+const RefreshResultSchema = z
+  .strictObject({
+    added: z.array(z.string()).readonly(),
+    removed: z.array(z.string()).readonly(),
+    modified: z.array(z.string()).readonly(),
+    staleCount: z.number().int().nonnegative(),
+    orphanedCount: z.number().int().nonnegative(),
+  })
+  .readonly();
+export type RefreshResult = z.infer<typeof RefreshResultSchema>;
+
+const WorktreeStatusResponseSchema = z.strictObject({ changed: z.boolean() }).readonly();
+
 export interface SessionClient {
   mutate(request: DraftMutationRequest): Promise<DraftMutationResult>;
   getAttachedCompletionStatus(): Promise<AttachedCompletionStatus>;
@@ -85,6 +100,8 @@ export interface SessionClient {
   getSupportStatus(): Promise<SupportStatus>;
   startSupportAction(action: SupportAction): Promise<SupportStartResult>;
   refreshSupportStatus(): Promise<SupportStatus>;
+  refreshWorktreeSnapshot(): Promise<RefreshResult>;
+  getWorktreeStatus(): Promise<Readonly<{ readonly changed: boolean }>>;
 }
 
 export interface SessionClientEnvironment {
@@ -176,6 +193,15 @@ export function createSessionClient(environment: SessionClientEnvironment = {}):
     async refreshSupportStatus() {
       const result = SupportStatusSchema.safeParse(await requestJson('/api/support/refresh', 'POST', 'session'));
       if (!result.success) throw new SessionClientError('session', SESSION_UNAVAILABLE_MESSAGE);
+      return result.data;
+    },
+    async refreshWorktreeSnapshot() {
+      const result = RefreshResultSchema.safeParse(
+        await requestJson('/api/refresh', 'POST', 'session'),
+      );
+      if (!result.success) {
+        throw new SessionClientError('session', SESSION_UNAVAILABLE_MESSAGE);
+      }
       return result.data;
     },
     async mutate(input) {
@@ -296,6 +322,15 @@ export function createSessionClient(environment: SessionClientEnvironment = {}):
     }
     return result.data;
   },
+    async getWorktreeStatus() {
+      const result = WorktreeStatusResponseSchema.safeParse(
+        await requestJson('/api/worktree-status', 'GET', 'session'),
+      );
+      if (!result.success) {
+        throw new SessionClientError('session', SESSION_UNAVAILABLE_MESSAGE);
+      }
+      return result.data;
+    },
     async getAttachedCompletionStatus() {
       const result = AttachedCompletionStatusSchema.safeParse(
         await requestJson('/api/review-completion', 'GET', 'draft'),
