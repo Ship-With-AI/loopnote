@@ -98,7 +98,7 @@ Plans:
 
 - [x] 14-14-PLAN.md
 - [x] 14-15-PLAN.md
-- [ ] 14-16-PLAN.md
+- [x] 14-16-PLAN.md
 
 - [x] 14-01-PLAN.md — Extract shared snapshot-fs.ts file-IO primitives from patch-snapshot.ts
 - [x] 14-02-PLAN.md — UncommittedScopeSchema, changed-during-capture availability reason, UncommittedDraftComparisonSchema

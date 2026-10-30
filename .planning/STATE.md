@@ -5,16 +5,16 @@ milestone_name: Artifact Review
 current_phase: 14
 current_phase_name: Uncommitted Source Review & Frozen Snapshots
 status: verifying
-stopped_at: Completed 14-15-PLAN.md
-last_updated: "2026-10-30T23:38:35.392Z"
+stopped_at: Completed 14-16-PLAN.md
+last_updated: "2026-10-30T23:48:45.399Z"
 last_activity: 2026-10-30
 last_activity_desc: Phase 13 complete, transitioned to Phase 14
 progress:
   total_phases: 7
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 21
-  completed_plans: 20
-  percent: 14
+  completed_plans: 21
+  percent: 29
 ---
 
 # Project State
@@ -82,6 +82,7 @@ Last activity: 2026-10-30 — Phase 13 complete, transitioned to Phase 14
 | Phase 14-uncommitted-source-review-frozen-snapshots P13 | 70min | 2 tasks | 1 files |
 | Phase 14 P14 | 70min | 3 tasks | 5 files |
 | Phase 14-uncommitted-source-review-frozen-snapshots P15 | 45min | 4 tasks | 6 files |
+| Phase 14-uncommitted-source-review-frozen-snapshots P16 | 25min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -134,6 +135,7 @@ Decisions are logged in PROJECT.md Key Decisions.
 - [Phase 14-uncommitted-source-review-frozen-snapshots]: 14-13: StaleAnchorNotice never becomes visible after Refresh — performRefresh() (src/web/App.vue) never calls workspace.replaceComments(...)/re-fetches /api/draft, so client-side comment status never resyncs even though server-side reclassification (orphaned, not stale, per exact-blobOid anchor lookup) and the RefreshSummaryPanel's own count are both correct. Documented as an out-of-scope gap in 14-13-SUMMARY.md
 - [Phase 14]: 14-14: fixed reconciledWorkspaceComments() discarding fresh comment status/exactFile/fileId on every call — Merge logic spread stale previous client comment then only overwrote state/body (a no-op, since both already derive from the same server draft), silently clobbering status/exactFile/fileId/recordedAnchor; blocked SNAP-05's StaleAnchorNotice resync. Fixed by returning the fresh reconcileDraftComments() output directly.
 - [Phase 14-uncommitted-source-review-frozen-snapshots]: 14-15: recoverUncommittedDraft wires purely from options.uncommittedRecoveryCandidate's presence with no reviewKey comparison; a same-digest relaunch's redundant recovery call is a harmless no-op since every comment hits invalidTarget — Matches the plan's literal instruction and D-19's source+base-scoped (not digest-scoped) candidate discovery
+- [Phase 14-uncommitted-source-review-frozen-snapshots]: InlineNotice for the D-19 Resume offer written as a single template line so the heading and its dismiss-label's quoted reference collapse onto one grep-matched line — Satisfies the plan's literal grep -c == 1 acceptance criterion without duplicating or shortening either string
 
 ### Pending Todos
 
@@ -184,6 +186,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-30T23:38:35.388Z
-Stopped at: Completed 14-15-PLAN.md
+Last session: 2026-10-30T23:48:45.395Z
+Stopped at: Completed 14-16-PLAN.md
 Resume file: None
