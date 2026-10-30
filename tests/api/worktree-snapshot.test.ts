@@ -246,6 +246,15 @@ describe('captureWorktreeManifest (via materializeWorktreeSnapshot): file-set ch
     const targetPath = join(fixture.root, 'tracked.txt');
 
     const dependencies: WorktreeSnapshotRefreshDependencies = {
+      // A legitimate D-11 whole-capture retry (e.g. triggered by an
+      // unrelated index stat-cache refresh as a side effect of git diff
+      // itself) must not corrupt this scenario: re-establish the unstaged
+      // edit at the start of every attempt, so each attempt's own first
+      // enumeration sees the same "expected" file regardless of how many
+      // times the whole capture is retried.
+      onCaptureStart: async () => {
+        await writeFile(targetPath, 'unstaged edit\n');
+      },
       onBeforeObservedEnumeration: async () => {
         // Restore to the committed index content so the second enumeration
         // no longer reports this file as changed at all.

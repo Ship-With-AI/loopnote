@@ -195,6 +195,7 @@ async function captureFileWithRetry(
 export interface CaptureWorktreeManifestDependencies {
   readonly runner?: GitRunner;
   readonly objectReader?: ObjectReader;
+  readonly onCaptureStart?: () => Promise<void> | void;
   readonly onFileReadAttempt?: (fileId: string, attempt: number) => Promise<void> | void;
   readonly onBeforeObservedEnumeration?: () => Promise<void> | void;
 }
@@ -227,7 +228,7 @@ async function captureWorktreeManifest(
 ): Promise<WorktreeManifestCapture> {
   const runner = dependencies.runner ?? createGitRunner();
   const objectReader = dependencies.objectReader ?? createObjectReader(repositoryRoot, { runner });
-
+  await dependencies.onCaptureStart?.();
   const expected = await createWorktreeChangedFileInventory(
     {
       sourceKind: scope.sourceKind,
