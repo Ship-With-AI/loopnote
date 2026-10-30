@@ -53,10 +53,15 @@ function fingerprint(raw: Buffer): string {
 }
 
 function sameComparison(left: DraftComparison, right: DraftComparison): boolean {
+  if ('kind' in left && 'kind' in right && left.kind === 'uncommitted' && right.kind === 'uncommitted') {
+    return left.reviewKey === right.reviewKey;
+  }
   if ('kind' in left || 'kind' in right) {
     return (
       'kind' in left &&
       'kind' in right &&
+      left.kind === 'exact-patch' &&
+      right.kind === 'exact-patch' &&
       left.digest === right.digest &&
       left.validationTarget.kind === right.validationTarget.kind &&
       left.reviewKey === right.reviewKey

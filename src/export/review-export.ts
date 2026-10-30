@@ -186,6 +186,7 @@ export function buildReviewExportV3(
   const draft = ReviewDraftV1Schema.parse(snapshot.acceptedDraft);
   if (
     !('kind' in draft.comparison)
+    || draft.comparison.kind !== 'exact-patch'
     || draft.comparison.digest !== patch.digest
     || draft.comparison.validationTarget.kind !== patch.validationTarget.kind
     || draft.comparison.reviewKey !== patch.reviewKey

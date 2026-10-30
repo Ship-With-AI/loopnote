@@ -89,9 +89,34 @@ const ExactPatchDraftComparisonSchema = z
   })
   .readonly();
 
-export const DraftComparisonSchema = z
-  .union([PinnedDraftComparisonSchema, ExactPatchDraftComparisonSchema])
+const UncommittedDraftComparisonSchema = z
+  .strictObject({
+    kind: z.literal('uncommitted'),
+    sourceKind: z.enum(['staged', 'unstaged', 'worktree']),
+    baseCommitOid: GitObjectIdSchema.optional(),
+    reviewKey: z.string().regex(/^[0-9a-f]{64}$/u),
+    snapshotChain: z.array(z.string().regex(/^[0-9a-f]{64}$/u)).min(1).readonly(),
+  })
+  .superRefine((comparison, context) => {
+    const hasBase = comparison.baseCommitOid !== undefined;
+    if (comparison.sourceKind === 'unstaged' && hasBase) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Unstaged comparisons have no base.',
+        path: ['baseCommitOid'],
+      });
+    }
+    if (comparison.sourceKind !== 'unstaged' && !hasBase) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Staged and Working tree comparisons require a base commit.',
+        path: ['baseCommitOid'],
+      });
+    }
+  })
   .readonly();
+
+export const DraftComparisonSchema = z.union([PinnedDraftComparisonSchema, ExactPatchDraftComparisonSchema, UncommittedDraftComparisonSchema]).readonly();
 
 const DraftCommentSchema = z
   .discriminatedUnion('state', [
