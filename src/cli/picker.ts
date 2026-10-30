@@ -17,6 +17,19 @@ const HEAD_PROMPT =
   'Choose head — this committed state will be reviewed';
 const BACK_TO_BASE = 'cumpa:back-to-base';
 
+const UNCOMMITTED_ROW_IDS: Readonly<Record<UncommittedRowKind, string>> = {
+  staged: 'cumpa:uncommitted:staged',
+  unstaged: 'cumpa:uncommitted:unstaged',
+  worktree: 'cumpa:uncommitted:worktree',
+};
+const UNCOMMITTED_ROW_KIND_BY_ID = new Map<string, UncommittedRowKind>([
+  [UNCOMMITTED_ROW_IDS.staged, 'staged'],
+  [UNCOMMITTED_ROW_IDS.unstaged, 'unstaged'],
+  [UNCOMMITTED_ROW_IDS.worktree, 'worktree'],
+]);
+const UNCOMMITTED_BASE_PROMPT =
+  'Choose base — changes will be compared from its merge base with HEAD';
+
 export interface SourceCandidateSearchItem {
   readonly kind: 'candidate';
   readonly value: string;
@@ -66,6 +79,7 @@ export type SourceSearchPrompt = (
 export interface BuildSourceSearchOptions {
   readonly role: 'base' | 'head';
   readonly suggestedHeadId?: string;
+  readonly includeUncommittedGroup?: boolean;
 }
 
 export interface PickerRecoveryOptions {
@@ -83,11 +97,24 @@ export interface PickOrderedSourcesOptions {
   readonly initialBase?: SourceCandidate;
   readonly initialHead?: SourceCandidate;
   readonly recovery?: PickerRecoveryOptions;
+  readonly preselectedBaseId?: string;
 }
 
 export interface PickOrderedSourcesDependencies {
   readonly prompt?: SourceSearchPrompt;
 }
+
+export type UncommittedRowKind = 'staged' | 'unstaged' | 'worktree';
+
+export type UncommittedSourceSelection = Readonly<{
+  readonly kind: 'uncommitted';
+  readonly sourceKind: UncommittedRowKind;
+  readonly base?: SourceCandidate;
+}>;
+
+export type PickedSource =
+  | Readonly<{ readonly kind: 'committed' } & OrderedSources>
+  | UncommittedSourceSelection;
 
 export function escapeTerminalText(value: string): string {
   let result = '';
@@ -206,12 +233,29 @@ export function buildSourceSearchItems(
         candidate.kind === 'worktree' && candidateMatches(candidate, query),
     )
     .map((candidate) => candidateItem(candidate, options));
-  const items: SourceSearchItem[] = [
+  const items: SourceSearchItem[] = [];
+  if (options.role === 'base' && options.includeUncommittedGroup === true) {
+    items.push(
+      { kind: 'separator', label: 'Uncommitted' },
+      { kind: 'candidate', value: UNCOMMITTED_ROW_IDS.staged, name: 'Staged' },
+      {
+        kind: 'candidate',
+        value: UNCOMMITTED_ROW_IDS.unstaged,
+        name: 'Unstaged',
+      },
+      {
+        kind: 'candidate',
+        value: UNCOMMITTED_ROW_IDS.worktree,
+        name: 'Working tree',
+      },
+    );
+  }
+  items.push(
     { kind: 'separator', label: 'Local branches' },
     ...branchItems,
     { kind: 'separator', label: 'Worktrees' },
     ...worktreeItems,
-  ];
+  );
 
   if (branchItems.length === 0 && worktreeItems.length === 0) {
     items.push({
@@ -431,4 +475,104 @@ export async function pickOrderedSources(
     }
     return Object.freeze({ base, head });
   }
+}
+
+export async function pickSource(
+  options: PickOrderedSourcesOptions,
+  dependencies: PickOrderedSourcesDependencies = {},
+): Promise<PickedSource> {
+  if (options.initialBase !== undefined || options.initialHead !== undefined) {
+    const result = await pickOrderedSources(options, dependencies);
+    return Object.freeze({ kind: 'committed', ...result });
+  }
+
+  let currentCandidates = options.candidates;
+  const candidateById = new Map(
+    currentCandidates.map((candidate) => [candidate.id, candidate] as const),
+  );
+  const candidateEnrichment = options.candidateEnrichment?.then(
+    (enrichedCandidates) => {
+      currentCandidates = enrichedCandidates;
+      for (const candidate of enrichedCandidates) {
+        candidateById.set(candidate.id, candidate);
+      }
+      return enrichedCandidates;
+    },
+  );
+  void candidateEnrichment?.catch(() => undefined);
+  const prompt: SourceSearchPrompt =
+    dependencies.prompt ??
+    (async (config) =>
+      await search({
+        message: config.message,
+        source: config.source,
+        ...(config.default === undefined ? {} : { default: config.default }),
+      }));
+
+  const selectedBaseId = await prompt({
+    message: BASE_PROMPT,
+    source: sourceForPrompt(
+      () => currentCandidates,
+      options.searchBranches,
+      candidateById,
+      options.startCandidateEnrichment,
+      { role: 'base', includeUncommittedGroup: true },
+      options.recovery?.role === 'base' ? options.recovery.searchTerm : '',
+    ),
+    ...(options.recovery?.role === 'base' &&
+    options.recovery.focusedCandidateId !== undefined
+      ? { default: options.recovery.focusedCandidateId }
+      : {}),
+  });
+
+  const uncommittedKind =
+    selectedBaseId === undefined
+      ? undefined
+      : UNCOMMITTED_ROW_KIND_BY_ID.get(selectedBaseId);
+
+  if (uncommittedKind !== undefined) {
+    if (uncommittedKind === 'unstaged') {
+      return Object.freeze({ kind: 'uncommitted', sourceKind: 'unstaged' });
+    }
+
+    const selectedSecondBaseId = await prompt({
+      message: UNCOMMITTED_BASE_PROMPT,
+      source: sourceForPrompt(
+        () => currentCandidates,
+        options.searchBranches,
+        candidateById,
+        options.startCandidateEnrichment,
+        { role: 'base' },
+      ),
+      ...(options.preselectedBaseId === undefined
+        ? {}
+        : { default: options.preselectedBaseId }),
+    });
+    const resolvedBase =
+      selectedSecondBaseId === undefined
+        ? undefined
+        : candidateById.get(selectedSecondBaseId);
+    if (resolvedBase === undefined) {
+      throw new Error('Base selection did not identify an available source');
+    }
+    return Object.freeze({
+      kind: 'uncommitted',
+      sourceKind: uncommittedKind,
+      base: resolvedBase,
+    });
+  }
+
+  const initialBase =
+    selectedBaseId === undefined
+      ? undefined
+      : candidateById.get(selectedBaseId);
+  if (initialBase === undefined) {
+    throw new Error('Base selection did not identify an available source');
+  }
+
+  const result = await pickOrderedSources(
+    { ...options, initialBase },
+    dependencies,
+  );
+  return Object.freeze({ kind: 'committed', ...result });
 }

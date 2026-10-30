@@ -8,6 +8,7 @@ import {
   buildSourceSearchItems,
   escapeTerminalText,
   pickOrderedSources,
+  pickSource,
 } from '../../src/cli/picker.js';
 import type {
   SourceSearchPrompt,
@@ -258,6 +259,117 @@ describe('ordered searchable source picker', () => {
     expect(seen[3]?.default).toBe('worktree:/repo');
     expect(selected.base.id).toBe('branch:refs/heads/feature');
     expect(selected.head.id).toBe('worktree:/repo');
+  });
+});
+
+describe('pickSource / Uncommitted sources', () => {
+  function makePrompt(answers: readonly string[]) {
+    const seen: SourceSearchPromptConfig[] = [];
+    const queue = [...answers];
+    const prompt: SourceSearchPrompt = async (config) => {
+      seen.push(config);
+      const answer = queue.shift();
+      if (answer === undefined) {
+        throw new Error('Test prompt exhausted its answers');
+      }
+      return answer;
+    };
+    return { prompt, seen };
+  }
+
+  it('shows the Uncommitted group ahead of Local branches on the Base prompt', async () => {
+    const { prompt, seen } = makePrompt(['cumpa:uncommitted:unstaged']);
+
+    await pickSource({ candidates, searchBranches: async () => [] }, { prompt });
+
+    expect(seen).toHaveLength(1);
+    const items = await seen[0]!.source(undefined, {
+      signal: new AbortController().signal,
+    });
+    const labels = items.map((item) =>
+      item instanceof Separator ? item.separator : item.value,
+    );
+    expect(labels.slice(0, 5)).toEqual([
+      'Uncommitted',
+      'cumpa:uncommitted:staged',
+      'cumpa:uncommitted:unstaged',
+      'cumpa:uncommitted:worktree',
+      'Local branches',
+    ]);
+    const rows = items.filter(isPromptChoice);
+    expect(
+      rows.find((item) => item.value === 'cumpa:uncommitted:staged'),
+    ).toMatchObject({ name: 'Staged' });
+    expect(
+      rows.find((item) => item.value === 'cumpa:uncommitted:unstaged'),
+    ).toMatchObject({ name: 'Unstaged' });
+    expect(
+      rows.find((item) => item.value === 'cumpa:uncommitted:worktree'),
+    ).toMatchObject({ name: 'Working tree' });
+  });
+
+  it('returns Unstaged immediately with no second prompt', async () => {
+    const { prompt, seen } = makePrompt(['cumpa:uncommitted:unstaged']);
+
+    const selected = await pickSource(
+      { candidates, searchBranches: async () => [] },
+      { prompt },
+    );
+
+    expect(seen).toHaveLength(1);
+    expect(selected).toEqual({ kind: 'uncommitted', sourceKind: 'unstaged' });
+  });
+
+  it('advances Staged to a HEAD-preselected Base prompt and resolves the chosen base', async () => {
+    const { prompt, seen } = makePrompt([
+      'cumpa:uncommitted:staged',
+      'branch:refs/heads/main',
+    ]);
+
+    const selected = await pickSource(
+      {
+        candidates,
+        searchBranches: async () => [],
+        preselectedBaseId: 'branch:refs/heads/feature',
+      },
+      { prompt },
+    );
+
+    expect(seen).toHaveLength(2);
+    expect(seen[1]?.message).toBe(
+      'Choose base — changes will be compared from its merge base with HEAD',
+    );
+    expect(seen[1]?.default).toBe('branch:refs/heads/feature');
+    expect(selected).toEqual({
+      kind: 'uncommitted',
+      sourceKind: 'staged',
+      base: candidates[0],
+    });
+  });
+
+  it('falls through to the unchanged committed Base→Head flow for a normal branch selection', async () => {
+    const { prompt, seen } = makePrompt([
+      'branch:refs/heads/main',
+      'branch:refs/heads/feature',
+    ]);
+
+    const selected = await pickSource(
+      { candidates, searchBranches: async () => [] },
+      { prompt },
+    );
+
+    expect(seen).toHaveLength(2);
+    expect(seen[0]?.message).toBe(
+      'Choose base — changes will be cumpad from its merge base with head',
+    );
+    expect(seen[1]?.message).toBe(
+      'Choose head — this committed state will be reviewed',
+    );
+    expect(selected).toEqual({
+      kind: 'committed',
+      base: candidates[0],
+      head: candidates[1],
+    });
   });
 });
 
