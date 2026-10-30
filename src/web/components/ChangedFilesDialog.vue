@@ -10,6 +10,7 @@ const props = defineProps<{
   readonly initialSelectedFileId?: string;
   readonly narrow: boolean;
   readonly open: boolean;
+  readonly recentlyChangedPaths?: ReadonlySet<string>;
   readonly restoreFocus?: boolean;
 }>();
 
@@ -38,6 +39,7 @@ const emit = defineEmits<{
       v-if="files.length > 0"
       :files="files"
       :initial-selected-file-id="initialSelectedFileId"
+      :recently-changed-paths="recentlyChangedPaths"
       @select="emit('select', $event)"
       @activate="emit('activate', $event)"
     />

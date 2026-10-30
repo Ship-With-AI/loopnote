@@ -2,6 +2,7 @@
 import { nextTick, onMounted, ref, shallowRef, watch } from 'vue';
 
 import type { SessionFile } from '../../contracts/api.js';
+import type { FileTreeLeaf } from '../../domain/file-tree.js';
 import {
   createFileTreeModel,
   type FileTreeNavigationKey,
@@ -13,7 +14,13 @@ import FileRow from './FileRow.vue';
 const props = defineProps<{
   files: readonly SessionFile[];
   initialSelectedFileId?: string;
+  recentlyChangedPaths?: ReadonlySet<string>;
 }>();
+
+function isRecentlyChanged(leaf: FileTreeLeaf): boolean {
+  const path = leaf.file.newPath?.display ?? leaf.file.oldPath?.display;
+  return path !== undefined && (props.recentlyChangedPaths?.has(path) ?? false);
+}
 
 const emit = defineEmits<{
   activate: [fileId: string];
@@ -197,6 +204,7 @@ watch(
             :directory-descendant-counts="model.directoryDescendantCounts"
             :tabbable-row-id="model.tabbableRowId"
             :selected-file-id="model.selectedFileId"
+            :recently-changed-paths="recentlyChangedPaths"
             @activate-file="activateFile"
             @focus-row="focusRow"
             @toggle-directory="toggleDirectory"
@@ -207,6 +215,7 @@ watch(
             :level="1"
             :tabbable="model.tabbableRowId === `file:${node.fileId}`"
             :selected="model.selectedFileId === node.fileId"
+            :recently-changed="isRecentlyChanged(node)"
             @activate="activateFile"
             @focus-row="focusRow"
           />

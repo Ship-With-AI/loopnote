@@ -805,8 +805,6 @@ function selectFile(fileId: string): void {
   if (openedPath !== undefined) {
     recentlyChangedPaths.value.delete(openedPath);
   }
-    return;
-  }
   const focusHeading = changedFilesOpen.value;
   closeChangedFiles(!focusHeading);
   if (file.availability.kind !== 'text') {

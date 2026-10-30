@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 
-import type { FileTreeDirectory } from '../../domain/file-tree.js';
+import type { FileTreeDirectory, FileTreeLeaf } from '../../domain/file-tree.js';
 import FileRow from './FileRow.vue';
 
 defineOptions({ name: 'DirectoryRow' });
@@ -13,7 +13,13 @@ const props = defineProps<{
   directoryDescendantCounts: ReadonlyMap<string, number>;
   tabbableRowId: string | null;
   selectedFileId: string | null;
+  recentlyChangedPaths?: ReadonlySet<string>;
 }>();
+
+function isRecentlyChanged(leaf: FileTreeLeaf): boolean {
+  const path = leaf.file.newPath?.display ?? leaf.file.oldPath?.display;
+  return path !== undefined && (props.recentlyChangedPaths?.has(path) ?? false);
+}
 
 const emit = defineEmits<{
   activateFile: [fileId: string];
@@ -69,6 +75,7 @@ const descendantCountLabel = computed(
           :directory-descendant-counts="directoryDescendantCounts"
           :tabbable-row-id="tabbableRowId"
           :selected-file-id="selectedFileId"
+          :recently-changed-paths="recentlyChangedPaths"
           @activate-file="emit('activateFile', $event)"
           @focus-row="emit('focusRow', $event)"
           @toggle-directory="emit('toggleDirectory', $event)"
@@ -80,6 +87,7 @@ const descendantCountLabel = computed(
           :level="level + 1"
           :tabbable="tabbableRowId === `file:${child.fileId}`"
           :selected="selectedFileId === child.fileId"
+          :recently-changed="isRecentlyChanged(child)"
           @activate="emit('activateFile', $event)"
           @focus-row="emit('focusRow', $event)"
         />
