@@ -28,6 +28,15 @@ export function singlePaneSideFor(
   return singlePaneStatusSides[kind];
 }
 
+/**
+ * D-09: whether a status kind renders single-pane, independent of content
+ * availability. Shared with `StatusBadge.vue`'s accessibility label so the
+ * "single pane" announcement can never drift from the routing table above.
+ */
+export function isSinglePaneStatusKind(kind: ChangedFileStatusKind): boolean {
+  return kind in singlePaneStatusSides;
+}
+
 const wasModeLabels: Readonly<Record<string, string>> = Object.freeze({
   '120000': 'symlink',
   '160000': 'submodule',

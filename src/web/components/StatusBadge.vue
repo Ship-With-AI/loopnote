@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 
 import type { ChangedFileStatusKind } from '../../contracts/comparison.js';
+import { isSinglePaneStatusKind } from '../model/single-pane-layout.js';
 
 const props = defineProps<{
   kind: ChangedFileStatusKind;
@@ -27,10 +28,7 @@ const presentation = computed(() => {
 });
 
 const singlePaneSuffix = computed(() =>
-  props.reviewable &&
-  (props.kind === 'added' ||
-    props.kind === 'deleted' ||
-    props.kind === 'type-changed')
+  props.reviewable && isSinglePaneStatusKind(props.kind)
     ? ', single pane'
     : '',
 );
