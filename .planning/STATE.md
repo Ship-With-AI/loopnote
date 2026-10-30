@@ -6,14 +6,14 @@ current_phase: 14
 current_phase_name: Uncommitted Source Review & Frozen Snapshots
 status: executing
 stopped_at: Completed 14-07-PLAN.md
-last_updated: "2026-10-30T21:25:51.172Z"
+last_updated: "2026-10-30T22:45:00.000Z"
 last_activity: 2026-10-30
 last_activity_desc: Phase 13 complete, transitioned to Phase 14
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 18
-  completed_plans: 15
+  completed_plans: 16
   percent: 14
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-09-09)
 ## Current Position
 
 Phase: 14 — Uncommitted Source Review & Frozen Snapshots
-Plan: 11 of 13
+Plan: 12 of 13
 Status: Ready to execute
 Last activity: 2026-10-30 — Phase 13 complete, transitioned to Phase 14
 
@@ -77,6 +77,7 @@ Last activity: 2026-10-30 — Phase 13 complete, transitioned to Phase 14
 | Phase 14-uncommitted-source-review-frozen-snapshots P08 | 70min | 3 tasks | 8 files |
 | Phase 14 P09 | 95min | 2 tasks | 3 files |
 | Phase 14-uncommitted-source-review-frozen-snapshots P10 | 25min | 2 tasks | 2 files |
+| Phase 14-uncommitted-source-review-frozen-snapshots P11 | 25min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -121,6 +122,8 @@ Decisions are logged in PROJECT.md Key Decisions.
 - [Phase ?]: Resolved picker baseRef via selectionForCandidate().revision, not candidate.id — Internal candidate ids are not valid Git revisions; plan pseudocode would break every Base-selected picker launch
 - [Phase 14]: 14-10: used reviewKey.slice(0,7) as displayed snapshot short-digest — 14-08's UncommittedSessionResponseSchema exposes no separate content-digest field, only reviewKey (the draft-identity hash) — confirmed by reading src/contracts/api.ts before deciding, matching baseOid/headOid's existing oid.slice(0,7) convention
 - [Phase 14]: 14-10: uncommitted BASE candidate label reuses literal 'Repository object' fallback text — baseCommitOid carries no human-readable candidate name on the wire contract, so the Staged/Working-tree BASE endpoint reuses the exact string the exact-patch branch's PREIMAGE endpoint already renders rather than inventing new copy
+- [Phase 14]: 14-11: FileRow's tree-row__refresh-marker span is an independent sibling element to .availability-marker, not a variant of it, since the two can in principle coexist on the same row — matches UI-SPEC's explicit "no extra visual rule needed" note
+- [Phase 14]: 14-11: RefreshSummaryPanel.vue's select-file event carries a path string (not a fileId), per the plan's literal prop contract — App.vue wiring to the actual file-activation mechanism is explicitly deferred to 14-12
 
 ### Pending Todos
 
