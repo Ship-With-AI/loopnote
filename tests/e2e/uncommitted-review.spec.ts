@@ -406,3 +406,72 @@ test('Alt+Shift+R triggers the same real server-side refresh as the Refresh butt
     await fixture.cleanup();
   }
 });
+
+test('a second cumpa --staged launch on different staged content offers "Resume previous uncommitted review?", and accepting it copies the first session\'s comment into the new draft', async ({ browser }) => {
+  const fixture = await createGitFixture();
+  let firstRunning: RunningCli | undefined;
+  let secondRunning: RunningCli | undefined;
+  const seededCommentBody = 'Carried over from the first uncommitted session.';
+  try {
+    await fixture.write('src/added.ts', 'export const added = true;\n');
+    fixture.git(['add', 'src/added.ts']);
+    firstRunning = startGeneratedUncommittedCli(fixture, ['--staged']);
+    const firstUrl = await waitForLoopbackUrl(firstRunning);
+    const firstPage = await browser.newPage();
+    await firstPage.setViewportSize({ width: 1440, height: 900 });
+    await openGeneratedUncommittedReview(firstPage, firstUrl);
+
+    const firstTreeRow = firstPage.getByRole('treeitem', { name: /added\.ts/ });
+    await firstTreeRow.click();
+    await expect(firstPage.getByText('Added · Head only')).toBeVisible();
+
+    await activateSinglePaneLine(firstPage, 'head', 'export const added = true;', 1);
+    const firstComposer = firstPage.locator('.monaco-anchor-zone--composer textarea');
+    await expect(firstComposer).toHaveCount(1);
+    await firstComposer.fill(seededCommentBody);
+    const addResponse = firstPage.waitForResponse((response) => response.url().includes('/api/draft/mutations'));
+    await firstPage.locator('.monaco-anchor-zone--composer button').filter({ hasText: 'Add comment' }).click();
+    expect((await addResponse).status()).toBe(201);
+
+    await firstPage.close();
+    await stopGeneratedCli(firstRunning);
+    firstRunning = undefined;
+
+    // Different digest, same source (Staged) and base (HEAD) — the exact D-19 trigger.
+    await fixture.write('src/added.ts', 'export const added = true;\nexport const extra = 1;\n');
+    fixture.git(['add', 'src/added.ts']);
+
+    secondRunning = startGeneratedUncommittedCli(fixture, ['--staged']);
+    const secondUrl = await waitForLoopbackUrl(secondRunning);
+    const secondPage = await browser.newPage();
+    await secondPage.setViewportSize({ width: 1440, height: 900 });
+    await openGeneratedUncommittedReview(secondPage, secondUrl);
+
+    const warningStack = secondPage.locator('.shell-warning-stack');
+    await expect(
+      warningStack.getByRole('heading', { name: 'Resume previous uncommitted review?' }),
+    ).toBeVisible();
+
+    const draftResponse = secondPage.waitForResponse((response) => response.url().includes('/api/draft'));
+    await warningStack.getByRole('button', { name: 'Resume', exact: true }).click();
+    const draftBody = (await (await draftResponse).json()) as Readonly<{
+      readonly draft?: Readonly<{ readonly comments?: readonly Readonly<{ readonly body: string }>[] }>;
+    }>;
+    expect(draftBody.draft?.comments?.length).toBe(1);
+    expect(draftBody.draft?.comments?.[0]?.body).toBe(seededCommentBody);
+
+    await expect(
+      warningStack.getByRole('heading', { name: 'Resume previous uncommitted review?' }),
+    ).toHaveCount(0);
+
+    await secondPage.close();
+  } finally {
+    if (firstRunning !== undefined) {
+      await stopGeneratedCli(firstRunning);
+    }
+    if (secondRunning !== undefined) {
+      await stopGeneratedCli(secondRunning);
+    }
+    await fixture.cleanup();
+  }
+});
