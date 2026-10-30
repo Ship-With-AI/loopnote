@@ -693,11 +693,6 @@ async function launchUncommittedSession(
       selection.sourceKind,
       baseCommitOid,
     );
-    if (recoveryCandidate !== undefined) {
-      output(
-        'A previous uncommitted review draft exists for this source. Cumpa will offer to resume it if the reviewed content has changed.',
-      );
-    }
 
     if (shutdown.isShuttingDown) {
       await shutdown.shutdown();
@@ -710,6 +705,7 @@ async function launchUncommittedSession(
       support,
       sessionToken: token,
       revealDraftFile,
+      ...(recoveryCandidate === undefined ? {} : { uncommittedRecoveryCandidate: { path: recoveryCandidate.path } }),
       diagnostics: ({ correlationId, reason }) => {
         console.error(`Cumpa request denied [${correlationId}]: ${reason}.`);
       },
