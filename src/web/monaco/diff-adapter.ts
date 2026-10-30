@@ -113,6 +113,7 @@ class PublicMonacoDiffAdapter {
   private modifiedZone: { id: string; zone: monaco.editor.IViewZone } | undefined;
   private diffUpdates = 0;
   private disposed = false;
+  private pendingSetFileReady: (() => void) | undefined;
 
   constructor(
     private readonly host: HTMLElement,
@@ -218,14 +219,21 @@ class PublicMonacoDiffAdapter {
       this.languageForPath(file.head.path),
       monaco.Uri.parse(`inmemory://cumpa/${encodeURIComponent(file.id)}/head/${file.head.path.split('/').map(encodeURIComponent).join('/')}`),
     );
-    const ready = new Promise<void>((resolve) => {
-      const disposable = this.diffEditor.onDidUpdateDiff(() => {
-        disposable.dispose();
-        resolve();
-      });
+    const { promise: ready, resolve: resolveReady } = Promise.withResolvers<void>();
+    const diffUpdateDisposable = this.diffEditor.onDidUpdateDiff(() => {
+      diffUpdateDisposable.dispose();
+      this.pendingSetFileReady = undefined;
+      resolveReady();
     });
+    this.pendingSetFileReady = () => {
+      diffUpdateDisposable.dispose();
+      resolveReady();
+    };
     this.diffEditor.setModel({ original: this.originalModel, modified: this.modifiedModel });
     await ready;
+    if (this.disposed) {
+      return;
+    }
     this.diffEditor.restoreViewState(saved?.viewState ?? null);
     this.refreshSelectionDecorations();
     const inFlightComposer = this.activeComposer?.fileId === file.id
@@ -357,6 +365,8 @@ class PublicMonacoDiffAdapter {
       return;
     }
     this.disposed = true;
+    this.pendingSetFileReady?.();
+    this.pendingSetFileReady = undefined;
     this.removeZones();
     this.disposeModels();
     for (const disposable of this.staticDisposables) {

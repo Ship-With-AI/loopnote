@@ -309,6 +309,7 @@ watch(() => props.content, () => {
 });
 
 watch(editorKind, () => {
+  unmountZone();
   adapter?.dispose();
   adapter = undefined;
   void nextTick(() => {
