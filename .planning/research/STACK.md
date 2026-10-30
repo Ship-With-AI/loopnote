@@ -1,328 +1,106 @@
 # Stack Research
 
-**Domain:** Proprietary public npm CLI distribution from a private repository, plus independent public agent-skill publication
-**Researched:** 2026-09-06
-**Confidence:** MEDIUM — current npm, GitHub, Node.js, Claude Code, and Ship With AI primary sources were cross-checked against the repository. The main constraint is explicit and current: npm trusted publishing works from a private GitHub repository, but npm provenance does not.
+**Domain:** Local-first review-workspace CLI/browser tool (Node 24 + TypeScript + Fastify + Vue 3 + Monaco), extending an existing shipped product for v2.0 Artifact Review
+**Researched:** 2026-10-30
+**Confidence:** HIGH
 
-## Scope
+## Headline Finding
 
-This research covers only Cumpa v1.5 distribution, release metadata, packed-artifact boundaries, trusted publishing, and publication of the existing thin skill. It does not reconsider the validated Node 24, TypeScript, Fastify, Vue, Monaco, Git, review, persistence, export, or voluntary-support design.
-
-## Executive Recommendation
-
-Keep the application stack and add no release library. Use the native mechanisms already present:
-
-1. publish `@shipwithai/cumpa@1.5.0` as a **publicly downloadable, proprietary** scoped npm package;
-2. keep `Ship-With-AI/cumpa` private and publish only an allowlisted tarball containing the compiled `dist/` tree, public usage/license documents, and required third-party notices;
-3. publish through npm OIDC trusted publishing on a GitHub-hosted runner, with no npm token in GitHub Actions;
-4. extend the existing production-artifact verifier to inspect the exact `.tgz` later passed to `npm publish`, including explicit source/source-map denials;
-5. publish the existing `.kimi-code/skills/cumpa/SKILL.md` into the public `Ship-With-AI/skills` repository under MIT, while declaring the separately installed CLI as a prerequisite; and
-6. preserve voluntary support by using the existing configured release build and scanner rather than adding any payment or hosted-service dependency.
-
-### Hard platform constraint: private repository and npm provenance are incompatible
-
-The milestone can use **npm trusted publishing from the private GitHub repository**. It cannot also receive **npm provenance** while that repository remains private.
-
-npm's current trusted-publisher documentation says automatic provenance requires all three of: OIDC trusted publishing, a public package, and a **public repository**. It explicitly says provenance is unsupported for private repositories even when the package is public. npm provenance publicly links to source and build instructions and records the attestation in a public transparency log, so `--provenance` cannot override this restriction.
-
-Therefore the supported v1.5 stack is:
-
-- private GitHub repository;
-- public proprietary npm package;
-- OIDC trusted publishing without a long-lived token; and
-- registry tarball integrity/signatures, but **no npm provenance attestation**.
-
-If npm provenance is non-negotiable, the milestone must relax the private-publisher-repository constraint and publish from a public repository. A public distribution-only repository would add a second release authority and its provenance would attest that public workflow, not expose or verify the private TypeScript source; it is not recommended for the stated goal. Do not claim that a GitHub artifact attestation, a hand-written checksum, or Sigstore metadata is npm provenance.
+**v2.0 needs zero new runtime npm dependencies.** Every target feature is reachable by extending libraries and patterns the codebase already ships and has already proven in production: `monaco-editor`'s standalone-editor API (already bundled alongside its diff-editor API), native Git CLI plumbing invoked through the existing `createGitRunner`/`spawn`-array pattern, the existing `PatchSnapshot` fs+SHA-256 frozen-snapshot pattern, native Git pathspec resolution (already threaded end-to-end for agent range requests), and the existing `markdown-it` configuration already shipped for the Summary preview (`src/web/model/markdown-preview.ts`, consumed via `v-html` in `src/web/components/SummarySection.vue:226`). The one concrete stack change is a **patch-level version bump of `markdown-it`** (14.3.0 → 15.0.3) justified by a new, less-trusted input source, plus dropping the now-redundant `@types/markdown-it` dev dependency.
 
 ## Recommended Stack
 
-### Core Technologies
+### Core Technologies (reused, extended — no version-breaking changes required)
 
-| Technology | Version | Purpose | Why Recommended |
+| Technology | Version in repo | Purpose for v2.0 | Why Recommended |
 |------------|---------|---------|-----------------|
-| `@shipwithai/cumpa` | `1.5.0` | Public scoped npm CLI package | The existing single `bin.cumpa` entry supports both a global `cumpa` command and exact-version `npx @shipwithai/cumpa@1.5.0` execution. Public visibility makes the tarball downloadable; proprietary terms govern permission, not technical visibility. |
-| Node.js | `24.20.0` for release; package engine remains `>=24` | Existing runtime and release build | `24.20.0` is the current Node 24 LTS distribution and bundles npm `11.19.0`. It preserves Cumpa's validated runtime and exceeds npm's OIDC minimums. |
-| npm CLI | `11.19.0` bundled with Node `24.20.0` | Pack, public scoped publish, trusted-publisher management, global install, and npx execution | npm trusted publishing requires npm `>=11.5.1`; `npm trust` requires `>=11.15.0`. The bundled version satisfies both, so no release dependency or npm upgrade step is needed. |
-| npm trusted publishing | Current GitHub Actions OIDC support | Short-lived publish authentication | Binds npm to the exact GitHub owner/repository, workflow filename, optional environment, and allowed action. Requires `id-token: write` and a GitHub-hosted runner; stores no `NPM_TOKEN` or `NODE_AUTH_TOKEN`. |
-| npm native pack/publish | npm `11.19.0` | Create one auditable `.tgz` and publish those exact bytes | `npm pack --json --ignore-scripts` honors the `files` allowlist and reports the artifact. `npm publish ./<artifact>.tgz --access public --ignore-scripts` accepts the already packed tarball instead of rebuilding the working tree. |
-| GitHub Actions | `actions/checkout@v6`, `actions/setup-node@v6` | Private-repository release automation | These are the current action majors in npm's trusted-publishing example. `setup-node` should select Node `24.20.0`, the npm registry, and `package-manager-cache: false`. |
-| GitHub-hosted macOS runner | `macos-15` | Build the existing release artifact and retain the optional Darwin-arm64 native addon | GitHub documents `macos-15` as a standard arm64 hosted runner for private repositories. It satisfies npm's hosted-runner restriction and preserves the current `build-native-addon.mjs` behavior without adding consumer-side compilation. |
-| Ship With AI skills repository | Public `Ship-With-AI/skills`; plugin `0.2.0` → `0.3.0` | Public MIT distribution of the thin Cumpa skill | The repository already supports cross-agent single-skill installation and a Claude Code marketplace plugin whose manifest points at `./skills/`. Because the manifest pins an explicit version, Claude Code requires a version bump for installed users to receive the new skill; adding a skill is a SemVer minor feature. |
-| Claude Code plugin skill discovery | Current plugin format | Native marketplace loading | `skills/<name>/SKILL.md` is auto-discovered. No plugin runtime, hook, MCP server, or npm wrapper is needed. |
+| `monaco-editor` | 0.55.1 (latest: 0.57.0) | Single-pane full-width view for added/deleted/standalone files (feature 1, 4) | `monaco.editor.create()` (the standalone `ICodeEditor`) is the same API family `createDiffEditor` is built on, in the same already-installed package (`src/web/monaco/diff-adapter.ts:1,628-634`). It shares `deltaDecorations`, `addViewZone`/`changeViewZones`, and mouse/keyboard event hooks with the diff editor's `original`/`modified` sub-editors, so the existing comment-anchor, gutter-decoration, and focus-management code (`src/web/monaco/line-mapping.ts`, `src/web/monaco/diff-semantics.ts`) ports to single-pane mode with the same interaction model, not a second editor library. |
+| Native Git CLI (via `node:child_process.spawn`, argument arrays, `createGitRunner`) | Git 2.54.0 (local) | Staged/Unstaged/Working-tree Head sources, merge-base semantics, untracked enumeration, index/worktree byte reads (feature 2, 3) | The raw-diff and merge-base plumbing already in `src/git/raw-diff.ts` (`-z --raw` parsing) and `src/git/comparison.ts` (`git merge-base`, object-format detection) is endpoint-agnostic: `git diff --cached --raw -z` (HEAD→index), `git diff --raw -z` (index→worktree), and `git diff <merge-base> --raw -z` (HEAD→worktree, via `git status`/`ls-files` for untracked) parse with the *same* record format already implemented. `git ls-files --others --exclude-standard -z` enumerates untracked files respecting `.gitignore`, matching the `check-ignore --no-index` precedent already in `src/git/ignore-status.ts`. Constraint "Git semantics: invoke the installed Git CLI as source of truth" stays satisfied without a second implementation of diff/ignore logic. |
+| `markdown-it` | **14.3.0 → bump to 15.0.3** | Rendered Markdown preview with source-line mapping (feature 5) | Already configured with `html: false`, `linkify: false`, `typographer: false`, and an overridden `validateLink` restricting `http(s):`/`mailto:` (`src/web/model/markdown-preview.ts:3-15`) — this is the exact config needed for file-content rendering too, just reused for a new, lower-trust input (arbitrary repository/agent-authored Markdown instead of only the reviewer's own summary text). 15.0.2/15.0.3 patch a High-severity (CVSS 7.5) quadratic-complexity DoS in smartquotes (GHSA-r7fv-28h4-cvq7, fixed 14.3.2/15.0.2) plus further quadratic-parsing fixes for multiline definitions and unclosed inline HTML/CDATA in 15.0.3. The shipped config sets `typographer: false` so the DoS is not currently exploitable, but rendering repo-sourced/agent-produced content (a new, adversarial-leaning trust boundary per the "any agent-produced artifact" repositioning) is exactly the scenario this class of bug targets — bump before widening the attack surface, don't wait for an incident. 15.0.0 bundles its own TypeScript declarations and moved `validateLink`/`normalizeLink`/`normalizeLinkText` from static to prototype methods; the repo's existing `renderer.validateLink = (url) => …` instance override (an own-property shadowing the prototype method) is unaffected. No code imports the removed `markdown-it/lib/*` subpaths (verified by repo-wide search). |
+| `zod` | 4.4.3 | Validate extended agent stdin request shapes for uncommitted/standalone review (feature 6) | Same contract-sharing pattern already used for range (`src/contracts/request.ts`) and exact-patch requests; extend the discriminated union with new request kinds, no new validation library. |
+| `@inquirer/search` | 4.2.1 | Add Staged/Unstaged/Working-tree as selectable Head entries (feature 2) | Same ordered, searchable picker already used for branches/worktrees (`PROJECT.md` Phase 09/10); the new entries are additional candidate rows, not a new picker component. |
+| `commander` | 15.0.0 (latest, already current) | Accept file/glob positional arguments for standalone review (feature 4) | Commander already parses CLI args; variadic positional arguments (`cumpa <paths...>`) are native Commander, no argument-parsing library needed. |
 
-### Supporting Libraries
+### Supporting Libraries — Markdown Source-Line Mapping (new code, no new package)
 
-| Library | Version | Purpose | When to Use |
+| Technique | Version | Purpose | When to Use |
 |---------|---------|---------|-------------|
-| None | — | Distribution and publication | npm, Node.js, GitHub Actions, the existing build scripts, and the existing Ship With AI marketplace already provide every required mechanism. |
+| `markdown-it` block-token `.map` + custom renderer rule | n/a (built into markdown-it core since early versions) | Attach `data-source-line="<n>"` to rendered block elements so clicking/selecting in the rendered preview resolves back to a source line for comment anchoring | Write one small `renderer.renderer.rules.*_open` / `core.ruler` override that reads each block token's `token.map[0]` (0-indexed start line) and sets it as a `data-source-line` attribute, following the exact pattern already used for `link_open` in `src/web/model/markdown-preview.ts:10-15`. This is the standard technique editors like VS Code/Typora use for "scroll sync"; it needs ~10–20 lines, not a dependency. |
 
-### Existing Project Tools to Reuse
+### Development Tools
 
-| Existing tool | Current version / path | Distribution integration |
-|---------------|------------------------|--------------------------|
-| TypeScript | `7.0.2`; `tsconfig.json` | Continue emitting Node runtime JavaScript to `dist/`. Source maps and declarations are currently not enabled. The tarball verifier, rather than a second compiler configuration, should enforce that `.ts`, `.tsx`, `.d.ts`, and `.map` files are absent. |
-| Vite | `8.1.4`; `vite.config.ts` | Continue emitting browser assets to `dist/web/`. Vite's `build.sourcemap` default is false; enforce absence of external or inline source maps at the packed-artifact boundary. |
-| CLI build script | `scripts/build-bin.mjs` | Continue generating executable `dist/bin/cumpa.mjs` with the configured canonical support origin only for release builds. The npm `bin` map already targets this file. |
-| Native addon build | `scripts/build-native-addon.mjs` | Continue producing `dist/native/directory_exchange.node` only on Darwin arm64. Build on hosted `macos-15`; do not add `node-gyp`, install scripts, or platform-package machinery for this optional optimization. |
-| Production artifact verifier | `scripts/verify-production-artifacts.mjs` | Extend this verifier to accept and inspect the exact release `.tgz`. Reuse its secret/origin checks, and add package metadata, inventory, source-map, source, test, planning, and skill-boundary assertions. Do not create a parallel release scanner. |
-| Third-party notices | `THIRD_PARTY_NOTICES.md` | Include this existing Monaco-derived notice file explicitly in the npm allowlist because browser code is bundled into `dist/web/`. It is separate from Cumpa's proprietary license. |
-| Cumpa skill | `.kimi-code/skills/cumpa/SKILL.md` | Publish the same thin workflow into `Ship-With-AI/skills/skills/cumpa/`; do not fork its review protocol or add a second implementation. |
+| Tool | Purpose | Notes |
+|------|---------|-------|
+| `@types/markdown-it` → remove after the 15.x bump | Was needed because 14.x shipped no bundled types | 15.0.0's migration notes say to remove this package once `markdown-it` is bumped; keeping both risks type-definition drift/duplicate-identifier errors. |
+| Vitest fixtures for new Git plumbing | Cover `--cached`, no-arg `diff`, and untracked enumeration the same way existing fixtures cover range/exact-patch plumbing | Extend `src/git/*.test.ts`-style real-Git fixtures (constraint: "Testing: Vitest for Git, diff, persistence, and export contracts") — add fixtures with staged/unstaged/untracked state rather than mocking `spawn`. |
+| Playwright coverage for single-pane mode and preview toggle | Browser-level proof Monaco standalone mode and the rendered-preview toggle keep anchors stable | Extend the existing Playwright suite (94 tests) rather than add a new browser-testing tool. |
 
-## Required Package Metadata
-
-The current manifest is development-only (`name: "cumpa"`, `version: "0.0.0"`, `private: true`) and includes the skill in `files`. Replace only the publication-facing metadata while retaining the established dependencies, scripts, ESM mode, engine, and bin target.
-
-| `package.json` field | Required v1.5 treatment | Reason |
-|----------------------|-------------------------|--------|
-| `name` | `@shipwithai/cumpa` | Exact public registry identity. |
-| `version` | `1.5.0` | Exact release requested; the release tag must identify the same commit and version. |
-| `private` | Remove | npm refuses to publish a manifest with `private: true`; repository privacy is controlled by GitHub, not this package flag. |
-| `license` | `SEE LICENSE IN LICENSE` | npm's documented representation for custom terms without an SPDX identifier. A public proprietary CLI should ship explicit permitted-use terms rather than imply open-source rights. |
-| `repository` | `{ "type": "git", "url": "git+https://github.com/Ship-With-AI/cumpa.git" }` | npm trusted publishing requires `repository.url` to match the GitHub repository exactly. This publicly reveals the repository coordinate but does not make its content or history public. |
-| `publishConfig` | `{ "access": "public", "registry": "https://registry.npmjs.org/" }` | Makes scoped-public intent and registry explicit. Scoped packages otherwise have historically defaulted to restricted visibility in common publication flows. |
-| `files` | `["dist/", "THIRD_PARTY_NOTICES.md"]` | Include generated runtime/browser assets and required notices only. Remove `.kimi-code/skills/cumpa/`; the MIT skill has its own public distribution and license boundary. |
-| `bin.cumpa` | Keep `dist/bin/cumpa.mjs` | Global npm installation links the command; npm exec/npx infers the only bin entry for the scoped package. |
-| `engines.node` | Keep `>=24` | Existing supported runtime; also above npm trusted-publishing's Node minimum. |
-| `description` | Public user-facing CLI description | npm search/package pages must describe the installed product, not the private development repository. |
-| `homepage` / `bugs` | Use only public support/product URLs, otherwise omit | Do not point ordinary users at inaccessible private GitHub pages. The `repository` field remains present solely because npm requires the exact publisher binding. |
-| `funding` | Do not add for v1.5 | Cumpa already owns its optional support flow. An npm funding URL is unnecessary and could create a second support authority. |
-
-Add a top-level `LICENSE` containing the actual proprietary terms and an owner/copyright notice. npm always includes `package.json`, README, LICENSE, and bin targets even when `files` is an allowlist. The public package README must document installation, Node/Git prerequisites, proprietary licensing, the inspectable compiled-artifact boundary, and the separately installed marketplace skill without linking users to private operational material.
-
-Do not add `main`, `exports`, or `types`: Cumpa exposes a command, not a supported JavaScript import API. Do not add `preferGlobal`, install-time compilation, postinstall code, or a second package wrapper.
-
-## Packed-Artifact Boundary
-
-### What remains private
-
-- the private GitHub repository and its Git history;
-- `src/` and all TypeScript/declaration source;
-- source maps, including embedded `sourcesContent`;
-- tests, fixtures, Playwright artifacts, and performance harnesses;
-- `.planning/`, project research, phase artifacts, and internal operational documents;
-- GitHub Actions secrets and private workflow history; and
-- the repository-local skill copy, because the skill is published separately from the npm artifact.
-
-### What is necessarily public
-
-- the npm package metadata and README/license documents;
-- every file in the downloadable npm tarball;
-- compiled Node JavaScript and the generated executable launcher;
-- bundled/minified browser JavaScript, CSS, HTML, Monaco assets, and any shipped native `.node` binary;
-- third-party notices; and
-- the public MIT skill source in `Ship-With-AI/skills`.
-
-Compiled or minified JavaScript is inspectable and can be reverse engineered. Proprietary licensing limits legal permission; it does not create technical secrecy. Do not describe the npm package as closed to inspection, encrypted, or source-secret beyond excluding private development materials and history.
-
-### Enforcement pattern
-
-Use one allowlist and one authoritative artifact inspection:
-
-1. run the existing configured production build once, including `CUMPA_RELEASE_SUPPORT_SERVICE_URL` through the current validated release path;
-2. pack once with npm lifecycle scripts disabled;
-3. pass that exact `.tgz` to the extended `verify-production-artifacts.mjs`;
-4. require the expected package name, version, `bin`, engine, proprietary license pointer, public access configuration, notice file, and compiled runtime/browser inventory;
-5. reject `src/`, `.git/`, `.planning/`, `.github/`, `.claude/`, `.kimi-code/`, `tests/`, `test-results/`, TypeScript/config source, `*.map`, declaration files, and inline `sourceMappingURL`/`sourcesContent` markers;
-6. retain the existing protected-value and canonical support-origin scans; and
-7. publish the same verified `.tgz` without rebuilding it.
-
-The npm `files` allowlist is the first boundary, not the proof. npm always includes some root files, and any future generated file beneath `dist/` would match the allowlist. Conversely, `.git` is always ignored by npm, but repository privacy—not packlist behavior—is what protects remote history.
-
-Do not add `.npmignore` next to the `files` allowlist. Two overlapping inclusion systems are harder to audit and do not replace inspection of the actual tarball.
-
-## Trusted-Publishing Integration
-
-Create one release-only workflow, separate from `.github/workflows/deploy-supabase-production.yml`.
-
-Minimum workflow contract:
-
-```yaml
-on:
-  push:
-    tags: ['v1.5.0']
-
-permissions:
-  contents: read
-  id-token: write
-
-jobs:
-  publish:
-    runs-on: macos-15
-    environment: npm
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24.20.0
-          registry-url: https://registry.npmjs.org
-          package-manager-cache: false
-      # npm ci
-      # existing configured release build
-      # pack once, scan that tarball, publish that tarball
-```
-
-Required invariants:
-
-- Configure npm trust for exact owner/repository `Ship-With-AI/cumpa`, workflow filename (filename only), environment `npm`, and `--allow-publish`.
-- Keep the runner GitHub-hosted; npm trusted publishing does not support self-hosted runners.
-- Provide `id-token: write`; provide no npm authentication secret.
-- Keep `contents: read` unless the workflow later gains a separately justified GitHub release step.
-- Assert the tag equals `v${package.json.version}` before the irreversible publish.
-- Use the existing configured support build. The Supabase origin is non-secret release configuration; payment, OAuth, and webhook credentials remain absent from the local package.
-- Pack and inspect once. Publish the inspected `.tgz`, not the working directory.
-- Do not set `publishConfig.provenance`, `NPM_CONFIG_PROVENANCE`, or `--provenance` while the repository is private. Trusted publishing will authenticate, but npm will not generate provenance.
-
-### First-publication bootstrap
-
-`@shipwithai/cumpa` returned registry `404` on the research date. npm `11.19.1` documents that `npm trust` requires the package to already exist, package write access, account-level 2FA, and npm `>=11.15.0`. Therefore the first trust relationship cannot be configured before any version exists.
-
-Use the smallest honest bootstrap:
-
-1. an authorized npm maintainer publishes a safe `0.0.0` artifact interactively with 2FA, public access, and a non-default `bootstrap` dist-tag;
-2. configure the trusted publisher with npm `11.19.0+` or npmjs.com for `Ship-With-AI/cumpa`, the release workflow, the `npm` environment, and direct publish permission;
-3. end the interactive session and keep its credential out of GitHub; and
-4. publish `1.5.0` through GitHub OIDC.
-
-This keeps `1.5.0` tokenless and trusted-published. It does not create provenance while the source repository is private. Do not manually publish `1.5.0` and call it trusted publishing.
-
-## Public Skill Publication
-
-The existing public `Ship-With-AI/skills` repository is the correct platform. It already supports:
-
-- cross-agent cherry-pick installation with `npx skills add Ship-With-AI/skills --skill <name>`; and
-- Claude Code marketplace installation through `claude plugin marketplace add Ship-With-AI/skills`, followed by installation of the `ship-with-ai` plugin collection.
-
-Publish Cumpa by adding:
-
-```text
-skills/cumpa/
-├── SKILL.md
-└── LICENSE
-```
-
-Use the current `.kimi-code/skills/cumpa/SKILL.md` as the behavior source. Add the full MIT notice adjacent to it, keep the plugin manifest's MIT license, add Cumpa to the public README/catalog descriptions, and bump `.claude-plugin/plugin.json` from `0.2.0` to `0.3.0`. Claude Code uses the explicit plugin version as an update cache key; changing skill contents without bumping it can leave installed users on the old plugin.
-
-The skill must state before its workflow that users install the CLI separately:
+## Installation
 
 ```bash
-npm install --global @shipwithai/cumpa@1.5.0
+# Version bump only — no new runtime packages
+npm install markdown-it@15.0.3
+
+# Drop the now-redundant type package
+npm uninstall @types/markdown-it
 ```
 
-The skill then calls `cumpa` and delegates all selection grounding, browser review, completion, and result authority to that executable. It may check that the command is available and report the installation prerequisite. It must not:
-
-- embed compiled Cumpa code or TypeScript source;
-- install the package automatically through hooks or scripts;
-- use the Claude plugin `dependencies` field for an external executable (that field is for plugin dependencies);
-- recreate review logic, schemas, Git mutation, diff interpretation, or result synthesis; or
-- claim that MIT applies to the separately installed proprietary CLI.
-
-The npm package likewise must not include the skill. This keeps two clean public artifacts: a proprietary executable distribution on npm and a human-readable MIT delegation layer in the marketplace.
-
-## Consumer Installation Interfaces
-
-No distribution dependency is installed into this repository.
-
-```bash
-# Proprietary CLI, persistent command
-npm install --global @shipwithai/cumpa@1.5.0
-
-# Proprietary CLI, exact one-off execution
-npx --yes @shipwithai/cumpa@1.5.0
-
-# Public MIT skill, cross-agent single-skill path
-npx skills add Ship-With-AI/skills --skill cumpa
-
-# Public MIT skill, Claude Code marketplace path
-claude plugin marketplace add Ship-With-AI/skills
-```
-
-The marketplace skill's documented prerequisite is the first command. The npx flow is a separate supported CLI launch surface, not an implementation detail the skill should silently substitute.
+No other `npm install` is required for v2.0's target features.
 
 ## Alternatives Considered
 
-| Recommended | Alternative | When to Use Alternative |
-|-------------|-------------|-------------------------|
-| Native npm/GitHub Actions workflow | Changesets, semantic-release, release-please | Add only if repeated multi-package versioning or changelog automation becomes a demonstrated burden. One package and one fixed release do not justify them. |
-| `files` allowlist plus exact-tarball inspection | `.npmignore` denylist | Use a denylist only if most of the repository is intentionally public package content. Cumpa needs the opposite: a small compiled allowlist. |
-| Publish one inspected `.tgz` | Publish the repository directory | Directory publication is acceptable only when lifecycle rebuilds cannot change the artifact. Cumpa's configured release launcher makes pack-once publication safer. |
-| Private repository + trusted publishing without provenance | Public publisher repository + npm provenance | Use only if maintainers explicitly prioritize npm provenance over the private-repository publication constraint and accept a second public release authority. |
-| Custom `LICENSE` + `SEE LICENSE IN LICENSE` | `UNLICENSED` | Use `UNLICENSED` only if recipients receive no right to use the package. Cumpa needs explicit proprietary use terms for an intentionally distributed CLI. |
-| Existing `Ship-With-AI/skills` marketplace | New skill repository or npm-bundled skill | Use a separate repository only if Ship With AI changes its catalog model. The existing repo already provides single-skill and Claude marketplace paths. |
-| Hosted `macos-15` release build | Consumer compilation or platform packages | Add platform packaging only if the optional native addon becomes a required cross-platform contract. |
-| Existing artifact verifier | New license/scanning framework | Add heavyweight compliance tooling only if dependency or policy scale exceeds the existing single-package scanner. |
+| Category | Recommended | Alternative | Why Not |
+|----------|-------------|-------------|---------|
+| Glob/path expansion for standalone file review (feature 4) | Native Git pathspec resolution (`git ls-files -z -- <pathspecs>` + `git ls-files --others --exclude-standard -z -- <pathspecs>`), reusing the pathspec pass-through already wired end-to-end (`src/contracts/request.ts:39-44`, `src/domain/comparison-key.ts:28-38`, `src/server/capabilities.ts:341-343`) | `tinyglobby` 0.2.17 / `fast-glob` 3.3.3 / `micromatch` 4.0.8 | A JS glob engine implements shell-glob semantics (`**` always recursive, different bracket/negation rules) that diverge from Git pathspec magic (`**` needs explicit `:(glob)` magic; default matching is per-path-component). Shipping both would give users two subtly different glob dialects in the same product and a second file-discovery implementation that can disagree with the Git-CLI source of truth the whole architecture is built on. `tinyglobby`/`picomatch` are already present transitively through Vite's own devDependency tree, but that is a *build-time* toolchain graph, not something available or appropriate to lean on from the shipped CLI runtime. |
+| Rendered-HTML sanitization for untrusted Markdown (feature 5) | Reuse the existing `markdown-it` config (`html: false` + restricted `validateLink` for both link and image `src`) | `dompurify` 3.4.17 (client-side sanitizer) | `html: false` already removes the only script-executing vector: raw `<script>`/`on*=` HTML is never parsed as markup, it is escaped to literal text. `validateLink` already blocks `javascript:`/`data:` link and image targets (markdown-it applies the same `validateLink` hook to both `link_open` and `image` tokens). This is the identical sanitization boundary already shipped and relied on for `v-html="preview"` in `SummarySection.vue:226` for the reviewer's own summary text; reusing it for file-content preview adds no new gap to close, while `dompurify` would add ~22 KB (gzipped) of bundle weight and a redundant pass for a threat the existing config already neutralizes. Revisit only if `html: true` or raw-HTML-emitting plugins are ever enabled. |
+| Frozen working-tree snapshot storage (feature 3) | Extend the existing `PatchSnapshot` pattern: `node:fs` reads of index/worktree bytes, atomic temp-then-rename writes, `node:crypto` SHA-256 identities, Zod-validated manifests (`src/server/patch-snapshot.ts`) | A cache/KV library (e.g. `better-sqlite3`, `lmdb`) | The exact-patch feature already solved "freeze bytes at session start, detect drift, store under `.cumpa/`" with plain Node built-ins plus Zod; uncommitted-source sessions need the same shape (freeze staged/unstaged/worktree bytes, not commit objects). Introducing a database contradicts the shipped persistence constraint ("Versioned JSON files… no database") and duplicates work already done. |
+| Detecting out-of-date working-tree state for Refresh (feature 3) | Explicit, user-triggered Refresh that re-runs the same Git plumbing and re-diffs against the frozen snapshot (matches the already-shipped "selector-drift" pattern in `src/git/selector-drift.ts`) | `chokidar` or `node:fs.watch`-based live file watching | The spec is an *explicit* Refresh action, not automatic live sync; a watcher adds cross-platform flakiness (inotify limits, debounce logic, macOS FSEvents coalescing) and a second source of truth for "what changed" that the architecture's single-flight, server-authoritative model (Finish, drafts) does not need. Stale/orphaned comment reclassification already works from a point-in-time diff, which Refresh naturally provides. |
+| Single-pane editor rendering (feature 1) | `monaco.editor.create()` standalone editor, same `monaco-editor` package already bundled (0.55.1) | A second lightweight editor/viewer (e.g. CodeMirror 6) for non-diff files | Running two editor engines would double the Monaco worker/theme/CSP-safety work already solved in `src/web/monaco/theme.ts` and `configure.ts`, fragment the "one typed semantic theme" investment from v1.6, and complicate the anchor/decoration model that comments rely on. The standalone editor already shares the diff editor's `ICodeEditor` surface. |
 
 ## What NOT to Use
 
 | Avoid | Why | Use Instead |
-|-------|-----|-------------|
-| Long-lived `NPM_TOKEN` or `NODE_AUTH_TOKEN` in Actions | Violates the milestone and adds rotation/exfiltration risk. | npm OIDC trusted publishing with `id-token: write`. |
-| `--provenance` from the private repository | npm explicitly does not support provenance for private source repositories. | Publish through OIDC without provenance, or change the repository-visibility requirement. |
-| Self-hosted release runner | Unsupported by npm trusted publishing. | GitHub-hosted `macos-15`. |
-| Obfuscation, encryption, or minification as secrecy | Public npm tarballs and included JavaScript remain downloadable and inspectable. | Exclude development source/maps/history and state the proprietary boundary accurately. |
-| Source maps or declaration/source files | They disclose source structure/content beyond the intended compiled distribution. | Current no-map builds plus packed-artifact denials. |
-| `.npmignore` beside `files` | Creates a second drifting inclusion convention. | One positive `files` allowlist and exact-tarball scanner. |
-| Publishing from the working directory | Can run lifecycle scripts and produce bytes different from the inspected package. | Pack once with scripts disabled, scan, publish that `.tgz`. |
-| `npm-shrinkwrap.json` solely for this milestone | Adds a second lock artifact and exposes more development dependency metadata; direct runtime dependencies are already exact-pinned. | Keep the existing lockfile private and package runtime dependencies exact. Revisit only if transitive install drift becomes a released-product problem. |
-| Release framework or license-scanner dependency | Existing platform and scripts already cover the required workflow. | npm CLI, GitHub Actions, and the existing verifier. |
-| Bundling `.kimi-code/skills/cumpa/` in npm | Mixes the MIT delegation layer into the proprietary package and creates duplicate installation authority. | Publish the skill only through `Ship-With-AI/skills`. |
-| Plugin hooks, MCP servers, or auto-install scripts | The skill is a thin instruction layer and the CLI must be separately installed. | `SKILL.md` prerequisite plus direct `cumpa` delegation. |
-| Runtime/UI dependency upgrades | Outside the milestone and risks invalidating established behavior. | Keep the current application dependency graph. |
+|-------|-----|--------------|
+| `tinyglobby` / `fast-glob` / `micromatch` / `minimatch` / `glob` for CLI path/glob arguments | Introduces a second, shell-style glob dialect that disagrees with Git pathspec semantics the rest of the product is built on; new runtime dependency for something Git already does correctly | `git ls-files [--others --exclude-standard] -z -- <pathspecs>` through the existing `GitRunner` |
+| `dompurify` / `isomorphic-dompurify` for the Markdown preview | Redundant given `html: false` + restricted `validateLink`; `isomorphic-dompurify` specifically pulls in `jsdom`, a large server-side DOM polyfill with no purpose here since sanitization only needs to happen in the already-browser-side Vue component | Keep rendering through the shared `markdown-it` instance/config; if raw HTML support is ever requested later, re-evaluate then |
+| `markdown-it-source-map` (npm, latest 0.1.1, last publish years stale, single-maintainer micro-plugin) | Does a few lines' worth of work (copy `token.map[0]` onto a `data-*` attribute) through an unmaintained third-party plugin, inconsistent with the hand-rolled `link_open` override style already in the codebase | A local renderer-rule override in `src/web/model/markdown-preview.ts`, identical pattern to the existing `link_open` rule |
+| `chokidar` / live `fs.watch`-based auto-refresh | Feature spec calls for an explicit Refresh action, not automatic file watching; watchers add platform-specific flakiness and a second "what changed" authority | Re-run the same Git plumbing used for the initial snapshot when the user clicks Refresh |
+| A second diff/patch library (e.g. `diff`, `jsdiff`) for uncommitted comparisons | All diff computation already goes through native `git diff --raw -z`/`--numstat -z`, parsed by `src/git/raw-diff.ts`/`src/git/numstat.ts`; a JS diff library would compute different hunks than Git itself in edge cases (renames, whitespace modes, binary detection) | Pass different endpoint arguments (`--cached`, no args, or a merge-base commit) to the same native Git plumbing already wired |
+| Upgrading `monaco-editor` to 0.57.0 as part of this milestone | Not required by any v2.0 target feature — the standalone-editor API used for single-pane mode is unchanged between 0.55.1 and 0.57.0; an editor-core bump is cross-cutting risk (theme parity, CSP positioning, decoration behavior all re-verified in v1.6) unrelated to v2.0's scope | Stay on 0.55.1 for this milestone; revisit as an independent maintenance task |
 
 ## Stack Patterns by Variant
 
-**When the GitHub repository remains private (recommended and required by current scope):**
-- Use OIDC trusted publishing.
-- Omit all provenance flags/configuration.
-- Report npm provenance as unavailable, not as a completed release property.
+**If rendering the Markdown preview for a file that is part of a diff (not standalone):**
+- Render the rendered-HTML preview from the Head-side (or Base-side, per toggle) text content already loaded into the Monaco model, not a second fetch.
+- Because the file bytes are already resident (loaded for Monaco), reusing them avoids a second Git object/worktree read and keeps the preview and the diff pane showing provably identical bytes.
 
-**If npm later documents private-repository provenance support:**
-- Re-check the current trusted-publisher and provenance prerequisites at implementation time.
-- Let trusted publishing generate provenance automatically; do not add a separate signing client.
+**If rendering the Markdown preview for a standalone (non-diff) file:**
+- Resolve bytes once (working-tree read, since standalone review is explicitly "changed or not" and not pinned to a commit) and feed the same bytes to both the Monaco single-pane source view and the `markdown-it` rendered view.
+- Because feature 4 reviews named files "changed or not," there is no Base/Head duality to reconcile — one content source, two presentation modes (source/preview).
 
-**For the first-ever npm version:**
-- Bootstrap package ownership with an interactive 2FA publication under a non-default tag.
-- Configure trust only after the package exists.
-- Publish `1.5.0` through the bound workflow.
-
-**For marketplace users:**
-- Install the public MIT skill from `Ship-With-AI/skills`.
-- Install `@shipwithai/cumpa@1.5.0` separately.
-- Keep all review authority in the CLI.
+**If the Head source is Staged or Unstaged:**
+- Blob OIDs exist for the index side (real Git objects) but not for the worktree side (worktree bytes are never Git objects until added). Anchor identity for worktree-side comments needs a content hash (SHA-256 of the frozen snapshot bytes, per the existing `PatchSnapshot` `digest()` helper) rather than a blob OID, mirroring how `src/server/patch-snapshot.ts:123-125` already derives non-Git-object identities for exact-patch snapshots.
+- Because the architecture's drift-detection/export contracts (`anchor.blobOid`) assume a Git object today, this is a contract-shape decision for the roadmap/architecture phase, not a new dependency — flag it for ARCHITECTURE/PITFALLS research, not solved here.
 
 ## Version Compatibility
 
-| Component | Compatible With | Notes |
+| Package A | Compatible With | Notes |
 |-----------|-----------------|-------|
-| `@shipwithai/cumpa@1.5.0` | Node `>=24` | Preserve the existing engine floor and single `cumpa` bin. |
-| Node `24.20.0` | npm `11.19.0` bundled | Current Node 24 LTS distribution on the research date. |
-| npm trusted publishing | npm `>=11.5.1`, Node `>=22.14.0`, GitHub-hosted Actions | Cumpa's release versions exceed both minimums. |
-| `npm trust github` | npm `>=11.15.0`, existing package, package write access, account 2FA | Explains the one-time bootstrap for the currently nonexistent package. |
-| npm automatic provenance | OIDC + public npm package + public repository | **Not compatible with Cumpa's private repository.** |
-| `actions/checkout@v6` / `actions/setup-node@v6` | Current npm trusted-publishing example | Use only in the new release workflow; unrelated workflow upgrades are unnecessary. |
-| GitHub `macos-15` | Private-repository standard hosted arm64 runner | Preserves the existing Darwin-arm64 optional native addon and satisfies npm's hosted-runner rule. |
-| npm exec / npx `11.19.x` | `@shipwithai/cumpa@1.5.0` with one bin entry | Exact package spec selects the requested version; single bin permits executable inference. |
-| Ship With AI plugin `0.3.0` | `skills/cumpa/SKILL.md` | Minor bump is required because current `0.2.0` is an explicit update cache key. |
-| Public Cumpa skill | CLI `@shipwithai/cumpa@1.5.0` | Skill MIT license and CLI proprietary license remain separate. |
+| `markdown-it@15.0.3` | `markdown-it-py`-equivalent CommonMark behavior unchanged for the repo's config (`html:false, linkify:false, typographer:false`) | No behavioral change to rendered output for the existing Summary-preview use case; only parser-internals/export surface and bundled-types changed between 14.x and 15.x. |
+| `markdown-it@15.0.3` | `@types/markdown-it@14.1.2` | **Incompatible to keep both** — 15.x bundles its own `.d.ts`; remove `@types/markdown-it` in the same change that bumps `markdown-it`, per the package's own v15 migration notes. |
+| `monaco-editor@0.55.1` standalone `editor.create()` | Existing `src/web/monaco/theme.ts` typed theme, `src/web/monaco/configure.ts` worker routing | Both already operate on the shared `monaco` namespace import; no separate configuration path needed for standalone vs. diff editors — `configureMonacoWorkers()` and the theme registration already run once per page and cover any editor instance created afterward. |
+| Git 2.54.0 (local) raw-diff `-z --raw` / `--numstat -z` flags | `src/git/raw-diff.ts`, `src/git/numstat.ts` parsers | These flags and the record format are stable Git plumbing (documented in `git-diff-index(1)`/`git-diff(1)` since Git 1.x); no minimum-Git-version change needed for `--cached` or endpoint-less `git diff` compared to what range/exact-patch review already requires. |
 
 ## Sources
 
-Primary sources accessed 2026-09-06:
-
-- [npm trusted publishers](https://docs.npmjs.com/trusted-publishers/) — OIDC and Node/npm minimums, supported hosted runners, exact GitHub binding, `id-token: write`, automatic provenance conditions, private-repository exclusion, and current `actions/*@v6` example.
-- [npm trust](https://docs.npmjs.com/cli/v11/commands/npm-trust/) — npm `>=11.15.0`, existing-package requirement, write access, 2FA, GitHub flags, and allowed publish actions.
-- [npm package.json](https://docs.npmjs.com/cli/v11/configuring-npm/package-json/) — `files` allowlist, always-included/ignored files, `bin`, `private`, repository metadata, and `SEE LICENSE IN <filename>` / `UNLICENSED` license forms.
-- [npm publish](https://docs.npmjs.com/cli/v11/commands/npm-publish/) — tarball package specs, immutable name/version combinations, public access, packlist behavior, and artifact integrity.
-- [Creating and publishing scoped public packages](https://docs.npmjs.com/creating-and-publishing-scoped-public-packages/) — scoped-public access and organization prerequisites.
-- [About public packages](https://docs.npmjs.com/about-public-packages/) — public packages are downloadable by anyone.
-- [npm exec / npx](https://docs.npmjs.com/cli/v11/commands/npm-exec/) — exact package/version syntax, cache installation, prompting, and single-bin inference.
-- [npm provenance](https://docs.npmjs.com/generating-provenance-statements/) — public source/build linkage and public transparency-log semantics.
-- [GitHub changelog: private source repositories no longer supported for npm provenance](https://github.blog/changelog/2023-07-25-publishing-with-npm-provenance-from-private-source-repositories-is-no-longer-supported/) — corroborates the private-repository restriction.
-- [Node.js `latest-v24.x` distribution index](https://nodejs.org/dist/latest-v24.x/) and [release index](https://nodejs.org/dist/index.json) — current Node `24.20.0` and bundled npm `11.19.0`.
-- [GitHub-hosted runners reference](https://docs.github.com/en/actions/reference/runners/github-hosted-runners) — `macos-15` is a standard arm64 hosted runner available to private repositories.
-- [Claude Code plugins reference](https://code.claude.com/docs/en/plugins-reference) — `skills/<name>/SKILL.md` discovery, MIT metadata, component paths, explicit version update behavior, and SemVer guidance.
-- [Ship-With-AI/skills README](https://github.com/Ship-With-AI/skills/blob/main/README.md), [plugin manifest](https://github.com/Ship-With-AI/skills/blob/main/.claude-plugin/plugin.json), and [marketplace catalog](https://github.com/Ship-With-AI/skills/blob/main/.claude-plugin/marketplace.json) — current public installation paths, repository layout, plugin version `0.2.0`, MIT metadata, and `./skills/` discovery.
-- Repository observations: `package.json`, `tsconfig.json`, `vite.config.ts`, `scripts/build-bin.mjs`, `scripts/build-native-addon.mjs`, `scripts/verify-production-artifacts.mjs`, `THIRD_PARTY_NOTICES.md`, and `.kimi-code/skills/cumpa/SKILL.md`.
+- Repo inspection (HIGH, curated): `src/web/monaco/diff-adapter.ts`, `src/web/monaco/configure.ts`, `src/web/monaco/line-mapping.ts`, `src/git/runner.ts`, `src/git/objects.ts`, `src/git/ignore-status.ts`, `src/git/raw-diff.ts`, `src/git/comparison.ts`, `src/server/patch-snapshot.ts`, `src/server/security.ts`, `src/web/model/markdown-preview.ts`, `src/web/components/SummarySection.vue`, `src/contracts/request.ts`, `src/domain/comparison-key.ts`, `src/server/capabilities.ts` — read directly to ground every recommendation above in existing, shipped patterns.
+- `package.json` (repo) — current pinned versions for all existing dependencies.
+- npm registry (`npm view <pkg> version|time|dependencies`, HIGH, official): `markdown-it` 14.3.0→15.0.3, `monaco-editor` 0.55.1→0.57.0, `@inquirer/search` 4.2.1→4.3.6, `dompurify` 3.4.17, `tinyglobby` 0.2.17, `fast-glob` 3.3.3, `micromatch` 4.0.8, `markdown-it-source-map` 0.1.1 — checked 2026-10-30.
+- `markdown-it` CHANGELOG (GitHub, HIGH, official): https://github.com/markdown-it/markdown-it/blob/master/CHANGELOG.md — confirms 15.0.1/15.0.2/15.0.3 quadratic-complexity security fixes and the 15.0.0 breaking-change list (bundled types, removed subpath exports, `validateLink` moved to prototype).
+- GHSA-r7fv-28h4-cvq7 (GitHub Security Advisories, HIGH, official): https://github.com/markdown-it/markdown-it/security/advisories/GHSA-r7fv-28h4-cvq7 — High/CVSS 7.5 quadratic smartquotes DoS, confirms `typographer: false` (the repo's config) is unaffected today but patched in 14.3.2/15.0.2.
+- Vite `node_modules/vite/package.json` (repo-local inspection, HIGH): confirms `tinyglobby`/`picomatch` are Vite's own *devDependency-only* glob engine, not something available to the shipped runtime — basis for rejecting it as a new runtime dependency.
+- `.planning/PROJECT.md` (repo) — validated requirements, constraints, and Key Decisions consulted to avoid re-litigating already-settled stack choices (native Git CLI authority, Zod contracts, Vitest/Playwright testing, `.cumpa/` JSON persistence).
 
 ---
-*Stack research for: Cumpa v1.5 Private Distribution*
-*Researched: 2026-09-06*
+*Stack research for: Cumpa v2.0 Artifact Review*
+*Researched: 2026-10-30*

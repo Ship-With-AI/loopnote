@@ -1,250 +1,153 @@
-# Feature Research: Cumpa v1.5 Private Distribution
+# Feature Research
 
-**Domain:** Proprietary public npm CLI from a private GitHub repository, with an independently MIT-licensed public marketplace skill  
-**Researched:** 2026-09-06  
-**Overall confidence:** MEDIUM — package, trusted-publishing, provenance, and marketplace mechanics are grounded in current first-party documentation and the existing Cumpa artifacts. The proposed release sequencing and clean-environment acceptance design are recommendations derived from those mechanics.
+**Domain:** Local-first, agent-artifact code/document review tool (Cumpa v2.0 "Artifact Review")
+**Researched:** 2026-10-30
+**Confidence:** HIGH (GitHub/GitLab/VS Code behavior verified against current official docs; Cumpa baseline verified against repo source with file:line citations)
 
-## Scope and Hard Constraint
+## Feature Landscape
 
-This research covers only the new v1.5 distribution surfaces:
+This research covers only the six NEW v2.0 categories. Everything already shipped (merge-base-to-head comparison, Monaco side-by-side for modified files, durable anchors, comment lifecycle, Markdown/JSON export, agent stdin V1 for `revisions`/`patch` modes) is existing baseline per `.planning/PROJECT.md` and is cited only where v2.0 reuses or extends it.
 
-1. public distribution of the proprietary `@shipwithai/cumpa@1.5.0` package;
-2. global and exact-version `npx` use of its existing `cumpa` executable;
-3. publication from the private Cumpa GitHub repository through npm trusted publishing without a long-lived CI token;
-4. exclusion of private development material from the public npm tarball;
-5. independent publication of the existing thin Cumpa skill in the public ShipWithAI marketplace under MIT; and
-6. released-artifact proof of the global, `npx`, and marketplace review flows.
+### Table Stakes (Users Expect These)
 
-Existing branch/worktree selection, browser review, persistence, export, agent-request protocol, and voluntary-support behavior are dependencies, not features to redesign.
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| Staged / Unstaged / Working-tree as three distinct, named Head choices | Matches Git's own three-way model (`git diff` = worktree↔index/"unstaged", `git diff --cached` = index↔HEAD/"staged", `git diff HEAD` = worktree↔HEAD) and VS Code's **Changes** vs **Staged Changes** split in the Source Control view[^vscode-staging]. Users who already think in these terms expect the same vocabulary. | MEDIUM | No current Cumpa path resolves anything but committed refs — `src/git/comparison.ts` builds `PinnedComparison` from `ComparisonSelection`/branch-or-worktree only; `src/contracts/comparison.ts:12-19` only models `branch`/`worktree` source kinds today. Needs new Git invocation paths per uncommitted source. |
+| Untracked files included in "Working tree" respecting `.gitignore` | Plain `git diff`/`git diff HEAD` never shows untracked files — Git's own docs: "Untracked files are everything else ... not in your staging area"[^gitbook-untracked]. A working-tree review that silently omits new files would be misleading for agent-authored artifacts (often newly created, uncommitted files). | MEDIUM | Must enumerate via `git ls-files --others --exclude-standard`-equivalent and synthesize empty-blob→worktree diffs. Cumpa already has gitignore-aware infrastructure to build on: `src/git/ignore-status.ts` + `src/server/gitignore-capability.ts:1-13` (currently scoped to offering a `.cumpa/` ignore entry, not full untracked enumeration, but proves the native-Git ignore-check pattern is in place). |
+| Base stays selectable (HEAD by default, or any branch/worktree) against any of the three uncommitted Heads | Mirrors the shipped "PR-style merge-base-to-head comparison" decision (`.planning/PROJECT.md:283`) — uncommitted sources are just a new Head kind, not a new comparison model. | LOW | Orthogonal re-use of the existing merge-base resolution path in `src/git/comparison.ts`; only the Head-side resolution changes. |
+| Frozen working-tree snapshot at session start + explicit Refresh | Git objects are content-addressed and immutable by construction, which is why Cumpa's durable anchors work today (`src/domain/anchor.ts:115-151` hashes blob OID + line + context). A live/uncommitted source has no such immutability, so without a freeze the anchor model breaks silently. No PR tool needs this (GitHub/GitLab only ever diff committed refs); VS Code's diff editor instead re-renders live on every keystroke[^vscode-staging] — explicitly the behavior Cumpa must NOT copy, because it would relocate/invalidate comments without the drift-detectable guarantee the product promises (`.planning/PROJECT.md:9`). | MEDIUM | New snapshot-capture step at session start (hash worktree bytes per file) + a server-authoritative Refresh action that re-snapshots and reclassifies. |
+| Existing comments reclassified stale/orphaned on worktree drift, exactly like today's committed-diff drift handling | `.planning/PROJECT.md:71` states this explicitly; the mechanism already exists for committed objects via `verifyDurableAnchor` (`src/domain/anchor.ts:153-178`), which compares a `recorded` vs `current` `DurableAnchorV1` and returns an `AnchorVerification` — this is a reuse, not a new concept. | LOW–MEDIUM | New call site: compare a Refresh-triggered re-snapshot against anchors; same stale/orphaned taxonomy, new trigger source. |
+| Added/deleted files render in one full-width pane, no empty Monaco side | GitHub's diff view already avoids a pointless empty column: its unified view (the unified/split toggle via the gear icon[^github-diffview]) is inherently single-column, and even review tooling generally treats file-create/file-delete as "all content on one side." Cumpa's current Monaco diff editor always builds both `originalModel` and `modifiedModel` (`src/web/monaco/diff-adapter.ts:211-227`) even when one side is empty — for an added file `originalModel` is an empty string, for a deleted file `modifiedModel` is empty, producing the literal "no review (no empty side)" gap named in `.planning/PROJECT.md:58`. | MEDIUM | Needs a new non-diff Monaco standalone editor path for `status.kind === 'added' \| 'deleted'`, replacing `createDiffEditor` for those files only; side-by-side stays for `modified`/`renamed`/`copied`/`type-changed`. |
+| Comment anchors remain correct in single-pane mode | `DurableAnchorV1` is already parameterized by `side: AnchorSide` (`'base' \| 'head'`, `src/domain/anchor.ts:6`); an added file only ever needs head-side anchors, a deleted file only base-side. The single-pane renderer must pick the one correct side rather than needing a new anchor concept. | LOW | Reuse, not new design — single-pane just narrows which `side` is addressable per file status. |
+| Standalone named files (changed or not) open single-pane and commentable via `cumpa <path\|glob>` | No PR tool has an analogue — GitHub/GitLab only ever show files that are part of a diff. This is table stakes *for the repositioned product* ("review any agent-produced artifact," new Core Value at `.planning/PROJECT.md:9`), because an agent's draft plan/decision doc is frequently untracked or unrelated to any branch comparison. | MEDIUM | Reuses existing `SessionFile`/`FileTreeLeaf` model (`src/domain/file-tree.ts:9-14`) and the anchor structure (which is already keyed on arbitrary path + side + blob, `src/domain/anchor.ts:13-31`) — a standalone file is effectively a one-sided (`head`-only) leaf with no comparison counterpart. |
+| Standalone files read live working-tree bytes, not a historical blob | Consistent with the working-tree-review requirement — an agent's new/edited file is almost always uncommitted. A standalone reviewer that only shows the last-committed blob would misrepresent exactly the artifacts v2.0 targets. | LOW–MEDIUM | New read path through the frozen-snapshot mechanism built for working-tree sources (shared dependency, see Feature Dependencies). |
+| Non-text/binary standalone files identified but not rendered inline | Matches the unchanged, explicit Out-of-Scope line: "Cumpa reviews text; Markdown gains rendered preview in v2.0, other unsupported files identified but not rendered inline" (`.planning/PROJECT.md:244`). | LOW | Already-shipped "unsupported" status handling (`ChangedFileStatusKindSchema` includes `'unsupported'`, `src/contracts/comparison.ts:75-83`) extends directly to standalone files. |
+| Per-file rendered/source Markdown toggle | Direct precedent: GitHub's Files-changed page has a "Display rich diff" / "Display source diff" icon pair specifically for prose documents[^github-nonfcode]; GitLab similarly separates rendered Markdown (GLFM preview) from diff source. Cumpa already ships a sanitized Markdown renderer (`markdown-it`, `html:false`, forced `target=_blank`/`rel=noopener` on links) at `src/web/model/markdown-preview.ts:1-19`, currently wired only into the review-summary textarea preview in `SummarySection.vue:4,42` — the infrastructure is proven, just not yet applied to source files. | LOW–MEDIUM | Call `renderMarkdownPreview` against file content inside the single-pane/side-by-side surface, gated by a per-file toggle; do not touch the summary preview path. |
+| Comments stay anchored to source lines while preview is showing | GitHub explicitly keeps commenting tied to source: "Commit comments can only be added within source view, on a line-by-line basis"[^github-nonfcode] — rendered/"rich diff" view is read-only for commenting. Cumpa's anchors are keyed on raw text + line number (`AnchorContextLine`, `src/domain/anchor.ts:8-11`), which only exists meaningfully against source bytes, not rendered HTML. | MEDIUM | Preview should overlay/toggle visually while the underlying anchor target remains the source Monaco model; flag to roadmap whether comment *creation* is blocked while preview is active (GitHub's behavior) or whether existing anchors must simply keep resolving correctly under a visual preview layer — the milestone line ("comments stay anchored to source lines") does not disambiguate creation-while-previewing vs. persistence-of-existing-anchors. |
+| Agent stdin protocol accepts requests for uncommitted-source and standalone-file review, returns the same canonical JSON shape | Direct extension of the already-shipped, strictly-validated `AgentReviewRequestSchema` discriminated union (`src/contracts/request.ts:85-87`, currently `mode: 'revisions' \| 'patch'`). Agents need the same machine contract Cumpa already offers for committed ranges/patches (Phase 12/13, `.planning/PROJECT.md:184-186`), now covering the two new review surfaces. | MEDIUM | New Zod modes reusing the existing bounded-byte, NUL-free, UTF-8 validation helpers already in `src/contracts/request.ts:14-32` (`GitArgumentSchema`, `isBoundedGitArgument`); must not relax existing `MAX_AGENT_REQUEST_BYTES`/`MAX_GIT_ARGUMENT_BYTES`/`MAX_PATHSPEC_COUNT` constraints for the new modes. |
+| Product copy ("What This Is", README, CLI `--help`, marketplace skill) repositioned from "code review" to "review any agent-produced artifact" | Explicit Active requirement (`.planning/PROJECT.md:236`). No engineering complexity on its own, but must stay truthful to what actually ships (text/Markdown only — binary/notebook rendering remains Out of Scope) to avoid overclaiming. | LOW | Copy-only; depends on the underlying capability actually existing first (see Feature Dependencies). |
 
-### Blocking incompatibility: private repository and npm provenance
+### Differentiators (Competitive Advantage)
 
-The requested conjunction of a **private source repository** and **npm provenance** is not supported. Current npm trusted-publishing documentation says provenance is automatically generated only when the package and source repository are public, and explicitly says provenance generation is not supported for private repositories even when the package is public. GitHub's changelog independently states the same restriction.
+| Feature | Value Proposition | Complexity | Notes |
+|---------|-------------------|------------|-------|
+| All three uncommitted states (staged/unstaged/working-tree+untracked) as explicit, independently selectable Head choices in one picker | GitHub/GitLab never review uncommitted state at all. VS Code only distinguishes staged vs. unstaged (two buckets, no untracked-inclusive "working tree" option) and offers no durable, line-anchored, exportable review of either[^vscode-staging]. Cumpa uniquely applies its full anchored-comment + export rigor to pre-commit state. | MEDIUM | Builds on table-stakes Git resolution work above. |
+| Agent-requestable review of uncommitted/standalone artifacts with the same strict stdin contract used for committed ranges | No comparable local review tool (lazygit, gitui, delta/difftastic-based workflows, PRless) exposes a schema-validated request/response protocol for agents at all[^lazygit]; GitHub/GitLab have no local/offline agent handoff. This extends Cumpa's own existing differentiator (established in Phase 12/13) rather than creating a new one. | MEDIUM | Depends on both working-tree sources and standalone-file review existing server-side first. |
+| Full-width single-pane rendering that recovers the space GitHub's *split* view wastes on wholly added/deleted files | GitHub's split (side-by-side) diff mode still allocates two columns even for a 100%-added or 100%-deleted file, leaving one column empty; its unified mode avoids this but loses Cumpa's existing side-by-side comparison UX for modified files. Cumpa's status-driven auto-selection (single-pane only for added/deleted, side-by-side for modified/renamed) gets unified's space efficiency without sacrificing split's readability for true changes. | LOW–MEDIUM | Must preserve the shipped CSP-safe Monaco positioning constraint (`.planning/PROJECT.md` Key Decisions: "Verify release behavior... Monaco positioning under production CSP"). |
+| Standalone, non-diff file review reusing the same durable-anchor/export contract as diff comments | VS Code's plain editor has no durable/exportable review-comment concept; GitHub's blame/file view supports comments but not as part of a structured, agent-consumable export. Cumpa's differentiator is giving "just open this file and comment on it" the exact same canonical-JSON/Markdown export guarantee as a diff review. | MEDIUM | Directly enables the "plans, decisions, docs, code" repositioning (feature 7). |
+| Markdown preview available on standalone files and uncommitted diffs, not just committed PR diffs | GitHub's "rich diff" only applies inside a committed-ref diff. Cumpa's toggle works across every v2.0 surface (standalone, staged, unstaged, working-tree, committed), which is strictly broader. | LOW | Mostly a reuse decision (apply existing `renderMarkdownPreview` broadly) rather than new rendering work. |
 
-Trusted OIDC publishing itself still works from a private GitHub repository. Therefore v1.5 can satisfy repository privacy, public npm distribution, and tokenless trusted publishing, but it cannot also carry npm's provenance attestation under current platform rules.
+### Anti-Features (Commonly Requested, Often Problematic)
 
-This is a release-blocking requirement decision, not an implementation detail:
-
-- **Recommended:** keep the repository private, publish through trusted OIDC without npm provenance, and explicitly amend the provenance acceptance criterion.
-- **Alternative:** make the source repository public to obtain npm provenance; this violates the milestone's privacy constraint and is not recommended.
-
-Do not set `publishConfig.provenance: true`, pass `--provenance`, claim a provenance badge, or invent a substitute attestation while the source repository remains private. Re-check npm support immediately before release in case the restriction changes.
-
-## Table Stakes
-
-Features users and release operators reasonably expect. Missing any P0 item makes distribution incomplete or misleading.
-
-| Feature | Expected behavior | Complexity | Requirement-ready implications |
-|---|---|---:|---|
-| Public proprietary package identity | npm exposes exactly `@shipwithai/cumpa@1.5.0` with public access while the GitHub repository remains access-controlled. | Medium | Change the release manifest from `cumpa@0.0.0` and remove `private: true`; set public scoped access. Public access permits anyone to download the package and does **not** make its license open source. |
-| Installed `cumpa` executable | Global install links a working `cumpa` command; the package retains Node `>=24`, its required Git baseline, and the existing executable entry point. | Low | Keep one `bin` entry pointing to the built Node executable and retain its `#!/usr/bin/env node` shebang. Do not introduce a wrapper installer. |
-| Exact global install | `npm install --global @shipwithai/cumpa@1.5.0` installs the released version and `cumpa` launches the existing application. | Low | Acceptance must assert the reported version is `1.5.0` and complete an actual browser review from an unrelated fixture repository. |
-| Exact-version one-shot execution | `npx --yes @shipwithai/cumpa@1.5.0` resolves the package's single bin and launches the same application without a prior global install. | Low | Use a clean npm cache and project with no matching local dependency; npm exec may otherwise reuse a local package and create false evidence. Do not accept a mutable `@latest`-only test. |
-| Narrow, complete public tarball | The tarball contains only files needed to run and understand the released CLI: compiled Node/native runtime, browser assets, `package.json`, public README, proprietary license, and required third-party notices. | Medium | Use a positive `files` allowlist. Ensure every `bin`/runtime/static-asset target is included. Explicitly exclude TypeScript source, source maps, tests, fixtures, `.planning`, local `.cumpa` state, credentials, workflows, development configuration, and the marketplace skill. npm always includes `package.json`, README, and license files, so those root files must be public-safe. |
-| Accurate proprietary license boundary | The application package is clearly proprietary while carrying required notices for bundled third-party software. | Medium | Use `"license": "SEE LICENSE IN LICENSE"` and a top-level proprietary `LICENSE` containing the intended end-user terms. Do not use MIT, GPL, another open-source SPDX identifier, or the skill's license for the application. `UNLICENSED` alone is too ambiguous for a publicly usable package. Obtain the actual terms before release rather than improvising them in build code. |
-| Honest public-artifact disclosure | Documentation says the repository, history, TypeScript source, source maps, tests, and planning files remain private, but the npm tarball and every included compiled JavaScript/native/browser asset are publicly downloadable; JavaScript can be inspected. | Low | Describe this as development-material minimization, not source secrecy or technical prevention of reverse engineering. Minification or bundling is not a confidentiality control. |
-| Accurate public metadata | npm metadata identifies the package, version, executable, Node requirement, proprietary license file, private repository identity needed by trusted publishing, and only real public-facing links. | Low | The case-sensitive `repository.url` must match the GitHub repository used by trusted publishing, even though unauthorized package users cannot browse it. Do not advertise a private issue tracker as a public support channel or fabricate homepage/bugs URLs. |
-| Trusted OIDC publication | Stable releases publish from the exact private GitHub repository/workflow identity through npm trusted publishing, without `NODE_AUTH_TOKEN` or another long-lived publish secret. | High | Use npm `>=11.15.0`, account 2FA, a GitHub-hosted runner, `permissions: { contents: read, id-token: write }`, exact owner/repository/workflow filename/environment values, and a matching `repository.url`. Grant only publish permission unless staged publishing is actually used. |
-| First-publication bootstrap | The npm package exists before its trusted-publisher relationship is configured. | Medium | The registry returned 404 for `@shipwithai/cumpa` on 2026-09-06, while `npm trust` requires an existing package. Perform one usable, proprietary prerelease/bootstrap publication through interactive maintainer authentication, under a non-`latest` prerelease version/tag; then configure trusted publishing. Do not publish a placeholder package. `1.5.0` itself must be published through OIDC. |
-| Token shutdown after OIDC proof | Once the trusted workflow succeeds, ordinary automation tokens cannot publish the package. | Medium | Verify the OIDC path first, revoke obsolete npm automation tokens, then enable npm's package setting that requires 2FA and disallows tokens. Keep interactive account recovery separate from CI. |
-| Explicit provenance resolution | Release criteria state that npm provenance is unavailable while the repository is private. | High | The milestone cannot be declared fully compliant with both original constraints. Record the approved requirement change or block release; do not silently omit provenance or falsely report it. |
-| Public self-contained marketplace plugin | ShipWithAI's public marketplace contains a `cumpa` plugin with its own manifest, version, skill file, README/instructions as needed, and plugin-local MIT license. | Medium | Add it to `ShipWithAI/shipwithai-plugins` and `.claude-plugin/marketplace.json` following the existing plugin-directory convention. Set the plugin and skill metadata to MIT without changing the application package's proprietary terms. Installed plugins are copied to a cache, so the public plugin may not depend on files from the private checkout. |
-| Separately installed CLI prerequisite | The skill states that `@shipwithai/cumpa` must be installed separately and that the `cumpa` executable must be on `PATH`. | Low | Preserve the existing preflight behavior. If the executable is absent, stop before constructing a review and give the exact install command. Do not bundle, download, or silently install the CLI from the skill. The v1.5 acceptance profile installs `@shipwithai/cumpa@1.5.0` explicitly. |
-| Thin delegation to Cumpa | The skill handles prerequisite checking and the existing request/response handoff, while Cumpa remains the sole authority for Git grounding, diff generation, review UI, persistence, Finish semantics, and canonical JSON. | Low | Publish the existing thin skill behavior. Do not recreate Git selection, diff interpretation, review generation, output schemas, or application of feedback in marketplace code; do not have the agent review the diff itself. |
-| Independent lifecycle guidance | Users can update or remove the CLI and skill independently without assuming either package manager controls the other. | Low | CLI update: `npm install --global @shipwithai/cumpa@latest`; CLI uninstall: `npm uninstall --global @shipwithai/cumpa`. Marketplace refresh/update follows Claude Code's marketplace auto-update and `/reload-plugins`; plugin removal uses `/plugin uninstall cumpa@shipwithai`. Removing one artifact must not claim to remove the other. |
-| Released-artifact acceptance | Fresh global, exact-version `npx`, and marketplace installations each complete the real review contract without reading the Cumpa checkout. | High | Isolate npm prefix/cache, working repository, and Claude profile/cache. Install from the public npm registry and public marketplace, exercise the browser, Finish a review, and validate the canonical output/exit contract where applicable. Capture the resolved package/plugin versions and assert no checkout path, workspace link, local tarball, or prior install supplied the runtime. |
-| Voluntary support remains feature-neutral | The published runtime preserves the already validated optional support flow and its canonical hosted endpoint/configuration; reviewing and export remain available without payment. | Low | Treat this as release-artifact preservation, not a support redesign. Do not add license activation, entitlement checks, paid features, nags tied to review completion, or payment-dependent behavior. |
-
-## Differentiators
-
-These are valuable because they make a proprietary local-first application installable without confusing its legal, trust, or agent boundaries.
-
-| Feature | Value | Complexity | Notes |
-|---|---|---:|---|
-| Deliberate two-artifact license boundary | Users can inspect and share the small integration layer under MIT without receiving open-source rights to the application. | Medium | npm package: proprietary terms. Public marketplace plugin: MIT metadata and license text. Third-party notices retain their own terms. |
-| Private development, honest public runtime | Cumpa withholds repository history and development artifacts without pretending public executable bytes are secret. | Low | This is a truthful and supportable boundary; obfuscation would not strengthen the legal license or npm transport. |
-| One review authority across all launch paths | Global, `npx`, and marketplace launches all reach the same existing Cumpa review engine and canonical export contract. | Low | The skill delegates rather than creating a second review implementation that could drift. |
-| Immutable acceptance evidence | Exact versions and isolated caches prove what users receive rather than what happens to work in a maintainer checkout. | Medium | Record `1.5.0`, plugin version, registry/catalog sources, and completed review outputs. Keep `latest` only for intentional upgrade guidance. |
-| Tokenless stable publication from private CI | A compromised long-lived npm automation token is removed from the stable release path while private source remains in the private repository. | Medium | OIDC improves publication authentication even though npm provenance remains unavailable for the private source repository. |
-
-## Anti-Features
-
-Explicitly out of scope or harmful for v1.5:
-
-| Anti-feature | Why not add it | Use instead |
-|---|---|---|
-| Public Cumpa source repository or history | Violates the defining privacy constraint. | Private GitHub repository plus public npm runtime artifact. |
-| Open-source license for the application | MIT/GPL/Apache metadata would grant rights the proprietary product is not intended to grant. | Custom proprietary terms referenced by `SEE LICENSE IN LICENSE`. |
-| Claim that npm distribution hides implementation | Public npm packages are downloadable and compiled JavaScript/browser assets are inspectable. | State the real boundary: private development artifacts and history, public compiled runtime. |
-| TypeScript source or source maps in the package | Source maps can disclose source paths or embedded source and are unnecessary for the requested public runtime. | Production compiled assets without `.ts`, `.tsx`, `.map`, inline source maps, or `sourcesContent`. |
-| Tests, fixtures, planning files, CI/configuration, or Git data in the package | They increase disclosure and package size without helping users run Cumpa. | Positive runtime allowlist plus packed-manifest inspection. |
-| Marketplace skill inside the proprietary npm tarball | It blurs licensing and lifecycle boundaries and recreates the old copy-from-global-package installation path. | Publish the independently MIT-licensed plugin in `shipwithai-plugins`. |
-| CLI bundled or installed by the skill | Plugin installation should not execute an implicit application install or own the npm lifecycle. | Declare the external CLI prerequisite and fail with an actionable command. |
-| Review/Git/protocol logic copied into the skill | A second implementation will drift and can violate local Git or export guarantees. | Existing thin request/response adapter delegating to `cumpa`. |
-| Long-lived npm publish token in GitHub secrets | Defeats the trusted-publishing requirement and expands credential risk. | OIDC trusted publisher for `1.5.0` and subsequent stable releases. |
-| Placeholder bootstrap package | It creates a public, installable package that misrepresents the product and can capture `latest`. | Usable proprietary prerelease under a non-`latest` dist-tag, followed by trusted `1.5.0`. |
-| Provenance flag or badge from the private repository | npm does not support the claimed attestation and an attempted forced configuration can fail publication. | Explicitly resolve the requirement conflict; re-evaluate only when npm documents support. |
-| Public release-repository mirror as provenance theater | A second repo of prebuilt bytes would add operational weight and could misrepresent where the package was built from. | Keep one private source/release repository and use trusted OIDC honestly. |
-| Checkout-, workspace-, link-, or local-tarball-based acceptance | It can pass while the released package or marketplace artifact is incomplete. | Isolated installs from the public registry/catalog only. |
-| `@latest` as the only acceptance target | It is mutable and does not prove the named release. | Exact `@shipwithai/cumpa@1.5.0`; document `@latest` only as update intent. |
-| Custom installer, self-updater, or uninstall daemon | npm and Claude Code already own those lifecycles. | Native npm and marketplace commands. |
-| New review behavior | Existing product behavior is already validated and outside the replacement milestone. | Package and delegate the existing behavior unchanged. |
-| Payment or license activation gates | Contradicts voluntary support and changes product semantics. | Preserve the optional support path with all review features available regardless of payment. |
+| Feature | Why Requested | Why Problematic | Alternative |
+|---------|---------------|------------------|-------------|
+| Live-updating working-tree diff (re-render on every file-system change, like VS Code's gutter decorations[^vscode-staging]) | Feels "real-time" and matches editor-integrated tools users already know. | Breaks the frozen-snapshot/durable-anchor contract that makes Cumpa's comments drift-detectable rather than silently relocated; the milestone explicitly rejects this by requiring freeze + explicit Refresh (`.planning/PROJECT.md:71`). | Freeze at session start; surface an explicit Refresh action that re-snapshots and reclassifies existing comments as stale/orphaned, exactly like today's committed-drift handling. |
+| Hunk/line-level staging actions from inside the diff (stage, unstage, discard — what VS Code's diff-editor gutter and lazygit both offer[^vscode-staging][^lazygit]) | Natural "while I'm looking at it, let me also act on it" request. | Cumpa is a read-only review tool over Git state, never a mutator — an established, repeated decision ("native Git CLI... without modifying Git state"; exact-patch grounding explicitly "without invoking a mutating Git apply path", `.planning/PROJECT.md` Key Decisions). Adding staging actions would be new mutation surface the product has deliberately avoided everywhere else. | User stages/unstages via `git add`/their own tooling outside Cumpa; Cumpa only reviews whatever state results. |
+| A general user-togglable unified-vs-split layout preference for every file (GitHub/GitLab both expose this as a global/per-session setting[^github-diffview][^gitlab-changes]) | Mirrors familiar PR-tool ergonomics. | Out of milestone scope; Cumpa's v1.6 restyle invested specifically in one canonical semantic-token diff surface (`.planning/PROJECT.md` v1.6 summary) — reopening pane layout as a user preference risks re-litigating that restyle. Status already deterministically implies the right layout (added/deleted → single-pane, modified → side-by-side). | Keep layout selection automatic from `ChangedFileStatusKind`, not user-configurable. |
+| Letting standalone-file review silently fall back to the last-committed blob when a file is unsaved/untracked | Simpler to implement than a new live-read path. | Directly contradicts the repositioning promise — an agent's draft artifact is very often untracked; showing stale/absent committed content would make "review any agent-produced artifact" false in the most common case. | Read live working-tree bytes for standalone files, sharing the frozen-snapshot mechanism built for working-tree sources. |
+| Full prose-diff rendering inside the Markdown preview (diffing the *rendered* HTML itself, word-level insert/delete highlighting — GitHub's actual "rich diff" behavior[^github-nonfcode]) | Looks more polished than a plain rendered view; GitHub already does it. | GitHub itself documents this as expensive and unreliable at scale: "Some pull requests involve... large, complex documents... GitHub can't always produce a rendered view of the changes"[^github-nonfcode]. The milestone only asks for a rendered **preview toggle**, not a rendered-level diff — building the harder feature is unrequested scope. | Render the current side's content as plain rendered HTML in preview mode; keep the actual line-level diff in source/single-pane view. |
+| Allowing raw HTML embeds to render inside Markdown preview | Richer Markdown documents (readmes with embedded video, etc.) sometimes use raw HTML. | GitHub's own docs flag this as a correctness and consistency problem ("some embedded HTML can be shown... while some... cannot... should always be reviewed in both rendered and source views")[^github-nonfcode], and it's also a CSP/XSS concern inside Cumpa's loopback-only Fastify surface. | Keep the existing renderer's `html: false` configuration (`src/web/model/markdown-preview.ts:4`) unchanged for file preview; don't relax it. |
+| Agent-requested review of a working tree that keeps mutating while the developer reviews it | Would let an agent keep writing while waiting, saving a round trip. | Breaks the same drift-detectable guarantee the frozen-snapshot requirement protects for interactive sessions; an agent-initiated session must get identical freeze semantics, not a looser mode. | Apply the same snapshot-freeze-plus-Refresh model to agent-launched sessions as to interactive ones — no special-cased "live" agent mode. |
+| Repositioning copy that implies hosted/multi-reviewer/document-collaboration capability | "Review any artifact" sounds adjacent to Notion/Google-Docs-style commenting products. | Explicitly Out of Scope: "Hosting reviews remotely or supporting multiple simultaneous reviewers — product is a single-developer local tool" (`.planning/PROJECT.md:241`). Repositioning changes *what* can be reviewed (artifact type), not *who*/*where* reviews it. | Scope all copy changes to artifact-type breadth (plans/decisions/docs/code), never collaboration/hosting claims. |
 
 ## Feature Dependencies
 
-```text
-Existing compiled CLI/server/browser runtime
-    ├── public-safe README + proprietary LICENSE + third-party notices
-    ├── release metadata (@shipwithai/cumpa, 1.5.0, bin, engines, repository)
-    └── positive runtime files allowlist
-            └── packed artifact completeness/privacy inspection
-                    └── usable bootstrap prerelease (package must exist)
-                            └── npm trusted-publisher configuration
-                                    └── OIDC publication of 1.5.0
-                                            ├── clean global review proof
-                                            └── clean exact-version npx review proof
+```
+[Working-tree sources: Staged/Unstaged/Working-tree+untracked Head choices]
+    └──requires──> [Frozen snapshot at session start + explicit Refresh]
+                       └──requires──> [Stale/orphaned anchor reclassification extended to worktree drift]
 
-Private GitHub repository
-    ├── enables private source/history
-    ├── can use npm trusted OIDC publication
-    └── blocks npm provenance under current npm rules  <-- requirement conflict
+[Single-pane rendering for added/deleted files]
+    └──requires──> [Existing ChangedFileStatusKind classification] (already shipped)
 
-Existing Cumpa agent request/Finish/canonical JSON contract
-    └── existing thin skill
-            ├── self-contained public plugin + MIT license
-            ├── explicit separately installed cumpa prerequisite
-            └── public ShipWithAI marketplace entry
-                    └── clean marketplace review proof
-                            └── depends on released CLI and global artifact proof
+[Standalone file review (`cumpa <path|glob>`)]
+    └──requires──> [Single-pane rendering] (milestone: standalone files render "single-pane... commentable")
+    └──requires──> [Frozen snapshot mechanism] (standalone files must read live worktree bytes, not stale blobs)
 
-Existing voluntary-support behavior + release configuration
-    └── included in released runtime unchanged
-            └── available but non-gating in every launch path
+[Rendered Markdown preview toggle]
+    └──requires──> [Single-pane rendering] (added/deleted Markdown files need a preview surface too)
+    └──requires──> [Existing renderMarkdownPreview infrastructure] (already shipped, reused not rebuilt)
+
+[Agent stdin request: uncommitted + standalone modes]
+    └──requires──> [Working-tree sources] (server/draft concept must exist before request schema can reference it)
+    └──requires──> [Standalone file review] (same reason)
+
+[Product repositioning copy]
+    └──requires──> [All of the above actually functioning] (copy must not overclaim ahead of capability)
+
+[Markdown preview toggle] ──enhances──> [Standalone file review]
+[Markdown preview toggle] ──enhances──> [Working-tree sources]
+[Frozen snapshot + Refresh] ──conflicts──> [Live-updating diff] (anti-feature, listed above)
 ```
 
-### Dependency notes
+### Dependency Notes
 
-- **Legal and artifact boundaries precede publication.** Because npm always packs metadata and certain root documentation/license files, those files must be public-safe before the first bootstrap publication, not only before `1.5.0`.
-- **Bootstrap precedes trust.** Current `npm trust` requires an already-existing package. The registry returned 404 for `@shipwithai/cumpa` on the research date, so a one-time interactive publication is unavoidable unless npm changes this rule before implementation.
-- **OIDC proof precedes token lockdown.** Disallowing tokens before the trusted workflow works can strand the release. Prove OIDC, then revoke/disallow tokens.
-- **Packed completeness precedes clean install proof.** Global and `npx` tests must consume the actual registry artifact; local builds cannot compensate for missing files.
-- **The CLI precedes the skill.** The marketplace plugin is useful only when the independently managed `cumpa` executable is present.
-- **The skill depends on contracts, not implementation files.** Its stable dependency is the existing CLI request/Finish/canonical JSON behavior; it must not import private modules.
-- **Marketplace acceptance comes last.** First prove the released CLI alone, then prove the public plugin delegates to that same installed artifact.
-- **Repository privacy conflicts with provenance.** No dependency ordering resolves this; a requirement decision or future npm capability is required.
+- **Working-tree sources require the frozen-snapshot mechanism:** uncommitted content has no content-addressed immutability the way committed blobs do, so without a freeze step the durable-anchor model (`src/domain/anchor.ts`) has nothing stable to hash against.
+- **Standalone file review requires single-pane rendering:** the milestone wording itself ("named files... open... single-pane and commentable") makes single-pane a prerequisite UI surface, not a parallel concern.
+- **Standalone file review requires the frozen-snapshot mechanism:** named files are read from the live working tree (an agent's draft artifact is usually uncommitted), so the same freeze/Refresh semantics built for working-tree sources apply here too — building them together avoids two divergent "read live file bytes" code paths.
+- **Agent stdin extension depends on both working-tree sources and standalone file review landing first:** the new request modes need a server-side concept (uncommitted scope, standalone path set) to validate against and resolve; building the protocol before the underlying review surfaces exist would require re-opening the schema later.
+- **Markdown preview enhances rather than blocks:** it can be built incrementally on top of single-pane/side-by-side once those render any given file, reusing `renderMarkdownPreview` without new sanitization work.
+- **Frozen snapshot conflicts with live-updating diff:** these are mutually exclusive UX models; the milestone has already decided in favor of freeze+Refresh (`.planning/PROJECT.md:71`), so live-reactive diffing is explicitly out.
 
-## v1.5 Launch Definition
+## MVP Definition
 
-### Required before release
+### Launch With (v2.0 core)
 
-1. **Resolve the provenance contradiction.** Preserve the private repository and formally accept trusted OIDC without npm provenance, or do not claim the milestone is complete.
-2. **Define the proprietary distribution terms.** Provide the actual application `LICENSE`; retain applicable third-party notices; keep the marketplace plugin's MIT terms separate.
-3. **Create a public-safe release manifest and documentation.** Use `@shipwithai/cumpa@1.5.0`, public scoped access, the existing `cumpa` bin, Node `>=24`, exact private repository metadata, a narrow runtime allowlist, and install/update/uninstall guidance. Remove old checkout/link/copy-the-skill guidance from public package documentation.
-4. **Prove the packed boundary.** Confirm required runtime/browser/native assets are present and prohibited development artifacts, source maps, and the skill are absent. Record the tarball filename, integrity/hash, file list, unpacked size, and package metadata as release evidence.
-5. **Bootstrap the package safely.** Publish a complete proprietary prerelease interactively under a non-`latest` tag because the package must exist before trusted-publisher configuration.
-6. **Configure and prove trusted publishing.** Bind npm to the exact GitHub Actions workflow on a GitHub-hosted runner with `contents: read` and `id-token: write`; publish `1.5.0` without a long-lived token; then revoke/disallow obsolete tokens.
-7. **Prove clean npm flows.** From isolated npm prefixes/caches and an unrelated Git fixture, install/run exact `1.5.0`, complete a browser review, and verify the resulting contract. Repeat through exact-version `npx` with no global or local match.
-8. **Publish the MIT marketplace plugin.** Copy only the existing thin skill into a self-contained `cumpa` plugin in `ShipWithAI/shipwithai-plugins`, add accurate manifest/catalog versions and MIT license text, and declare the separately installed CLI prerequisite.
-9. **Prove the clean marketplace flow.** From an isolated Claude profile and unrelated Git fixture, add the public ShipWithAI marketplace, install `cumpa@shipwithai`, install the CLI separately, invoke the namespaced skill, finish a browser review, and validate canonical JSON. Prove the runtime came from npm and the skill came from the marketplace cache, not the private checkout.
-10. **Preserve support behavior.** Ensure the release build carries the existing voluntary-support configuration and that declining or ignoring support never changes review availability or output.
+- [ ] Single-pane full-width rendering for added/deleted files (status-driven, no user toggle) — unblocks everything that needs a non-diff single-file surface.
+- [ ] Staged / Unstaged / Working-tree(+untracked, gitignore-respecting) as three Head choices, compared against HEAD or any chosen branch/worktree base.
+- [ ] Frozen working-tree snapshot at session start + explicit Refresh, with existing comments reclassified stale/orphaned on drift.
+- [ ] Standalone file review via CLI paths/globs, rendering single-pane and commentable, reading live working-tree bytes.
 
-### Clean acceptance matrix
+These four are essential because they are mutually reinforcing (see Feature Dependencies) and together deliver the "review any agent-produced artifact, including before it's committed" core value shift.
 
-| Flow | Clean setup | Required exercise | Evidence |
-|---|---|---|---|
-| Global | Fresh npm prefix and cache; no Cumpa checkout, link, local dependency, or prior `cumpa` on `PATH` | `npm install --global @shipwithai/cumpa@1.5.0`; verify exact version; launch from an unrelated Git fixture; select/confirm commits; open browser; save feedback; export/finish as appropriate | Registry URL/version/integrity, resolved executable path under isolated prefix, browser completion, output files or canonical result, successful exit |
-| Exact `npx` | Fresh npm cache and empty project; no global or local Cumpa | `npx --yes @shipwithai/cumpa@1.5.0`; complete the same real review path | Exact resolved package version and cache origin, no global/local package, browser completion and resulting output |
-| Marketplace | Fresh Claude profile/plugin cache plus isolated global npm prefix; no copied skill or checkout path | Add `ShipWithAI/shipwithai-plugins`; install `cumpa@shipwithai`; separately install `@shipwithai/cumpa@1.5.0`; invoke `/cumpa:cumpa`; complete Finish in the browser | Marketplace/plugin versions, plugin cache origin, npm executable origin/version, zero exit plus parseable canonical JSON, no checkout references |
-| Missing CLI | Fresh Claude profile with the plugin installed but no `cumpa` executable | Invoke the skill | Immediate actionable prerequisite error; no fake review, implicit install, Git mutation, or partial canonical output |
-| Lifecycle independence | Both artifacts installed | Update/remove each using its native manager | CLI update/uninstall does not mutate plugin state; plugin update/uninstall does not mutate global npm state; remaining artifact reports the missing prerequisite cleanly where relevant |
+### Add After Validation (within v2.0, once core review surfaces work)
 
-### Post-validation improvements
+- [ ] Rendered Markdown preview toggle, applied across standalone files and all diff/uncommitted surfaces — trigger: single-pane and working-tree sources are stable enough to host a preview layer without destabilizing anchor behavior.
+- [ ] Agent stdin request extension for uncommitted and standalone-file review — trigger: the server-side concepts for both review surfaces exist and are stable enough to expose through the strict request schema.
 
-- Add release-operator automation that compares the packed file manifest with an approved allowlist and records artifact integrity, if the first release shows manual inspection is error-prone.
-- Add another agent marketplace only after there is concrete demand; keep the same thin delegation contract rather than introducing a shared plugin framework in advance.
-- Re-check npm's private-repository provenance restriction for every release-policy revision. Enable provenance only after npm documents and supports the exact private-repository path.
+### Future Consideration (beyond v2.0)
 
-### Explicitly deferred
+- [ ] Product repositioning copy pass (README, CLI help, marketplace skill) — defer the final wording pass until the underlying capability is proven, so copy never overclaims ahead of what ships.
+- [ ] Any rendered-level (word-diff-inside-HTML) Markdown diffing, binary/notebook preview, or hunk-level staging actions — explicitly out of scope per the Anti-Features table above; revisit only if a future milestone changes those Out-of-Scope decisions.
 
-- Additional review capabilities or protocol versions.
-- Source obfuscation, encryption, DRM, activation, or license servers.
-- Automatic CLI installation from the marketplace plugin.
-- A public application source/history mirror.
-- A custom updater or installer.
-- Paid tiers, entitlements, or changes to voluntary support.
+## Feature Prioritization Matrix
 
-## Prioritization Matrix
+| Feature | User Value | Implementation Cost | Priority |
+|---------|------------|----------------------|----------|
+| Single-pane added/deleted rendering | HIGH | MEDIUM | P1 |
+| Staged/Unstaged/Working-tree Head choices + merge-base-semantics base | HIGH | MEDIUM | P1 |
+| Frozen snapshot + explicit Refresh + stale/orphaned reclassification | HIGH | MEDIUM | P1 |
+| Standalone file review (CLI paths/globs) | HIGH | MEDIUM | P1 |
+| Rendered Markdown preview toggle | MEDIUM | LOW–MEDIUM | P2 |
+| Agent stdin extension (uncommitted + standalone modes) | MEDIUM | MEDIUM | P2 |
+| Product repositioning copy | MEDIUM | LOW | P3 |
 
-| Feature | User/release value | Implementation cost | Priority |
-|---|---:|---:|---|
-| Resolve private-repo/provenance contradiction | Critical | Low decision cost; platform constraint | **P0 blocker** |
-| Proprietary license and public metadata boundary | Critical | Medium | **P0** |
-| Complete positive tarball allowlist and disclosure notice | Critical | Medium | **P0** |
-| Exact global and `npx` acquisition | Critical | Low | **P0** |
-| Usable bootstrap publication | Critical | Medium | **P0** |
-| OIDC trusted publication without a long-lived token | Critical | High | **P0** |
-| Token revocation/disallow after trusted publish | High | Low | **P0** |
-| Independent MIT marketplace plugin | Critical | Medium | **P0** |
-| External CLI prerequisite and thin delegation | Critical | Low | **P0** |
-| Clean released-artifact acceptance matrix | Critical | High | **P0** |
-| Independent update/uninstall documentation | High | Low | **P0** |
-| Preserve voluntary support unchanged | High | Low | **P0** |
-| Automated packed-manifest comparison | Medium | Low/Medium | P1 after first-release validation |
-| Additional marketplaces | Low until requested | Medium | Future |
-| npm provenance from private source | High | Impossible under current npm support | Future platform watch; not a hidden P1 |
+**Priority key:**
+- P1: Must have for v2.0 — the core review-surface changes the milestone exists to deliver.
+- P2: Should have, built on top of P1 once those surfaces are stable.
+- P3: Nice to have / sequencing-last — copy must not outrun capability.
 
-## Channel Responsibility Analysis
+## Competitor Feature Analysis
 
-The npm package and marketplace plugin are complementary distribution channels, not substitute products.
-
-| Concern | Public npm package | Public ShipWithAI marketplace plugin |
-|---|---|---|
-| Artifact | `@shipwithai/cumpa@1.5.0` tarball | `cumpa` plugin entry and self-contained skill files |
-| License | Proprietary application terms via top-level `LICENSE`; third-party notices retained | MIT metadata and plugin-local MIT `LICENSE` |
-| Contains | Compiled CLI/server/native runtime, required browser assets, package metadata, public usage docs | Thin skill instructions, plugin manifest/metadata, MIT license; no CLI bytes |
-| Must not contain | TypeScript, source maps, tests, planning/dev files, private history, marketplace skill | Proprietary implementation, embedded npm package, copied Git/diff/review logic |
-| Acquisition | Exact global install or exact `npx` from npm's public registry | Add public `shipwithai` marketplace, then install `cumpa@shipwithai` |
-| Primary job | Run the complete local review application | Let the coding agent delegate a review request to the separately installed application |
-| Runtime authority | Git grounding, browser review, persistence, Finish, canonical JSON | Prerequisite gate and request/response orchestration only |
-| Privacy reality | Public tarball and compiled assets are downloadable/inspectable; repository and excluded development material remain private | Entire plugin is public and intentionally reviewable/reusable under MIT |
-| Update | Global reinstall with intentional `@latest`; exact `npx` remains pinned when specified | Marketplace refresh/auto-update followed by plugin reload or next session; bump plugin/catalog version when content changes |
-| Uninstall | `npm uninstall --global @shipwithai/cumpa` | `/plugin uninstall cumpa@shipwithai`; removing the marketplace also removes its installed plugins |
-| Acceptance | Isolated prefix/cache and exact registry version | Isolated agent profile/cache plus independently installed exact CLI |
+| Feature | GitHub (PR "Files changed") | GitLab (MR "Changes") | VS Code (Source Control view) | Our Approach |
+|---------|------------------------------|------------------------|----------------------------------|--------------|
+| Added/deleted file layout | Unified view is single-column by default; split view still allocates an empty second column for wholly added/deleted files[^github-diffview] | Inline vs. side-by-side is a global user/session preference, same empty-column issue in side-by-side[^gitlab-changes] | Diff editor always side-by-side by default for any change, including new files (empty left pane)[^vscode-staging] | Status-driven: single full-width pane automatically for `added`/`deleted`, side-by-side for `modified`/`renamed`/`copied` — no user toggle, no empty pane ever |
+| Markdown rendering | Per-file "Display rich diff"/"Display source diff" toggle; rich diff attempts word-level diff inside rendered HTML and can fail on large/complex docs[^github-nonfcode] | Renders GitLab Flavored Markdown (GLFM) previews separately from diff source[^gitlab-markdown] | Markdown preview pane (not diff-integrated); separate "Markdown preview in diff view" exists for the preview pane itself | Simple rendered/source toggle per file (no rendered-HTML diffing) reusing existing `renderMarkdownPreview`; comments stay anchored to source lines regardless of toggle state |
+| Staged/unstaged/uncommitted review | Not supported — only committed refs are ever diffed | Not supported — only committed refs are ever diffed | Two buckets in Source Control view: **Changes** (unstaged) vs **Staged Changes**; diff editor compares against last commit; no untracked-inclusive "working tree vs. HEAD" mode, no durable/exportable comments[^vscode-staging] | Three explicit Head choices (Staged, Unstaged, Working tree incl. untracked+gitignore) against HEAD or any chosen base, with full durable-anchor/comment/export support — unmatched by any compared tool |
+| Standalone (non-diff) file commenting | Not supported in diff review; only blame-view comments exist outside PR review flow | Not supported in diff review | No durable/exportable review-comment concept on a plain open file | `cumpa <path\|glob>` opens named files (changed or not) single-pane, commentable, with the same anchor/export contract as diff comments |
 
 ## Sources
 
-### First-party npm and GitHub documentation
-
-- [npm package.json reference](https://docs.npmjs.com/cli/v11/configuring-npm/package-json/) — `private`, `license`, `files`, `bin`, `repository`, `engines`, and always-included files.
-- [Creating and publishing scoped public packages](https://docs.npmjs.com/creating-and-publishing-scoped-public-packages/) — explicit public access for scoped packages.
-- [About public packages](https://docs.npmjs.com/about-public-packages/) — public packages are downloadable by anyone.
-- [npm pack](https://docs.npmjs.com/cli/v11/commands/npm-pack/) — creation and inspection of publishable tarballs.
-- [npm install](https://docs.npmjs.com/cli/v11/commands/npm-install/) — exact-version installation semantics.
-- [npm exec / npx](https://docs.npmjs.com/cli/v11/commands/npm-exec/) — cache installation, local-package reuse, and executable inference.
-- [npm uninstall](https://docs.npmjs.com/cli/v11/commands/npm-uninstall/) — global removal behavior.
-- [npm trusted publishers](https://docs.npmjs.com/trusted-publishers/) — GitHub Actions OIDC requirements, automatic provenance conditions, private-repository limitation, repository matching, and post-migration token controls.
-- [npm trust](https://docs.npmjs.com/cli/v11/commands/npm-trust/) — npm version, 2FA, existing-package prerequisite, workflow identity, and permission flags.
-- [Generating provenance statements](https://docs.npmjs.com/generating-provenance-statements/) — supported CI, public repository matching, publish configuration, and verification.
-- [GitHub: npm provenance from private source repositories is no longer supported](https://github.blog/changelog/2023-07-25-publishing-with-npm-provenance-from-private-source-repositories-is-no-longer-supported/) — independent confirmation of the private-source restriction.
-- [npm registry record for `@shipwithai/cumpa`](https://registry.npmjs.org/@shipwithai%2Fcumpa) — returned 404 on 2026-09-06, establishing the bootstrap dependency on the research date.
-
-### First-party Claude Code and ShipWithAI documentation
-
-- [Claude Code plugin marketplaces](https://code.claude.com/docs/en/plugin-marketplaces) — catalog/plugin structure, copied cache behavior, metadata, versioning, update, and uninstall paths.
-- [Discover and install plugins](https://code.claude.com/docs/en/discover-plugins) — add/install syntax, namespacing, refresh, and external-binary prerequisite precedent.
-- [Claude Code skills](https://code.claude.com/docs/en/skills) — skill directory and invocation conventions.
-- [ShipWithAI public marketplace repository](https://github.com/ShipWithAI/shipwithai-plugins) — public marketplace identity and MIT license.
-- [ShipWithAI marketplace catalog](https://raw.githubusercontent.com/ShipWithAI/shipwithai-plugins/main/.claude-plugin/marketplace.json) — marketplace name and plugin entry convention.
-- [ShipWithAI starter plugin manifest](https://raw.githubusercontent.com/ShipWithAI/shipwithai-plugins/main/plugins/starter/.claude-plugin/plugin.json) and [plugin-local MIT license](https://raw.githubusercontent.com/ShipWithAI/shipwithai-plugins/main/plugins/starter/LICENSE) — self-contained plugin metadata/license precedent.
-
-### Existing Cumpa artifacts treated as dependencies
-
-- `.planning/PROJECT.md` — canonical v1.5 goal and constraints.
-- `package.json` — current private `cumpa@0.0.0` manifest, bin, files, Node engine, and build packaging behavior.
-- `README.md` — current checkout-only install and skill-copy guidance that must be replaced for the public artifact.
-- `.kimi-code/skills/cumpa/SKILL.md` — existing thin prerequisite, request, Finish, and canonical-output delegation behavior to publish under MIT.
+- Cumpa repository source (ground truth for existing baseline, all file:line citations above): `src/contracts/request.ts`, `src/contracts/comparison.ts`, `src/domain/anchor.ts`, `src/domain/file-tree.ts`, `src/git/comparison.ts`, `src/git/ignore-status.ts`, `src/server/gitignore-capability.ts`, `src/web/monaco/diff-adapter.ts`, `src/web/model/markdown-preview.ts`, `src/web/components/SummarySection.vue`, `.planning/PROJECT.md`
+- [^github-diffview]: GitHub Docs, "Reviewing proposed changes in a pull request" — unified/split view toggle via the Settings gear icon. https://docs.github.com/en/pull-requests/how-tos/review-pull-requests/reviewing-proposed-changes-in-a-pull-request
+- [^github-nonfcode]: GitHub Docs, "Working with non-code files" — rich diff / source diff toggle, "Disabling Markdown rendering," "comments... can only be added within source view," complex-document rendering limitations. https://docs.github.com/en/repositories/working-with-files/using-files/working-with-non-code-files
+- [^vscode-staging]: VS Code Docs, "Staging and committing changes" (microsoft/vscode-docs) — **Changes** vs **Staged Changes** sections, side-by-side vs inline diff editor, gutter stage/revert actions, live gutter decorations. https://github.com/microsoft/vscode-docs/blob/bec06a3925f08cd83aff00129ce81d926ac88fde/docs/sourcecontrol/staging-commits.md
+- [^gitlab-changes]: GitLab Docs, "Changes in merge requests" — inline vs. side-by-side preference, "Show one file at a time," collapsed generated files. https://docs.gitlab.com/user/project/merge_requests/changes
+- [^gitlab-markdown]: GitLab Docs, "GitLab Flavored Markdown (GLFM)." https://docs.gitlab.com/user/markdown
+- [^lazygit]: lazygit documentation/README — terminal Git UI staging and diff model, used as a comparator for local-tool conventions (no agent-request protocol exists in this class of tool). https://lazygit.dev/docs/guide / https://github.com/jesseduffield/lazygit
+- [^gitbook-untracked]: Git SCM Book, "Recording Changes to the Repository" — untracked-file definition and default `git diff` exclusion behavior. https://git-scm.com/book/id/v2/Git-Basics-Recording-Changes-to-the-Repository
+- Git SCM manual, `git-diff` — working tree/index/tree comparison semantics underlying the Staged/Unstaged/Working-tree distinction. https://git-scm.com/docs/git-diff
 
 ---
-
-*Research completed 2026-09-06 for the replacement v1.5 Private Distribution milestone. Revalidate platform documentation, registry state, and marketplace state at release time.*
+*Feature research for: local-first agent-artifact review tool (Cumpa)*
+*Researched: 2026-10-30*
