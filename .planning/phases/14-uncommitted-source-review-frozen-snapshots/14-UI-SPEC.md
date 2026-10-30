@@ -1,10 +1,11 @@
 ---
 phase: 14
 slug: uncommitted-source-review-frozen-snapshots
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-10-30
+reviewed_at: 2026-10-30T00:00:00Z
 ---
 
 # Phase 14 — UI Design Contract
