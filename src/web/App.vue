@@ -116,6 +116,8 @@ const worktreeChanged = ref(false);
 const refreshBusy = ref(false);
 const refreshSummary = shallowRef<RefreshResult>();
 const dismissedCaptureBanner = ref(false);
+const recoveryOfferDismissed = ref(false);
+const recoveryBusy = ref(false);
 const recentlyChangedPaths = ref<Set<string>>(new Set());
 const supportDialog = ref<InstanceType<typeof SupportDialog>>();
 const primarySurface = computed(() => recoveredDraftOpen.value
@@ -161,6 +163,7 @@ const uncommittedSession = computed(() =>
     ? (session.value as Extract<SessionResponse, { uncommitted: unknown }>).uncommitted
     : undefined,
 );
+const recoveryAvailable = computed(() => uncommittedSession.value?.recoveryAvailable === true);
 const uncommittedBaseLabel = 'Repository object';
 const singlePaneSide = computed(() =>
   selectedFile.value === undefined
@@ -1096,6 +1099,25 @@ async function performRefresh(): Promise<void> {
   }
 }
 
+async function acceptUncommittedRecovery(): Promise<void> {
+  if (sessionClient === undefined || recoveryBusy.value) {
+    return;
+  }
+  recoveryBusy.value = true;
+  try {
+    await sessionClient.recoverUncommittedDraft();
+    const loadedDraft = await sessionClient.getDraft();
+    if (loadedDraft.kind === 'current' && workspace !== undefined) {
+      const transition = workspace.replaceComments(reconciledWorkspaceComments(loadedDraft.draft));
+      workspaceState.value = transition.state;
+      runCommands(transition.commands);
+    }
+    recoveryOfferDismissed.value = true;
+  } finally {
+    recoveryBusy.value = false;
+  }
+}
+
 onMounted(async () => {
   document.addEventListener('keydown', handleKeydown);
   viewportMedia = window.matchMedia('(max-width: 760px)');
@@ -1201,7 +1223,7 @@ onBeforeUnmount(() => {
       @refresh="performRefresh"
     />
     <section
-      v-if="patchDrifted || hasUnverifiedAnchors || selectorDriftStatus?.base.kind !== 'unchanged' || selectorDriftStatus?.head.kind !== 'unchanged' || (capturedFilesChanged > 0 && !dismissedCaptureBanner) || refreshSummary !== undefined"
+      v-if="patchDrifted || hasUnverifiedAnchors || selectorDriftStatus?.base.kind !== 'unchanged' || selectorDriftStatus?.head.kind !== 'unchanged' || (capturedFilesChanged > 0 && !dismissedCaptureBanner) || refreshSummary !== undefined || (recoveryAvailable && !recoveryOfferDismissed)"
       class="shell-warning-stack"
     >
       <InlineNotice v-if="patchDrifted" tone="error">
@@ -1220,6 +1242,7 @@ onBeforeUnmount(() => {
       >
         {{ capturedFilesChanged }} file{{ capturedFilesChanged === 1 ? '' : 's' }} changed during capture — Refresh to recapture
       </InlineNotice>
+      <InlineNotice v-if="recoveryAvailable && !recoveryOfferDismissed" tone="information" role="note" dismissible dismiss-label='Dismiss "Resume previous uncommitted review?" notice' @dismiss="recoveryOfferDismissed = true"><h2>Resume previous uncommitted review?</h2><p>A previous draft exists for this source. Resuming copies its comments into this review, reclassified against the current snapshot. The previous draft is left untouched.</p><button type="button" class="ui-button ui-button--primary" :disabled="recoveryBusy" :aria-busy="recoveryBusy" @click="acceptUncommittedRecovery">{{ recoveryBusy ? 'Resuming…' : 'Resume' }}</button></InlineNotice>
       <RefreshSummaryPanel
         v-if="refreshSummary !== undefined"
         v-bind="refreshSummary"
