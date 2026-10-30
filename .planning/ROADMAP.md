@@ -94,8 +94,9 @@ Plans:
   4. User triggers Refresh to capture a new snapshot of the same source and scope, and sees a summary of which files were added, removed, or modified since the previous snapshot.
   5. After Refresh, every existing comment is reclassified as current, stale, or orphaned with its recorded evidence intact and never moved to a different line; two different working-tree states against the same base never share or overwrite a draft.
 
-**Plans**: 13 plans across 6 waves
-- [ ] 14-01-PLAN.md — Extract shared snapshot-fs.ts file-IO primitives from patch-snapshot.ts
+**Plans**: 1/13 plans executed
+
+- [x] 14-01-PLAN.md — Extract shared snapshot-fs.ts file-IO primitives from patch-snapshot.ts
 - [ ] 14-02-PLAN.md — UncommittedScopeSchema, changed-during-capture availability reason, UncommittedDraftComparisonSchema
 - [ ] 14-03-PLAN.md — uncommittedReviewKey() draft/anchor identity hash
 - [ ] 14-04-PLAN.md — worktree-inventory.ts: Staged/Unstaged/Working-tree file-set discovery
@@ -108,6 +109,7 @@ Plans:
 - [ ] 14-11-PLAN.md — InlineNotice dismissible prop, FileRow markers, RefreshSummaryPanel.vue
 - [ ] 14-12-PLAN.md — App.vue integration: empty state, banner, polling, shortcuts, export gating
 - [ ] 14-13-PLAN.md — Playwright e2e coverage: picker/Refresh/reclassify/summary-panel flows
+
 **UI hint**: yes
 **Research flag**: yes — content-digest key derivation for uncommitted drafts/anchors (Pitfall 1), CRLF/filter normalization between index and worktree reads, and torn-snapshot/race detection design need verification during planning, per `research/SUMMARY.md`.
 
@@ -164,11 +166,13 @@ Plans:
 **Depends on**: Phase 17 (protocol modes and skill draft PR exist to rename); blocks Phase 18 (copy is written under the new name)
 **Requirements**: REN-01, REN-02, REN-03, REN-04, REN-05
 **Success Criteria** (what must be TRUE):
+
   1. User installs and runs the product under the new package and command; `--help`, the browser workspace and exports show only the new name.
   2. Coding agent requests and receives results with the new protocol kinds; a request with the old `cumpa.*` kind fails before launch with a specific error naming the new kind.
   3. The product reads and writes only the new repo-local state directory; an existing supporter's `support.json` is copied once from the old per-user state directory.
   4. A `grep -i cumpa` audit of live code, config, tests, scripts and docs finds only the allowed exceptions (history, old-kind rejection, supporter-state migration source, old-dir exclusion).
   5. A manual release checklist covers the GitHub repo rename, npm publish of 2.0.0 and deprecation of `@shipwithai/cumpa`, Supabase/Stripe renames, and the updated marketplace skill draft PR (prerequisite `>=2.0.0 <3.0.0`).
+
 **Plans**: TBD
 **Blocked on**: the new name. Execution starts with a human checkpoint that supplies it.
 
@@ -190,7 +194,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 13. Single-Pane File Rendering | 5/5 | Complete    | 2026-10-30 |
-| 14. Uncommitted Source Review & Frozen Snapshots | 0/TBD | Not started | - |
+| 14. Uncommitted Source Review & Frozen Snapshots | 1/13 | In Progress|  |
 | 15. Standalone File Review | 0/TBD | Not started | - |
 | 16. Rendered Markdown Preview | 0/TBD | Not started | - |
 | 17. Agent Protocol Extension & Marketplace Skill | 0/TBD | Not started | - |

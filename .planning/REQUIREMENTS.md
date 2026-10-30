@@ -25,7 +25,7 @@
 
 ### Snapshot and Refresh
 
-- [ ] **SNAP-01**: User reviews an uncommitted or standalone-file session against bytes frozen when the session starts; later edits to the files do not change what is displayed until the user refreshes.
+- [x] **SNAP-01**: User reviews an uncommitted or standalone-file session against bytes frozen when the session starts; later edits to the files do not change what is displayed until the user refreshes.
 - [ ] **SNAP-02**: User is told explicitly when a file changed while the snapshot was being captured, instead of being shown a mixed or partial version as if it were consistent.
 - [ ] **SNAP-03**: User can trigger Refresh to capture a new snapshot of the same source and scope.
 - [ ] **SNAP-04**: After Refresh, user sees a summary of which files were added, removed, or modified since the previous snapshot.
@@ -107,7 +107,7 @@ Deferred, tracked but not in the v2.0 roadmap.
 | WTREE-03 | Phase 14 | Pending |
 | WTREE-04 | Phase 14 | Pending |
 | WTREE-05 | Phase 14 | Pending |
-| SNAP-01 | Phase 14 | Pending |
+| SNAP-01 | Phase 14 | Complete |
 | SNAP-02 | Phase 14 | Pending |
 | SNAP-03 | Phase 14 | Pending |
 | SNAP-04 | Phase 14 | Pending |
