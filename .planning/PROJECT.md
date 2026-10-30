@@ -225,9 +225,12 @@ ACC-04 remains the one unmet v1.5 requirement: unpaid and dismissed support stat
 unrestricted review and export on all three paths, but the verified-support state could not
 be genuinely reached (`live-entitlement-unavailable`, `substituted: false`) under D-07/D-08.
 
+Validated in v2.0 Phase 13: Single-Pane File Rendering:
+
+- [x] Added and deleted files render as a single full-width pane.
+
 ### Active
 
-- [ ] Added and deleted files render as a single full-width pane.
 - [ ] User can choose Staged, Unstaged, or Working tree (with untracked files) as the Head source, against HEAD or any chosen branch/worktree base.
 - [ ] Working-tree sessions review a frozen snapshot and offer an explicit Refresh that reclassifies existing comments.
 - [ ] User can review named files or globs outside any diff, full width and commentable.
@@ -345,4 +348,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with the current product state and feedback.
 
 ---
-*Last updated: 2026-10-30 at the start of milestone v2.0 Artifact Review (working-tree sources, single-pane added/deleted/standalone files, rendered Markdown, agent requests for uncommitted work, repositioning).*
+*Last updated: 2026-10-30 after Phase 13: Single-Pane File Rendering validated added/deleted files as a single full-width Monaco pane (PANE-01/02/03).*
