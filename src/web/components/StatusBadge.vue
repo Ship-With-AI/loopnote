@@ -5,6 +5,7 @@ import type { ChangedFileStatusKind } from '../../contracts/comparison.js';
 
 const props = defineProps<{
   kind: ChangedFileStatusKind;
+  reviewable?: boolean;
 }>();
 
 const presentation = computed(() => {
@@ -24,11 +25,20 @@ const presentation = computed(() => {
       return { label: 'Mode changed', text: 'Mode', tone: 'modified' };
   }
 });
+
+const singlePaneSuffix = computed(() =>
+  props.reviewable &&
+  (props.kind === 'added' ||
+    props.kind === 'deleted' ||
+    props.kind === 'type-changed')
+    ? ', single pane'
+    : '',
+);
 </script>
 
 <template>
   <span class="status-badge" :class="`status-badge--${presentation.tone}`">
     <span aria-hidden="true">{{ presentation.text }}</span>
-    <span class="visually-hidden">{{ presentation.label }}</span>
+    <span class="visually-hidden">{{ presentation.label }}{{ singlePaneSuffix }}</span>
   </span>
 </template>

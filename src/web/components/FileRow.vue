@@ -53,7 +53,7 @@ const availabilityLabel = computed(() => {
       @focus="emit('focusRow', rowId)"
       @click="emit('activate', leaf.fileId)"
     >
-      <StatusBadge :kind="leaf.file.status.kind" />
+      <StatusBadge :kind="leaf.file.status.kind" :reviewable="leaf.file.availability.kind === 'text'" />
       <PathDisplay :file="leaf.file" basename />
       <span class="line-counts" :aria-label="countLabel">
         <template v-if="leaf.file.additions !== null && leaf.file.deletions !== null">
