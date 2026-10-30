@@ -3,6 +3,7 @@ import { describe, expect, test } from 'vitest';
 import {
   comparisonKey,
   rangeReviewKey,
+  uncommittedReviewKey,
 } from '../../src/domain/comparison-key.js';
 
 const sha1Base = 'a'.repeat(40);
@@ -65,5 +66,47 @@ describe('rangeReviewKey', () => {
     ).not.toBe(original);
     expect(rangeReviewKey(sha1Base, sha1Head, [])).not.toBe(original);
     expect(original).not.toBe(comparisonKey(sha1Base, sha1Head));
+  });
+});
+
+describe('uncommittedReviewKey', () => {
+  test('is stable deterministic hash matching 64 hex characters', () => {
+    const digest = sha256Head;
+
+    expect(uncommittedReviewKey('staged', sha1Base, digest)).toBe(
+      uncommittedReviewKey('staged', sha1Base, digest),
+    );
+    expect(uncommittedReviewKey('staged', sha1Base, digest)).toMatch(
+      /^[0-9a-f]{64}$/u,
+    );
+  });
+
+  test('differs when firstSnapshotDigest differs for same sourceKind and base (WTREE-05)', () => {
+    const original = uncommittedReviewKey('staged', sha1Base, sha256Head);
+
+    expect(uncommittedReviewKey('staged', sha1Base, sha256Base)).not.toBe(
+      original,
+    );
+  });
+
+  test('differs when sourceKind differs for same base and digest', () => {
+    const original = uncommittedReviewKey('staged', sha1Base, sha256Head);
+
+    expect(uncommittedReviewKey('worktree', sha1Base, sha256Head)).not.toBe(
+      original,
+    );
+  });
+
+  test('does not collide undefined base with empty-string base across sourceKind', () => {
+    expect(uncommittedReviewKey('unstaged', undefined, sha256Head)).not.toBe(
+      uncommittedReviewKey('staged', '', sha256Head),
+    );
+  });
+
+  test('keeps uncommitted keys in a disjoint hash space from comparisonKey and rangeReviewKey', () => {
+    const key = uncommittedReviewKey('staged', sha1Base, sha256Head);
+
+    expect(key).not.toBe(comparisonKey(sha1Base, sha256Head));
+    expect(key).not.toBe(rangeReviewKey(sha1Base, sha256Head, []));
   });
 });
