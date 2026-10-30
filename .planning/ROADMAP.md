@@ -39,6 +39,7 @@ deferred from v2.0.
 ## Phases
 
 **Phase Numbering:**
+
 - Integer phases continue from the last shipped milestone (v1.6 ended at Phase 12); v2.0 starts at Phase 13.
 - Decimal phases (13.1, 13.2, …) are urgent insertions, not planned here.
 
@@ -52,82 +53,109 @@ deferred from v2.0.
 ## Phase Details
 
 ### Phase 13: Single-Pane File Rendering
+
 **Goal**: Reviewers see files that are entirely added or entirely deleted as one full-width pane instead of a diff with an empty side, and can tell single-pane files apart from side-by-side ones without relying on color.
 **Depends on**: Nothing new (extends the shipped v1.6 Monaco diff adapter)
 **Requirements**: PANE-01, PANE-02, PANE-03
 **Success Criteria** (what must be TRUE):
+
   1. Reviewer opens an added file and sees its entire content in one full-width pane with no empty Base side, and can comment on any line (anchored to Head).
   2. Reviewer opens a deleted file and sees its entire removed content in one full-width pane with no empty Head side, and can comment on any line (anchored to Base).
   3. Reviewer can tell, from the file header and file tree without relying on color, which files are single-pane (entirely added/deleted) versus side-by-side (modified, renamed, copied).
+
 **Plans**: 5 plans
 Plans:
+**Wave 1**
+
 - [ ] 13-01-PLAN.md — Single-pane Monaco editor adapter (unpaired comment-anchor/view-zone wiring)
 - [ ] 13-02-PLAN.md — Single-pane layout/type-changed-label pure functions; SessionFileSchema oldMode field
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 13-03-PLAN.md — Wire single-pane layout through App.vue, DiffWorkspace.vue, ReviewToolbar.vue
 - [ ] 13-04-PLAN.md — StatusBadge/FileRow/ActiveFileToolbar header and tree single-pane markers
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 13-05-PLAN.md — Playwright e2e coverage for added/deleted single-pane flows
+
 **UI hint**: yes
 
 ### Phase 14: Uncommitted Source Review & Frozen Snapshots
+
 **Goal**: Developers can review Staged, Unstaged, or Working-tree changes against HEAD or any chosen base from a frozen snapshot, trust that drafts and comments stay correctly scoped to the exact reviewed content, and explicitly refresh to a new snapshot with every comment reclassified.
 **Depends on**: Phase 13 (reuses single-pane rendering for uncommitted added/deleted files)
 **Requirements**: WTREE-01, WTREE-02, WTREE-03, WTREE-04, WTREE-05, SNAP-01, SNAP-02, SNAP-03, SNAP-04, SNAP-05
 **Success Criteria** (what must be TRUE):
+
   1. User picks Staged, Unstaged, or Working tree as the Head source at launch; Working-tree sessions show untracked files as added (excluding paths ignored by `.gitignore`, `.git/info/exclude`, and the global excludes file), while `.cumpa/` content, symlink targets, submodule internals, binary, and oversized files stay listed as non-reviewable.
   2. User reviewing an uncommitted source compares against HEAD by default, or against any chosen local branch or registered worktree as Base, and sees changes from their merge base.
   3. User's review stays frozen at the bytes captured when the session started — later file edits don't change what's displayed — and the user is told explicitly if a file changed mid-capture instead of being shown a mixed or partial version as if it were consistent.
   4. User triggers Refresh to capture a new snapshot of the same source and scope, and sees a summary of which files were added, removed, or modified since the previous snapshot.
   5. After Refresh, every existing comment is reclassified as current, stale, or orphaned with its recorded evidence intact and never moved to a different line; two different working-tree states against the same base never share or overwrite a draft.
+
 **Plans**: TBD
 **UI hint**: yes
 **Research flag**: yes — content-digest key derivation for uncommitted drafts/anchors (Pitfall 1), CRLF/filter normalization between index and worktree reads, and torn-snapshot/race detection design need verification during planning, per `research/SUMMARY.md`.
 
 ### Phase 15: Standalone File Review
+
 **Goal**: Users can open specific files or globs directly — tracked or untracked, changed or unchanged — without choosing Base/Head, review them full width, and finish with an export that proves exactly what was reviewed.
 **Depends on**: Phase 13 (single-pane rendering), Phase 14 (frozen-snapshot/Refresh mechanism)
 **Requirements**: FILE-01, FILE-02, FILE-03, FILE-04, FILE-05
 **Success Criteria** (what must be TRUE):
+
   1. User runs `cumpa <path|glob>...` to open the named files directly, tracked or untracked, changed or unchanged, without any Base/Head selection step.
   2. User's path and glob arguments resolve with Git pathspec semantics and respect ignore rules; an argument matching no file fails before launch with a clear message.
   3. User gets a clear error before launch when any argument resolves outside the repository, including `../` traversal, absolute paths outside the repository, and symlink escapes.
   4. User sees each standalone file rendered full width with its current working-tree content and can comment on any line.
   5. User finishes a standalone-file review and exports Markdown plus canonical JSON whose provenance identifies exactly which paths and snapshot content were reviewed.
+
 **Plans**: TBD
 **Research flag**: yes — path-traversal/symlink-escape hardening (`realpath`/per-segment resolution) is security-sensitive; verify against the existing `exact-patch.ts` precedent during planning, per `research/SUMMARY.md`.
 
 ### Phase 16: Rendered Markdown Preview
+
 **Goal**: Users can toggle any Markdown file between source and rendered view in both single-pane and side-by-side layouts, comment directly from rendered blocks, and trust the renderer never introduces an XSS or link-following risk.
 **Depends on**: Phase 13 (single-pane layouts)
 **Requirements**: MDV-01, MDV-02, MDV-03, MDV-04
 **Success Criteria** (what must be TRUE):
+
   1. User toggles any Markdown file between source view and rendered view, in both single-pane and side-by-side layouts.
   2. User adds a comment from a rendered block (heading, paragraph, list item, code block, table) and sees it stored anchored to that block's source line range, appearing at those lines in source view.
   3. User sees existing comments marked on the rendered blocks they anchor to.
   4. User confirms rendered Markdown never executes scripts, renders raw HTML, or follows non-http(s)/mailto links, under the existing production CSP.
+
 **Plans**: TBD
 **UI hint**: yes
 
 ### Phase 17: Agent Protocol Extension & Marketplace Skill
+
 **Goal**: Coding agents can request uncommitted and standalone-file reviews over the same stdin contract used for committed ranges, receive versioned canonical results carrying full provenance, and get specific validation errors before any browser launch — with the marketplace skill updated to match.
 **Depends on**: Phase 14 (uncommitted session factory), Phase 15 (standalone-file session factory)
 **Requirements**: AGENT-06, AGENT-07, AGENT-08, AGENT-09, SKL-04
 **Success Criteria** (what must be TRUE):
+
   1. Coding agent submits a stdin request for uncommitted review (source kind, optional base, optional pathspecs) and receives one canonical JSON result after the developer finishes.
   2. Coding agent submits a stdin request for standalone-file review (paths or pathspecs) and receives one canonical JSON result after the developer finishes.
   3. Coding agent receives uncommitted and standalone results in new versioned export formats carrying their provenance, while existing range and exact-patch requests and V1–V3 exports stay unchanged.
   4. Coding agent gets a specific validation error before any browser launch for a malformed, oversized, or out-of-repository uncommitted or standalone request.
   5. Coding-agent users of the ShipWithAI marketplace skill can request uncommitted and standalone-file reviews through it, with the CLI version prerequisite updated to the release that supports them.
+
 **Plans**: TBD
 **Research flag**: yes — exact `ReviewExportV4Schema`/`V5Schema` field shapes (uncommitted/standalone provenance metadata) aren't fully specified in any research file; finalize during planning against the established V1→V2→V3 superset pattern, per `research/SUMMARY.md`.
 
 ### Phase 18: Product Repositioning Copy
+
 **Goal**: Cumpa's README, npm page, CLI copy, and browser workspace text describe it as local review for any agent-produced artifact, not just code diffs, with no hosted or multi-reviewer overclaim.
 **Depends on**: Phases 13–17 (copy must reflect every shipped v2.0 capability before it claims it)
 **Requirements**: POS-01, POS-02, POS-03
 **Success Criteria** (what must be TRUE):
+
   1. Visitors to the README and npm page read Cumpa described as local review for any agent-produced artifact (code, plans, decisions, docs), with no hosted or multi-reviewer claim.
   2. CLI users see `--help`, picker, and dirty-source copy that accurately describe uncommitted and standalone review; the old "staged, unstaged, and untracked bytes are ignored" wording is gone.
   3. Reviewers see browser workspace titles, labels, and empty states that fit artifact review rather than only code diffs.
+
 **Plans**: TBD
 
 ## Progress
@@ -155,8 +183,10 @@ milestone can decide explicitly whether to adopt them:
   false RPC result (`supabase/functions/support-flow/index.ts`) and a permitted genuine
   live entitlement exists. Fix the defect first, then rerun only the verified-state portions
   on global, npx, marketplace paths.
+
 - `SKILL.md` still installs `@1.5.0` and claims only 1.5.0 was independently release
   verified; correcting it needs a separate marketplace publication.
+
 - **`.vue` files remain outside every typechecker.** `tsconfig.web.json` uses a `files` array
   of seven `.ts` entries, so `npm run typecheck:web` covers zero components and exits in under a
   second. **Corrected 2026-09-15:** `vue-tsc` cannot close this gap as installed —
@@ -184,6 +214,7 @@ Mockup affordances deliberately excluded from v1.6; full rationale in
 
 - **DEFER-01** — Per-file viewed tracking with viewed marks, an Unviewed filter, and
   "N of M viewed" progress. Requires a new persisted draft field.
+
 - **DEFER-02** — Change-to-change (hunk) jump navigation with a position indicator.
 - **DEFER-03** — A wrap-lines toggle for the diff surface.
 - **DEFER-04** — Composited WCAG contrast re-verification of the re-derived palette, plus the
