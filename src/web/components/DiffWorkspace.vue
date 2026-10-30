@@ -3,10 +3,12 @@ import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, render, watch }
 
 import type { FileContentResponse } from '../../contracts/api.js';
 import CommentComposer from './CommentComposer.vue';
+import InlineNotice from './InlineNotice.vue';
 import PathText from './ui/PathText.vue';
 import ReviewStateBadge from './ui/ReviewStateBadge.vue';
 import {
   createMonacoDiffAdapter,
+  createMonacoSinglePaneAdapter,
   type AnchorAffordanceTarget,
   type DiffSide,
   type MonacoDiffAdapter,
@@ -20,6 +22,9 @@ const props = withDefaults(defineProps<{
   mutationsLocked?: boolean;
   content: FileContentResponse;
   path: string;
+  baseOid?: string;
+  headOid?: string;
+  singlePaneSide?: DiffSide;
   sourceKind?: 'range' | 'exact-patch';
 }>(), {
   sourceKind: 'range',
@@ -69,6 +74,22 @@ function immutableFile() {
       : { path: fallbackPath, text: '' },
   };
 }
+
+const singlePaneSideWord = computed(() =>
+  props.singlePaneSide === 'base' ? visibleSides.value.original : visibleSides.value.modified,
+);
+const singlePaneOid = computed(() => (props.singlePaneSide === 'base' ? props.baseOid : props.headOid));
+const singlePaneSideLabel = computed(() =>
+  singlePaneOid.value !== undefined
+    ? `${singlePaneSideWord.value} · ${singlePaneOid.value}`
+    : singlePaneSideWord.value,
+);
+const isSinglePaneFileEmpty = computed(() => {
+  if (props.singlePaneSide === undefined) return false;
+  const side = props.singlePaneSide === 'base' ? props.content.base : props.content.head;
+  return side.exists && side.text.length === 0;
+});
+const editorKind = computed(() => props.singlePaneSide ?? 'diff');
 
 function syncSideNames(): void {
   adapter?.setSideNames({
@@ -287,10 +308,26 @@ watch(() => props.content, () => {
   void loadContent();
 });
 
+watch(editorKind, () => {
+  adapter?.dispose();
+  adapter = undefined;
+  void nextTick(() => {
+    if (host.value === undefined) return;
+    adapter = props.singlePaneSide !== undefined
+      ? createMonacoSinglePaneAdapter(host.value, languageForPath, syncAdapterState, props.singlePaneSide)
+      : createMonacoDiffAdapter(host.value, languageForPath, syncAdapterState);
+    syncCodeDensity();
+    syncSideNames();
+    void loadContent();
+  });
+});
+
 onMounted(() => {
   if (host.value === undefined) return;
   configureMonacoWorkers();
-  adapter = createMonacoDiffAdapter(host.value, languageForPath, syncAdapterState);
+  adapter = props.singlePaneSide !== undefined
+    ? createMonacoSinglePaneAdapter(host.value, languageForPath, syncAdapterState, props.singlePaneSide)
+    : createMonacoDiffAdapter(host.value, languageForPath, syncAdapterState);
   wideCodeMedia = window.matchMedia('(min-width: 1650px)');
   compactCodeMedia = window.matchMedia('(max-width: 760px)');
   syncCodeDensity();
@@ -318,7 +355,40 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <section class="diff-workspace" :aria-label="`${path}: ${visibleSides.originalName} and ${visibleSides.modifiedName} side-by-side diff`">
+  <section
+    v-if="singlePaneSide !== undefined"
+    class="diff-workspace diff-workspace--single-pane"
+    :aria-label="`${path}: ${singlePaneSideWord} only`"
+  >
+    <div class="diff-workspace__viewport">
+      <div class="diff-workspace__canvas">
+        <div class="diff-workspace__side-labels diff-workspace__side-labels--single-pane" aria-hidden="true">
+          <span>
+            <span>{{ singlePaneSideLabel }}</span>
+          </span>
+        </div>
+        <InlineNotice v-if="isSinglePaneFileEmpty" tone="neutral" role="note">
+          <p>Empty file (0 bytes)</p>
+        </InlineNotice>
+        <template v-else>
+          <button
+            v-if="anchorAffordance"
+            type="button"
+            class="diff-workspace__gutter-action"
+            :style="{ top: `${anchorAffordance.top}px` }"
+            :data-anchor-side="anchorAffordance.side"
+            :data-anchor-line="anchorAffordance.line"
+            :aria-label="`Add comment to ${singlePaneSideWord} line ${anchorAffordance.line}`"
+            :title="`Add comment to ${singlePaneSideWord} line ${anchorAffordance.line} · Option+Enter`"
+            :disabled="mutationsLocked"
+            @click="addComment(anchorAffordance)"
+          >+</button>
+          <div ref="host" class="diff-workspace__editor" />
+        </template>
+      </div>
+    </div>
+  </section>
+  <section v-else class="diff-workspace" :aria-label="`${path}: ${visibleSides.originalName} and ${visibleSides.modifiedName} side-by-side diff`">
     <div class="diff-workspace__viewport">
       <div class="diff-workspace__canvas">
         <div class="diff-workspace__side-labels" aria-hidden="true">

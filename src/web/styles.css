@@ -1573,6 +1573,10 @@ input:-webkit-autofill:focus {
   background: var(--border-default);
 }
 
+.diff-workspace__side-labels--single-pane {
+  grid-template-columns: 1fr;
+}
+
 .diff-workspace__side-labels > span {
   display: flex;
   justify-content: space-between;
