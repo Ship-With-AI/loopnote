@@ -20,7 +20,7 @@ import {
   SECURITY_FAILURE_MESSAGE,
   SessionClientError,
 } from './api/client';
-import type { DraftView, SessionClient } from './api/client';
+import type { DraftView, RefreshResult, SessionClient } from './api/client';
 import DiffWorkspace from './components/DiffWorkspace.vue';
 import DraftRecovery from './components/DraftRecovery.vue';
 import ReviewNotesDialog from './components/ReviewNotesDialog.vue';
@@ -31,6 +31,7 @@ import SupportDialog from './components/SupportDialog.vue';
 import InlineNotice from './components/InlineNotice.vue';
 import SelectorDriftNotice from './components/SelectorDriftNotice.vue';
 import StaleAnchorNotice from './components/StaleAnchorNotice.vue';
+import RefreshSummaryPanel from './components/RefreshSummaryPanel.vue';
 import ReviewToolbar from './components/ReviewToolbar.vue';
 import ActiveFileToolbar from './components/ActiveFileToolbar.vue';
 import ShellFooter from './components/ShellFooter.vue';
@@ -111,6 +112,10 @@ const supportDialogOpen = computed(() => shellDialog.value === 'support');
 const supportDialogMode = ref<'invitation' | 'waiting' | 'verified' | 'thankYou' | 'notConfirmed'>('invitation');
 const supportBusy = ref(false);
 const dismissedForSession = ref(false);
+const worktreeChanged = ref(false);
+const refreshBusy = ref(false);
+const refreshSummary = shallowRef<RefreshResult>();
+const dismissedCaptureBanner = ref(false);
 const supportDialog = ref<InstanceType<typeof SupportDialog>>();
 const primarySurface = computed(() => recoveredDraftOpen.value
   ? 'workspace'
@@ -126,6 +131,8 @@ let reviewState: ReviewDraftState | undefined;
 let selectorDriftState: SelectorDriftState | undefined;
 let patchStatusInterval: number | undefined;
 let patchStatusRefreshing = false;
+let worktreeIndicatorInterval: number | undefined;
+let worktreeIndicatorRefreshing = false;
 
 let sessionClient: SessionClient | undefined;
 let workspace: WorkspaceController | undefined;
@@ -170,6 +177,11 @@ const supportEnabled = computed(() => session.value?.support?.enabled === true);
 const patchSnapshotUnavailable = computed(() => patchStatus.value?.kind === 'snapshotUnavailable');
 const patchDrifted = computed(() => patchStatus.value?.kind === 'drifted');
 const reviewableFiles = computed(() => session.value?.files.filter((file) => file.availability.kind === 'text') ?? []);
+const capturedFilesChanged = computed(() =>
+  session.value?.files.filter(
+    (file) => file.availability.kind === 'unsupported' && file.availability.reason === 'changed-during-capture',
+  ).length ?? 0,
+);
 const selectedPath = computed(() => selectedFile.value?.newPath?.display ?? selectedFile.value?.oldPath?.display ?? 'Changed file');
 const isRangeSession = computed(() => pinnedSession.value?.range?.kind === 'revisions');
 const rangeHasPathspecs = computed(() => (pinnedSession.value?.range?.pathspecs.length ?? 0) > 0);
@@ -868,6 +880,9 @@ function handleKeydown(event: KeyboardEvent): void {
   } else if (event.key === 'F7') {
     event.preventDefault();
     event.shiftKey ? previousChange() : nextChange();
+  } else if (event.altKey && event.shiftKey && event.key.toLowerCase() === 'r' && isUncommittedSession.value) {
+    event.preventDefault();
+    void performRefresh();
   }
 }
 
@@ -1025,6 +1040,56 @@ function stopPatchStatus(): void {
   }
 }
 
+async function refreshWorktreeIndicator(): Promise<void> {
+  if (sessionClient === undefined || worktreeIndicatorRefreshing) {
+    return;
+  }
+  worktreeIndicatorRefreshing = true;
+  try {
+    worktreeChanged.value = (await sessionClient.getWorktreeStatus()).changed;
+  } finally {
+    worktreeIndicatorRefreshing = false;
+  }
+}
+
+function refreshWorktreeIndicatorWhenVisible(): void {
+  if (document.visibilityState === 'visible') {
+    void refreshWorktreeIndicator();
+  }
+}
+
+function startWorktreeIndicator(): void {
+  void refreshWorktreeIndicator();
+  document.addEventListener('visibilitychange', refreshWorktreeIndicatorWhenVisible);
+  worktreeIndicatorInterval = window.setInterval(refreshWorktreeIndicatorWhenVisible, 30_000);
+}
+
+function stopWorktreeIndicator(): void {
+  document.removeEventListener('visibilitychange', refreshWorktreeIndicatorWhenVisible);
+  if (worktreeIndicatorInterval !== undefined) {
+    window.clearInterval(worktreeIndicatorInterval);
+    worktreeIndicatorInterval = undefined;
+  }
+}
+
+async function performRefresh(): Promise<void> {
+  if (sessionClient === undefined || refreshBusy.value) {
+    return;
+  }
+  if (unsavedInlineComposerFile.value !== undefined) {
+    dispatchWorkspace({ type: 'add-comment' });
+  }
+  refreshBusy.value = true;
+  try {
+    const delta = await sessionClient.refreshWorktreeSnapshot();
+    if (delta.added.length + delta.removed.length + delta.modified.length > 0) {
+      refreshSummary.value = delta;
+    }
+  } finally {
+    refreshBusy.value = false;
+  }
+}
+
 onMounted(async () => {
   document.addEventListener('keydown', handleKeydown);
   viewportMedia = window.matchMedia('(max-width: 760px)');
@@ -1046,6 +1111,9 @@ onMounted(async () => {
     } else {
       selectorDriftState = createSelectorDriftState(sessionClient, announce, { status: selectorDriftStatus });
       selectorDriftState.start();
+    }
+    if (isUncommittedSession.value) {
+      startWorktreeIndicator();
     }
     const loadedDraft = await sessionClient.getDraft();
     draftLoad.value = loadedDraft;
@@ -1084,6 +1152,7 @@ onBeforeUnmount(() => {
   viewportMedia?.removeEventListener('change', handleViewportChange);
   selectorDriftState?.stop();
   stopPatchStatus();
+  stopWorktreeIndicator();
   stopSupportStatus();
 });
 </script>
@@ -1118,11 +1187,15 @@ onBeforeUnmount(() => {
       :support-inert="supportDialogOpen"
       :attached-lifecycle="isAttachedSession ? (attachedLifecycle === 'finishing' || attachedLifecycle === 'completed' ? attachedLifecycle : 'waiting') : undefined"
       :inert="shellModalOpen"
+      :show-refresh="isUncommittedSession"
+      :refresh-busy="refreshBusy"
+      :worktree-changed="worktreeChanged"
       @support="openSupportDialog"
       @review-notes="openReviewNotes"
+      @refresh="performRefresh"
     />
     <section
-      v-if="patchDrifted || hasUnverifiedAnchors || selectorDriftStatus?.base.kind !== 'unchanged' || selectorDriftStatus?.head.kind !== 'unchanged'"
+      v-if="patchDrifted || hasUnverifiedAnchors || selectorDriftStatus?.base.kind !== 'unchanged' || selectorDriftStatus?.head.kind !== 'unchanged' || (capturedFilesChanged > 0 && !dismissedCaptureBanner) || refreshSummary !== undefined"
       class="shell-warning-stack"
     >
       <InlineNotice v-if="patchDrifted" tone="error">
@@ -1131,6 +1204,22 @@ onBeforeUnmount(() => {
       </InlineNotice>
       <SelectorDriftNotice :drift="selectorDriftStatus" />
       <StaleAnchorNotice v-if="hasUnverifiedAnchors" />
+      <InlineNotice
+        v-if="capturedFilesChanged > 0 && !dismissedCaptureBanner"
+        tone="warning"
+        role="note"
+        dismissible
+        :dismiss-label='`Dismiss "${capturedFilesChanged} files changed during capture" notice`'
+        @dismiss="dismissedCaptureBanner = true"
+      >
+        {{ capturedFilesChanged }} file{{ capturedFilesChanged === 1 ? '' : 's' }} changed during capture — Refresh to recapture
+      </InlineNotice>
+      <RefreshSummaryPanel
+        v-if="refreshSummary !== undefined"
+        v-bind="refreshSummary"
+        @dismiss="refreshSummary = undefined"
+        @select-file="selectFile"
+      />
     </section>
 
     <DraftRecovery
@@ -1270,6 +1359,7 @@ onBeforeUnmount(() => {
       :attached-failure="attachedResult"
       :mutation-locked="attachedMutationLocked"
       :is-exact-patch="isExactPatchSession"
+      :export-supported="!isUncommittedSession"
       @close="closeReviewNotes"
       @cancel-summary="if (!attachedMutationLocked) { reviewState?.setSummaryBuffer(reviewDraft?.canonical.summary ?? ''); refreshReviewSnapshot(); }"
       @reload-latest="reloadLatestReview"

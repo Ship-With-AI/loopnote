@@ -24,32 +24,36 @@ type AttachedLifecycle =
   | 'retryableFailure'
   | 'terminalFailure';
 
-const props = defineProps<{
-  readonly open: boolean;
-  readonly comments: readonly WorkspaceComment[];
-  readonly summary: string;
-  readonly revision: number;
-  readonly pinnedEndpoints?: Readonly<{
-    base: Readonly<{ label: string; oid: string }>;
-    head: Readonly<{ label: string; oid: string }>;
-  }>;
-  readonly summaryBuffer: string;
-  readonly commentBuffers: ReadonlyMap<string, string>;
-  readonly pending: ReviewPendingOperation | null;
-  readonly conflict: Readonly<{ expectedRevision: number; actualRevision: number }> | null;
-  readonly failure: ReviewFailure | null;
-  readonly retainedSummary: boolean;
-  readonly exportState: ReviewExportState;
-  readonly appendIgnoreRule: () => Promise<AppendCumpaIgnoreResult>;
-  readonly refreshIgnoreStatus: () => Promise<void>;
-  readonly revealExportDirectory: () => Promise<ExportDirectoryRevealResult>;
-  readonly attachedLifecycle?: AttachedLifecycle;
-  readonly attachedReady?: boolean;
-  readonly attachedFailure?: FinishReviewResult;
-  readonly unsavedInlineComposerFile?: Readonly<{ fileId: string; display: string }>;
-  readonly mutationLocked?: boolean;
-  readonly isExactPatch?: boolean;
-}>();
+const props = withDefaults(
+  defineProps<{
+    readonly open: boolean;
+    readonly comments: readonly WorkspaceComment[];
+    readonly summary: string;
+    readonly revision: number;
+    readonly pinnedEndpoints?: Readonly<{
+      base: Readonly<{ label: string; oid: string }>;
+      head: Readonly<{ label: string; oid: string }>;
+    }>;
+    readonly summaryBuffer: string;
+    readonly commentBuffers: ReadonlyMap<string, string>;
+    readonly pending: ReviewPendingOperation | null;
+    readonly conflict: Readonly<{ expectedRevision: number; actualRevision: number }> | null;
+    readonly failure: ReviewFailure | null;
+    readonly retainedSummary: boolean;
+    readonly exportState: ReviewExportState;
+    readonly appendIgnoreRule: () => Promise<AppendCumpaIgnoreResult>;
+    readonly refreshIgnoreStatus: () => Promise<void>;
+    readonly revealExportDirectory: () => Promise<ExportDirectoryRevealResult>;
+    readonly attachedLifecycle?: AttachedLifecycle;
+    readonly attachedReady?: boolean;
+    readonly attachedFailure?: FinishReviewResult;
+    readonly unsavedInlineComposerFile?: Readonly<{ fileId: string; display: string }>;
+    readonly mutationLocked?: boolean;
+    readonly isExactPatch?: boolean;
+    readonly exportSupported?: boolean;
+  }>(),
+  { exportSupported: true },
+);
 
 const emit = defineEmits<{
   close: [];
@@ -165,6 +169,7 @@ watch(reviewFailure, (failed) => {
       <ReviewStateBadge kind="resolved" :label="`Resolved ${resolvedCount}`" />
     </section>
 
+    <template v-if="exportSupported">
     <ExportSection
       :revision="revision"
       :pinned-endpoints="pinnedEndpoints"
@@ -183,6 +188,7 @@ watch(reviewFailure, (failed) => {
       @reload-latest="emit('reloadLatest')"
       @review-unsaved-text="emit('reviewUnsavedText')"
     />
+    </template>
 
     <section v-if="attached" class="attached-completion" aria-labelledby="finish-attached-review-heading">
       <header class="attached-completion__heading">
