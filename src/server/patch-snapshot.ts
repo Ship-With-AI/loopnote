@@ -3,7 +3,6 @@ import {
   chmod,
   lstat,
   mkdir,
-  open,
   readlink,
   rename,
   rm,
@@ -23,12 +22,12 @@ import {
 import type { ExactPatchExportScope } from '../contracts/draft.js';
 import { createGitRunner } from '../git/runner.js';
 import { createObjectReader } from '../git/objects.js';
+import { boundedFileBytes, digest, frame, isMissing, MAX_SIDE_BYTES, syncDirectory, writeOwned } from './snapshot-fs.js';
 
 
 const SNAPSHOT_VERSION = 1;
 const MAX_SNAPSHOT_FILES = 10_000;
 const MAX_SNAPSHOT_BYTES = 64 * 1024 * 1024;
-const MAX_SIDE_BYTES = 2 * 1024 * 1024;
 const MAX_MANIFEST_BYTES = 16 * 1024 * 1024;
 const MAX_TARGET_TREE_BYTES = 64 * 1024 * 1024;
 const PATCH_KEY_DOMAIN = Buffer.from('cumpa-exact-patch-review-key-v1', 'utf8');
@@ -120,17 +119,6 @@ export class PatchSnapshotError extends Error {
   }
 }
 
-function digest(bytes: Uint8Array): string {
-  return createHash('sha256').update(bytes).digest('hex');
-}
-
-function frame(value: string): Buffer {
-  const bytes = Buffer.from(value, 'utf8');
-  const length = Buffer.allocUnsafe(8);
-  length.writeBigUInt64BE(BigInt(bytes.byteLength));
-  return Buffer.concat([length, bytes]);
-}
-
 function reviewKey(grounded: GroundedExactPatch): string {
   const hash = createHash('sha256');
   hash.update(PATCH_KEY_DOMAIN);
@@ -172,36 +160,12 @@ function contentName(fileId: string, sideName: 'preimage' | 'postimage'): string
   return `${fileId}.${sideName}`;
 }
 
-async function syncDirectory(path: string): Promise<void> {
-  const handle = await open(path, 'r');
-  try {
-    await handle.sync();
-  } finally {
-    await handle.close();
-  }
-}
-
-async function writeOwned(path: string, bytes: Uint8Array): Promise<void> {
-  const handle = await open(path, 'wx', 0o600);
-  try {
-    await handle.writeFile(bytes);
-    await handle.sync();
-  } finally {
-    await handle.close();
-  }
-  await chmod(path, 0o400);
-}
-
 function targetLabel(target: ExactPatchValidationTarget): string {
   return target.kind === 'repository' ? 'Repository content' : 'Worktree';
 }
 
 type TargetEntry = Readonly<{ readonly mode: string; readonly bytes: Buffer }>;
 type RepositoryTreeEntry = Readonly<{ readonly mode: string; readonly type: string; readonly oid: string }>;
-
-function isMissing(error: unknown): boolean {
-  return typeof error === 'object' && error !== null && 'code' in error && error.code === 'ENOENT';
-}
 
 function targetPath(root: string, encoded: string): Buffer | undefined {
   const bytes = Buffer.from(encoded, 'base64url');
@@ -217,27 +181,6 @@ function targetPath(root: string, encoded: string): Buffer | undefined {
   const parts = bytes.toString('latin1').split('/');
   if (parts.some((part) => part === '' || part === '.' || part === '..')) return undefined;
   return Buffer.concat([Buffer.from(root, 'utf8'), ...parts.flatMap((part) => [Buffer.from('/'), Buffer.from(part, 'latin1')])]);
-}
-
-async function boundedFileBytes(path: Buffer, expectedBytes: number): Promise<Buffer> {
-  const handle = await open(path, 'r');
-  try {
-    const info = await handle.stat();
-    if (!info.isFile() || info.size !== expectedBytes || expectedBytes > MAX_SIDE_BYTES) {
-      throw new Error('Target file differs from its frozen size.');
-    }
-    const bytes = Buffer.allocUnsafe(expectedBytes + 1);
-    let offset = 0;
-    while (offset < bytes.byteLength) {
-      const { bytesRead } = await handle.read(bytes, offset, bytes.byteLength - offset, offset);
-      if (bytesRead === 0) break;
-      offset += bytesRead;
-    }
-    if (offset !== expectedBytes) throw new Error('Target file changed during observation.');
-    return bytes.subarray(0, expectedBytes);
-  } finally {
-    await handle.close();
-  }
 }
 
 async function worktreeEntry(
