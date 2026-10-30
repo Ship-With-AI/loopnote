@@ -29,7 +29,7 @@
 - [x] **SNAP-02**: User is told explicitly when a file changed while the snapshot was being captured, instead of being shown a mixed or partial version as if it were consistent.
 - [x] **SNAP-03**: User can trigger Refresh to capture a new snapshot of the same source and scope.
 - [x] **SNAP-04**: After Refresh, user sees a summary of which files were added, removed, or modified since the previous snapshot.
-- [ ] **SNAP-05**: After Refresh, every existing comment is reclassified as current, stale, or orphaned with its recorded evidence intact; no comment is moved to a different line.
+- [x] **SNAP-05**: After Refresh, every existing comment is reclassified as current, stale, or orphaned with its recorded evidence intact; no comment is moved to a different line.
 
 ### Standalone Files
 
@@ -111,7 +111,7 @@ Deferred, tracked but not in the v2.0 roadmap.
 | SNAP-02 | Phase 14 | Complete |
 | SNAP-03 | Phase 14 | Complete |
 | SNAP-04 | Phase 14 | Complete |
-| SNAP-05 | Phase 14 | Pending |
+| SNAP-05 | Phase 14 | Complete |
 | FILE-01 | Phase 15 | Pending |
 | FILE-02 | Phase 15 | Pending |
 | FILE-03 | Phase 15 | Pending |

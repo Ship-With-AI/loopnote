@@ -6,14 +6,14 @@ current_phase: 14
 current_phase_name: Uncommitted Source Review & Frozen Snapshots
 status: executing
 stopped_at: Completed 14-07-PLAN.md
-last_updated: "2026-10-30T19:48:34.858Z"
+last_updated: "2026-10-30T20:36:04.601Z"
 last_activity: 2026-10-30
 last_activity_desc: Phase 13 complete, transitioned to Phase 14
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 18
-  completed_plans: 12
+  completed_plans: 13
   percent: 14
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-09-09)
 ## Current Position
 
 Phase: 14 — Uncommitted Source Review & Frozen Snapshots
-Plan: 8 of 13
+Plan: 9 of 13
 Status: Ready to execute
 Last activity: 2026-10-30 — Phase 13 complete, transitioned to Phase 14
 
@@ -74,6 +74,7 @@ Last activity: 2026-10-30 — Phase 13 complete, transitioned to Phase 14
 | Phase 14 P05 | 15min | 1 tasks | 3 files |
 | Phase 14 P06 | 25min | 1 tasks | 2 files |
 | Phase 14-uncommitted-source-review-frozen-snapshots P07 | 70min | 2 tasks | 2 files |
+| Phase 14-uncommitted-source-review-frozen-snapshots P08 | 70min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -114,6 +115,7 @@ Decisions are logged in PROJECT.md Key Decisions.
 - [Phase 14]: 14-05: resolveWorktreeSideContent documents the already-changed-file precondition in its doc comment and throws rather than guarding defensively — Mirrors exact-patch.ts's applyText, which assumes a well-formed patch rather than handling malformed input
 - [Phase 14]: Gated the Uncommitted picker group behind an opt-in includeUncommittedGroup flag rather than bare role==='base', so pickOrderedSources' own internal base re-prompt (e.g. after Back) never re-shows it — Keeps pickOrderedSources byte-for-byte behaviorally unchanged in every code path and avoids a reachable crash if an uncommitted sentinel id reached that nested loop
 - [Phase 14]: 14-07: WorktreeSnapshotManifestSchema field order (entries before chain) must match zod's output-reordering; content capture gated on availability.kind==='text'; refresh() takes zero args with dependencies captured at construction — Required for manifest self-verification round-trip to succeed and to satisfy the plan's literal 'async refresh()' acceptance criterion while still supporting fault-injection test hooks
+- [Phase ?]: 14-08: widened exportReview/revealExportDirectory to optional (Phase 17 scope); 404 guard added to the two unconditional export routes
 
 ### Pending Todos
 
