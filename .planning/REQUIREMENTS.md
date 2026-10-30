@@ -19,7 +19,7 @@
 
 - [ ] **WTREE-01**: User can choose Staged (HEAD→index), Unstaged (index→working tree), or Working tree (HEAD→working tree) as the Head source in the launch picker.
 - [ ] **WTREE-02**: User reviewing the Working tree source sees untracked files as added files, excluding paths ignored by `.gitignore`, `.git/info/exclude`, and the global excludes file.
-- [ ] **WTREE-03**: User reviewing an uncommitted source compares against HEAD by default, or picks any local branch or registered worktree as Base and sees changes from their merge base.
+- [ ] **WTREE-03**: User reviewing Staged or Working tree source compares against HEAD by default, or picks any local branch or registered worktree as Base and sees changes from the merge base; Unstaged always compares index→working tree with no Base choice (the Base prompt is skipped and `--base` is rejected).
 - [ ] **WTREE-04**: User never sees `.cumpa/` content, content reached by following a symlink, or submodule internals in an uncommitted session; symlinks, submodules, binary, and oversized files remain listed as non-reviewable entries.
 - [ ] **WTREE-05**: User's drafts and comments for an uncommitted session are keyed to that exact reviewed content, so two different working-tree states against the same base never share or overwrite a draft.
 
