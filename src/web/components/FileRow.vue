@@ -10,6 +10,7 @@ const props = defineProps<{
   level: number;
   tabbable: boolean;
   selected: boolean;
+  recentlyChanged?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -30,7 +31,9 @@ const availabilityLabel = computed(() => {
     case 'text':
       return 'Text';
     case 'unsupported':
-      return 'Unsupported';
+      return props.leaf.file.availability.reason === 'changed-during-capture'
+        ? 'Changed during capture'
+        : 'Unsupported';
     case 'unavailable':
       return 'Unavailable';
   }
@@ -62,6 +65,7 @@ const availabilityLabel = computed(() => {
         </template>
         <span v-else aria-hidden="true">—</span>
       </span>
+      <span v-if="recentlyChanged" class="tree-row__refresh-marker" aria-label="Changed since last snapshot">Changed</span>
       <span
         class="availability-marker"
         :class="[

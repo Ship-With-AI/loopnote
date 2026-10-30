@@ -7,12 +7,17 @@ const props = withDefaults(
   defineProps<{
     readonly tone?: 'neutral' | 'information' | 'success' | 'warning' | 'error';
     readonly role?: 'alert' | 'note' | 'status';
+    readonly dismissible?: boolean;
+    readonly dismissLabel?: string;
   }>(),
   {
     tone: 'neutral',
     role: 'note',
+    dismissible: false,
   },
 );
+
+const emit = defineEmits<{ dismiss: [] }>();
 
 const toneIcon = computed<UiIconName>(() => {
   switch (props.tone) {
@@ -34,6 +39,15 @@ const toneIcon = computed<UiIconName>(() => {
     <UiIcon :name="toneIcon" class="inline-notice__icon" />
     <div class="inline-notice__content">
       <slot />
+      <button
+        v-if="dismissible"
+        type="button"
+        class="ui-button"
+        :aria-label="dismissLabel"
+        @click="emit('dismiss')"
+      >
+        Dismiss
+      </button>
     </div>
   </aside>
 </template>
