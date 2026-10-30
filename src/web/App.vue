@@ -116,6 +116,7 @@ const worktreeChanged = ref(false);
 const refreshBusy = ref(false);
 const refreshSummary = shallowRef<RefreshResult>();
 const dismissedCaptureBanner = ref(false);
+const recentlyChangedPaths = ref<Set<string>>(new Set());
 const supportDialog = ref<InstanceType<typeof SupportDialog>>();
 const primarySurface = computed(() => recoveredDraftOpen.value
   ? 'workspace'
@@ -800,6 +801,12 @@ function selectFile(fileId: string): void {
   if (file === undefined) {
     return;
   }
+  const openedPath = file.newPath?.display ?? file.oldPath?.display;
+  if (openedPath !== undefined) {
+    recentlyChangedPaths.value.delete(openedPath);
+  }
+    return;
+  }
   const focusHeading = changedFilesOpen.value;
   closeChangedFiles(!focusHeading);
   if (file.availability.kind !== 'text') {
@@ -1085,6 +1092,13 @@ async function performRefresh(): Promise<void> {
     if (delta.added.length + delta.removed.length + delta.modified.length > 0) {
       refreshSummary.value = delta;
     }
+    recentlyChangedPaths.value = new Set([...delta.added, ...delta.removed, ...delta.modified]);
+    const loadedDraft = await sessionClient.getDraft();
+    if (loadedDraft.kind === 'current' && workspace !== undefined) {
+      const transition = workspace.replaceComments(reconciledWorkspaceComments(loadedDraft.draft));
+      workspaceState.value = transition.state;
+      runCommands(transition.commands);
+    }
   } finally {
     refreshBusy.value = false;
   }
@@ -1318,6 +1332,7 @@ onBeforeUnmount(() => {
       :restore-focus="changedFilesRestoreFocus"
       :narrow="isNarrow"
       :files="session.files"
+      :recently-changed-paths="recentlyChangedPaths"
       :initial-selected-file-id="selectedFile?.fileId"
       :empty-heading="emptyFilesCopy.heading"
       :empty-message="emptyFilesCopy.message"
