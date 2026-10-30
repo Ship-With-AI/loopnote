@@ -12,7 +12,7 @@
 
 ## Overview
 
-No active milestone. Cumpa is published on npm as `@shipwithai/cumpa` under standard MIT
+**Active milestone: v2.0 Artifact Review.** Cumpa is published on npm as `@shipwithai/cumpa` under standard MIT
 terms, installable globally, through `npx`, or via the public marketplace skill, with SLSA
 provenance on every release. The browser review workspace was restyled in v1.6 to the
 approved mockup composition, then further reduced by two post-close quick tasks — see the v1.6
@@ -22,8 +22,118 @@ v1.5 and v1.6 were developed and closed on separate branches and reconciled when
 merged into `main`; v1.5's archive and the 1.5.2 release are authoritative for distribution,
 v1.6's for the workspace surface.
 
-Start the next milestone with `/gsd:new-milestone`, which defines fresh requirements and a
-new roadmap. The Backlog below is its input.
+v2.0 brings working-tree review into scope — previously Out of Scope, now superseding the
+"committed Git objects only" decision for worktree sources, with frozen session snapshots
+keeping the drift-detectable guarantee. It delivers: single-pane rendering for entirely
+added/deleted files; Staged/Unstaged/Working-tree review against any base from a frozen,
+explicitly-refreshable snapshot; standalone file/glob review outside any diff; a rendered
+Markdown preview toggle; an agent stdin protocol and marketplace skill extended to
+uncommitted/standalone requests; and a product-copy repositioning from "code review" to
+"agent artifact review," landed last so copy never overclaims ahead of what ships. Phases
+13–18 below deliver it in that dependency order.
+
+Start the next milestone with `/gsd:new-milestone` once v2.0 ships; it defines fresh
+requirements and a new roadmap. The Backlog below remains its input, alongside anything
+deferred from v2.0.
+
+## Phases
+
+**Phase Numbering:**
+- Integer phases continue from the last shipped milestone (v1.6 ended at Phase 12); v2.0 starts at Phase 13.
+- Decimal phases (13.1, 13.2, …) are urgent insertions, not planned here.
+
+- [ ] **Phase 13: Single-Pane File Rendering** - Added/deleted files render as one full-width commentable pane instead of a diff with an empty side.
+- [ ] **Phase 14: Uncommitted Source Review & Frozen Snapshots** - Staged/Unstaged/Working-tree review against any base, frozen at session start with explicit, comment-safe Refresh.
+- [ ] **Phase 15: Standalone File Review** - Named files/globs open and review full width without choosing Base/Head.
+- [ ] **Phase 16: Rendered Markdown Preview** - Any Markdown file toggles between source and rendered view with block-anchored commenting.
+- [ ] **Phase 17: Agent Protocol Extension & Marketplace Skill** - Agents request uncommitted/standalone review over stdin and through the marketplace skill with versioned exports.
+- [ ] **Phase 18: Product Repositioning Copy** - README, npm page, CLI copy, and workspace text describe artifact review, not only code diffs.
+
+## Phase Details
+
+### Phase 13: Single-Pane File Rendering
+**Goal**: Reviewers see files that are entirely added or entirely deleted as one full-width pane instead of a diff with an empty side, and can tell single-pane files apart from side-by-side ones without relying on color.
+**Depends on**: Nothing new (extends the shipped v1.6 Monaco diff adapter)
+**Requirements**: PANE-01, PANE-02, PANE-03
+**Success Criteria** (what must be TRUE):
+  1. Reviewer opens an added file and sees its entire content in one full-width pane with no empty Base side, and can comment on any line (anchored to Head).
+  2. Reviewer opens a deleted file and sees its entire removed content in one full-width pane with no empty Head side, and can comment on any line (anchored to Base).
+  3. Reviewer can tell, from the file header and file tree without relying on color, which files are single-pane (entirely added/deleted) versus side-by-side (modified, renamed, copied).
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 14: Uncommitted Source Review & Frozen Snapshots
+**Goal**: Developers can review Staged, Unstaged, or Working-tree changes against HEAD or any chosen base from a frozen snapshot, trust that drafts and comments stay correctly scoped to the exact reviewed content, and explicitly refresh to a new snapshot with every comment reclassified.
+**Depends on**: Phase 13 (reuses single-pane rendering for uncommitted added/deleted files)
+**Requirements**: WTREE-01, WTREE-02, WTREE-03, WTREE-04, WTREE-05, SNAP-01, SNAP-02, SNAP-03, SNAP-04, SNAP-05
+**Success Criteria** (what must be TRUE):
+  1. User picks Staged, Unstaged, or Working tree as the Head source at launch; Working-tree sessions show untracked files as added (excluding paths ignored by `.gitignore`, `.git/info/exclude`, and the global excludes file), while `.cumpa/` content, symlink targets, submodule internals, binary, and oversized files stay listed as non-reviewable.
+  2. User reviewing an uncommitted source compares against HEAD by default, or against any chosen local branch or registered worktree as Base, and sees changes from their merge base.
+  3. User's review stays frozen at the bytes captured when the session started — later file edits don't change what's displayed — and the user is told explicitly if a file changed mid-capture instead of being shown a mixed or partial version as if it were consistent.
+  4. User triggers Refresh to capture a new snapshot of the same source and scope, and sees a summary of which files were added, removed, or modified since the previous snapshot.
+  5. After Refresh, every existing comment is reclassified as current, stale, or orphaned with its recorded evidence intact and never moved to a different line; two different working-tree states against the same base never share or overwrite a draft.
+**Plans**: TBD
+**UI hint**: yes
+**Research flag**: yes — content-digest key derivation for uncommitted drafts/anchors (Pitfall 1), CRLF/filter normalization between index and worktree reads, and torn-snapshot/race detection design need verification during planning, per `research/SUMMARY.md`.
+
+### Phase 15: Standalone File Review
+**Goal**: Users can open specific files or globs directly — tracked or untracked, changed or unchanged — without choosing Base/Head, review them full width, and finish with an export that proves exactly what was reviewed.
+**Depends on**: Phase 13 (single-pane rendering), Phase 14 (frozen-snapshot/Refresh mechanism)
+**Requirements**: FILE-01, FILE-02, FILE-03, FILE-04, FILE-05
+**Success Criteria** (what must be TRUE):
+  1. User runs `cumpa <path|glob>...` to open the named files directly, tracked or untracked, changed or unchanged, without any Base/Head selection step.
+  2. User's path and glob arguments resolve with Git pathspec semantics and respect ignore rules; an argument matching no file fails before launch with a clear message.
+  3. User gets a clear error before launch when any argument resolves outside the repository, including `../` traversal, absolute paths outside the repository, and symlink escapes.
+  4. User sees each standalone file rendered full width with its current working-tree content and can comment on any line.
+  5. User finishes a standalone-file review and exports Markdown plus canonical JSON whose provenance identifies exactly which paths and snapshot content were reviewed.
+**Plans**: TBD
+**Research flag**: yes — path-traversal/symlink-escape hardening (`realpath`/per-segment resolution) is security-sensitive; verify against the existing `exact-patch.ts` precedent during planning, per `research/SUMMARY.md`.
+
+### Phase 16: Rendered Markdown Preview
+**Goal**: Users can toggle any Markdown file between source and rendered view in both single-pane and side-by-side layouts, comment directly from rendered blocks, and trust the renderer never introduces an XSS or link-following risk.
+**Depends on**: Phase 13 (single-pane layouts)
+**Requirements**: MDV-01, MDV-02, MDV-03, MDV-04
+**Success Criteria** (what must be TRUE):
+  1. User toggles any Markdown file between source view and rendered view, in both single-pane and side-by-side layouts.
+  2. User adds a comment from a rendered block (heading, paragraph, list item, code block, table) and sees it stored anchored to that block's source line range, appearing at those lines in source view.
+  3. User sees existing comments marked on the rendered blocks they anchor to.
+  4. User confirms rendered Markdown never executes scripts, renders raw HTML, or follows non-http(s)/mailto links, under the existing production CSP.
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 17: Agent Protocol Extension & Marketplace Skill
+**Goal**: Coding agents can request uncommitted and standalone-file reviews over the same stdin contract used for committed ranges, receive versioned canonical results carrying full provenance, and get specific validation errors before any browser launch — with the marketplace skill updated to match.
+**Depends on**: Phase 14 (uncommitted session factory), Phase 15 (standalone-file session factory)
+**Requirements**: AGENT-06, AGENT-07, AGENT-08, AGENT-09, SKL-04
+**Success Criteria** (what must be TRUE):
+  1. Coding agent submits a stdin request for uncommitted review (source kind, optional base, optional pathspecs) and receives one canonical JSON result after the developer finishes.
+  2. Coding agent submits a stdin request for standalone-file review (paths or pathspecs) and receives one canonical JSON result after the developer finishes.
+  3. Coding agent receives uncommitted and standalone results in new versioned export formats carrying their provenance, while existing range and exact-patch requests and V1–V3 exports stay unchanged.
+  4. Coding agent gets a specific validation error before any browser launch for a malformed, oversized, or out-of-repository uncommitted or standalone request.
+  5. Coding-agent users of the ShipWithAI marketplace skill can request uncommitted and standalone-file reviews through it, with the CLI version prerequisite updated to the release that supports them.
+**Plans**: TBD
+**Research flag**: yes — exact `ReviewExportV4Schema`/`V5Schema` field shapes (uncommitted/standalone provenance metadata) aren't fully specified in any research file; finalize during planning against the established V1→V2→V3 superset pattern, per `research/SUMMARY.md`.
+
+### Phase 18: Product Repositioning Copy
+**Goal**: Cumpa's README, npm page, CLI copy, and browser workspace text describe it as local review for any agent-produced artifact, not just code diffs, with no hosted or multi-reviewer overclaim.
+**Depends on**: Phases 13–17 (copy must reflect every shipped v2.0 capability before it claims it)
+**Requirements**: POS-01, POS-02, POS-03
+**Success Criteria** (what must be TRUE):
+  1. Visitors to the README and npm page read Cumpa described as local review for any agent-produced artifact (code, plans, decisions, docs), with no hosted or multi-reviewer claim.
+  2. CLI users see `--help`, picker, and dirty-source copy that accurately describe uncommitted and standalone review; the old "staged, unstaged, and untracked bytes are ignored" wording is gone.
+  3. Reviewers see browser workspace titles, labels, and empty states that fit artifact review rather than only code diffs.
+**Plans**: TBD
+
+## Progress
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 13. Single-Pane File Rendering | 0/TBD | Not started | - |
+| 14. Uncommitted Source Review & Frozen Snapshots | 0/TBD | Not started | - |
+| 15. Standalone File Review | 0/TBD | Not started | - |
+| 16. Rendered Markdown Preview | 0/TBD | Not started | - |
+| 17. Agent Protocol Extension & Marketplace Skill | 0/TBD | Not started | - |
+| 18. Product Repositioning Copy | 0/TBD | Not started | - |
 
 ## Backlog
 
@@ -33,31 +143,31 @@ scheduled by the next milestone that touches the same surface, not automatically
 ### Carried forward from v1.5
 
 Recorded in `./milestones/v1.5-ROADMAP.md` and `./milestones/v1.5-REQUIREMENTS.md`. The next
-milestone should decide explicitly whether to adopt them:
+milestone can decide explicitly whether to adopt them:
 
-- **ACC-04** — verified-support acceptance is unreachable until Restore stops completing on
-  a false RPC result (`supabase/functions/support-flow/index.ts`) and a permitted genuine
+- **ACC-04** — verified-support acceptance unreachable until Restore stops completing on a
+  false RPC result (`supabase/functions/support-flow/index.ts`) and a permitted genuine
   live entitlement exists. Fix the defect first, then rerun only the verified-state portions
-  for the global, npx, and marketplace paths.
-- `SKILL.md` still installs `@1.5.0` and claims only 1.5.0 has independent release
-  verification; correcting it needs a separate marketplace publication.
+  on global, npx, marketplace paths.
+- `SKILL.md` still installs `@1.5.0` and claims only 1.5.0 was independently release
+  verified; correcting it needs a separate marketplace publication.
 - **`.vue` files remain outside every typechecker.** `tsconfig.web.json` uses a `files` array
-  of seven `.ts` entries, so `npm run typecheck:web` covers zero components and exits in under
-  a second. **Corrected 2026-09-15:** `vue-tsc` cannot close this gap as installed —
-  `vue-tsc@3.3.7` resolves `typescript/lib/tsc` at startup and `typescript@7.0.2` no longer
+  of seven `.ts` entries, so `npm run typecheck:web` covers zero components and exits in under a
+  second. **Corrected 2026-09-15:** `vue-tsc` cannot close this gap as installed —
+  `vue-tsc@3.3.7` resolves `typescript/lib/tsc` at startup but `typescript@7.0.2` no longer
   exposes that subpath, so it dies with `ERR_PACKAGE_PATH_NOT_EXPORTED` before reading any
-  config. Closing the gap needs a TypeScript/vue-tsc pairing decision, not just an npm script.
+  config. Closing this gap needs a TypeScript/vue-tsc pairing decision, not just an npm script.
 
 ### Accepted debt from v1.6
 
 - **DEBT-01** (v1.6 milestone audit D-01, owner: the surface that next touches the review
-  toolbar) — Reviewers and assistive technology can reach the diff-navigation and review-toolbar
+  toolbar) — Reviewers using assistive technology cannot reach the diff-navigation and review-toolbar
   control groups by role and name. Three layout containers in
   `src/web/components/ReviewToolbar.vue` carry `aria-label` without a queryable `role`, so
   `getByRole('group', { name: 'Diff navigation' })` resolves to `generic` and cannot reach them:
   `:20` (`Diff navigation`), `:22` (`File navigation`), `:47` (`Change navigation`).
   `getByRole('group'` appears zero times in `tests/`. Pre-existing, not a v1.6 regression —
-  `12-UI-SPEC.md:182` deliberately scoped the fix out of Phase 12. Accepted at v1.6 close.
+  `12-UI-SPEC.md:182` deliberately scoped this fix out of Phase 12. Accepted at v1.6 close.
   **Re-scoped 2026-09-15:** was four containers; quick task `260915-jbv` deleted the fourth
   (`review-toolbar__group--actions`) along with the Review and Keyboard help buttons.
 

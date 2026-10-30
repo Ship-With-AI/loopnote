@@ -91,12 +91,42 @@ Deferred, tracked but not in the v2.0 roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
+| PANE-01 | Phase 13 | Pending |
+| PANE-02 | Phase 13 | Pending |
+| PANE-03 | Phase 13 | Pending |
+| WTREE-01 | Phase 14 | Pending |
+| WTREE-02 | Phase 14 | Pending |
+| WTREE-03 | Phase 14 | Pending |
+| WTREE-04 | Phase 14 | Pending |
+| WTREE-05 | Phase 14 | Pending |
+| SNAP-01 | Phase 14 | Pending |
+| SNAP-02 | Phase 14 | Pending |
+| SNAP-03 | Phase 14 | Pending |
+| SNAP-04 | Phase 14 | Pending |
+| SNAP-05 | Phase 14 | Pending |
+| FILE-01 | Phase 15 | Pending |
+| FILE-02 | Phase 15 | Pending |
+| FILE-03 | Phase 15 | Pending |
+| FILE-04 | Phase 15 | Pending |
+| FILE-05 | Phase 15 | Pending |
+| MDV-01 | Phase 16 | Pending |
+| MDV-02 | Phase 16 | Pending |
+| MDV-03 | Phase 16 | Pending |
+| MDV-04 | Phase 16 | Pending |
+| AGENT-06 | Phase 17 | Pending |
+| AGENT-07 | Phase 17 | Pending |
+| AGENT-08 | Phase 17 | Pending |
+| AGENT-09 | Phase 17 | Pending |
+| SKL-04 | Phase 17 | Pending |
+| POS-01 | Phase 18 | Pending |
+| POS-02 | Phase 18 | Pending |
+| POS-03 | Phase 18 | Pending |
 
 **Coverage:**
-- v2.0 requirements: 31 total
-- Mapped to phases: 0
-- Unmapped: 31 ⚠️
+- v2.0 requirements: 30 total
+- Mapped to phases: 30
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-10-30*
-*Last updated: 2026-10-30 after v2.0 requirements scoping*
+*Last updated: 2026-10-30 after v2.0 roadmap creation — 30/30 requirements mapped to Phases 13–18, zero orphans (corrected a stale 31-total count in this file's own header to the actual 30 enumerated REQ-IDs).*
