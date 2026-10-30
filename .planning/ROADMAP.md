@@ -94,10 +94,10 @@ Plans:
   4. User triggers Refresh to capture a new snapshot of the same source and scope, and sees a summary of which files were added, removed, or modified since the previous snapshot.
   5. After Refresh, every existing comment is reclassified as current, stale, or orphaned with its recorded evidence intact and never moved to a different line; two different working-tree states against the same base never share or overwrite a draft.
 
-**Plans**: 1/13 plans executed
+**Plans**: 2/13 plans executed
 
 - [x] 14-01-PLAN.md — Extract shared snapshot-fs.ts file-IO primitives from patch-snapshot.ts
-- [ ] 14-02-PLAN.md — UncommittedScopeSchema, changed-during-capture availability reason, UncommittedDraftComparisonSchema
+- [x] 14-02-PLAN.md — UncommittedScopeSchema, changed-during-capture availability reason, UncommittedDraftComparisonSchema
 - [ ] 14-03-PLAN.md — uncommittedReviewKey() draft/anchor identity hash
 - [ ] 14-04-PLAN.md — worktree-inventory.ts: Staged/Unstaged/Working-tree file-set discovery
 - [ ] 14-05-PLAN.md — worktree-content.ts: CRLF-safe content resolution + synthetic blobOid
@@ -194,7 +194,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 13. Single-Pane File Rendering | 5/5 | Complete    | 2026-10-30 |
-| 14. Uncommitted Source Review & Frozen Snapshots | 1/13 | In Progress|  |
+| 14. Uncommitted Source Review & Frozen Snapshots | 2/13 | In Progress|  |
 | 15. Standalone File Review | 0/TBD | Not started | - |
 | 16. Rendered Markdown Preview | 0/TBD | Not started | - |
 | 17. Agent Protocol Extension & Marketplace Skill | 0/TBD | Not started | - |
