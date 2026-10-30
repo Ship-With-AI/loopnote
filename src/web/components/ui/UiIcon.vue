@@ -11,6 +11,7 @@ export type UiIconName =
   | 'information'
   | 'selected'
   | 'lock'
+  | 'refresh'
   | 'disabled';
 
 defineProps<{
@@ -73,6 +74,10 @@ defineProps<{
     <template v-else-if="name === 'lock'">
       <rect x="4" y="7" width="8" height="6" rx="1" />
       <path d="M5.75 7V5.75a2.25 2.25 0 0 1 4.5 0V7M8 9.5v1" />
+    </template>
+    <template v-else-if="name === 'refresh'">
+      <path d="M5.75 4.1a4.5 4.5 0 1 1 4.5 0" />
+      <path d="M8.9 2.1 10.25 4.1 12.25 3.4" />
     </template>
     <template v-else>
       <circle cx="8" cy="8" r="5.5" />

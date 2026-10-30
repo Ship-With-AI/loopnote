@@ -3,17 +3,22 @@ import { computed, ref } from 'vue';
 
 import type { SessionResponse } from '../../contracts/api';
 import { controlSafeDisplay } from '../../domain/path-bytes';
+import UiIcon from './ui/UiIcon.vue';
 
 const props = defineProps<{
   readonly attachedLifecycle?: 'waiting' | 'finishing' | 'completed';
   readonly inert?: boolean;
+  readonly refreshBusy?: boolean;
+  readonly showRefresh?: boolean;
   readonly supportEnabled?: boolean;
   readonly supportInert?: boolean;
   readonly supportOpen?: boolean;
+  readonly worktreeChanged?: boolean;
   readonly session: SessionResponse;
 }>();
 
 const emit = defineEmits<{
+  refresh: [];
   reviewNotes: [];
   support: [];
 }>();
@@ -141,6 +146,20 @@ defineExpose({ focusSupport });
         </span>
       </span>
       <span v-if="attachedFact !== ''" class="attached-fact">{{ attachedFact }}</span>
+      <span v-if="worktreeChanged" class="change-indicator">Working tree changed since snapshot</span>
+      <button
+        v-if="showRefresh"
+        type="button"
+        class="identity-disclosure"
+        :aria-busy="refreshBusy"
+        :disabled="refreshBusy"
+        :title="'Refresh snapshot · Alt+Shift+R'"
+        aria-label="Refresh snapshot"
+        @click="emit('refresh')"
+      >
+        <UiIcon name="refresh" />
+        {{ refreshBusy ? 'Refreshing…' : 'Refresh' }}
+      </button>
       <button
         v-if="supportEnabled"
         ref="support"
