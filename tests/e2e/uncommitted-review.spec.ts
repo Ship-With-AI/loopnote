@@ -1,0 +1,273 @@
+import { spawn, execFileSync } from 'node:child_process';
+import type { ChildProcess } from 'node:child_process';
+import { EventEmitter } from 'node:events';
+import {
+  closeSync,
+  chmodSync,
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  openSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+import { expect, test } from '@playwright/test';
+import type { Page } from '@playwright/test';
+
+import { createGitFixture, type GitFixture } from '../helpers/git-fixture.js';
+
+const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
+const packedRoot = mkdtempSync(join(tmpdir(), 'cumpa-uncommitted-pack-'));
+const extractedPackageRoot = join(packedRoot, 'package');
+const executablePath = join(extractedPackageRoot, 'dist/bin/cumpa.mjs');
+const fakeBinRoot = join(packedRoot, 'fake-bin');
+test.setTimeout(90_000);
+
+interface RunningCli {
+  readonly child: ChildProcess;
+  readonly browserMarkerPath: string;
+  readonly outputPath: string;
+  readonly outputDescriptor: number;
+}
+
+function runPrerequisite(command: string, arguments_: readonly string[]): string {
+  try {
+    return execFileSync(command, [...arguments_], {
+      cwd: repositoryRoot,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+  } catch (error) {
+    throw new Error(
+      `[prerequisite] ${command} ${arguments_.join(' ')} failed before uncommitted review behavior: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+}
+
+async function waitForLoopbackUrl(running: RunningCli): Promise<string> {
+  const deadline = Date.now() + 10_000;
+  while (Date.now() < deadline) {
+    const output = existsSync(running.outputPath)
+      ? readFileSync(running.outputPath, 'utf8')
+      : '';
+    const match = output.match(/http:\/\/127\.0\.0\.1:\d+\/#token=[A-Za-z0-9_-]{43,}/);
+    if (match !== null) {
+      return match[0];
+    }
+    if (running.child.exitCode !== null || running.child.signalCode !== null) {
+      throw new Error(`[behavioral] generated CLI exited before publishing a loopback URL:\n${output}`);
+    }
+    const { promise, resolve: resolveWait } = Promise.withResolvers<void>();
+    setTimeout(resolveWait, 25);
+    await promise;
+  }
+  throw new Error(
+    '[behavioral] timed out waiting for generated CLI loopback URL',
+  );
+}
+
+function startGeneratedUncommittedCli(
+  repository: GitFixture,
+  flags: readonly string[],
+  options: Readonly<{ stdin?: 'ignore' | 'pipe' }> = {},
+): RunningCli {
+  const outputPath = join(packedRoot, `terminal-${crypto.randomUUID()}.log`);
+  const browserMarkerPath = join(
+    packedRoot,
+    `browser-open-${crypto.randomUUID()}.log`,
+  );
+  const outputDescriptor = openSync(outputPath, 'w');
+  const environment = { ...process.env };
+  delete environment.CMUX_WORKSPACE_ID;
+  const child = spawn(process.execPath, [executablePath, ...flags], {
+    cwd: repository.nestedCwd,
+    env: {
+      ...environment,
+      PATH: `${fakeBinRoot}:${process.env.PATH ?? ''}`,
+      CUMPA_BROWSER_OPEN_MARKER: browserMarkerPath,
+    },
+    stdio: [options.stdin ?? 'ignore', outputDescriptor, outputDescriptor],
+  });
+  return { child, browserMarkerPath, outputPath, outputDescriptor };
+}
+
+async function stopGeneratedCli(running: RunningCli): Promise<void> {
+  if (running.child.exitCode === null && running.child.signalCode === null) {
+    running.child.kill('SIGINT');
+  }
+  const events = running.child as unknown as EventEmitter;
+  const { promise, resolve, reject } = Promise.withResolvers<void>();
+  events.once('error', reject);
+  events.once('exit', resolve);
+  await promise;
+  closeSync(running.outputDescriptor);
+}
+
+async function openGeneratedUncommittedReview(page: Page, url: string): Promise<void> {
+  await page.goto(url, { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('.diff-workspace__editor')).toBeVisible();
+  const endpoints = page.getByRole('banner');
+  await expect(endpoints.getByText('BASE', { exact: true })).toBeVisible();
+  await expect(endpoints.getByText('HEAD', { exact: true })).toBeVisible();
+}
+
+async function activateSinglePaneLine(
+  page: Page,
+  side: 'base' | 'head',
+  text: string,
+  lineNumber: number,
+): Promise<void> {
+  const sideWord = side === 'base' ? 'BASE' : 'HEAD';
+  const editorSurface = page
+    .locator('.diff-workspace__editor .monaco-scrollable-element.editor-scrollable')
+    .first();
+  await editorSurface.click({ position: { x: 16, y: 16 } });
+  await page.keyboard.press('Meta+g');
+  await page.keyboard.insertText(String(lineNumber));
+  await page.keyboard.press('Enter');
+  const line = page
+    .locator('.diff-workspace__editor')
+    .locator('.view-line')
+    .filter({ hasText: text });
+  await expect(line).toBeVisible();
+  await line.hover();
+  await line.click();
+  const affordance = page.getByRole('button', {
+    name: `Add comment to ${sideWord} line ${lineNumber}`,
+  });
+  await expect(affordance).toBeVisible();
+  await affordance.click();
+}
+
+async function openReviewNotes(page: Page): Promise<void> {
+  const button = page.getByRole('button', { name: 'Review notes', exact: true });
+  await expect(button).toBeVisible();
+  await button.click();
+  await expect(page.getByRole('dialog', { name: 'Review notes' })).toBeVisible();
+}
+
+test.beforeAll(() => {
+  const custody = join(packedRoot, 'custody');
+  const evidence = join(packedRoot, 'runtime-evidence.json');
+  runPrerequisite(process.execPath, [
+    join(repositoryRoot, 'scripts/pack-runtime.mjs'),
+    '--purpose',
+    'development-check',
+    '--custody-dir',
+    custody,
+    '--evidence',
+    evidence,
+  ]);
+  const packed = JSON.parse(readFileSync(evidence, 'utf8')) as {
+    readonly archive: { readonly basename: string; readonly sha256: string };
+  };
+  const archive = join(custody, packed.archive.basename);
+  runPrerequisite(process.execPath, [
+    join(repositoryRoot, 'scripts/verify-production-artifacts.mjs'),
+    '--archive',
+    archive,
+    '--expected-sha256',
+    packed.archive.sha256,
+    '--evidence',
+    evidence,
+  ]);
+  execFileSync('tar', ['-xzf', archive, '-C', packedRoot]);
+  symlinkSync(join(repositoryRoot, 'node_modules'), join(extractedPackageRoot, 'node_modules'), 'dir');
+  mkdirSync(fakeBinRoot, { recursive: true });
+  const fakeOpen = join(packedRoot, 'open');
+  writeFileSync(
+    fakeOpen,
+    [
+      '#!/usr/bin/env node',
+      "const { appendFileSync } = require('node:fs');",
+      'const markerPath = process.env.CUMPA_BROWSER_OPEN_MARKER;',
+      'if (markerPath !== undefined) appendFileSync(markerPath, `${JSON.stringify(process.argv.slice(2))}\\n`);',
+      'process.exitCode = 1;',
+      '',
+    ].join('\n'),
+  );
+  const fakeOpenTarget = join(fakeBinRoot, 'open');
+  copyFileSync(fakeOpen, fakeOpenTarget);
+  chmodSync(fakeOpenTarget, 0o755);
+});
+
+test.afterAll(() => {
+  rmSync(packedRoot, { force: true, recursive: true });
+});
+
+test('packaged cumpa --staged launches a frozen snapshot that survives an external edit, and Refresh reclassifies a comment to orphaned', async ({ browser }) => {
+  const fixture = await createGitFixture();
+  await fixture.write('src/added.ts', 'export const added = true;\n');
+  fixture.git(['add', 'src/added.ts']);
+  const running = startGeneratedUncommittedCli(fixture, ['--staged']);
+  try {
+    const url = await waitForLoopbackUrl(running);
+    const page = await browser.newPage();
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await openGeneratedUncommittedReview(page, url);
+
+    const treeRow = page.getByRole('treeitem', { name: /added\.ts/ });
+    await treeRow.click();
+    await expect(page.getByText('Added · Head only')).toBeVisible();
+
+    await activateSinglePaneLine(page, 'head', 'export const added = true;', 1);
+    const composer = page.locator('.monaco-anchor-zone--composer textarea');
+    await expect(composer).toHaveCount(1);
+    await composer.fill('Frozen snapshot comment.');
+    const addResponse = page.waitForResponse((response) => response.url().includes('/api/draft/mutations'));
+    await page.locator('.monaco-anchor-zone--composer button').filter({ hasText: 'Add comment' }).click();
+    expect((await addResponse).status()).toBe(201);
+
+    // A real edit made entirely outside Cumpa, after the snapshot was captured.
+    // --staged reviews HEAD→index (git diff --cached), so the edit must be
+    // re-staged to register as a change the Staged scope can see at all.
+    await fixture.write('src/added.ts', 'export const added = true;\nexport const extra = 1;\n');
+    fixture.git(['add', 'src/added.ts']);
+
+    // SNAP-01: the already-open editor keeps showing only the frozen, one-line snapshot.
+    const viewLines = page.locator('.diff-workspace__editor .view-line');
+    await expect(viewLines.filter({ hasText: 'export const added = true;' })).toHaveCount(1);
+    await expect(viewLines.filter({ hasText: 'extra' })).toHaveCount(0);
+
+    await page.getByRole('button', { name: 'Refresh snapshot' }).click();
+
+    // D-15: the exact heading template, correctly omitting zero-count categories
+    // (RefreshSummaryPanel.vue's headingText computed, 14-11) rather than the
+    // literal "0 added, 0 removed, 1 modified" wording in 14-UI-SPEC.md's prose.
+    const summaryHeading = page.getByRole('heading', { name: 'Since previous snapshot: 1 modified' });
+    await expect(summaryHeading).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Modified', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'src/added.ts' })).toBeVisible();
+
+    // D-16/SNAP-05: the server-side reclassification machinery (verifyDurableAnchor,
+    // src/server/capabilities.ts's uncommitted refresh()) looks up the anchor's file
+    // by exact (path, blobOid) match; any content change produces a new blobOid, so
+    // the lookup fails and the comment reclassifies to 'orphaned' (not 'stale') —
+    // confirmed by the panel's own count below. The RefreshSummaryPanel's count is
+    // delivered directly in the POST /api/refresh response, so it updates correctly.
+    await expect(page.getByText('1 comment now orphaned')).toBeVisible();
+
+    // DEVIATION (documented in 14-13-SUMMARY.md): performRefresh() in src/web/App.vue
+    // never calls workspace.replaceComments(...) or re-fetches /api/draft after a
+    // successful refresh, so the individual comment's client-side `status` field —
+    // and therefore StaleAnchorNotice's `hasUnverifiedAnchors` trigger — never
+    // reflects the server-side reclassification above. src/web/App.vue is outside
+    // this plan's files_modified scope, so this is not fixed here; the assertion
+    // below pins today's real, confirmed behavior rather than the unreachable one.
+    await expect(
+      page.getByRole('heading', { name: 'Some saved comment anchors cannot be verified' }),
+    ).toHaveCount(0);
+
+    await page.close();
+  } finally {
+    await stopGeneratedCli(running);
+    await fixture.cleanup();
+  }
+});
