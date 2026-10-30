@@ -41,7 +41,7 @@ patterns-established:
 requirements-completed: [WTREE-05, SNAP-01, SNAP-02, SNAP-03, SNAP-04]
 
 # Metrics
-duration: 70min
+duration: 95min
 completed: 2026-10-30
 status: complete
 ---
@@ -52,7 +52,7 @@ status: complete
 
 ## Performance
 
-- **Duration:** ~70 min
+- **Duration:** ~95 min (including a post-implementation flake investigation — see Deviation 4)
 - **Started:** 2026-10-30
 - **Completed:** 2026-10-30
 - **Tasks:** 2 (plan-level `type: tdd` gate — both tasks' behaviors land in a single RED/GREEN commit pair, per the same plan-level TDD precedent recorded in 14-04's summary)
@@ -73,6 +73,7 @@ Plan-level TDD gate (both tasks' behaviors verified in one RED/GREEN cycle):
 
 1. **RED: failing test for worktree snapshot capture engine** — `64bcb63` (test) — committed `tests/api/worktree-snapshot.test.ts` alone; confirmed it fails with "Cannot find module '../../src/server/worktree-snapshot.js'" before the implementation existed.
 2. **GREEN: implement worktree snapshot capture engine** — `734486c` (feat) — committed `src/server/worktree-snapshot.ts`; confirmed all 15 tests pass and `npx tsc --noEmit --project tsconfig.json` exits 0.
+3. **Flake fix: onCaptureStart test seam + D-10 test hardening** — `c39cb8d` (fix) — discovered via 15-iteration repeat runs that the D-10 "disappeared file" test failed ~10-15% of the time; root-caused, fixed, and reverified at 15/15 across 15 repeat runs (see Deviation 4 below).
 
 No separate REFACTOR commit — style cleanup (inlining single-use helpers, `Promise.withResolvers()` instead of `new Promise`) was applied before the RED/GREEN split, so GREEN already reflects the final form.
 
@@ -113,10 +114,18 @@ See `key-decisions` in frontmatter. The most significant: content capture is gat
 - **Verification:** `grep -c "async refresh()" src/server/worktree-snapshot.ts` returns `1`; index-race and torn-file tests that inject hooks via `materializeWorktreeSnapshot`'s dependencies argument pass.
 - **Committed in:** `734486c` (GREEN commit).
 
+**4. [Rule 1 - Bug] D-10 "disappeared file" test flaked ~10-15% of the time due to a benign D-11 index-race self-touch**
+- **Found during:** Post-implementation hardening — a single `npx vitest run` pass is not sufficient evidence of determinism for fault-injection tests exercising retry paths, so the suite was run 10-15 times in a loop; one test failed intermittently (`expected [] to have a length of 1 but got +0`).
+- **Issue:** Root-caused via an isolated repro script with `mtimeMs`-precision instrumentation: `resolveWorktreeSideContent`'s full-patch `git diff -U1000000 ...` invocation (used for the worktree-resident postimage of Unstaged/Working-tree captures) occasionally touches `.git/index`'s mtime (never its size — confirmed empirically across 50 isolated runs) as a benign internal side effect, unrelated to any real `git add`/`commit`/`reset`. `captureWithIndexRaceGuard` correctly detects this per D-11's literal mtime/size comparison and retries the whole capture once — this is the race guard working exactly as specified, not a bug in it. The test's `onBeforeObservedEnumeration` hook had a non-idempotent side effect (reverting the target file's content), which was safe for a single capture attempt but corrupted a legitimate internal retry: on retry, the file was already reverted from attempt 1, so attempt 2's own first enumeration found nothing to capture, producing an empty manifest.
+- **Fix:** Added `CaptureWorktreeManifestDependencies.onCaptureStart`, invoked at the very start of every `captureWorktreeManifest` attempt (before its first enumeration) — a minimal, test-only DI seam consistent with the existing `onFileReadAttempt`/`onBeforeObservedEnumeration` hooks. Used it in the flaking test to re-establish the unstaged edit on every attempt, making the test's own state independent of how many times the whole capture internally retries.
+- **Files modified:** `src/server/worktree-snapshot.ts`, `tests/api/worktree-snapshot.test.ts`
+- **Verification:** 15/15 repeat `npx vitest run tests/api/worktree-snapshot.test.ts` passes after the fix (previously ~2/15 failed); `npx tsc --noEmit --project tsconfig.json` exits 0; dependency suites (`tests/git/worktree-inventory.test.ts`, `tests/git/worktree-content.test.ts`, `tests/api/exact-patch.test.ts`) still pass with no regressions.
+- **Committed in:** `c39cb8d` (fix commit, separate from the RED/GREEN pair since it was found during post-implementation hardening, not during the initial TDD cycle).
+
 ---
 
-**Total deviations:** 3 auto-fixed (1 correctness bug caught by the plan's own fixture-verification requirement, 1 style-rule compliance, 1 blocking signature reconciliation). None reduced scope or changed the delivered behavior described in the plan's `<behavior>`/`<must_haves>` blocks.
-**Impact on plan:** All three were necessary to deliver a working, test-verified implementation matching the plan's literal acceptance criteria. No scope creep.
+**Total deviations:** 4 auto-fixed (2 correctness bugs — one caught by the plan's own fixture-verification requirement, one caught by repeated-run determinism checking — 1 style-rule compliance, 1 blocking signature reconciliation). None reduced scope or changed the delivered behavior described in the plan's `<behavior>`/`<must_haves>` blocks.
+**Impact on plan:** All four were necessary to deliver a working, deterministic, test-verified implementation matching the plan's literal acceptance criteria. No scope creep.
 
 ## Known Stubs
 
@@ -150,7 +159,8 @@ None — no external service configuration required.
 - `tests/api/worktree-snapshot.test.ts` — FOUND
 - Commit `64bcb63` — FOUND in `git log --oneline`
 - Commit `734486c` — FOUND in `git log --oneline`
-- `npx vitest run tests/api/worktree-snapshot.test.ts` — 15/15 tests passed
+- Commit `c39cb8d` — FOUND in `git log --oneline`
+- `npx vitest run tests/api/worktree-snapshot.test.ts` — 15/15 tests passed, repeated 15 times in a row with 0 failures (determinism check after the flake fix)
 - `npx tsc --noEmit --project tsconfig.json` — exits 0
 - `grep -c "export const WorktreeSnapshotManifestSchema" src/server/worktree-snapshot.ts` → 1
 - `grep -c "captureStatus" src/server/worktree-snapshot.ts` → 7 (≥3 required)
@@ -160,3 +170,4 @@ None — no external service configuration required.
 - `grep -c "async refresh()" src/server/worktree-snapshot.ts` → 1
 - `grep -c "indexRaceNotice" src/server/worktree-snapshot.ts` → 15 (≥4 required)
 - `grep -c "rm(\|unlink(\|rmdir("` anywhere in the file → 0 (no selective or whole-root delete exists at all)
+- `tests/git/worktree-inventory.test.ts`, `tests/git/worktree-content.test.ts`, `tests/api/exact-patch.test.ts` — 26/26 tests passed (no regressions in depended-on modules)
