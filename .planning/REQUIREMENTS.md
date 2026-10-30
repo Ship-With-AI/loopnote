@@ -13,7 +13,7 @@
 
 - [x] **PANE-01**: Reviewer sees an added file as one full-width pane containing the whole new content, with no empty Base side, and can comment on any of its lines (anchored to Head).
 - [x] **PANE-02**: Reviewer sees a deleted file as one full-width pane containing the whole removed content, with no empty Head side, and can comment on any of its lines (anchored to Base).
-- [ ] **PANE-03**: Reviewer can tell from the file header and file tree, without relying on color, that a single-pane file is entirely added or entirely deleted; modified, renamed, and copied files keep the existing side-by-side diff.
+- [x] **PANE-03**: Reviewer can tell from the file header and file tree, without relying on color, that a single-pane file is entirely added or entirely deleted; modified, renamed, and copied files keep the existing side-by-side diff.
 
 ### Uncommitted Sources
 
@@ -93,7 +93,7 @@ Deferred, tracked but not in the v2.0 roadmap.
 |-------------|-------|--------|
 | PANE-01 | Phase 13 | Complete |
 | PANE-02 | Phase 13 | Complete |
-| PANE-03 | Phase 13 | Pending |
+| PANE-03 | Phase 13 | Complete |
 | WTREE-01 | Phase 14 | Pending |
 | WTREE-02 | Phase 14 | Pending |
 | WTREE-03 | Phase 14 | Pending |
