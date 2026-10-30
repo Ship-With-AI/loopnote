@@ -388,13 +388,7 @@ function acceptedWorkspaceComments(
 }
 
 function reconciledWorkspaceComments(draft: DraftView): readonly WorkspaceComment[] {
-  const existing = new Map(workspace?.getState().comments.map((comment) => [comment.id, comment]));
-  return reconcileDraftComments(draft.comments, session.value?.files ?? []).map((comment) => {
-    const previous = existing.get(comment.id);
-    return previous === undefined
-      ? comment
-      : { ...previous, state: comment.state, body: comment.body };
-  });
+  return reconcileDraftComments(draft.comments, session.value?.files ?? []);
 }
 
 function refreshReviewSnapshot(): void {

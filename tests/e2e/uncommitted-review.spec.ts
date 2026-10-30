@@ -254,16 +254,19 @@ test('packaged cumpa --staged launches a frozen snapshot that survives an extern
     // delivered directly in the POST /api/refresh response, so it updates correctly.
     await expect(page.getByText('1 comment now orphaned')).toBeVisible();
 
-    // DEVIATION (documented in 14-13-SUMMARY.md): performRefresh() in src/web/App.vue
-    // never calls workspace.replaceComments(...) or re-fetches /api/draft after a
-    // successful refresh, so the individual comment's client-side `status` field —
-    // and therefore StaleAnchorNotice's `hasUnverifiedAnchors` trigger — never
-    // reflects the server-side reclassification above. src/web/App.vue is outside
-    // this plan's files_modified scope, so this is not fixed here; the assertion
-    // below pins today's real, confirmed behavior rather than the unreachable one.
+    // D-15/SNAP-04 (fixed by 14-14): performRefresh() now calls
+    // workspace.replaceComments(...) after every successful refresh, so the
+    // individual comment's client-side `status` field — and therefore
+    // StaleAnchorNotice's `hasUnverifiedAnchors` trigger — reflects the
+    // server-side reclassification above without a page reload.
     await expect(
       page.getByRole('heading', { name: 'Some saved comment anchors cannot be verified' }),
-    ).toHaveCount(0);
+    ).toBeVisible();
+
+    // D-15/SNAP-04 (fixed by 14-14 Task 2): the tree-row marker reflects the most recent Refresh's delta until the file is reopened.
+    await expect(treeRow.getByText('Changed', { exact: true })).toBeVisible();
+    await treeRow.click();
+    await expect(treeRow.getByText('Changed', { exact: true })).toHaveCount(0);
 
     await page.close();
   } finally {
