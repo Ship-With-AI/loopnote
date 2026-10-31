@@ -4,9 +4,9 @@ milestone: v2.0
 milestone_name: Artifact Review
 current_phase: 17
 current_phase_name: agent-protocol-extension-marketplace-skill
-status: verifying
-stopped_at: "Completed 17-05-PLAN.md (checkpoint:human-action reached; stopped before PR)"
-last_updated: "2026-10-31T16:58:39.816Z"
+status: human_needed
+stopped_at: "Phase 17 complete: all 5 plans executed, VERIFICATION.md (human_needed: open-runtime-session.ts helper bug fix + draft PR), REVIEW.md (0 critical/0 warning after fix, 4 info non-blocking), SECURITY.md (18/18 threats closed) all committed. Ready for human action on the two human_needed items."
+last_updated: "2026-10-31T17:40:36.107Z"
 last_activity: 2026-10-31
 last_activity_desc: Phase 17 execution started
 progress:
@@ -28,9 +28,9 @@ See: .planning/PROJECT.md (updated 2026-09-09)
 
 ## Current Position
 
-Phase: 17 (agent-protocol-extension-marketplace-skill) — EXECUTING
+Phase: 17 (agent-protocol-extension-marketplace-skill) — HUMAN_NEEDED
 Plan: 5 of 5
-Status: Phase complete — ready for verification
+Status: Executed, verified (10/15 truths; 5 behavior-unverified pending a pre-existing test-helper fix), reviewed (clean of blockers after CR-01/WR-01 fix), security-closed (18/18). Awaiting two human actions: (1) fix tests/helpers/open-runtime-session.ts's .monaco-diff-editor race (out of Phase 17 scope) and re-run the blocked e2e scenarios; (2) open the draft PR against Ship-With-AI/skills from the local cumpa-uncommitted-files-request-modes branch once a real 2.0.0-equivalent release publishes (D-05).
 Last activity: 2026-10-31 — Phase 17 execution started
 
 ## Performance Metrics
@@ -204,6 +204,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-31T16:58:29.458Z
-Stopped at: Completed 17-05-PLAN.md (checkpoint:human-action reached; stopped before PR)
+Last session: 2026-10-31T17:40:36.103Z
+Stopped at: Phase 17 complete: all 5 plans executed, VERIFICATION.md (human_needed: open-runtime-session.ts helper bug fix + draft PR), REVIEW.md (0 critical/0 warning after fix, 4 info non-blocking), SECURITY.md (18/18 threats closed) all committed. Ready for human action on the two human_needed items.
 Resume file: None
