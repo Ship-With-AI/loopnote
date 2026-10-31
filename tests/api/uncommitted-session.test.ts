@@ -255,13 +255,13 @@ describe('uncommitted session apps', () => {
     expect(Object.keys(refreshBody)).toEqual(['added', 'removed', 'modified', 'staleCount', 'orphanedCount']);
     expect(refreshBody.modified).toContain('tracked.txt');
     expect(refreshBody.added).toContain('new-untracked.txt');
-    expect(refreshBody.staleCount).toBe(1);
-    expect(refreshBody.orphanedCount).toBe(0);
+    expect(refreshBody.staleCount).toBe(0);
+    expect(refreshBody.orphanedCount).toBe(1);
 
     const afterDraft = await app.inject({ method: 'GET', url: '/api/draft', headers });
     expect(afterDraft.json()).toMatchObject({
       kind: 'current',
-      draft: { comments: [{ verification: { state: 'stale', reason: 'anchor-mismatch' } }] },
+      draft: { comments: [{ verification: { state: 'orphaned', reason: 'anchor-unavailable' } }] },
     });
   });
 

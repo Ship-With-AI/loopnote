@@ -945,14 +945,16 @@ export async function createUncommittedCapabilityRegistry(
   const verifyAnchor = async (anchor: DurableAnchorV1): Promise<AnchorVerification> => {
     const file = (await snapshot.files()).find((candidate) => {
       const path = anchor.side === 'base' ? candidate.oldPath : candidate.newPath;
-      const blobOid = anchor.side === 'base' ? candidate.oldBlobOid : candidate.newBlobOid;
-      return path?.bytesBase64url === anchor.path.bytesBase64url && blobOid === anchor.blobOid;
+      return path?.bytesBase64url === anchor.path.bytesBase64url;
     });
     if (file === undefined) return { state: 'orphaned', reason: 'anchor-unavailable' };
     const content = await snapshot.readContent(file.id);
     const bytes = anchor.side === 'base' ? content?.preimage : content?.postimage;
+    const blobOid = anchor.side === 'base' ? content?.preimageBlobOid : content?.postimageBlobOid;
     const path = anchor.side === 'base' ? file.oldPath : file.newPath;
-    if (bytes === undefined || path === undefined) return { state: 'orphaned', reason: 'anchor-unavailable' };
+    if (bytes === undefined || path === undefined || blobOid === undefined || blobOid !== anchor.blobOid) {
+      return { state: 'orphaned', reason: 'anchor-unavailable' };
+    }
     return verifyDurableAnchor(
       anchor,
       buildDurableAnchor({
@@ -1104,7 +1106,7 @@ export async function createUncommittedCapabilityRegistry(
     async readContent(fileId) {
       const content = await snapshot.readContent(fileId);
       if (content === undefined) return undefined;
-      const { file, preimage, postimage } = content;
+      const { file, preimage, preimageBlobOid, postimage, postimageBlobOid } = content;
       const makeSide = (
         bytes: Buffer | undefined,
         path: ChangedFile['oldPath'],
@@ -1121,8 +1123,8 @@ export async function createUncommittedCapabilityRegistry(
           };
       return FileContentResponseSchema.parse({
         fileId,
-        base: makeSide(preimage, file.oldPath, file.oldMode, file.oldBlobOid),
-        head: makeSide(postimage, file.newPath, file.newMode, file.newBlobOid),
+        base: makeSide(preimage, file.oldPath, file.oldMode, preimageBlobOid),
+        head: makeSide(postimage, file.newPath, file.newMode, postimageBlobOid),
       });
     },
     verifyAnchor,

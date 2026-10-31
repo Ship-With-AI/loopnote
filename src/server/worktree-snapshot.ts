@@ -562,7 +562,13 @@ export class WorktreeSnapshot {
   }
 
   async readContent(fileId: string): Promise<
-    Readonly<{ readonly file: ChangedFile; readonly preimage: Buffer | undefined; readonly postimage: Buffer | undefined }> | undefined
+    Readonly<{
+      readonly file: ChangedFile;
+      readonly preimage: Buffer | undefined;
+      readonly preimageBlobOid: string;
+      readonly postimage: Buffer | undefined;
+      readonly postimageBlobOid: string;
+    }> | undefined
   > {
     const manifest = await this.verifiedManifest();
     const entry = manifest.entries.find((candidate) => candidate.file.id === fileId);
@@ -570,7 +576,9 @@ export class WorktreeSnapshot {
     return Object.freeze({
       file: entry.file,
       preimage: await this.readSide(entry.preimage),
+      preimageBlobOid: entry.preimage.blobOid,
       postimage: await this.readSide(entry.postimage),
+      postimageBlobOid: entry.postimage.blobOid,
     });
   }
 
