@@ -128,11 +128,11 @@ renderer.core.ruler.after('inline', 'task_list', (state) => {
 // the delegated parse call, then restore the shared validator immediately
 // so link_open/D-10 behavior is never affected.
 
-function validateImageHref(href: string): boolean {
-  const trimmed = href.trim();
-  if (/^https?:/iu.test(trimmed)) return true;
-  if (/^[a-z][a-z0-9+.-]*:/iu.test(trimmed)) return false;
-  if (trimmed.startsWith('//')) return false;
+export function validateImageHref(href: string): boolean {
+  const normalized = href.replace(/[\t\r\n]/gu, '').trim();
+  if (/^https?:/iu.test(normalized)) return true;
+  if (/^[a-z][a-z0-9+.-]*:/iu.test(normalized)) return false;
+  if (normalized.startsWith('//')) return false;
   return true;
 }
 
