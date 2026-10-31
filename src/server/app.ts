@@ -11,6 +11,7 @@ import {
   createCapabilityRegistry,
   createExactPatchCapabilityRegistry,
   createUncommittedCapabilityRegistry,
+  createStandaloneCapabilityRegistry,
   createSupportCapability,
   type CapabilityRegistryOptions,
   type SupportCapability,
@@ -44,6 +45,10 @@ export interface CreateExactPatchSessionAppOptions extends CreateSessionAppOptio
 }
 
 export interface CreateUncommittedSessionAppOptions extends CreateSessionAppOptions {
+  readonly snapshotRoot?: string;
+}
+
+export interface CreateStandaloneSessionAppOptions extends CreateSessionAppOptions {
   readonly snapshotRoot?: string;
 }
 
@@ -205,6 +210,32 @@ export async function createUncommittedSessionApp(
   const webRoot = options.webRoot ?? resolve(import.meta.dirname, '../web');
   const support = options.support ?? createConfiguredSupportCapability();
   const capabilities = await createUncommittedCapabilityRegistry(scope, snapshot, { ...options, support });
+  const security = registerSessionSecurity(app, options);
+
+  app.addHook('onClose', async () => support?.close());
+  app.decorate('bindSessionSecurity', security.bind);
+  registerSessionRoutes(app, capabilities);
+  void app.register(fastifyStatic, {
+    root: webRoot,
+    index: ['index.html'],
+  });
+  return app;
+}
+
+export async function createStandaloneSessionApp(
+  scope: UncommittedScope,
+  options: CreateStandaloneSessionAppOptions,
+): Promise<SessionApp> {
+  const snapshot = await materializeWorktreeSnapshot(scope, {
+    root: options.snapshotRoot ?? join(tmpdir(), `cumpa-worktree-${randomUUID()}`),
+  });
+  const app = Fastify({
+    logger: false,
+    ajv: { customOptions: { removeAdditional: false } },
+  }) as unknown as SessionApp;
+  const webRoot = options.webRoot ?? resolve(import.meta.dirname, '../web');
+  const support = options.support ?? createConfiguredSupportCapability();
+  const capabilities = await createStandaloneCapabilityRegistry(scope, snapshot, { ...options, support });
   const security = registerSessionSecurity(app, options);
 
   app.addHook('onClose', async () => support?.close());
