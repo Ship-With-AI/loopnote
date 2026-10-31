@@ -700,3 +700,82 @@ for (const [index, part] of parts.entries()) {
 
 **Research date:** 2026-10-31
 **Valid until:** 2026-11-30 (30 days — stable internal codebase; `markdown-it` pinned and not being upgraded this phase)
+
+---
+
+## Addendum: A-01 Range-Aware Durable Anchor (2026-10-31)
+
+**Supersedes:** Priority 2's "Critical finding" (lines 306–325), Anti-Patterns line 519, and Pitfall 2 (lines 544–548) above, which recommended anchoring rendered-block comments to the block's first source line only and recomputing the visible range client-side with zero schema change. User decision A-01 (`16-CONTEXT.md`) overrides that recommendation: **the durable anchor itself must carry the block's true line range.**
+
+### Design: additive optional `endLine`, no version bump
+
+`DurableAnchorV1Schema`/`buildDurableAnchor` gain one new optional field, `endLine`. The discriminant stays `version: 'durable-anchor-v1'` — grep confirms nothing else in the codebase branches on that literal (`src/domain/anchor.ts:14,140`, `src/contracts/draft.ts:30` are the only occurrences), so a new version literal would add a migration/union burden with zero benefit. `endLine` presence/absence **is** the version signal, exactly as A-01 states: absent = single line (today's behavior, byte-for-byte unchanged); present = inclusive range `[line, endLine]`.
+
+`uniqueKey` (the one-comment-per-anchor dedupe key, `src/domain/anchor.ts:106-113`, consumed by `src/draft/mutate-draft.ts:23` and `draft.ts:167-171`) stays computed from `(path, side, blobOid, line)` only — **not** extended with `endLine`. Two rendered blocks always start at different `line`s, so this preserves D-06 "one comment per block" semantics unchanged and keeps every existing duplicate-detection test passing verbatim.
+
+### `src/domain/anchor.ts`
+
+```typescript
+export type DurableAnchorV1 = Readonly<{
+  version: 'durable-anchor-v1';
+  // …unchanged fields…
+  line: number;
+  endLine?: number; // NEW — absent means single-line (today's shape)
+  // …unchanged fields…
+}>;
+
+export type BuildDurableAnchorInput = Readonly<{
+  // …unchanged fields…
+  line: number;
+  endLine?: number; // NEW
+  text: string;
+}>;
+```
+
+`buildDurableAnchor`: validate `endLine === undefined || (Number.isSafeInteger(endLine) && endLine >= line)`, and extend the existing `line > lines.length` bounds check to also cover `(endLine ?? line) > lines.length`. Reuse `targetIndex = line - 1` for `before`/`target` (unchanged formula). Introduce `endIndex = (endLine ?? line) - 1` and compute `after` from `endIndex` instead of `targetIndex` (so the 3-line trailing context sits after the *whole range*, not after its first line — this is what makes drift classification cover the whole range per A-01, at zero extra schema cost). `selectedText` becomes `endLine === undefined ? target.text : lines.slice(targetIndex, endIndex + 1).join('\n')` — for `endLine === undefined` this is the exact existing expression, unchanged. Spread `endLine` into the returned object only when defined (`...(input.endLine === undefined ? {} : { endLine: input.endLine })`) so the frozen anchor object for single-line input has **no** `endLine` key at all, not an `undefined` one.
+
+`contextHash` needs two new parameters, `endLine: number | undefined` and `selectedText: string`, and must fold them into the hash **only when `endLine !== undefined`**:
+```typescript
+function contextHash(pathBytes, side, blobOid, line, endLine, context, selectedText): string {
+  const fields = [pathBytes, UTF8.encode(side), UTF8.encode(blobOid), UTF8.encode(String(line))];
+  if (endLine !== undefined) {
+    fields.push(UTF8.encode('endLine'), UTF8.encode(String(endLine)), UTF8.encode('selectedText'), UTF8.encode(selectedText));
+  }
+  fields.push(UTF8.encode('before'));
+  // …rest unchanged (before/target/after loop, framedSha256 call)…
+}
+```
+When `endLine` is `undefined` the field sequence fed to `framedSha256` is **identical** to the current implementation — this is the load-bearing guarantee that every already-stored single-line anchor's `contextHash.value` is reproduced exactly by the new code. A golden test (see Back-compat tests below) should pin this with a literal hex digest captured from the *pre-change* implementation. Range anchors get a hash sensitive to any line inside `[line, endLine]` changing (via `selectedText`) plus the shifted `after` context — satisfying "drift classification covers the whole range."
+
+`verifyDurableAnchor`: add `recorded.endLine === current.endLine` to the `matches` conjunction (unchanged `undefined === undefined` for legacy anchors). It still never relocates — `current` is rebuilt from the *recorded* `line`/`endLine` against live content, per A-01.
+
+### `src/contracts/draft.ts`
+
+Add `endLine: z.number().int().positive().optional()` to `DurableAnchorV1Schema`'s `strictObject`, plus a `.superRefine` rejecting `endLine < line`. `ExportCommentSchema` (`:218-242`) and all four `ReviewExportV{1,2,3,4}Schema` embed `DurableAnchorV1Schema` as-is, so the additive field reaches every export version with **zero** changes to `draft.ts`'s export schemas or to `src/export/review-export.ts` (`anchor: comment.anchor` at `review-export.ts:117` is a straight passthrough already).
+
+### `src/contracts/api.ts`
+
+Add `endLine: z.number().int().positive().optional()` to `AddCommentRequestSchema` (`:28-37`), with the same `endLine >= line` `.superRefine`, so malformed range requests 400 before reaching `buildDurableAnchor`.
+
+### Call-site updates (mechanical, 5 sites)
+
+- `src/server/routes.ts:386-395` — `/api/draft/mutations` `addComment` handler: pass `endLine: requestMutation.data.endLine` into `buildDurableAnchor(...)`.
+- `src/server/capabilities.ts` — four structurally-identical `verifyAnchor` closures (committed/pinned `:399`, exact-patch `:704`, uncommitted `:966`, standalone `:1219`): each must pass `endLine: anchor.endLine` into its `buildDurableAnchor(...)` call so range anchors re-verify against the live range, not just the first line.
+
+### Client wiring (left to 16-03/16-04 planning, not prescribed here)
+
+The `activate` event (`DiffWorkspace.vue:38`, `App.vue:1335`, `workspace-state.ts:64` `'activate-line'`) and the add-comment request builder (`web/api/client.ts:219-223`) need an optional `endLine` threaded alongside `line`, end to end, so `RenderedMarkdownView.vue` (16-03) can emit the block's real `[start,end]` and the existing Monaco code-view gutter button keeps emitting single-line (`endLine` omitted — zero behavior change there). Line-identity comparisons that already key off `comment.line`/`anchor.line` only (`DiffWorkspace.vue:111-112`, `composerAnchor`, `isValidLine`) need no change — `endLine` is additive display/range data, not a new identity key.
+
+### Monaco range decoration in source view
+
+`diff-adapter.ts` has two near-identical `anchorDecoration(line)` private methods (side-by-side adapter `:566-569`, single-pane adapter `:942-946`), each `new monaco.Range(line, 1, line, 1)` with `isWholeLine: true`. Both must become `anchorDecoration(line, endLine)` → `new monaco.Range(line, 1, endLine ?? line, 1)`, and the `Anchor`/`ActiveComposer`-shaped types threaded through `setActiveAnchor`/`activateAnchor`/`revealAnchor` (`:307-336`, `:762-786`) need an optional `endLine` alongside `line` so the composer zone/decoration for a range comment highlights every line in the stored range, not just its first — this is what satisfies A-01's "source view shows the range." A scoped grep for any *additional* per-comment (non-active) gutter/glyph marker mechanism found none beyond `glyphMargin: true`; if 16-04 execution finds one, it needs the identical `endLine ?? line` treatment — flag as an open question for that plan's executor, not assumed resolved here.
+
+### Back-compat tests (required, not optional)
+
+1. `tests/unit/anchor.test.ts`: (a) a golden test pinning `buildDurableAnchor({ …no endLine… }).contextHash.value` to a literal hex string captured from the current (pre-this-phase) implementation, so any accidental change to the legacy hash path fails loudly; (b) a new range-anchor test asserting `endLine` round-trips, `selectedText` spans the full joined range, `context.after` is computed from `endLine` not `line`, and the hash/uniqueKey relationship (hash differs from the single-line anchor at the same `line`, `uniqueKey` is identical) holds.
+2. A fixture drafts/export test parses a **literal pre-phase-16 JSON blob** (a `durable-anchor-v1` anchor with no `endLine` key, lifted from an existing passing fixture) through `ReviewDraftV1Schema`/`ReviewExportV1-V4Schema` and asserts it still parses and that `verifyDurableAnchor` against a freshly rebuilt anchor over unchanged content still reports `{state:'verified', reason:'exact-match'}`.
+3. `tests/api/*`: one round-trip test through `/api/draft/mutations` `addComment` with `endLine` set, confirming the stored comment's `anchor.endLine` persists, and a drift test editing a line strictly between `line+1` and `endLine` that flips `verifyAnchor` to `'stale'` (proving whole-range drift coverage, not just first-line).
+
+**Addendum confidence:** HIGH — every call site and field named above was read directly in this session (`src/domain/anchor.ts`, `src/contracts/draft.ts`, `src/contracts/api.ts`, `src/server/routes.ts`, `src/server/capabilities.ts`, `src/export/review-export.ts`, `src/web/monaco/diff-adapter.ts`, `src/web/components/DiffWorkspace.vue`, `src/web/App.vue`, `src/web/model/workspace-state.ts`, `src/draft/mutate-draft.ts`); no claim above is inferred from training data.
+
+**Addendum date:** 2026-10-31
