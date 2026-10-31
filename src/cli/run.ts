@@ -463,6 +463,30 @@ export function validateUncommittedFlags(cliOptions: {
   }
 }
 
+export function validateStandaloneExclusivity(
+  paths: readonly string[],
+  cliOptions: {
+    readonly staged?: boolean;
+    readonly unstaged?: boolean;
+    readonly worktree?: boolean;
+    readonly base?: string;
+  },
+): void {
+  if (paths.length === 0) {
+    return;
+  }
+  if (
+    cliOptions.staged === true ||
+    cliOptions.unstaged === true ||
+    cliOptions.worktree === true ||
+    cliOptions.base !== undefined
+  ) {
+    throw new Error(
+      'Positional paths cannot be combined with --staged, --unstaged, --worktree, or --base.',
+    );
+  }
+}
+
 async function resolveUncommittedObjectFormat(
   repositoryRoot: string,
   runner: GitRunner,
