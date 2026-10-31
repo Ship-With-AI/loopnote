@@ -1,8 +1,8 @@
 ---
 phase: 15-standalone-file-review
-reviewed: 2026-10-31T09:40:00Z
+reviewed: 2026-10-31T13:00:00Z
 depth: standard
-iteration: 2
+iteration: 3
 files_reviewed: 27
 files_reviewed_list:
   - src/cli/run.ts
@@ -34,65 +34,44 @@ files_reviewed_list:
   - tests/unit/uncommitted-contracts.test.ts
 findings:
   critical: 0
-  warning: 2
+  warning: 0
   info: 0
-  total: 2
-status: issues_found
+  total: 0
+status: clean
 ---
 
-# Phase 15: Code Review Report (Re-review, iteration 2)
+# Phase 15: Code Review Report (FINAL re-review, iteration 3 — auto-fix loop cap)
 
-**Reviewed:** 2026-10-31T09:40:00Z
+**Reviewed:** 2026-10-31T13:00:00Z
 **Depth:** standard
 **Files Reviewed:** 27
-**Status:** issues_found
+**Status:** clean
 
 ## Summary
 
-Re-reviewed the full Phase 15 "Standalone File Review" scope after the `--fix --auto` pass that claims to resolve CR-01 and WR-01 (commits `479b438`, `795220d`). Both prior findings are **genuinely resolved** — verified by reading the current code (not the commit messages) and by running the affected test suites.
+This is the final re-review of Phase 15 "Standalone File Review" (`code-review --fix --auto`, iteration 3 of a 3-iteration cap). All four findings from the first two iterations were re-verified by reading the current source directly — never by trusting commit messages — and all four are **genuinely resolved**. A fresh adversarial pass covered the remainder of the in-scope file list, including the full diffs of the two most recent fix commits (`9f9aab4`, `ad47887`) and the code paths they touch transitively. No new Critical/BLOCKER or Warning findings were identified.
 
-- **CR-01 (was BLOCKER) — resolved.** `resolveStandaloneArguments` (`src/git/standalone-resolution.ts:140-188`) now takes an `options.toleratesNoMatch` flag that swallows only the specific "did not match any file" error (not the `.gitignore`-only-match or repository-escape errors), letting the argument resolve to zero matches. `inventoryForScope`/`captureWorktreeManifest` (`src/server/worktree-snapshot.ts:219-306`) thread a `toleratesNoMatch` dependency down to both of `inventoryForScope`'s calls, and `WorktreeSnapshot.refresh()` (`src/server/worktree-snapshot.ts:688-696`) explicitly passes `{ ...this.dependencies, toleratesNoMatch: true }`, so a vanished single-file standalone argument now surfaces as a clean `removed` delta instead of crashing `/api/refresh`. The initial CLI launch (`src/cli/run.ts:850-854`, `launchStandaloneSession`'s own `resolveStandaloneArguments` call) is untouched and stays strict, exactly as intended. The new regression test (`tests/api/worktree-snapshot.test.ts:515-538`) exercises the exact scenario from the original finding and passes (`npx vitest run tests/api/worktree-snapshot.test.ts` — 1 file, all tests green).
-- **WR-01 (was WARNING) — resolved.** `createStandaloneCapabilityRegistry` (`src/server/capabilities.ts:1150-1159`) now has the mirrored defense-in-depth guard (`throw new RangeError(...)` when `scope.sourceKind !== 'standalone'`), symmetric with `createUncommittedCapabilityRegistry`'s guard at `src/server/capabilities.ts:902-906`. The dead `options.uncommittedRecoveryCandidate → recoveryAvailable` spread was dropped from `createStandaloneCapabilityRegistry`'s `sessionResponse` (`src/server/capabilities.ts:1166-1190`, no `recoveryAvailable` field present); `uncommittedRecoveryCandidate` remains wired only through `createUncommittedCapabilityRegistry`, which still has a real `recoverUncommittedDraft` implementation, and `launchStandaloneSession` (`src/cli/run.ts:799-944`) never supplies it. Confirmed `findUncommittedDraftCandidate`/`uncommittedRecoveryCandidate` only reach `createUncommittedSessionApp`'s call site (`src/cli/run.ts:723-740`, the staged/unstaged/worktree path), never the standalone path.
+### Prior findings — verification evidence
 
-Fresh adversarial pass over the rest of the scope (newly-added `src/git/worktree-inventory.ts`, the `ReviewExportV4`/standalone export plumbing in `src/contracts/draft.ts`, `src/export/review-export.ts`, `src/server/export-store.ts`, and the standalone-aware Vue components) found two new **WARNING**-tier issues, both narrower in scope than the BLOCKER that was already fixed. No new Critical/BLOCKER findings.
+- **CR-01 (BLOCKER, fixed iteration 1, `479b438`) — genuinely resolved, and now subsumed by the WR-02 fix.** The original fix added an opt-in `toleratesNoMatch` flag threaded only through `WorktreeSnapshot.refresh()`. Reading the current `src/server/worktree-snapshot.ts:261-289` (`inventoryForScope`) confirms the WR-02 fix replaced that opt-in plumbing: the standalone branch now unconditionally calls `resolveStandaloneArguments(..., { toleratesNoMatch: true })` (line 272) regardless of caller, so the original CR-01 scenario (a vanished single-file argument crashing `refresh()`) remains fixed — verified directly in `WorktreeSnapshot.refresh()` (`src/server/worktree-snapshot.ts:667-711`), which calls `captureWithIndexRaceGuard(scope, repositoryRoot, runner, this.dependencies)` with no special-casing needed anymore.
+- **WR-01 (WARNING, fixed iteration 1, `795220d`) — genuinely resolved.** `createStandaloneCapabilityRegistry` (`src/server/capabilities.ts:1150-1159`) still has the defense-in-depth guard — `throw new RangeError(...)` when `scope.sourceKind !== 'standalone'` — mirroring `createUncommittedCapabilityRegistry`'s own guard (`src/server/capabilities.ts:902-906`, throws when `scope.sourceKind === 'standalone'`). Read the full body of `createStandaloneCapabilityRegistry` (lines 1150-1452): it contains no reference to `options.uncommittedRecoveryCandidate` or a `recoveryAvailable` field anywhere in `sessionResponse` (lines 1166-1190) — the dead recovery-availability branch from the original finding has not resurfaced. `uncommittedRecoveryCandidate` remains wired only through `createUncommittedCapabilityRegistry` (`src/server/capabilities.ts:922`, `:1070-1075`), which still has a real `recoverUncommittedDraft` implementation; `launchStandaloneSession` (`src/cli/run.ts:799-944`) has no equivalent recovery-candidate lookup and never supplies it.
+- **WR-02 (WARNING, fixed iteration 2, `9f9aab4`) — genuinely resolved.** Read the commit diff and the resulting code directly. `CaptureWorktreeManifestDependencies` (`src/server/worktree-snapshot.ts:219-225`) no longer has a `toleratesNoMatch` field at all — it was fully removed, not just defaulted. `captureWorktreeManifest`'s two `inventoryForScope` calls (`src/server/worktree-snapshot.ts:307` "expected" pre-capture pass, `:376` "observed" post-capture pass) both route through the same `inventoryForScope` function, which hardcodes `{ toleratesNoMatch: true }` for `sourceKind === 'standalone'` (line 272) independent of which caller invoked it. This means both `materializeWorktreeSnapshot` (the *initial* capture, `src/server/worktree-snapshot.ts:714-738`, called once by `createStandaloneSessionApp` at `src/server/app.ts:229-231`) and `WorktreeSnapshot.refresh()` now tolerate a vanished single-file standalone argument identically. The strict "reject typos/missing files up front" behavior is confirmed still intact at the one call site that deliberately omits the option: `launchStandaloneSession`'s own pre-scope `resolveStandaloneArguments(repository.root, paths, { runner })` call (`src/cli/run.ts:850-854`, no 4th `options` argument) never routes through `captureWorktreeManifest`, so CLI-launch-time typos/missing files still throw as before. The regression test `"surfaces a vanished single-file standalone argument as \"changed-during-capture\" during the INITIAL capture, not just refresh()"` (`tests/api/worktree-snapshot.test.ts:585-612`) correctly exercises `materializeWorktreeSnapshot` directly (not `refresh()`), deletes the file via `onBeforeObservedEnumeration` between the two internal enumeration passes, and asserts the call resolves with `captureStatus: 'changed-during-capture'` instead of throwing.
+- **WR-03 (WARNING, fixed iteration 2, `ad47887`) — genuinely resolved.** `renderReviewMarkdown` (`src/export/render-review-markdown.ts:195-204`) now has a three-way ternary on the "Applying-agent instructions" footer: `exactPatch` → preimage/postimage wording, `standalone` → "verify the standalone review key, snapshot chain, relevant blob, repository-relative path, head side, exact selected text, and context hash.", else → the original "pinned comparison commit"/"base/head side" wording. This references real fields on `StandaloneExportScopeSchema` (`src/contracts/draft.ts:473-490`: `reviewKey`, `snapshotChain`) and correctly reflects that every standalone anchor's `side` is always `'head'` (confirmed by `appendAnchor`'s own `exactPatch ? ... : anchor.side` rendering at line 22, and the `## Standalone files` section's `'Anchor side: \`Head\` (current content).'` line at `:103`). The regression test (`tests/unit/review-markdown.test.ts:182-228`) asserts the new sentence verbatim, asserts the markdown does **not** contain `'pinned comparison commit'` or `'base/head side'`, and a sibling assertion on the `exactPatch` test (`tests/unit/review-markdown.test.ts:174-178`) confirms the ternary restructuring left the `exactPatch` branch's own wording unchanged.
 
-## Warnings
+### Fresh adversarial pass (this iteration)
 
-### WR-02: Initial standalone snapshot capture still crashes on the same vanished-single-file race CR-01 fixed for `refresh()`
+Beyond re-verifying the four prior findings, this iteration re-read the full bodies of `src/git/standalone-resolution.ts`, `src/git/worktree-inventory.ts`, `src/contracts/draft.ts` (`StandaloneExportScopeSchema`, `UncommittedDraftComparisonSchema`, `ReviewExportV4Schema`), `src/contracts/comparison.ts` (`UncommittedScopeSchema`'s `superRefine`), `src/export/review-export.ts` (`buildReviewExportV4`), `src/server/export-store.ts` (`stableNameFor`/`matchesPublicationIdentity`/`publishReviewExport`'s standalone branches), the remainder of `src/server/capabilities.ts`'s standalone registry (`verifyAnchor`, `refresh`, `worktreeChangeIndicator`, `exportReview`), and the Vue components' standalone-aware branches (`ActiveFileToolbar.vue`, `FileRow.vue`, `IdentityHeader.vue`, `ExportReceipt.vue`, `App.vue`). No new defects were found:
 
-**File:** `src/server/worktree-snapshot.ts:714-725`, `src/server/app.ts:225-238`
-**Issue:** CR-01's fix only sets `toleratesNoMatch: true` inside `WorktreeSnapshot.refresh()` (`src/server/worktree-snapshot.ts:688-696`). `materializeWorktreeSnapshot()` — called once by `createStandaloneSessionApp` to build the *initial* snapshot (`src/server/app.ts:229-231`, no third `dependencies` argument) — still calls `captureWithIndexRaceGuard(scope, scope.repositoryRoot, runner, dependencies)` with the caller-supplied `dependencies` as-is, so `captureWorktreeManifest`'s internal `toleratesNoMatch` defaults to `false` (`src/server/worktree-snapshot.ts:304`).
+- `buildUntrackedChangedFile` (`src/git/worktree-inventory.ts:362-402`) synthesizes every standalone file as a pure addition (`oldMode: '000000'`, zero `oldBlobOid`) regardless of the file's actual `standaloneGitState` (`modified-uncommitted`/`untracked`/`unchanged`). This is a deliberate, consistently-applied design choice — standalone review is a current-content-only, single-pane view with no diff against Git history — and is correctly surfaced to the UI: `ActiveFileToolbar.vue` and `FileRow.vue` both derive a dedicated `standaloneStateLabel` from the real `standaloneGitState` field rather than relying on the synthetic `status.kind`, so the actual Git state is never hidden from the reviewer even though the status badge icon is always "A". Confirmed intentional via the "Anchor side: `Head` (current content)" wording in the export Markdown and the test suite's explicit assertions that standalone exports never mention preimage/base.
+- `inventoryForScope`'s unconditional `toleratesNoMatch: true` for `sourceKind === 'standalone'` (introduced by the WR-02 fix) is correctly scoped: it only affects the two enumeration passes inside `captureWorktreeManifest`, never `launchStandaloneSession`'s own pre-scope `resolveStandaloneArguments` call, which remains the sole strict rejection point for a session's own startup arguments. No other caller of `resolveStandaloneArguments` was found that would unexpectedly inherit the lenient behavior.
+- `createStandaloneCapabilityRegistry`'s `exportReview` (`src/server/capabilities.ts:1378-1444`) correctly non-null-asserts `file.newPath!` and `scope.standaloneArguments!` — both are guaranteed by the scope-kind guard at function entry plus `UncommittedScopeSchema`'s `superRefine` (standalone scopes always carry `standaloneArguments`, and every standalone-synthesized `ChangedFile` always has `newPath` set since none are ever deletions).
+- Test coverage across `tests/api/standalone-session.test.ts`, `tests/api/worktree-snapshot.test.ts`, `tests/git/standalone-resolution.test.ts`, `tests/unit/review-export.test.ts`, and `tests/unit/review-markdown.test.ts` exercises session creation, refresh, anchor verification, export publication, and Markdown rendering for the standalone path with no skipped/focused tests (`.skip`/`.only`/`.todo` grep returned zero matches across the full test scope).
 
-`captureWorktreeManifest` enumerates the standalone argument set *twice* per capture — once before reading file bytes (`expected`, line 305) and once after (`observed`, line 374) — specifically to detect files that disappear mid-capture and mark them `'changed-during-capture'` instead of silently dropping them (D-10, documented at lines 288-295). For every other `sourceKind` this diff-based enumeration never throws on disappearance. For `standalone`, both enumeration calls go through `resolveStandaloneArguments`, which (without `toleratesNoMatch`) still throws "did not match any file" the moment a single-file argument's only match vanishes between the two calls.
-
-Net effect: if a user opens `cumpa scratch.ts` and the file is deleted/atomically replaced in the narrow window between the two enumeration passes of the *very first* capture (session startup), the uncaught throw propagates through `captureWithIndexRaceGuard` → `materializeWorktreeSnapshot` → `createStandaloneSessionApp`, crashing session creation instead of the file being reported as `'changed-during-capture'` the way D-10 promises for every other case. This is the identical defect class as CR-01 (an uncaught "did not match any file" `Error` crashing a capture instead of producing a tolerant result), just triggered by the race window inside a single capture's two internal enumerations rather than by the longer window between two `refresh()` calls. It is not covered by the new CR-01 regression test, which only exercises `refresh()` (`tests/api/worktree-snapshot.test.ts:515-538`), nor by the existing initial-capture torn-file test (`tests/api/worktree-snapshot.test.ts:560-583`), which uses a directory argument (`sub`) that still has a surviving match after one file disappears, so `resolveStandaloneArguments` never throws there.
-**Fix:** Make the double-enumeration inside `captureWorktreeManifest` always tolerate no-match, independent of the `refresh`-vs-`initial-launch` distinction — the "reject typos/missing files up front" behavior CR-01 deliberately preserved already lives one layer up, in `launchStandaloneSession`'s own `resolveStandaloneArguments` call before the scope is ever built (`src/cli/run.ts:850-854`). E.g., hardcode `toleratesNoMatch: true` for both `inventoryForScope` calls inside `captureWorktreeManifest` (or default `captureWorktreeManifest`'s own `toleratesNoMatch` to `true` and let only `launchStandaloneSession`'s pre-scope validation stay strict), rather than relying on each caller of `materializeWorktreeSnapshot`/`captureWithIndexRaceGuard` to opt in.
-
-### WR-03: Exported standalone review markdown tells the applying agent to verify a "pinned comparison commit" that does not exist
-
-**File:** `src/export/render-review-markdown.ts:195-202`
-**Issue:** `renderReviewMarkdown` only special-cases `exactPatch` (`document.schemaVersion === 3`) when emitting the closing "Applying-agent instructions" paragraph; everything else — including the new `standalone` (`schemaVersion === 4`) case introduced in this phase — falls through to the generic pinned-comparison wording:
-
-```ts
-exactPatch
-  ? 'Before editing, verify the exact patch digest, frozen snapshot facts, relevant blob, repository-relative path, preimage/postimage side, exact selected text, and context hash.'
-  : 'Before editing, verify the pinned comparison commit, relevant blob, repository-relative path, base/head side, exact selected text, and context hash.',
-```
-
-A standalone review's `ReviewExportV4` document has no "pinned comparison commit" at all — it has `standalone.originalArguments`, `standalone.resolvedPaths`, `standalone.fileDigests`, and `standalone.snapshotChain` instead (`src/contracts/draft.ts`'s `StandaloneExportScopeSchema`), and every anchor's `side` is always `head` (per the test at `tests/unit/review-markdown.test.ts:177-214`, which explicitly asserts `markdown).not.toContain('Preimage'/'Postimage')` but never asserts anything about the "Applying-agent instructions" wording). Every standalone export therefore instructs the agent/human applying the feedback to "verify the pinned comparison commit" and a "base/head side" that are both meaningless for that export kind — the instructions actively point at provenance fields the document doesn't have, rather than the snapshot-chain/file-digest provenance it actually carries. The earlier `exactPatch` precedent in the same file (adding a dedicated branch when `schemaVersion === 3` was introduced) was not followed when `schemaVersion === 4` was added.
-**Fix:** Add a `standalone` branch alongside the existing `exactPatch` ternary, e.g.:
-
-```ts
-exactPatch
-  ? 'Before editing, verify the exact patch digest, frozen snapshot facts, relevant blob, repository-relative path, preimage/postimage side, exact selected text, and context hash.'
-  : standalone
-    ? 'Before editing, verify the standalone review key, snapshot chain, relevant blob, repository-relative path, head side, exact selected text, and context hash.'
-    : 'Before editing, verify the pinned comparison commit, relevant blob, repository-relative path, base/head side, exact selected text, and context hash.',
-```
+All reviewed files meet quality standards. No issues found.
 
 ---
 
-_Reviewed: 2026-10-31T09:40:00Z_
+_Reviewed: 2026-10-31T13:00:00Z_
 _Reviewer: the agent (gsd-code-reviewer)_
 _Depth: standard_
-_Iteration: 2 (re-review after --fix --auto)_
+_Iteration: 3 (FINAL — auto-fix loop cap reached)_
