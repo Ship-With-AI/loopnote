@@ -74,3 +74,49 @@ export function classifyBlockChange(
 
   return undefined;
 }
+
+/**
+ * Returns the first block in document order whose live `top` (computed by the caller via
+ * `getBoundingClientRect()` relative to the scroll container's own rect, immediately before
+ * calling this function) is at or below `containerTop` — the topmost block not yet fully
+ * scrolled past the container's visible top edge. `undefined` for an empty list.
+ *
+ * Stays pure arithmetic over plain numbers: never touches the DOM itself.
+ */
+export function findTopmostVisibleBlock<T extends { start: number; end: number; top: number }>(
+  blocks: readonly T[],
+  containerTop: number,
+): T | undefined {
+  return blocks.find((block) => block.top >= containerTop);
+}
+
+/**
+ * Returns the block with an exact `[start, end]` match against `[startLine, endLine]` if one
+ * exists in `blocks`; otherwise the block with the smallest absolute difference between its
+ * `start` and `startLine`. `undefined` for an empty list.
+ *
+ * This is `scrollToRange`'s nearest-match rule, extracted so it is unit-testable directly
+ * against plain-data fixtures.
+ */
+export function findNearestBlock<T extends { start: number; end: number }>(
+  blocks: readonly T[],
+  startLine: number,
+  endLine: number,
+): T | undefined {
+  const exact = blocks.find((block) => block.start === startLine && block.end === endLine);
+  if (exact !== undefined) return exact;
+  if (blocks.length === 0) return undefined;
+  return blocks.reduce((closest, block) =>
+    Math.abs(block.start - startLine) < Math.abs(closest.start - startLine) ? block : closest);
+}
+
+/**
+ * RESEARCH.md Pitfall 4's scroll-sync feedback-loop guard, extracted as its own named,
+ * directly-testable function instead of an inline `if` in the scroll handler: emission must be
+ * suppressed while a programmatic scroll (triggered by this pane's own `scrollToRange` call) is
+ * still in flight, otherwise the counterpart pane's resulting scroll would bounce back and forth
+ * indefinitely.
+ */
+export function shouldEmitScrollSync(programmaticScrollInFlight: boolean): boolean {
+  return !programmaticScrollInFlight;
+}

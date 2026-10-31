@@ -5,7 +5,14 @@ import type * as monaco from 'monaco-editor';
 import type { DiffSide } from '../monaco/diff-adapter.js';
 import type { WorkspaceComment, WorkspaceComposer } from '../model/workspace-state.js';
 import { renderMarkdownPreview } from '../model/markdown-preview.js';
-import { buildImageRouteUrl, classifyBlockChange, extractSourceBlocks } from '../model/rendered-markdown-blocks.js';
+import {
+  buildImageRouteUrl,
+  classifyBlockChange,
+  extractSourceBlocks,
+  findNearestBlock,
+  findTopmostVisibleBlock,
+  shouldEmitScrollSync,
+} from '../model/rendered-markdown-blocks.js';
 import CommentComposer from './CommentComposer.vue';
 import PathText from './ui/PathText.vue';
 import ReviewStateBadge from './ui/ReviewStateBadge.vue';
@@ -30,12 +37,14 @@ const emit = defineEmits<{
   keepWriting: [];
   ready: [fileId: string];
   updateText: [text: string];
+  scrolledToBlock: [range: { start: number; end: number }];
 }>();
 
 type RenderedBlockEntry = Readonly<{ element: HTMLElement; start: number; end: number }>;
 
 const container = ref<HTMLElement>();
 const blocks = ref<RenderedBlockEntry[]>([]);
+const programmaticScrollInFlight = ref(false);
 const html = computed(() => renderMarkdownPreview(props.content));
 
 const annotationNodes: HTMLElement[] = [];
@@ -229,7 +238,41 @@ function buildBlocks(): void {
   emit('ready', props.fileId);
 }
 
-onMounted(buildBlocks);
+function handleScroll(): void {
+  if (!shouldEmitScrollSync(programmaticScrollInFlight.value)) return;
+
+  const host = container.value;
+  if (host === undefined) return;
+
+  const containerRect = host.getBoundingClientRect();
+  const visibleBlocks = blocks.value.map((block) => ({
+    start: block.start,
+    end: block.end,
+    top: block.element.getBoundingClientRect().top - containerRect.top,
+  }));
+  const topmost = findTopmostVisibleBlock(visibleBlocks, 0);
+  if (topmost === undefined) return;
+
+  emit('scrolledToBlock', { start: topmost.start, end: topmost.end });
+}
+
+defineExpose({
+  scrollToRange(startLine: number, endLine: number): void {
+    const block = findNearestBlock(blocks.value, startLine, endLine);
+    if (block === undefined) return;
+
+    programmaticScrollInFlight.value = true;
+    block.element.scrollIntoView({ block: 'nearest' });
+    requestAnimationFrame(() => {
+      programmaticScrollInFlight.value = false;
+    });
+  },
+});
+
+onMounted(() => {
+  buildBlocks();
+  container.value?.addEventListener('scroll', handleScroll, { passive: true });
+});
 watch(() => [props.content, props.fileId, props.side] as const, buildBlocks);
 watch(() => [props.comments, props.composer] as const, renderAnnotations, { deep: true });
 watch(() => props.changes, applyMarkers);
@@ -238,6 +281,7 @@ watch(() => props.mutationsLocked, () => {
 });
 
 onBeforeUnmount(() => {
+  container.value?.removeEventListener('scroll', handleScroll);
   removeActiveButton();
   clearAnnotations();
 });

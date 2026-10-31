@@ -6,6 +6,9 @@ import {
   buildImageRouteUrl,
   classifyBlockChange,
   extractSourceBlocks,
+  findNearestBlock,
+  findTopmostVisibleBlock,
+  shouldEmitScrollSync,
 } from '../../src/web/model/rendered-markdown-blocks.js';
 
 function change(
@@ -112,6 +115,61 @@ describe('classifyBlockChange', () => {
 
   test('returns undefined when changes is null', () => {
     expect(classifyBlockChange(1, 2, 'base', null)).toBeUndefined();
+  });
+});
+
+describe('findTopmostVisibleBlock', () => {
+  const blocks = [
+    { start: 0, end: 1, top: -40 },
+    { start: 2, end: 3, top: -5 },
+    { start: 4, end: 5, top: 20 },
+    { start: 6, end: 7, top: 60 },
+  ];
+
+  test('returns the first block whose top is at or below the container top', () => {
+    expect(findTopmostVisibleBlock(blocks, 0)).toEqual({ start: 4, end: 5, top: 20 });
+  });
+
+  test('returns the first block when every block is already visible (containerTop below all tops)', () => {
+    expect(findTopmostVisibleBlock(blocks, -100)).toEqual({ start: 0, end: 1, top: -40 });
+  });
+
+  test('returns undefined when every block has scrolled past the container top', () => {
+    expect(findTopmostVisibleBlock(blocks, 1000)).toBeUndefined();
+  });
+
+  test('returns undefined for an empty list', () => {
+    expect(findTopmostVisibleBlock([], 0)).toBeUndefined();
+  });
+});
+
+describe('findNearestBlock', () => {
+  const blocks = [
+    { start: 0, end: 2 },
+    { start: 5, end: 7 },
+    { start: 10, end: 12 },
+  ];
+
+  test('returns the exact [start,end] match when present', () => {
+    expect(findNearestBlock(blocks, 5, 7)).toEqual({ start: 5, end: 7 });
+  });
+
+  test('returns the closest-by-start block when no exact match exists', () => {
+    expect(findNearestBlock(blocks, 9, 20)).toEqual({ start: 10, end: 12 });
+  });
+
+  test('returns undefined for an empty list', () => {
+    expect(findNearestBlock([], 0, 0)).toBeUndefined();
+  });
+});
+
+describe('shouldEmitScrollSync', () => {
+  test('returns false while a programmatic scroll is in flight', () => {
+    expect(shouldEmitScrollSync(true)).toBe(false);
+  });
+
+  test('returns true when no programmatic scroll is in flight', () => {
+    expect(shouldEmitScrollSync(false)).toBe(true);
   });
 });
 

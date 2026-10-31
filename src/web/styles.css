@@ -1988,6 +1988,7 @@ h3.conversation-card__identity {
 
 .rendered-markdown {
   overflow-x: auto;
+  overflow-y: auto;
   overflow-wrap: anywhere;
 }
 
