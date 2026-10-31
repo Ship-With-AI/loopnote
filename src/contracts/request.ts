@@ -29,7 +29,7 @@ function isBoundedGitArgument(value: string): boolean {
   return value.length > 0 && !value.includes('\0') && isValidUnicode(value) && Buffer.byteLength(value, 'utf8') <= MAX_GIT_ARGUMENT_BYTES;
 }
 
-const GitArgumentSchema = z.string().refine(isBoundedGitArgument, {
+export const GitArgumentSchema = z.string().refine(isBoundedGitArgument, {
   message: 'Git arguments must be non-empty, valid Unicode without NUL, and at most 4096 UTF-8 bytes.',
 });
 
@@ -82,8 +82,64 @@ const RevisionRequestSchema = z
   })
   .readonly();
 
+const UncommittedSourceSchema = z.enum(['staged', 'unstaged', 'worktree']);
+
+const UncommittedRequestScopeSchema = z
+  .strictObject({
+    source: UncommittedSourceSchema,
+    base: GitArgumentSchema.optional(),
+    pathspecs: z
+      .array(GitArgumentSchema)
+      .max(MAX_PATHSPEC_COUNT)
+      .default(emptyPathspecs)
+      .transform((pathspecs) => Object.freeze(pathspecs)),
+  })
+  .superRefine((scope, ctx) => {
+    if (scope.source === 'unstaged' && scope.base !== undefined) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['base'],
+        message: '"base" cannot be combined with source "unstaged".',
+      });
+    }
+  })
+  .readonly();
+
+const UncommittedRequestSchema = z
+  .strictObject({
+    kind: z.literal('cumpa.review-request'),
+    schemaVersion: z.literal(1),
+    mode: z.literal('uncommitted'),
+    uncommitted: UncommittedRequestScopeSchema,
+  })
+  .readonly();
+
+const FilesRequestScopeSchema = z
+  .strictObject({
+    paths: z
+      .array(GitArgumentSchema)
+      .min(1)
+      .max(MAX_PATHSPEC_COUNT)
+      .transform((paths) => Object.freeze(paths)),
+  })
+  .readonly();
+
+const FilesRequestSchema = z
+  .strictObject({
+    kind: z.literal('cumpa.review-request'),
+    schemaVersion: z.literal(1),
+    mode: z.literal('files'),
+    files: FilesRequestScopeSchema,
+  })
+  .readonly();
+
 export const AgentReviewRequestSchema = z
-  .discriminatedUnion('mode', [RevisionRequestSchema, ExactPatchRequestSchema])
+  .discriminatedUnion('mode', [
+    RevisionRequestSchema,
+    ExactPatchRequestSchema,
+    UncommittedRequestSchema,
+    FilesRequestSchema,
+  ])
   .readonly();
 
 export type AgentReviewRequest = z.infer<typeof AgentReviewRequestSchema>;

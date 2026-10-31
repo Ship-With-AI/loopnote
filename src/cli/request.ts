@@ -14,7 +14,12 @@ export type AgentRequestErrorKind =
   | 'invalid-utf8'
   | 'malformed-json'
   | 'unsupported-version'
-  | 'invalid-request';
+  | 'invalid-request'
+  | 'unknown-mode'
+  | 'base-with-unstaged'
+  | 'path-outside-repository'
+  | 'pathspec-no-match'
+  | 'pathspec-ignored';
 
 const requestErrorMessages = {
   'empty-request': 'Request input is empty. Pipe one cumpa.review-request JSON document.',
@@ -23,6 +28,11 @@ const requestErrorMessages = {
   'malformed-json': 'Request input must contain one JSON document.',
   'unsupported-version': 'Request schema version is unsupported. Use schemaVersion 1.',
   'invalid-request': 'Request is invalid. Use kind "cumpa.review-request", schemaVersion 1, and one supported source mode.',
+  'unknown-mode': 'Request mode is not supported. Use revisions, patch, uncommitted, or files.',
+  'base-with-unstaged': '"base" cannot be combined with source "unstaged".',
+  'path-outside-repository': 'Request references a path outside the repository.',
+  'pathspec-no-match': 'Request pathspec does not match any file.',
+  'pathspec-ignored': 'Request pathspec matches only ignored files.',
 } as const satisfies Record<AgentRequestErrorKind, string>;
 
 export class AgentRequestError extends Error {
@@ -45,13 +55,46 @@ function isUnsupportedVersion(value: unknown): boolean {
   );
 }
 
+function isUnknownMode(value: unknown): boolean {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    !Array.isArray(value) &&
+    'mode' in value &&
+    typeof value.mode === 'string' &&
+    !['revisions', 'patch', 'uncommitted', 'files'].includes(value.mode)
+  );
+}
+
+function isBaseWithUnstaged(value: unknown): boolean {
+  if (typeof value !== 'object' || value === null || Array.isArray(value) || !('uncommitted' in value)) {
+    return false;
+  }
+  const uncommitted = value.uncommitted;
+  return (
+    typeof uncommitted === 'object' &&
+    uncommitted !== null &&
+    !Array.isArray(uncommitted) &&
+    'source' in uncommitted &&
+    uncommitted.source === 'unstaged' &&
+    'base' in uncommitted &&
+    uncommitted.base !== undefined
+  );
+}
+
 function freezeRequest(request: AgentReviewRequest): AgentReviewRequest {
   if (request.mode === 'revisions') {
     Object.freeze(request.revisions.pathspecs);
     Object.freeze(request.revisions);
-  } else {
+  } else if (request.mode === 'patch') {
     Object.freeze(request.patch.target);
     Object.freeze(request.patch);
+  } else if (request.mode === 'uncommitted') {
+    Object.freeze(request.uncommitted.pathspecs);
+    Object.freeze(request.uncommitted);
+  } else {
+    Object.freeze(request.files.paths);
+    Object.freeze(request.files);
   }
   return Object.freeze(request);
 }
@@ -87,7 +130,13 @@ export async function readAgentReviewRequest(
   const parsed = AgentReviewRequestSchema.safeParse(value);
   if (!parsed.success) {
     throw new AgentRequestError(
-      isUnsupportedVersion(value) ? 'unsupported-version' : 'invalid-request',
+      isUnsupportedVersion(value)
+        ? 'unsupported-version'
+        : isUnknownMode(value)
+          ? 'unknown-mode'
+          : isBaseWithUnstaged(value)
+            ? 'base-with-unstaged'
+            : 'invalid-request',
     );
   }
 

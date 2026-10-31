@@ -1114,6 +1114,10 @@ export async function runOrdinaryAction(
       return;
     }
 
+    if (request.mode !== 'revisions') {
+      throw new Error(`Request mode "${request.mode}" dispatch is not yet implemented.`);
+    }
+
     const comparison = await createRangeComparison({
       cwd: options.cwd,
       baseRevision: request.revisions.base,
