@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { extname as posixExtname } from 'node:path/posix';
 
 import type { GroundedExactPatch, PinnedComparison, ChangedFile, UncommittedScope } from '../contracts/comparison.js';
+import type { WorkingTreeDriftFlag } from '../contracts/draft.js';
 import {
   ExportReviewResultSchema,
   AppendCumpaIgnoreResultSchema,
@@ -59,6 +60,8 @@ import {
   buildReviewExportV2,
   buildReviewExportV3,
   buildReviewExportV4,
+  buildReviewExportV5,
+  buildReviewExportV6,
   canonicalizeReviewExport,
 } from '../export/review-export.js';
 import { parseCanonicalReviewExport } from '../export/review-export.js';
@@ -175,6 +178,7 @@ export type CapabilityRegistryOptions = Readonly<{
   readonly attachedCompletion?: AttachedCompletionOptions;
   readonly support?: SupportCapability;
   readonly uncommittedRecoveryCandidate?: Readonly<{ readonly path: string }>;
+  readonly requestPathspecs?: readonly string[];
 }>;
 
 export type AttachedCompletionOptions = Readonly<{
@@ -1110,6 +1114,32 @@ export async function createUncommittedCapabilityRegistry(
 
   let changeBaseline = await captureChangeBaseline();
 
+  const collectWorkingTreeDrift = async (): Promise<WorkingTreeDriftFlag> => {
+    const index = await indexStatIdentity();
+    const indexChanged = index.size !== changeBaseline.index.size || index.mtimeMs !== changeBaseline.index.mtimeMs;
+    const changedPaths: NonNullable<ChangedFile['newPath']>[] = [];
+    const files = await snapshot.files();
+    for (const file of files) {
+      const diskPath = diskPathFor(file);
+      if (diskPath === undefined) continue;
+      const expected = changeBaseline.files.get(file.id);
+      let actual: StatIdentity | undefined;
+      try {
+        const info = await lstat(diskPath);
+        actual = { size: info.size, mtimeMs: info.mtimeMs };
+      } catch {
+        actual = undefined;
+      }
+      const changed = expected === undefined
+        ? actual !== undefined
+        : actual === undefined || actual.size !== expected.size || actual.mtimeMs !== expected.mtimeMs;
+      if (!changed) continue;
+      const path = file.newPath ?? file.oldPath;
+      if (path !== undefined) changedPaths.push(path);
+    }
+    return { changed: indexChanged || changedPaths.length > 0, paths: changedPaths };
+  };
+
   return Object.freeze({
     session: sessionResponse,
     onAnchorAdd: options.onAnchorAdd,
@@ -1382,6 +1412,32 @@ export async function createStandaloneCapabilityRegistry(
   };
 
   let changeBaseline = await captureChangeBaseline();
+
+  const collectWorkingTreeDrift = async (): Promise<WorkingTreeDriftFlag> => {
+    const index = await indexStatIdentity();
+    const indexChanged = index.size !== changeBaseline.index.size || index.mtimeMs !== changeBaseline.index.mtimeMs;
+    const changedPaths: NonNullable<ChangedFile['newPath']>[] = [];
+    const files = await snapshot.files();
+    for (const file of files) {
+      const diskPath = diskPathFor(file);
+      if (diskPath === undefined) continue;
+      const expected = changeBaseline.files.get(file.id);
+      let actual: StatIdentity | undefined;
+      try {
+        const info = await lstat(diskPath);
+        actual = { size: info.size, mtimeMs: info.mtimeMs };
+      } catch {
+        actual = undefined;
+      }
+      const changed = expected === undefined
+        ? actual !== undefined
+        : actual === undefined || actual.size !== expected.size || actual.mtimeMs !== expected.mtimeMs;
+      if (!changed) continue;
+      const path = file.newPath ?? file.oldPath;
+      if (path !== undefined) changedPaths.push(path);
+    }
+    return { changed: indexChanged || changedPaths.length > 0, paths: changedPaths };
+  };
 
   return Object.freeze({
     session: sessionResponse,
