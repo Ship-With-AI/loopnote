@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
-import { ReviewExportV1Schema, ReviewExportV3Schema } from '../../src/contracts/draft.js';
+import { ReviewExportV1Schema, ReviewExportV3Schema, ReviewExportV4Schema } from '../../src/contracts/draft.js';
 import { canonicalizeReviewExport } from '../../src/export/review-export.js';
 import { renderReviewMarkdown } from '../../src/export/render-review-markdown.js';
 
@@ -171,5 +171,45 @@ describe('exact patch Markdown', () => {
     expect(markdown).toContain(`Patch digest: \`${'e'.repeat(64)}\``);
     expect(markdown).toContain('Preimage');
     expect(markdown).toContain('Postimage');
+  });
+});
+
+describe('standalone Markdown', () => {
+  test('describes standalone file provenance, never preimage/postimage', () => {
+    const fileComment = record({
+      id: 'comment_aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      state: 'open',
+      verification: 'verified',
+      path: 'src/review.ts',
+    });
+    const document = ReviewExportV4Schema.parse({
+      schemaVersion: 4,
+      kind: 'cumpa/export',
+      exportedAt: '2026-07-23T08:02:00.000Z',
+      acceptedDraftRevision: 4,
+      standalone: {
+        originalArguments: ['src/review.ts', 'docs/'],
+        resolvedPaths: [path('src/review.ts')],
+        fileDigests: [{ path: path('src/review.ts'), sha256: 'e'.repeat(64) }],
+        snapshotChain: ['a'.repeat(64), 'b'.repeat(64)],
+        reviewKey: 'f'.repeat(64),
+      },
+      summary: { markdown: 'Review summary' },
+      files: [{ path: fileComment.anchor.path, comments: [fileComment] }],
+      counts: { all: 1, openActionable: 1, openNeedsAttention: 0, resolved: 0 },
+    });
+
+    const markdown = renderReviewMarkdown(canonicalizeReviewExport(document));
+
+    expect(markdown).toContain('## Standalone files');
+    expect(markdown).toContain('src/review.ts');
+    expect(markdown).toContain('docs/');
+    expect(markdown).toContain('Resolved paths: 1');
+    expect(markdown).toContain(`Snapshot chain: ${'a'.repeat(64)} → ${'b'.repeat(64)}`);
+    expect(markdown).toContain('## Standalone file digests');
+    expect(markdown).toContain(`File digest (sha256 ${'e'.repeat(64)}):`);
+    expect(markdown).toContain('Side: `head`');
+    expect(markdown).not.toContain('Preimage');
+    expect(markdown).not.toContain('Postimage');
   });
 });

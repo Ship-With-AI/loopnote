@@ -6,11 +6,13 @@ import {
   ReviewExportV1Schema,
   ReviewExportV2Schema,
   ReviewExportV3Schema,
+  ReviewExportV4Schema,
 } from '../../src/contracts/draft.js';
 import {
   buildReviewExportV1,
   buildReviewExportV2,
   buildReviewExportV3,
+  buildReviewExportV4,
   canonicalizeReviewExport,
   hashExportBytes,
   parseCanonicalReviewExport,
@@ -306,5 +308,102 @@ describe('ReviewExportV3 exact patch contract', () => {
     expect(function () {
       return ReviewExportV3Schema.parse({ ...document, extra: true });
     }).toThrow();
+  });
+});
+
+describe('ReviewExportV4 standalone contract', () => {
+  test('binds accepted feedback to standalone provenance and rejects spoofed identity', () => {
+    const base = snapshot();
+    const standalone = {
+      originalArguments: ['src/a.ts', 'src/b.ts'],
+      resolvedPaths: [path('src/a.ts'), path('src/b.ts')],
+      fileDigests: [
+        { path: path('src/a.ts'), sha256: 'e'.repeat(64) },
+        { path: path('src/b.ts'), sha256: 'f'.repeat(64) },
+      ],
+      snapshotChain: ['a'.repeat(64)],
+      reviewKey: 'f'.repeat(64),
+    };
+    const draftComparison = {
+      kind: 'uncommitted' as const,
+      sourceKind: 'standalone' as const,
+      reviewKey: standalone.reviewKey,
+      snapshotChain: standalone.snapshotChain,
+    };
+    const document = buildReviewExportV4(
+      {
+        acceptedDraft: { ...base.acceptedDraft, comparison: draftComparison },
+        commentVerification: base.commentVerification,
+      },
+      standalone,
+      '2026-07-23T08:02:00.000Z',
+    );
+    const bytes = canonicalizeReviewExport(document);
+    expect(bytes.at(-1)).not.toBe(0x0a);
+
+    expect(parseCanonicalReviewExport(bytes)).toEqual(document);
+    expect(document).toMatchObject({ schemaVersion: 4, standalone });
+    expect(document).not.toHaveProperty('comparison');
+    expect(document).not.toHaveProperty('drift');
+    expect(document.files[0]?.comments[0]?.anchor.selectedText).toBe('const answer = 41;');
+    expect(function () {
+      return buildReviewExportV4(
+        {
+          acceptedDraft: { ...base.acceptedDraft, comparison: draftComparison },
+          commentVerification: base.commentVerification,
+        },
+        { ...standalone, reviewKey: 'a'.repeat(64) },
+        '2026-07-23T08:02:00.000Z',
+      );
+    }).toThrow(TypeError);
+    expect(function () {
+      return buildReviewExportV4(
+        {
+          acceptedDraft: {
+            ...base.acceptedDraft,
+            comparison: { ...draftComparison, sourceKind: 'worktree' as const, baseCommitOid: oid },
+          },
+          commentVerification: base.commentVerification,
+        },
+        standalone,
+        '2026-07-23T08:02:00.000Z',
+      );
+    }).toThrow(TypeError);
+    expect(function () {
+      return ReviewExportV4Schema.parse({ ...document, extra: true });
+    }).toThrow();
+  });
+
+  test('rejects a schemaVersion 4 document missing standalone.reviewKey from canonical bytes', () => {
+    const base = snapshot();
+    const standalone = {
+      originalArguments: ['src/a.ts'],
+      resolvedPaths: [path('src/a.ts')],
+      fileDigests: [{ path: path('src/a.ts'), sha256: 'e'.repeat(64) }],
+      snapshotChain: ['a'.repeat(64)],
+      reviewKey: 'f'.repeat(64),
+    };
+    const document = buildReviewExportV4(
+      {
+        acceptedDraft: {
+          ...base.acceptedDraft,
+          comparison: {
+            kind: 'uncommitted' as const,
+            sourceKind: 'standalone' as const,
+            reviewKey: standalone.reviewKey,
+            snapshotChain: standalone.snapshotChain,
+          },
+        },
+        commentVerification: base.commentVerification,
+      },
+      standalone,
+      '2026-07-23T08:02:00.000Z',
+    );
+    const { standalone: validStandalone, ...rest } = document as unknown as Record<string, unknown>;
+    const { reviewKey: _reviewKey, ...standaloneWithoutKey } = validStandalone as Record<string, unknown>;
+    const malformedBytes = new TextEncoder().encode(JSON.stringify({ ...rest, standalone: standaloneWithoutKey }));
+
+    expect(() => parseCanonicalReviewExport(malformedBytes)).toThrow();
+    expect(() => parseCanonicalReviewExport(canonicalizeReviewExport(document))).not.toThrow();
   });
 });
