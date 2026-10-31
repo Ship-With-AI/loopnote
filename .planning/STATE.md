@@ -5,15 +5,15 @@ milestone_name: Artifact Review
 current_phase: 17
 current_phase_name: agent-protocol-extension-marketplace-skill
 status: executing
-stopped_at: Completed 17-03-PLAN.md
-last_updated: "2026-10-31T16:12:03.019Z"
+stopped_at: Completed 17-04-PLAN.md
+last_updated: "2026-10-31T16:49:59.936Z"
 last_activity: 2026-10-31
 last_activity_desc: Phase 17 execution started
 progress:
   total_phases: 7
   completed_phases: 4
   total_plans: 42
-  completed_plans: 40
+  completed_plans: 41
   percent: 57
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-09-09)
 ## Current Position
 
 Phase: 17 (agent-protocol-extension-marketplace-skill) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Status: Ready to execute
 Last activity: 2026-10-31 — Phase 17 execution started
 
@@ -86,6 +86,7 @@ Last activity: 2026-10-31 — Phase 17 execution started
 | Phase 17 P01 | 10min | 2 tasks | 4 files |
 | Phase 17 P02 | 35min | 2 tasks | 5 files |
 | Phase 17 P03 | 10min | 2 tasks | 1 files |
+| Phase 17-agent-protocol-extension-marketplace-skill P04 | 55min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -147,6 +148,9 @@ Decisions are logged in PROJECT.md Key Decisions.
 - [Phase 17]: attachedCompletion wired into uncommitted/standalone registries using the exact-patch template verbatim; drift always included, never rejects Finish (D-03)
 - [Phase 17]: Stale/orphaned comment anchor handling in the two new attachedCompletion blocks kept byte-identical to the pinned/exact-patch registries (D-02)
 - [Phase 17]: collectWorkingTreeDrift duplicated between the two registries rather than extracted to a shared helper, matching the file's existing duplication precedent
+- [Phase ?]: 17-04: typed-error adapters re-throw the generic AgentRequestError(kind) message (not the lower-level Git-adapter wording); negative e2e assertions check the shared 'outside the repository' substring.
+- [Phase 17]: 17-04: uncommitted/files positive e2e scenarios interact through DiffWorkspace.vue's single-pane host (uppercase BASE/HEAD affordances), not the two-pane revisions/patch Monaco diff editor; added a local addSinglePaneComment helper.
+- [Phase 17]: 17-04: discovered a pre-existing, out-of-scope bug in tests/helpers/open-runtime-session.ts (hardcoded .monaco-diff-editor visibility check fails whenever the auto-selected default file is single-pane); logged to deferred-items.md rather than fixed, since it reproduces identically with the unmodified pre-17-04 spec file and is unrelated to this plan's files_modified.
 
 ### Pending Todos
 
@@ -197,6 +201,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-31T16:12:03.015Z
-Stopped at: Completed 17-03-PLAN.md
+Last session: 2026-10-31T16:49:59.932Z
+Stopped at: Completed 17-04-PLAN.md
 Resume file: None
