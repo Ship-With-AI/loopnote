@@ -9,15 +9,17 @@ import {
   openSync,
   readdirSync,
   readFileSync,
+  rmSync,
   writeFileSync,
 } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
 
 import { expect, test } from '@playwright/test';
 import type { Browser, Page, TestInfo } from '@playwright/test';
 
-import { ReviewExportV1Schema, ReviewExportV3Schema } from '../../src/contracts/draft.js';
+import { ReviewExportV1Schema, ReviewExportV3Schema, ReviewExportV5Schema, ReviewExportV6Schema } from '../../src/contracts/draft.js';
 import { createGroundedExactPatch } from '../../src/git/exact-patch.js';
 import { parseCanonicalReviewExport } from '../../src/export/review-export.js';
 import { renderReviewMarkdown } from '../../src/export/render-review-markdown.js';
@@ -51,6 +53,8 @@ const sourceIndependentScenarios = [
   'range-finish',
   'equivalent-ranges',
   'exact-patch',
+  'uncommitted-worktree',
+  'standalone-files',
 ] as const;
 const completedScenarios = new Set<string>();
 let requiredScenarios: readonly string[];
@@ -204,6 +208,32 @@ async function waitForAttachedExit(running: RunningAttachedCli): Promise<number 
   return await promise;
 }
 
+/**
+ * Inverts `waitForAttachedLoopbackUrl`'s success condition for the AGENT-09
+ * negative-path scenarios: waits until the attached CLI process exits, while
+ * asserting a loopback URL never appears in its accumulated stderr at any
+ * point during the wait (distinguishing "rejected before launch" from
+ * "hung" rather than relying on a bare timeout).
+ */
+async function waitForAttachedRejectionWithoutLoopbackUrl(running: RunningAttachedCli): Promise<string> {
+  const deadline = Date.now() + 10_000;
+  while (Date.now() < deadline) {
+    const stderr = existsSync(running.stderrPath) ? readFileSync(running.stderrPath, 'utf8') : '';
+    if (/http:\/\/127\.0\.0\.1:\d+\/#token=[A-Za-z0-9_-]{43,}/.test(stderr)) {
+      throw new Error(
+        `[behavioral] attached CLI printed a loopback URL when it should have been rejected before launch:\n${stderr}`,
+      );
+    }
+    if (running.child.exitCode !== null || running.child.signalCode !== null) {
+      return stderr;
+    }
+    const { promise, resolve } = Promise.withResolvers<void>();
+    setTimeout(resolve, 25);
+    await promise;
+  }
+  throw new Error('[behavioral] timed out waiting for attached CLI to exit before launch');
+}
+
 function closeAttachedCliFiles(running: RunningAttachedCli): void {
   closeSync(running.stderrDescriptor);
   closeSync(running.stdoutDescriptor);
@@ -261,6 +291,41 @@ async function addHeadComment(page: Page, body: string, lineNumber = 10, selecte
   await expect(line).toBeVisible();
   await line.click();
   await page.getByRole('button', { name: new RegExp(`^Add comment to (?:head|postimage) line ${lineNumber}$`, 'u') }).click({ timeout: 10_000 });
+  await page.locator('.monaco-anchor-zone--composer textarea').fill(body);
+  const accepted = page.waitForResponse((response) => response.url().includes('/api/draft/mutations'));
+  await page.locator('.monaco-anchor-zone--composer button').filter({ hasText: 'Add comment' }).click();
+  expect((await accepted).status()).toBe(201);
+}
+
+/**
+ * `uncommitted`/`standalone` scopes render through `DiffWorkspace.vue`'s
+ * single-pane `.diff-workspace__editor` host (BASE/HEAD or Standalone
+ * labelling, no `.editor.modified` two-pane split), unlike the two-pane
+ * `revisions`/`patch` flow `addHeadComment` targets above — mirrors
+ * `tests/e2e/standalone-review.spec.ts`'s/`tests/e2e/uncommitted-review.spec.ts`'s
+ * own `activateSinglePaneLine` technique rather than importing across spec
+ * files (Playwright spec files do not share helper modules in this project).
+ */
+async function addSinglePaneComment(
+  page: Page,
+  treeItemName: RegExp,
+  side: 'base' | 'head',
+  selectedText: string,
+  lineNumber: number,
+  body: string,
+): Promise<void> {
+  await page.getByRole('treeitem', { name: treeItemName }).click({ timeout: 10_000 });
+  const sideWord = side === 'base' ? 'BASE' : 'HEAD';
+  const surface = page.locator('.diff-workspace__editor .monaco-scrollable-element.editor-scrollable').first();
+  await surface.click({ position: { x: 16, y: 16 } });
+  await page.keyboard.press('Meta+g');
+  await page.keyboard.insertText(String(lineNumber));
+  await page.keyboard.press('Enter');
+  const line = page.locator('.diff-workspace__editor .view-line').filter({ hasText: selectedText });
+  await expect(line).toBeVisible();
+  await line.hover();
+  await line.click();
+  await page.getByRole('button', { name: `Add comment to ${sideWord} line ${lineNumber}` }).click({ timeout: 10_000 });
   await page.locator('.monaco-anchor-zone--composer textarea').fill(body);
   const accepted = page.waitForResponse((response) => response.url().includes('/api/draft/mutations'));
   await page.locator('.monaco-anchor-zone--composer button').filter({ hasText: 'Add comment' }).click();
@@ -826,6 +891,290 @@ test('installed configured support remains unavailable without outbound access a
       await waitForAttachedExit(running);
     }
     if (!closed) closeAttachedCliFiles(running);
+    await fixture.cleanup();
+  }
+});
+
+test('installed uncommitted review resolves worktree changes and emits canonical V5 only after Finish', async ({ browser, page }, testInfo) => {
+  assertChromium(browser, testInfo);
+  const fixture = await createDirtyGitFixture('branch-to-worktree', 20);
+  try {
+  const before = await captureSourceControlSnapshot(fixture.root);
+  const request = {
+    kind: 'cumpa.review-request',
+    schemaVersion: 1,
+    mode: 'uncommitted',
+    uncommitted: { source: 'worktree', base: fixture.baseRef },
+  };
+  const running = startAttachedCli(fixture, { base: fixture.baseRef, head: fixture.headRef }, request);
+  let closed = false;
+
+  try {
+    const url = await waitForAttachedLoopbackUrl(running);
+    expect(readFileSync(running.stdoutPath)).toEqual(Buffer.alloc(0));
+    await openAcceptanceRuntimeSession(page, url);
+    await addSinglePaneComment(page, /staged-20\.txt/, 'head', 'staged 20', 1, 'Uncommitted worktree feedback.');
+    await openReviewNotes(page);
+    const finished = page.waitForResponse((response) => response.url().includes('/api/review-completion/finish'));
+    await page.getByRole('button', { name: 'Finish review', exact: true }).click();
+    const finishResponse = await finished;
+    expect(finishResponse.status(), await finishResponse.text()).toBe(201);
+    expect(await waitForAttachedExit(running)).toBe(0);
+
+    const bytes = readFileSync(running.stdoutPath);
+    expect(bytes.length).toBeGreaterThan(0);
+    const sizeAfterFinish = bytes.length;
+    const settleWait = Promise.withResolvers<void>();
+    setTimeout(settleWait.resolve, 500);
+    await settleWait.promise;
+    expect(readFileSync(running.stdoutPath).length).toBe(sizeAfterFinish);
+    const exported = ReviewExportV5Schema.parse(parseCanonicalReviewExport(bytes));
+    expect(exported.uncommitted.sourceKind).toBe('worktree');
+    expect(exported.files.flatMap((file) => file.comments).map((comment) => comment.body)).toContain('Uncommitted worktree feedback.');
+    expect(readFileSync(running.stderrPath, 'utf8')).toContain(url);
+    await registerSourceControlAssertion('uncommitted-worktree', before, fixture);
+    completedScenarios.add('uncommitted-worktree');
+    closeAttachedCliFiles(running);
+    closed = true;
+  } finally {
+    if (running.child.exitCode === null && running.child.signalCode === null) {
+      running.child.kill('SIGINT');
+      await waitForAttachedExit(running);
+    }
+    if (!closed) closeAttachedCliFiles(running);
+  }
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test('installed files review resolves standalone paths and emits canonical V6 only after Finish', async ({ browser, page }, testInfo) => {
+  assertChromium(browser, testInfo);
+  const fixture = await createDirtyGitFixture('branch-to-worktree', 21);
+  try {
+  const before = await captureSourceControlSnapshot(fixture.root);
+  const request = {
+    kind: 'cumpa.review-request',
+    schemaVersion: 1,
+    mode: 'files',
+    files: { paths: ['src/changed.ts'] },
+  };
+  const running = startAttachedCli(fixture, { base: fixture.baseRef, head: fixture.headRef }, request);
+  let closed = false;
+
+  try {
+    const url = await waitForAttachedLoopbackUrl(running);
+    expect(readFileSync(running.stdoutPath)).toEqual(Buffer.alloc(0));
+    await openAcceptanceRuntimeSession(page, url);
+    await addSinglePaneComment(page, /changed\.ts/, 'head', 'export const changed = "head value";', 9, 'Standalone files feedback.');
+    await openReviewNotes(page);
+    const finished = page.waitForResponse((response) => response.url().includes('/api/review-completion/finish'));
+    await page.getByRole('button', { name: 'Finish review', exact: true }).click();
+    const finishResponse = await finished;
+    expect(finishResponse.status(), await finishResponse.text()).toBe(201);
+    expect(await waitForAttachedExit(running)).toBe(0);
+
+    const bytes = readFileSync(running.stdoutPath);
+    expect(bytes.length).toBeGreaterThan(0);
+    const sizeAfterFinish = bytes.length;
+    const settleWait = Promise.withResolvers<void>();
+    setTimeout(settleWait.resolve, 500);
+    await settleWait.promise;
+    expect(readFileSync(running.stdoutPath).length).toBe(sizeAfterFinish);
+    const exported = ReviewExportV6Schema.parse(parseCanonicalReviewExport(bytes));
+    expect(exported.standalone.originalArguments).toContain('src/changed.ts');
+    expect(exported.files.flatMap((file) => file.comments).map((comment) => comment.body)).toContain('Standalone files feedback.');
+    expect(readFileSync(running.stderrPath, 'utf8')).toContain(url);
+    await registerSourceControlAssertion('standalone-files', before, fixture);
+    completedScenarios.add('standalone-files');
+    closeAttachedCliFiles(running);
+    closed = true;
+  } finally {
+    if (running.child.exitCode === null && running.child.signalCode === null) {
+      running.child.kill('SIGINT');
+      await waitForAttachedExit(running);
+    }
+    if (!closed) closeAttachedCliFiles(running);
+  }
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test('installed agent request rejects an unknown mode before any browser launch', async () => {
+  const fixture = await createDirtyGitFixture();
+  try {
+    const before = await captureSourceControlSnapshot(fixture.root);
+    const request = { kind: 'cumpa.review-request', schemaVersion: 1, mode: 'bogus' };
+    const running = startAttachedCli(fixture, { base: fixture.baseRef, head: fixture.headRef }, request);
+    try {
+      const output = await waitForAttachedRejectionWithoutLoopbackUrl(running);
+      expect(running.child.exitCode).toBe(1);
+      expect(output).toContain('Request mode is not supported');
+      expect(readFileSync(running.stdoutPath)).toEqual(Buffer.alloc(0));
+    } finally {
+      closeAttachedCliFiles(running);
+    }
+    await assertSourceControlUnchanged(before, await captureSourceControlSnapshot(fixture.root));
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test('installed agent request rejects base combined with source unstaged before any browser launch', async () => {
+  const fixture = await createDirtyGitFixture();
+  try {
+    const before = await captureSourceControlSnapshot(fixture.root);
+    const request = {
+      kind: 'cumpa.review-request',
+      schemaVersion: 1,
+      mode: 'uncommitted',
+      uncommitted: { source: 'unstaged', base: fixture.baseRef },
+    };
+    const running = startAttachedCli(fixture, { base: fixture.baseRef, head: fixture.headRef }, request);
+    try {
+      const output = await waitForAttachedRejectionWithoutLoopbackUrl(running);
+      expect(running.child.exitCode).toBe(1);
+      expect(output).toContain('cannot be combined with source "unstaged"');
+      expect(readFileSync(running.stdoutPath)).toEqual(Buffer.alloc(0));
+    } finally {
+      closeAttachedCliFiles(running);
+    }
+    await assertSourceControlUnchanged(before, await captureSourceControlSnapshot(fixture.root));
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test('installed agent request rejects a relative files path outside the repository before any browser launch', async () => {
+  const fixture = await createDirtyGitFixture();
+  const outsideFile = join(dirname(fixture.root), 'outside.txt');
+  writeFileSync(outsideFile, 'outside content\n');
+  try {
+    const before = await captureSourceControlSnapshot(fixture.root);
+    const request = {
+      kind: 'cumpa.review-request',
+      schemaVersion: 1,
+      mode: 'files',
+      files: { paths: ['../outside.txt'] },
+    };
+    const running = startAttachedCli(fixture, { base: fixture.baseRef, head: fixture.headRef }, request);
+    try {
+      const output = await waitForAttachedRejectionWithoutLoopbackUrl(running);
+      expect(running.child.exitCode).toBe(1);
+      expect(output).toContain('outside the repository');
+      expect(readFileSync(running.stdoutPath)).toEqual(Buffer.alloc(0));
+    } finally {
+      closeAttachedCliFiles(running);
+    }
+    await assertSourceControlUnchanged(before, await captureSourceControlSnapshot(fixture.root));
+  } finally {
+    rmSync(outsideFile, { force: true });
+    await fixture.cleanup();
+  }
+});
+
+test('installed agent request rejects an absolute files path outside the repository before any browser launch', async () => {
+  const fixture = await createDirtyGitFixture();
+  const outsideFile = join(tmpdir(), `cumpa-agent-absolute-outside-${crypto.randomUUID()}.txt`);
+  writeFileSync(outsideFile, 'outside content\n');
+  try {
+    const before = await captureSourceControlSnapshot(fixture.root);
+    const request = {
+      kind: 'cumpa.review-request',
+      schemaVersion: 1,
+      mode: 'files',
+      files: { paths: [outsideFile] },
+    };
+    const running = startAttachedCli(fixture, { base: fixture.baseRef, head: fixture.headRef }, request);
+    try {
+      const output = await waitForAttachedRejectionWithoutLoopbackUrl(running);
+      expect(running.child.exitCode).toBe(1);
+      expect(output).toContain('outside the repository');
+      expect(readFileSync(running.stdoutPath)).toEqual(Buffer.alloc(0));
+    } finally {
+      closeAttachedCliFiles(running);
+    }
+    await assertSourceControlUnchanged(before, await captureSourceControlSnapshot(fixture.root));
+  } finally {
+    rmSync(outsideFile, { force: true });
+    await fixture.cleanup();
+  }
+});
+
+test('installed agent request rejects a files path that does not match any file before any browser launch', async () => {
+  const fixture = await createDirtyGitFixture();
+  try {
+    const before = await captureSourceControlSnapshot(fixture.root);
+    const request = {
+      kind: 'cumpa.review-request',
+      schemaVersion: 1,
+      mode: 'files',
+      files: { paths: ['does-not-exist.txt'] },
+    };
+    const running = startAttachedCli(fixture, { base: fixture.baseRef, head: fixture.headRef }, request);
+    try {
+      const output = await waitForAttachedRejectionWithoutLoopbackUrl(running);
+      expect(running.child.exitCode).toBe(1);
+      expect(output).toContain('does not match any file');
+      expect(readFileSync(running.stdoutPath)).toEqual(Buffer.alloc(0));
+    } finally {
+      closeAttachedCliFiles(running);
+    }
+    await assertSourceControlUnchanged(before, await captureSourceControlSnapshot(fixture.root));
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test('installed agent request rejects a files path excluded via .gitignore before any browser launch', async () => {
+  const fixture = await createDirtyGitFixture();
+  await fixture.write('.gitignore', 'secret-negative.txt\n');
+  await fixture.write('secret-negative.txt', 'ignored content\n');
+  try {
+    const before = await captureSourceControlSnapshot(fixture.root);
+    const request = {
+      kind: 'cumpa.review-request',
+      schemaVersion: 1,
+      mode: 'files',
+      files: { paths: ['secret-negative.txt'] },
+    };
+    const running = startAttachedCli(fixture, { base: fixture.baseRef, head: fixture.headRef }, request);
+    try {
+      const output = await waitForAttachedRejectionWithoutLoopbackUrl(running);
+      expect(running.child.exitCode).toBe(1);
+      expect(output).toContain('matches only ignored files');
+      expect(readFileSync(running.stdoutPath)).toEqual(Buffer.alloc(0));
+    } finally {
+      closeAttachedCliFiles(running);
+    }
+    await assertSourceControlUnchanged(before, await captureSourceControlSnapshot(fixture.root));
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test('installed agent request rejects an oversized uncommitted request before any browser launch', async () => {
+  const fixture = await createDirtyGitFixture();
+  try {
+    const before = await captureSourceControlSnapshot(fixture.root);
+    const request = {
+      kind: 'cumpa.review-request',
+      schemaVersion: 1,
+      mode: 'uncommitted',
+      uncommitted: { source: 'worktree', base: 'x'.repeat(2 * 1_048_576) },
+    };
+    const running = startAttachedCli(fixture, { base: fixture.baseRef, head: fixture.headRef }, request);
+    try {
+      const output = await waitForAttachedRejectionWithoutLoopbackUrl(running);
+      expect(running.child.exitCode).toBe(1);
+      expect(output).toContain('exceeds 1048576 bytes');
+      expect(readFileSync(running.stdoutPath)).toEqual(Buffer.alloc(0));
+    } finally {
+      closeAttachedCliFiles(running);
+    }
+    await assertSourceControlUnchanged(before, await captureSourceControlSnapshot(fixture.root));
+  } finally {
     await fixture.cleanup();
   }
 });
