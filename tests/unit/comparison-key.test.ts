@@ -3,6 +3,7 @@ import { describe, expect, test } from 'vitest';
 import {
   comparisonKey,
   rangeReviewKey,
+  standaloneReviewKey,
   uncommittedReviewKey,
 } from '../../src/domain/comparison-key.js';
 
@@ -106,6 +107,53 @@ describe('uncommittedReviewKey', () => {
   test('keeps uncommitted keys in a disjoint hash space from comparisonKey and rangeReviewKey', () => {
     const key = uncommittedReviewKey('staged', sha1Base, sha256Head);
 
+    expect(key).not.toBe(comparisonKey(sha1Base, sha256Head));
+    expect(key).not.toBe(rangeReviewKey(sha1Base, sha256Head, []));
+  });
+});
+
+describe('standaloneReviewKey', () => {
+  test('is stable deterministic hash matching 64 hex characters for identical sorted arguments and digest', () => {
+    const args = ['a.txt', 'b.txt'] as const;
+
+    expect(standaloneReviewKey(args, sha256Head)).toBe(
+      standaloneReviewKey(args, sha256Head),
+    );
+    expect(standaloneReviewKey(args, sha256Head)).toMatch(/^[0-9a-f]{64}$/u);
+  });
+
+  test('differs when argument order differs (caller is responsible for sorting)', () => {
+    const original = standaloneReviewKey(['a.txt', 'b.txt'], sha256Head);
+
+    expect(standaloneReviewKey(['b.txt', 'a.txt'], sha256Head)).not.toBe(
+      original,
+    );
+  });
+
+  test('differs when any argument string differs', () => {
+    const original = standaloneReviewKey(['a.txt', 'b.txt'], sha256Head);
+
+    expect(standaloneReviewKey(['a.txt', 'c.txt'], sha256Head)).not.toBe(
+      original,
+    );
+  });
+
+  test('differs when the snapshot digest differs', () => {
+    const original = standaloneReviewKey(['a.txt', 'b.txt'], sha256Head);
+
+    expect(standaloneReviewKey(['a.txt', 'b.txt'], sha256Base)).not.toBe(
+      original,
+    );
+  });
+
+  test('signature only accepts the two documented parameters (sorted arguments and snapshot digest)', () => {
+    expect(standaloneReviewKey.length).toBe(2);
+  });
+
+  test('keeps standalone keys in a disjoint hash space from uncommittedReviewKey for the same byte inputs', () => {
+    const key = standaloneReviewKey(['a.txt'], sha256Head);
+
+    expect(key).not.toBe(uncommittedReviewKey('unstaged', undefined, sha256Head));
     expect(key).not.toBe(comparisonKey(sha1Base, sha256Head));
     expect(key).not.toBe(rangeReviewKey(sha1Base, sha256Head, []));
   });

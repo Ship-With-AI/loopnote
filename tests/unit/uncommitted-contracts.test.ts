@@ -84,6 +84,107 @@ describe('UncommittedScopeSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  it('accepts a standalone scope with no base commit and standaloneArguments present', () => {
+    const result = UncommittedScopeSchema.safeParse({
+      kind: 'uncommitted',
+      sourceKind: 'standalone',
+      repositoryRoot: '/repo',
+      objectFormat: 'sha1',
+      standaloneArguments: ['a.txt'],
+      changedFiles: [],
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects a standalone scope with a baseCommitOid present', () => {
+    const result = UncommittedScopeSchema.safeParse({
+      kind: 'uncommitted',
+      sourceKind: 'standalone',
+      repositoryRoot: '/repo',
+      objectFormat: 'sha1',
+      standaloneArguments: ['a.txt'],
+      baseCommitOid: base40,
+      changedFiles: [],
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.path).toContain('baseCommitOid');
+    }
+  });
+
+  it('rejects a standalone scope without standaloneArguments', () => {
+    const result = UncommittedScopeSchema.safeParse({
+      kind: 'uncommitted',
+      sourceKind: 'standalone',
+      repositoryRoot: '/repo',
+      objectFormat: 'sha1',
+      changedFiles: [],
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const paths = result.error.issues.map((issue) => issue.path.join('.'));
+      expect(paths).toContain('standaloneArguments');
+    }
+  });
+
+  it('rejects an unstaged scope that includes a standaloneArguments field', () => {
+    const result = UncommittedScopeSchema.safeParse({
+      kind: 'uncommitted',
+      sourceKind: 'unstaged',
+      repositoryRoot: '/repo',
+      objectFormat: 'sha1',
+      standaloneArguments: ['a.txt'],
+      changedFiles: [],
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const paths = result.error.issues.map((issue) => issue.path.join('.'));
+      expect(paths).toContain('standaloneArguments');
+    }
+  });
+
+  it('rejects a staged scope that includes a standaloneArguments field', () => {
+    const result = UncommittedScopeSchema.safeParse({
+      kind: 'uncommitted',
+      sourceKind: 'staged',
+      repositoryRoot: '/repo',
+      objectFormat: 'sha1',
+      baseCommitOid: base40,
+      mergeBaseOid: mergeBase40,
+      standaloneArguments: ['a.txt'],
+      changedFiles: [],
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const paths = result.error.issues.map((issue) => issue.path.join('.'));
+      expect(paths).toContain('standaloneArguments');
+    }
+  });
+
+  it('rejects a worktree scope that includes a standaloneArguments field', () => {
+    const result = UncommittedScopeSchema.safeParse({
+      kind: 'uncommitted',
+      sourceKind: 'worktree',
+      repositoryRoot: '/repo',
+      objectFormat: 'sha1',
+      baseCommitOid: base40,
+      mergeBaseOid: mergeBase40,
+      standaloneArguments: ['a.txt'],
+      changedFiles: [],
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const paths = result.error.issues.map((issue) => issue.path.join('.'));
+      expect(paths).toContain('standaloneArguments');
+    }
+  });
+
   it('rejects an unknown extra key, matching every other strictObject contract in this file', () => {
     const result = UncommittedScopeSchema.safeParse({
       kind: 'uncommitted',
@@ -156,6 +257,32 @@ describe('UncommittedDraftComparisonSchema (via DraftComparisonSchema)', () => {
       expect(paths.some((path) => path.startsWith('snapshotChain'))).toBe(
         true,
       );
+    }
+  });
+
+  it('accepts a standalone draft comparison with no base commit', () => {
+    const result = DraftComparisonSchema.safeParse({
+      kind: 'uncommitted',
+      sourceKind: 'standalone',
+      reviewKey: reviewKey64,
+      snapshotChain: [digest64],
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects a standalone draft comparison with a baseCommitOid present', () => {
+    const result = DraftComparisonSchema.safeParse({
+      kind: 'uncommitted',
+      sourceKind: 'standalone',
+      baseCommitOid: base40,
+      reviewKey: reviewKey64,
+      snapshotChain: [digest64],
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.path).toContain('baseCommitOid');
     }
   });
 
