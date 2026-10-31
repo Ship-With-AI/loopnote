@@ -37,6 +37,11 @@ import { createGitRunner, GitRunnerError } from '../git/runner.js';
 import type { GitRunner } from '../git/runner.js';
 import { createWorktreeChangedFileInventory } from '../git/worktree-inventory.js';
 import {
+  classifyStandaloneGitState,
+  createStandaloneChangedFileInventory,
+  resolveStandaloneArguments,
+} from '../git/standalone-resolution.js';
+import {
   createPinnedComparison,
   createPinnedRangeComparison,
   type CreatePinnedComparisonOptions,
@@ -50,7 +55,9 @@ import {
   createConfiguredSupportCapability,
   createExactPatchSessionApp,
   createSessionApp,
+  createStandaloneSessionApp,
   createUncommittedSessionApp,
+  type CreateStandaloneSessionAppOptions,
   type CreateUncommittedSessionAppOptions,
   type SessionApp,
 } from '../server/app.js';
@@ -212,6 +219,7 @@ export interface OrdinaryActionDependencies {
   readonly createSessionApp?: typeof createSessionApp;
   readonly createExactPatchSessionApp?: typeof createExactPatchSessionApp;
   readonly createUncommittedSessionApp?: typeof createUncommittedSessionApp;
+  readonly createStandaloneSessionApp?: typeof createStandaloneSessionApp;
   readonly findUncommittedDraftCandidate?: typeof findUncommittedDraftCandidate;
   readonly openBrowser?: (url: string) => Promise<unknown>;
   readonly webRoot?: string;
@@ -788,6 +796,153 @@ async function launchUncommittedSession(
   }
 }
 
+async function launchStandaloneSession(
+  paths: readonly string[],
+  dependencies: OrdinaryActionDependencies,
+  options: RunCliOptions,
+): Promise<void> {
+  const output = dependencies.output ?? console.error;
+  const support = dependencies.support ?? createConfiguredSupportCapability();
+  const openBrowser = dependencies.openBrowser ?? createBrowserUrlOpener();
+  const revealDraftFile =
+    dependencies.revealDraftFile ??
+    (async (canonicalPath: string) => {
+      await open(canonicalPath);
+    });
+  const createApp =
+    dependencies.createStandaloneSessionApp ??
+    ((scope: UncommittedScope, appOptions: CreateStandaloneSessionAppOptions) =>
+      createStandaloneSessionApp(scope, appOptions));
+  const activeGit = new AbortController();
+  let app: SessionApp | undefined;
+  let stopRefreshKeypress: (() => void) | undefined;
+
+  const shutdown = createShutdownController({
+    signalSource: dependencies.signalSource,
+    abortActiveWork: () => {
+      activeGit.abort();
+    },
+    closeListener: async () => {
+      stopRefreshKeypress?.();
+      if (app !== undefined) {
+        await app.close();
+      }
+    },
+    setExitStatus: dependencies.setExitStatus,
+    reportError: (error) => {
+      console.error('Cumpa shutdown failed.', error);
+    },
+  });
+
+  try {
+    const runner = createGitRunner();
+    const repository = await discoverGitRepository(
+      options.cwd,
+      runner,
+      activeGit.signal,
+    );
+    const objectFormat = await resolveUncommittedObjectFormat(
+      repository.root,
+      runner,
+      activeGit.signal,
+    );
+
+    const resolvedPaths = await resolveStandaloneArguments(
+      repository.root,
+      paths,
+      { runner },
+    );
+    const gitStates = await classifyStandaloneGitState(
+      repository.root,
+      resolvedPaths,
+      { runner },
+    );
+    const changedFiles = await createStandaloneChangedFileInventory(
+      repository.root,
+      resolvedPaths,
+      gitStates,
+      objectFormat,
+      { runner, signal: activeGit.signal },
+    );
+
+    const scope: UncommittedScope = UncommittedScopeSchema.parse({
+      kind: 'uncommitted',
+      sourceKind: 'standalone',
+      repositoryRoot: repository.root,
+      objectFormat,
+      standaloneArguments: paths,
+      changedFiles,
+    });
+
+    if (shutdown.isShuttingDown) {
+      await shutdown.shutdown();
+      return;
+    }
+
+    const token = randomBytes(32).toString('base64url');
+    app = await createApp(scope, {
+      webRoot: dependencies.webRoot,
+      support,
+      sessionToken: token,
+      revealDraftFile,
+      diagnostics: ({ correlationId, reason }) => {
+        console.error(`Cumpa request denied [${correlationId}]: ${reason}.`);
+      },
+    });
+    await app.listen({ host: '127.0.0.1', port: 0 });
+    if (shutdown.isShuttingDown) {
+      await shutdown.shutdown();
+      return;
+    }
+
+    const address = app.server.address();
+    if (
+      address === null ||
+      typeof address === 'string' ||
+      address.address !== '127.0.0.1' ||
+      address.port === 0
+    ) {
+      throw new Error(
+        'Fastify did not bind the required IPv4 loopback address',
+      );
+    }
+    const authority = `127.0.0.1:${address.port}`;
+    app.bindSessionSecurity({
+      expectedHost: authority,
+      expectedOrigin: `http://${authority}`,
+    });
+    const url = `http://${authority}/#token=${token}`;
+
+    output(url);
+    output(browserFallback);
+    try {
+      await openBrowser(url);
+    } catch {
+      output(
+        'Browser did not open automatically. Open the URL above manually.',
+      );
+    }
+
+    stopRefreshKeypress = registerUncommittedRefreshKeypress(
+      authority,
+      token,
+      output,
+      shutdown,
+    );
+  } catch (error) {
+    if (shutdown.isShuttingDown) {
+      await shutdown.shutdown();
+      return;
+    }
+    await shutdown.shutdown(1);
+    if (error instanceof Error) {
+      output(error.message);
+      return;
+    }
+    throw error;
+  }
+}
+
 function writeStdout(bytes: Uint8Array): Promise<void> {
   const { promise, reject, resolve } = Promise.withResolvers<void>();
   process.stdout.write(bytes, (error) => {
@@ -1168,12 +1323,25 @@ export async function run(
     .option('--unstaged', 'Review unstaged changes (index→working tree)')
     .option('--worktree', 'Review all working-tree changes (HEAD→working tree), including untracked files')
     .option('--base <ref>', 'Base ref or registered worktree to compare against (default: HEAD); rejected with --unstaged')
-    .action(async (cliOptions: {
+    .argument('[paths...]', 'Files or globs to review directly, with no Base/Head selection')
+    .action(async (paths: string[], cliOptions: {
       readonly staged?: boolean;
       readonly unstaged?: boolean;
       readonly worktree?: boolean;
       readonly base?: string;
     }) => {
+      if (paths.length > 0) {
+        try {
+          validateStandaloneExclusivity(paths, cliOptions);
+        } catch (error) {
+          console.error(error instanceof Error ? error.message : String(error));
+          process.exitCode = 1;
+          return;
+        }
+        await launchStandaloneSession(paths, {}, { cwd: process.cwd() });
+        return;
+      }
+
       try {
         validateUncommittedFlags(cliOptions);
       } catch (error) {
