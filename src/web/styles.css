@@ -1986,6 +1986,64 @@ h3.conversation-card__identity {
   overflow-wrap: anywhere;
 }
 
+.rendered-markdown {
+  overflow-x: auto;
+  overflow-wrap: anywhere;
+}
+
+.rendered-block {
+  position: relative;
+  padding: var(--space-1) 0;
+}
+
+.rendered-markdown table,
+.rendered-markdown th,
+.rendered-markdown td {
+  border-collapse: collapse;
+  border: 1px solid var(--border-default);
+}
+
+.rendered-markdown th,
+.rendered-markdown td {
+  padding: var(--space-2) var(--space-4);
+}
+
+.rendered-markdown th {
+  background: var(--surface-panel);
+  font-weight: var(--font-weight-semibold);
+}
+
+.rendered-markdown pre {
+  background: var(--surface-panel);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+  padding: var(--space-4);
+  overflow-x: auto;
+  font: var(--font-size-code)/var(--line-height-code) var(--font-mono);
+}
+
+.rendered-markdown code {
+  background: var(--surface-panel);
+  border-radius: var(--radius-control);
+  padding: 0 var(--space-2);
+  font-family: var(--font-mono);
+}
+
+.rendered-markdown blockquote {
+  border-inline-start: 2px solid var(--border-default);
+  padding-inline-start: var(--space-4);
+  color: var(--text-muted);
+}
+
+.rendered-markdown__remote-image {
+  color: var(--text-muted);
+}
+
+.rendered-markdown__remote-image code {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-metadata);
+}
+
 .draft-recovery {
   min-height: 0;
   padding: var(--space-8);
