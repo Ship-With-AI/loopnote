@@ -582,6 +582,35 @@ describe('standalone sourceKind: torn-capture and invalid-scope rejection (Plan 
     expect(keepFile?.availability).not.toEqual({ kind: 'unsupported', reason: 'changed-during-capture' });
   });
 
+  it('surfaces a vanished single-file standalone argument as "changed-during-capture" during the INITIAL capture, not just refresh() (WR-02 regression)', async () => {
+    const fixture = await makeFixture();
+    const root = await makeRoot();
+    await fixture.write('solo.txt', 'will disappear before the observed pass\n');
+
+    // Unlike the 'sub' case above, this argument has exactly one match, so
+    // its disappearance between captureWorktreeManifest's own "expected"
+    // and "observed" enumeration passes makes resolveStandaloneArguments
+    // resolve to zero matches on the second pass — the race CR-01 fixed
+    // for refresh() but WR-02 found was still unguarded on the very first
+    // capture (materializeWorktreeSnapshot, driven by createStandaloneSessionApp
+    // at session startup, which never opts in to a `toleratesNoMatch` flag).
+    const dependencies: WorktreeSnapshotRefreshDependencies = {
+      onBeforeObservedEnumeration: async () => {
+        await rm(join(fixture.root, 'solo.txt'));
+      },
+    };
+
+    const snapshot = await materializeWorktreeSnapshot(
+      scopeFor(fixture, 'standalone', { standaloneArguments: ['solo.txt'] }),
+      { root },
+      dependencies,
+    );
+    const files = await snapshot.files();
+    expect(files).toHaveLength(1);
+    expect(files[0]!.newPath?.utf8).toBe('solo.txt');
+    expect(files[0]!.availability).toEqual({ kind: 'unsupported', reason: 'changed-during-capture' });
+  });
+
   it('rejects an invalid scope (standalone sourceKind with a baseCommitOid) at WorktreeSnapshotManifestSchema.parse, before any file is written', async () => {
     const fixture = await makeFixture();
     const root = await makeRoot();
