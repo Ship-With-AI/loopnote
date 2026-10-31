@@ -512,6 +512,31 @@ describe('standalone sourceKind capture and refresh (Plan 15-03)', () => {
     expect(removedDelta.removed).toContain('sub/b.txt');
   });
 
+  it('refresh() reports a clean "removed" delta instead of throwing when a single-file argument\'s only match disappears (CR-01 regression)', async () => {
+    const fixture = await makeFixture();
+    const root = await makeRoot();
+    await fixture.write('solo.txt', 'solo original\n');
+
+    const snapshot = await materializeWorktreeSnapshot(
+      scopeFor(fixture, 'standalone', { standaloneArguments: ['solo.txt'] }),
+      { root },
+    );
+    const files = await snapshot.files();
+    expect(files.map((file) => file.newPath?.utf8)).toEqual(['solo.txt']);
+
+    // The 'solo.txt' argument's only match disappears entirely between
+    // captures. Unlike the other case above (where 'sub' keeps matching
+    // sub/c.txt), resolveStandaloneArguments now has nothing left to
+    // resolve for this argument at all. refresh() must still report a
+    // clean "removed" delta rather than letting the underlying "did not
+    // match any file" error crash the refresh request.
+    await rm(join(fixture.root, 'solo.txt'));
+    const delta = await snapshot.refresh();
+    expect(delta.removed).toContain('solo.txt');
+    expect(delta.added).toEqual([]);
+    expect(await snapshot.files()).toHaveLength(0);
+  });
+
   it('still captures a staged sourceKind snapshot byte-for-byte identically to before this plan (regression)', async () => {
     const fixture = await makeFixture();
     const root = await makeRoot();

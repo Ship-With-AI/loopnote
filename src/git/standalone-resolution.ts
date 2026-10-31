@@ -141,6 +141,7 @@ export async function resolveStandaloneArguments(
   repositoryRoot: string,
   rawArguments: readonly string[],
   dependencies: ResolveStandaloneArgumentsDependencies = {},
+  options: { readonly toleratesNoMatch?: boolean } = {},
 ): Promise<readonly ExactPath[]> {
   if (rawArguments.length > MAX_RAW_STANDALONE_ARGUMENTS) {
     throw new Error(
@@ -151,7 +152,26 @@ export async function resolveStandaloneArguments(
   const runner = dependencies.runner ?? createGitRunner();
   const resolved = new Map<string, ExactPath>();
   for (const argument of rawArguments) {
-    const matches = await resolveOneArgument(repositoryRoot, argument, runner);
+    let matches: readonly ExactPath[];
+    try {
+      matches = await resolveOneArgument(repositoryRoot, argument, runner);
+    } catch (error) {
+      // Opt-in drift tolerance for the refresh path (CR-01): a single-file
+      // standalone argument whose only match has since been deleted/moved
+      // should surface as a clean "removed" delta on refresh, matching
+      // every other sourceKind's diff-based enumeration, rather than
+      // crashing the refresh request. The initial CLI launch in
+      // `src/cli/run.ts` never passes `toleratesNoMatch`, so it keeps
+      // rejecting typos/missing files at startup.
+      if (
+        options.toleratesNoMatch === true &&
+        error instanceof Error &&
+        /did not match any file/.test(error.message)
+      ) {
+        continue;
+      }
+      throw error;
+    }
     for (const match of matches) {
       rejectReservedSegments(match);
       resolved.set(match.bytesBase64url, match);

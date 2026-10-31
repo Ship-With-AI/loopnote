@@ -222,6 +222,15 @@ export interface CaptureWorktreeManifestDependencies {
   readonly onCaptureStart?: () => Promise<void> | void;
   readonly onFileReadAttempt?: (fileId: string, attempt: number) => Promise<void> | void;
   readonly onBeforeObservedEnumeration?: () => Promise<void> | void;
+  /**
+   * CR-01: when true, a `standalone` scope's pathspec argument that no
+   * longer matches any file resolves to an empty match set instead of
+   * throwing, so `WorktreeSnapshot.refresh()` reports a clean "removed"
+   * delta rather than crashing `/api/refresh`. Only `refresh()` sets this;
+   * the initial capture (`materializeWorktreeSnapshot`, driven by the CLI's
+   * strict launch-time `resolveStandaloneArguments` call) leaves it unset.
+   */
+  readonly toleratesNoMatch?: boolean;
 }
 
 interface WorktreeManifestCapture {
@@ -250,9 +259,15 @@ async function inventoryForScope(
   repositoryRoot: string,
   runner: GitRunner,
   objectReader: ObjectReader,
+  toleratesNoMatch: boolean,
 ): Promise<readonly ChangedFile[]> {
   if (scope.sourceKind === 'standalone') {
-    const resolved = await resolveStandaloneArguments(repositoryRoot, scope.standaloneArguments!, { runner });
+    const resolved = await resolveStandaloneArguments(
+      repositoryRoot,
+      scope.standaloneArguments!,
+      { runner },
+      { toleratesNoMatch },
+    );
     const gitStates = await classifyStandaloneGitState(repositoryRoot, resolved, { runner });
     return createStandaloneChangedFileInventory(repositoryRoot, resolved, gitStates, scope.objectFormat, {
       runner,
@@ -286,7 +301,8 @@ async function captureWorktreeManifest(
   const runner = dependencies.runner ?? createGitRunner();
   const objectReader = dependencies.objectReader ?? createObjectReader(repositoryRoot, { runner });
   await dependencies.onCaptureStart?.();
-  const expected = await inventoryForScope(scope, repositoryRoot, runner, objectReader);
+  const toleratesNoMatch = dependencies.toleratesNoMatch ?? false;
+  const expected = await inventoryForScope(scope, repositoryRoot, runner, objectReader, toleratesNoMatch);
   if (expected.length > MAX_SNAPSHOT_FILES) throw new WorktreeSnapshotError('snapshot-unavailable', false);
 
   interface Intermediate {
@@ -355,7 +371,7 @@ async function captureWorktreeManifest(
   }
 
   await dependencies.onBeforeObservedEnumeration?.();
-  const observed = await inventoryForScope(scope, repositoryRoot, runner, objectReader);
+  const observed = await inventoryForScope(scope, repositoryRoot, runner, objectReader, toleratesNoMatch);
   const observedKeys = new Set(observed.map((file) => pathKey(file)));
 
   const entries: WorktreeSnapshotEntry[] = [];
@@ -673,7 +689,10 @@ export class WorktreeSnapshot {
       scope,
       repositoryRoot,
       runner,
-      this.dependencies,
+      // CR-01: refresh tolerates a standalone argument whose only match has
+      // disappeared since the previous capture, reporting it as "removed"
+      // instead of throwing (unlike the strict initial CLI launch).
+      { ...this.dependencies, toleratesNoMatch: true },
     ); // Pattern 1 + Pattern 4 (retry)
     const nextDigest = captureDigest(nextBase);
     const nextManifestDraft = { ...nextBase, chain: Object.freeze([...previous.chain, nextDigest]) }; // D-18: append, don't replace
