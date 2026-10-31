@@ -207,7 +207,26 @@ Plans:
   4. Coding agent gets a specific validation error before any browser launch for a malformed, oversized, or out-of-repository uncommitted or standalone request.
   5. Coding-agent users of the ShipWithAI marketplace skill can request uncommitted and standalone-file reviews through it, with the CLI version prerequisite updated to the release that supports them.
 
-**Plans**: TBD
+**Plans**: 5 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 17-01-PLAN.md — Agent request contract: `mode:'uncommitted'`/`mode:'files'` + extended validation error taxonomy (AGENT-06/07/09)
+- [ ] 17-02-PLAN.md — `ReviewExportV5Schema`/`V6Schema` + `buildReviewExportV5`/`V6` with V1–V4 regression proof (D-01, AGENT-08)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 17-03-PLAN.md — `attachedCompletion` wiring on `createUncommittedCapabilityRegistry`/`createStandaloneCapabilityRegistry` + drift-accumulation helper (D-02/D-03, AGENT-06/07/08)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 17-04-PLAN.md — CLI dispatch for `mode:'uncommitted'`/`'files'` + typed `StandaloneResolutionError` + stdin e2e positive/negative coverage (AGENT-06/07/08/09)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 17-05-PLAN.md — Marketplace skill: uncommitted/files request modes, local-tarball-verified prerequisite bump, draft-PR-ready branch with blocking human checkpoint (D-04/D-05/D-06, SKL-04)
+
 **Research flag**: yes — exact `ReviewExportV4Schema`/`V5Schema` field shapes (uncommitted/standalone provenance metadata) aren't fully specified in any research file; finalize during planning against the established V1→V2→V3 superset pattern, per `research/SUMMARY.md`.
 
 ### Phase 17.1: Full Project Rename (INSERTED)
