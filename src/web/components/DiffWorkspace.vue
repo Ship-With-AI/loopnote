@@ -238,7 +238,7 @@ async function loadContent(): Promise<void> {
     const anchor = composerAnchor(composer.side, composer.line);
     observedAnchor = anchor;
     focusComposerAnchor = anchor;
-    adapter.setActiveAnchor({ fileId: props.content.fileId, side: composer.side, line: composer.line });
+    adapter.setActiveAnchor({ fileId: props.content.fileId, side: composer.side, line: composer.line, endLine: composer.endLine });
     void nextTick(renderAnnotation);
   }
 
@@ -294,6 +294,7 @@ watch(() => [props.composer, props.comments] as const, () => {
         fileId: props.content.fileId,
         side: props.composer.side,
         line: props.composer.line,
+        endLine: props.composer.endLine,
       });
       focusComposerAnchor = activeComposerAnchor;
     }
