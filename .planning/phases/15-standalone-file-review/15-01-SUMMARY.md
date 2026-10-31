@@ -121,3 +121,10 @@ None - no external service configuration required.
 ---
 *Phase: 15-standalone-file-review*
 *Completed: 2026-10-31*
+
+## Self-Check: PASSED
+
+- FOUND: src/git/standalone-resolution.ts
+- FOUND: tests/git/standalone-resolution.test.ts
+- FOUND: .planning/phases/15-standalone-file-review/15-01-SUMMARY.md
+- FOUND commits: a537a37 (test), 274a5e4 (feat), 52be782 (refactor), baea595 (docs) — all present via `git log --oneline --all --grep="15-01"`
