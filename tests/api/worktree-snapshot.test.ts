@@ -39,8 +39,12 @@ function headOid(fixture: GitFixture): string {
 
 function scopeFor(
   fixture: GitFixture,
-  sourceKind: 'staged' | 'unstaged' | 'worktree',
-  options?: { readonly baseCommitOid?: string; readonly mergeBaseOid?: string },
+  sourceKind: 'staged' | 'unstaged' | 'worktree' | 'standalone',
+  options?: {
+    readonly baseCommitOid?: string;
+    readonly mergeBaseOid?: string;
+    readonly standaloneArguments?: readonly string[];
+  },
 ): UncommittedScope {
   return {
     kind: 'uncommitted',
@@ -49,6 +53,7 @@ function scopeFor(
     objectFormat: 'sha1',
     baseCommitOid: options?.baseCommitOid,
     mergeBaseOid: options?.mergeBaseOid,
+    standaloneArguments: options?.standaloneArguments === undefined ? undefined : [...options.standaloneArguments],
     changedFiles: [],
   };
 }
@@ -458,5 +463,70 @@ describe('WorktreeSnapshot.refresh() (Pattern 3, D-18, D-20, SNAP-04)', () => {
     expect(delta.added).toEqual([]);
     expect(delta.removed).toEqual([]);
     expect(delta.modified).toEqual([]);
+  });
+});
+
+describe('standalone sourceKind capture and refresh (Plan 15-03)', () => {
+  it('captures the resolved file set, reads frozen content, and refresh() reports added/removed deltas as arguments re-resolve', async () => {
+    const fixture = await makeFixture();
+    const root = await makeRoot();
+    await fixture.write('a.txt', 'alpha original\n');
+    await fixture.write('sub/b.txt', 'bravo\n');
+
+    const snapshot = await materializeWorktreeSnapshot(
+      scopeFor(fixture, 'standalone', { standaloneArguments: ['a.txt', 'sub'] }),
+      { root },
+    );
+    const session = await snapshot.session();
+    expect(session.sourceKind).toBe('standalone');
+
+    const files = await snapshot.files();
+    expect(files.map((file) => file.newPath?.utf8).sort()).toEqual(['a.txt', 'sub/b.txt']);
+    for (const file of files) {
+      expect(file.status.kind).toBe('added');
+      expect(file.oldMode).toBe('000000');
+      expect(file.standaloneGitState).toBeDefined();
+    }
+
+    // readContent returns the exact bytes present at capture time (SNAP-01);
+    // mutating the file on disk afterward must not change what comes back.
+    const aFileId = files.find((file) => file.newPath?.utf8 === 'a.txt')!.id;
+    const beforeMutation = await snapshot.readContent(aFileId);
+    expect(beforeMutation?.postimage?.toString('utf8')).toBe('alpha original\n');
+    await fixture.write('a.txt', 'alpha mutated after capture\n');
+    const afterMutation = await snapshot.readContent(aFileId);
+    expect(afterMutation?.postimage?.toString('utf8')).toBe('alpha original\n');
+
+    // refresh() re-resolves ['a.txt', 'sub'] fresh: a newly-matching file
+    // under 'sub' is reported added.
+    await fixture.write('sub/c.txt', 'charlie, arrived late\n');
+    const addedDelta = await snapshot.refresh();
+    expect(addedDelta.added).toContain('sub/c.txt');
+    expect((await snapshot.files()).some((file) => file.newPath?.utf8 === 'sub/c.txt')).toBe(true);
+
+    // Deleting a previously-resolved file is reported removed on the next
+    // refresh() ('sub' still matches sub/c.txt, so the argument itself
+    // keeps resolving to at least one file).
+    await rm(join(fixture.root, 'sub', 'b.txt'));
+    const removedDelta = await snapshot.refresh();
+    expect(removedDelta.removed).toContain('sub/b.txt');
+  });
+
+  it('still captures a staged sourceKind snapshot byte-for-byte identically to before this plan (regression)', async () => {
+    const fixture = await makeFixture();
+    const root = await makeRoot();
+    const baseOid = headOid(fixture);
+    await fixture.write('tracked.txt', 'staged edit\n');
+    fixture.git(['add', 'tracked.txt']);
+
+    const snapshot = await materializeWorktreeSnapshot(
+      scopeFor(fixture, 'staged', { baseCommitOid: baseOid, mergeBaseOid: baseOid }),
+      { root },
+    );
+    const files = await snapshot.files();
+    expect(files).toHaveLength(1);
+    expect(files[0]!.newPath?.utf8).toBe('tracked.txt');
+    const content = await snapshot.readContent(files[0]!.id);
+    expect(content?.postimage?.toString('utf8')).toBe('staged edit\n');
   });
 });
