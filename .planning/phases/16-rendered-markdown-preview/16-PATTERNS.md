@@ -395,3 +395,17 @@ Phase 16's marker chip always carries visible text (`Added`/`Removed`/`Changed`)
 **Analog search scope:** `src/web/components/`, `src/web/model/`, `src/web/monaco/`, `src/server/`, `src/git/`, `src/domain/`, `src/web/styles.css`
 **Files scanned:** `markdown-preview.ts`, `SummarySection.vue`, `DiffWorkspace.vue`, `ActiveFileToolbar.vue`, `StatusBadge.vue`, `routes.ts`, `exact-patch.ts`, `anchor.ts`, `diff-adapter.ts`, `line-mapping.ts`, `styles.css`, `api.ts` contracts
 **Pattern extraction date:** 2026-10-31
+
+---
+
+## Addendum: A-01 Range-Aware Durable Anchor — Files Not Covered Above (2026-10-31)
+
+This File Classification table predates CONTEXT.md amendment A-01 and does not cover the files plans 16-07/16-08 touch for it. No new analog search was run for these — each file's own plan `<read_first>` cites concrete existing-code line ranges directly, which is sufficient for execution — this addendum exists only so the table isn't silently stale:
+
+| File | Role | Plan | Analog |
+|------|------|------|--------|
+| `src/domain/anchor.ts` | domain (pure functions) | 16-07 | itself — additive optional-field extension in place, same pattern as `markdown-preview.ts`'s self-extension above |
+| `src/contracts/draft.ts`, `src/contracts/api.ts` | contract (zod schema) | 16-07 | itself — additive `.optional()` field + `.superRefine`, same `strictObject` conventions already used throughout both files |
+| `src/server/routes.ts`, `src/server/capabilities.ts` | route / service (mechanical call-site update) | 16-07 | itself — existing `buildDurableAnchor(...)`/`verifyAnchor` call sites gain one additional named argument, no structural change |
+| `src/web/model/workspace-state.ts`, `src/web/model/workspace-command.ts` | state (client reducer/command types) | 16-08 | itself — existing `activate-line`/`persist-comment`/`reveal-line` variants gain one additional optional field, same discriminated-union-literal style already in both files |
+| `src/web/monaco/diff-adapter.ts` | adapter (Monaco wrapper) | 16-04 (`getLineChanges`), 16-08 (`anchorDecoration` range) | itself — existing `Anchor`/`anchorDecoration` extended in place with one additional optional parameter |

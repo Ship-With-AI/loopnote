@@ -168,13 +168,14 @@ Plans:
   3. User sees existing comments marked on the rendered blocks they anchor to.
   4. User confirms rendered Markdown never executes scripts, renders raw HTML, or follows non-http(s)/mailto links, under the existing production CSP.
 
-**Plans**: 6 plans
+**Plans**: 8 plans
 
 Plans:
 **Wave 1**
 
 - [ ] 16-01-PLAN.md — Hardened renderer extensions: block source-map stamping, front matter, task lists, image inline-rule hardening (D-05/D-09/D-11, MDV-02/MDV-04)
 - [ ] 16-02-PLAN.md — Same-origin repo-local image content route with path-safety + extension allow-list (D-09, MDV-04)
+- [ ] 16-07-PLAN.md — Range-aware durable anchor: additive optional `endLine` on `DurableAnchorV1`/`buildDurableAnchor`/`verifyDurableAnchor`, schema + call-site updates, back-compat tests (A-01, MDV-02)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -188,9 +189,13 @@ Plans:
 
 - [ ] 16-05-PLAN.md — D-03 block-aligned scroll sync between side-by-side rendered panes (MDV-01)
 
-**Wave 5** *(blocked on Wave 4 completion)*
+**Wave 5** *(blocked on Wave 4 completion, and on Wave 1's 16-07)*
 
-- [ ] 16-06-PLAN.md — e2e toggle round-trip, full comment flow, and negative security coverage under production CSP (MDV-01/02/03/04)
+- [ ] 16-08-PLAN.md — Thread `endLine` through the `activate` event/workspace-state/App.vue and Monaco's range-aware `anchorDecoration` so Source view highlights a comment's full stored range (A-01, MDV-01/02)
+
+**Wave 6** *(blocked on Wave 5 completion)*
+
+- [ ] 16-06-PLAN.md — e2e toggle round-trip, full comment flow (incl. A-01 range anchoring/highlighting), and negative security coverage under production CSP (MDV-01/02/03/04)
 
 **UI hint**: yes
 
