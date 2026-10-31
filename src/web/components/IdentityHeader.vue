@@ -27,12 +27,15 @@ const support = ref<HTMLButtonElement>();
 
 const isExactPatch = computed(() => 'patch' in props.session);
 const pinnedSession = computed(() => 'base' in props.session ? props.session : undefined);
-const isUncommitted = computed(() => 'uncommitted' in props.session);
-const uncommittedSession = computed(() =>
-  isUncommitted.value
+const uncommittedKey = computed(() =>
+  'uncommitted' in props.session
     ? (props.session as Extract<SessionResponse, { uncommitted: unknown }>).uncommitted
     : undefined,
 );
+const isStandalone = computed(() => uncommittedKey.value?.sourceKind === 'standalone');
+const isUncommitted = computed(() => uncommittedKey.value !== undefined && !isStandalone.value);
+const uncommittedSession = computed(() => (isUncommitted.value ? uncommittedKey.value : undefined));
+const standaloneSession = computed(() => (isStandalone.value ? uncommittedKey.value : undefined));
 const sourceLabel = computed(() => {
   switch (uncommittedSession.value?.sourceKind) {
     case 'staged': return 'Staged';
@@ -43,6 +46,12 @@ const sourceLabel = computed(() => {
 });
 const shortDigest = computed(() =>
   controlSafeDisplay(uncommittedSession.value?.reviewKey.slice(0, 7) ?? ''),
+);
+const standaloneLabel = computed(() =>
+  controlSafeDisplay(`Standalone review · ${standaloneSession.value?.changedFileCount ?? 0} files`),
+);
+const standaloneShortDigest = computed(() =>
+  controlSafeDisplay(standaloneSession.value?.reviewKey.slice(0, 7) ?? ''),
 );
 const baseCandidateLabel = computed(() => controlSafeDisplay('Repository object'));
 const baseCandidateOid = computed(() =>
@@ -61,7 +70,7 @@ const headOid = computed(() =>
   controlSafeDisplay(pinnedSession.value?.head.oid.slice(0, 7) ?? ''),
 );
 const dirtyEndpoints = computed(() =>
-  isExactPatch.value || isUncommitted.value
+  isExactPatch.value || isUncommitted.value || isStandalone.value
     ? []
     : [
         { role: 'Base', worktree: pinnedSession.value!.base.worktree },
@@ -108,6 +117,12 @@ defineExpose({ focusSupport });
             <span class="session-header__selector" title="Implemented content">Implemented content</span>
           </span>
         </template>
+        <template v-else-if="isStandalone">
+          <span class="session-header__endpoint">
+            <span class="session-header__endpoint-label">STANDALONE</span>
+            <span class="session-header__selector" :title="standaloneLabel">{{ standaloneLabel }} · snapshot {{ standaloneShortDigest }}</span>
+          </span>
+        </template>
         <template v-else-if="isUncommitted">
           <span class="session-header__endpoint">
             <span class="session-header__endpoint-label">BASE</span>
@@ -134,7 +149,7 @@ defineExpose({ focusSupport });
       </div>
     </div>
     <div class="header-facts">
-      <span class="pin-cue">{{ isExactPatch ? 'Frozen patch' : isUncommitted ? 'Frozen snapshot' : 'Pinned comparison' }}</span>
+      <span class="pin-cue">{{ isExactPatch ? 'Frozen patch' : (isUncommitted || isStandalone) ? 'Frozen snapshot' : 'Pinned comparison' }}</span>
       <span
         v-for="endpoint in dirtyEndpoints"
         :key="endpoint.role"
