@@ -677,7 +677,8 @@ function filePath(fileId: string): string {
 }
 
 
-function runCommands(commands: readonly WorkspaceCommand[]): void {
+async function runCommands(commands: readonly WorkspaceCommand[]): Promise<void> {
+  const pending: Promise<void>[] = [];
   for (const command of commands) {
     switch (command.type) {
       case 'announce':
@@ -692,11 +693,11 @@ function runCommands(commands: readonly WorkspaceCommand[]): void {
       case 'layout':
         diffWorkspace.value?.layout();
         break;
-      case 'persist-comment':
+      case 'persist-comment': {
         if (attachedMutationLocked.value) break;
         const originWorkspace = workspace;
         const commentLocation = `${filePath(command.fileId)} at ${command.side} line ${command.line}`;
-        void sessionClient?.mutate({
+        pending.push((sessionClient?.mutate({
           type: 'addComment',
           expectedRevision: draftRevision.value,
           fileId: command.fileId,
@@ -760,8 +761,9 @@ function runCommands(commands: readonly WorkspaceCommand[]): void {
             message,
           });
           announce(`Comment on ${commentLocation} wasn’t added. Your text is still here. Check that Cumpa is running, then try again.`);
-        });
+        })) ?? Promise.resolve());
         break;
+      }
       case 'reveal-comment-context':
       case 'reveal-line':
         diffWorkspace.value?.revealComment(command.side, command.line);
@@ -775,9 +777,10 @@ function runCommands(commands: readonly WorkspaceCommand[]): void {
         break;
     }
   }
+  if (pending.length > 0) await Promise.all(pending);
 }
 
-function dispatchWorkspace(event: WorkspaceEvent): void {
+async function dispatchWorkspace(event: WorkspaceEvent): Promise<void> {
   if (attachedMutationLocked.value && (
     event.type === 'activate-line'
     || event.type === 'add-comment'
@@ -790,7 +793,7 @@ function dispatchWorkspace(event: WorkspaceEvent): void {
   if (workspace === undefined) return;
   const transition = workspace.dispatch(event);
   workspaceState.value = transition.state;
-  runCommands(transition.commands);
+  await runCommands(transition.commands);
 }
 
 function selectFile(fileId: string): void {
@@ -1079,7 +1082,7 @@ async function performRefresh(): Promise<void> {
     return;
   }
   if (unsavedInlineComposerFile.value !== undefined) {
-    dispatchWorkspace({ type: 'add-comment' });
+    await dispatchWorkspace({ type: 'add-comment' });
   }
   refreshBusy.value = true;
   try {
