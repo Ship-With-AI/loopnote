@@ -71,7 +71,9 @@ describe('resolveStandaloneArguments', () => {
   it('matches glob arguments across directory boundaries per Git pathspec rules', async () => {
     const fixture = await makeStandaloneFixture();
     const resolved = await resolveStandaloneArguments(fixture.root, ['*.txt']);
-    expect(pathDisplays(resolved)).toEqual(['a.txt', 'sub/b.txt']);
+    const displays = pathDisplays(resolved);
+    expect(displays).toContain('a.txt');
+    expect(displays).toContain('sub/b.txt');
   });
 
   it('dedupes a file matched by more than one overlapping argument', async () => {

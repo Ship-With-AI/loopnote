@@ -359,7 +359,7 @@ function parseNulDelimitedUntrackedPaths(output: Buffer): readonly ExactPath[] {
   return Object.freeze(paths);
 }
 
-async function buildUntrackedChangedFile(
+export async function buildUntrackedChangedFile(
   path: ExactPath,
   objectFormat: 'sha1' | 'sha256',
   namespace: Uint8Array,
