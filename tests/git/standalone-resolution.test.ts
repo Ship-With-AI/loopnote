@@ -8,6 +8,7 @@ import {
   createStandaloneChangedFileInventory,
   resolveStandaloneArguments,
 } from '../../src/git/standalone-resolution.js';
+import type { GitRunner } from '../../src/git/runner.js';
 import { createGitFixture, type GitFixture } from '../helpers/git-fixture.js';
 
 const fixtures: GitFixture[] = [];
@@ -141,6 +142,36 @@ describe('resolveStandaloneArguments', () => {
     await expect(
       resolveStandaloneArguments(fixture.root, tooMany),
     ).rejects.toThrow(/256/);
+  });
+});
+
+describe('resolveStandaloneArguments defense-in-depth', () => {
+  it('rejects a resolved path containing a reserved .git segment, via an injected runner double', async () => {
+    const fakeRunner: GitRunner = {
+      async run(arguments_) {
+        if (arguments_[0] === 'ls-files') {
+          return { stdout: Buffer.from('sub/.git/config\0'), stderr: Buffer.alloc(0) };
+        }
+        throw new Error(`Unexpected git invocation in this test double: ${arguments_.join(' ')}`);
+      },
+    };
+    await expect(
+      resolveStandaloneArguments('/fake/repo', ['anything'], { runner: fakeRunner }),
+    ).rejects.toThrow(/\.git/);
+  });
+
+  it('rejects a resolved path containing a reserved .cumpa segment, via an injected runner double', async () => {
+    const fakeRunner: GitRunner = {
+      async run(arguments_) {
+        if (arguments_[0] === 'ls-files') {
+          return { stdout: Buffer.from('.cumpa/exports/review.json\0'), stderr: Buffer.alloc(0) };
+        }
+        throw new Error(`Unexpected git invocation in this test double: ${arguments_.join(' ')}`);
+      },
+    };
+    await expect(
+      resolveStandaloneArguments('/fake/repo', ['anything'], { runner: fakeRunner }),
+    ).rejects.toThrow(/\.cumpa/);
   });
 });
 
