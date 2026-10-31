@@ -913,7 +913,7 @@ test('installed uncommitted review resolves worktree changes and emits canonical
     const url = await waitForAttachedLoopbackUrl(running);
     expect(readFileSync(running.stdoutPath)).toEqual(Buffer.alloc(0));
     await openAcceptanceRuntimeSession(page, url);
-    await addSinglePaneComment(page, /staged-20\.txt/, 'head', 'staged 20', 1, 'Uncommitted worktree feedback.');
+    await addSinglePaneComment(page, /\/staged-20\.txt/, 'head', 'staged 20', 1, 'Uncommitted worktree feedback.');
     await openReviewNotes(page);
     const finished = page.waitForResponse((response) => response.url().includes('/api/review-completion/finish'));
     await page.getByRole('button', { name: 'Finish review', exact: true }).click();

@@ -23,7 +23,7 @@ export async function openRuntimeSession(
     return SessionResponseSchema.parse(await response.json()).support?.enabled !== true;
   });
   await page.goto(url, { waitUntil: 'domcontentloaded' });
-  await expect(page.locator('.monaco-diff-editor')).toBeVisible();
+  await expect(page.locator('.diff-workspace__editor')).toBeVisible();
   const response = await startup;
   if (new URL(response.url()).pathname !== '/api/support/refresh') {
     return { enabled: false, dismissed: false };

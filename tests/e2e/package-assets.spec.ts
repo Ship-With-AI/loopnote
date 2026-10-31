@@ -200,7 +200,7 @@ test('resolved runtime serves its complete browser asset graph', async ({ page }
     page.on('requestfailed', (request) => responseFailures.push(request.url()));
     const sessionResponse = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/session');
     const opening = openRuntimeSession(page, url);
-    await expect(page.locator('.monaco-diff-editor')).toBeVisible();
+    await expect(page.locator('.diff-workspace__editor')).toBeVisible();
     const session = SessionResponseSchema.parse(await (await sessionResponse).json());
     const supportResponse = session.support?.enabled === true
       ? page.waitForResponse((response) => new URL(response.url()).pathname === '/api/support/refresh')
