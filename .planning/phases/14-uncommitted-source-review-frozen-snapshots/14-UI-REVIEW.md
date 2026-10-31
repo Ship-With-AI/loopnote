@@ -1,0 +1,93 @@
+# Phase 14 — UI Review
+
+**Audited:** 2026-10-31
+**Baseline:** `14-UI-SPEC.md` (approved design contract, including gap-closure plans 14-14/14-15/14-16)
+**Screenshots:** Captured live — `npm run build` produced `dist/bin/cumpa.mjs` + `dist/web`; a throwaway git fixture repo (`git init --initial-branch=main`, one commit) driven directly via `node dist/bin/cumpa.mjs --staged|--unstaged|--worktree` with `CUMPA_BROWSER_OPEN_MARKER`/fake-`open`-on-`PATH` interception (same mechanism as `tests/e2e/uncommitted-review.spec.ts:76-99`, `anchored-review.spec.ts:93-138`), automated with Playwright (chromium) at 1440×900 and 375×812. 12 PNGs saved to `.planning/ui-reviews/14-20261031-012608/` (gitignored). Fixture scenarios covered: `--staged` with a re-staged external edit (frozen snapshot survives, then Refresh), `--unstaged` (no Base endpoint), `--worktree` with an untracked file (single-pane Added), the passive change-indicator after a full 30s poll cycle, the Refresh summary panel + tree-row "Changed" marker, and two sequential `--staged` launches on different staged content to trigger the D-19 "Resume previous uncommitted review?" banner end-to-end (seed comment carried into the new draft, mirroring `tests/e2e/uncommitted-review.spec.ts`'s own D-19 test). The terminal `Uncommitted` picker group (`src/cli/picker.ts`) is a TTY `@inquirer/search` surface with no CSS/token surface per the UI-SPEC itself ("Terminal picker... copy contract only") — audited via source/copy inspection, not a browser screenshot.
+
+---
+
+## Pillar Scores
+
+| Pillar | Score | Key Finding |
+|--------|-------|-------------|
+| 1. Copywriting | 2/4 | Every new D-01..D-19 string matches the Copywriting Contract exactly, confirmed live — but the always-visible `BASE` endpoint of the three-way comparison strip renders the literal placeholder `Repository object` instead of the resolved Base candidate's label, for every Staged/Working-tree session, not an edge case |
+| 2. Visuals | 3/4 | Three-way comparison strip, single-pane reuse for untracked/added files, and Refresh/RefreshSummaryPanel all render cleanly and match precedent; the new tree-row `Changed` marker has no grid-column slot and wraps file rows onto an uneven second line, confirmed on screen |
+| 3. Color | 3/4 | No new hardcoded colors; accent stays confined to the declared Refresh-control/`Resume`-button consumers (the latter reusing the pre-existing `.ui-button--primary` primitive, not a new accent surface); the `Changed` marker's missing CSS rule also means it never gets the Color Contract's mandated `--text-secondary` muted tone |
+| 4. Typography | 2/4 | Metadata-role reuse (digest text, pin-cue, dismiss buttons) is correct everywhere else, but `.tree-row__refresh-marker` has **zero** CSS rules anywhere in `styles.css` — the 12px/600/mono/`--text-secondary` contract for this specific new element was never implemented, grep-verifiable |
+| 5. Spacing | 2/4 | Refresh/RefreshSummaryPanel/session-banner geometry correctly reuses `identity-disclosure`/`.inline-notice` rules exactly as specced — but the Spacing Scale table's claim that `--space-2` (8px) "matches the existing `header-facts` inline gap" is false; the shipped `.header-facts { gap: var(--space-1); }` rule is 4px, the same claimed-vs-shipped-token mismatch pattern Phase 13's review already found |
+| 6. Experience Design | 3/4 | Full live round-trip verified: frozen snapshot survives an external re-staged edit, Refresh reclassifies the comment to orphaned, the summary panel and tree marker appear and clear correctly, and a second launch on different staged content surfaces and accepts the D-19 recovery offer, carrying the seeded comment into the new draft — all confirmed by screenshot, not just code reading |
+
+**Overall: 15/24**
+
+---
+
+## Top 3 Priority Fixes
+
+1. **`IdentityHeader.vue`'s Staged/Working-tree `BASE` endpoint always shows the hardcoded literal `Repository object`, never the resolved Base candidate** — `src/web/components/IdentityHeader.vue:47` (`const baseCandidateLabel = computed(() => controlSafeDisplay('Repository object'));`). The UI-SPEC's own Component Contract requires this endpoint to show "the resolved Base candidate label + short OID exactly as today's pinned `baseLabel`/`baseOid` computed properties already render" — i.e. the actual branch/worktree name the user picked (or HEAD by default), the same way the committed flow's `baseLabel` renders `pinnedSession.value?.base.label`. Confirmed live across all three capture scenarios (`01-staged-identity-header-desktop.png`, `06-...png`, `09-...png`): the header reads `BASE Repository object · <oid>` regardless of which Base was chosen. Root cause is upstream of the component: `UncommittedSessionResponseSchema` (`src/contracts/api.ts:415-424`) only carries `baseCommitOid`, never a label, so `IdentityHeader.vue` has no real data to render and falls back to a static string. **Fix:** thread the resolved Base candidate's display label through the uncommitted session response (mirroring the committed flow's `base.label`) and bind `baseCandidateLabel` to it instead of a literal.
+2. **`.tree-row__refresh-marker` ("Changed" post-Refresh marker, D-15) has no CSS rule anywhere in `src/web/styles.css`** — `grep -c refresh-marker src/web/styles.css` returns 0 matches outside the `.vue` template itself. The UI-SPEC's `FileRow.vue` Component Contract is explicit and numeric: "Use `--text-secondary` (existing muted metadata token), `12px`/`600` mono, matching Typography contract above; never color-only." None of that is wired up — the span inherits whatever ambient styling its container provides instead of the declared muted/metadata treatment. The same missing grid-column slot (see finding 3) also means the marker silently pushes the row onto a second line rather than sitting inline as a metadata-styled marker would. **Fix:** add a `.tree-row__refresh-marker` rule setting `color: var(--text-secondary)`, `font-size`/`line-height` from the Metadata role, `font-weight: 600`, `font-family: var(--font-mono)`, and give `.file-row` either a 4th grid column or fold the marker into the existing `.line-counts`-style inline group so it doesn't force a row wrap.
+3. **`.file-row`'s 3-column grid (`grid-template-columns: auto minmax(0, 1fr) auto`) wasn't widened for the new `tree-row__refresh-marker` sibling, so recently-changed rows render taller than every other row** — `src/web/styles.css:994-996`, `src/web/components/FileRow.vue:68`. With 5 flex children now in a 3-track grid (`StatusBadge`, `PathDisplay`, `line-counts`, the new `tree-row__refresh-marker`, `availability-marker`), CSS Grid's default row-major auto-placement wraps the 4th/5th items onto an implicit second row; confirmed on screen in `07-refresh-summary-panel-desktop.png`/`08-tree-row-changed-marker-desktop.png`, where `Changed` sits on its own line beneath the filename instead of inline with the line-counts. Pre-Phase-14 this was invisible because the only 4th grid item (`availability-marker`) is `visually-hidden` for `text`-kind files, the common case; the new always-visible `Changed` marker exposes the latent layout gap for the first time. This produces inconsistent row heights in the file tree whenever a Refresh touches a file, and the row visibly shrinks back when the file is reopened and the marker clears — a layout jump during normal use. **Fix:** same as #2 — give the marker an explicit place in the existing 3-column layout rather than letting it fall through to an implicit row.
+
+---
+
+## Detailed Findings
+
+### Pillar 1: Copywriting (2/4)
+
+- Confirmed live, byte-for-byte: `Frozen snapshot` pin cue (`01`, `03`, `04`), `Staged`/`Unstaged`/`Working tree` source labels with `· snapshot {digest}` suffix, `Since previous snapshot: 1 modified` heading with correct singular/omit-zero-category logic (`07-refresh-summary-panel-desktop.png`), `1 comment now orphaned` reclassification count, `Resume previous uncommitted review?` heading and body text verbatim (`09-d19-resume-recovery-banner-desktop.png`), `Changed` tree-row marker text, `Refresh`/`Refreshing…` button states, `Frozen snapshot` vs `Pinned comparison` cue switching correctly by session kind.
+- `Index` (no OID) correctly renders for the Unstaged `BASE` endpoint (`03-unstaged-identity-header-desktop.png`) — the one case the Component Contract explicitly carves out as non-interactive, no-candidate text.
+- **Bug (Priority Fix #1):** the Staged/Working-tree `BASE` endpoint never shows a real candidate label, only the literal string `Repository object`, for every session where this header is the first and most prominent thing a reviewer sees. This isn't a subjective tone issue — it silently discards information the user explicitly chose at the picker (which branch/worktree to compare against) and the UI-SPEC's own component contract calls out the exact existing computed properties (`baseLabel`/`baseOid`) this was supposed to reuse.
+- No generic placeholder text (`Submit`/`Click Here`/`went wrong`) introduced by the phase; the Refresh-failure copy (`Refresh failed — previous snapshot still shown.`) was not reachable in this audit's live scenarios but reads consistently with the codebase's established truthful-failure voice on inspection.
+- Adjacent, out-of-scope note: `src/cli/picker.ts:14-15`'s pre-existing `BASE_PROMPT` constant ("Choose base — changes will be **cumpad** from its merge base with head") has a typo predating this phase; the UI-SPEC explicitly marks it "unchanged" and out of this phase's File Ownership Map, so it is not scored against Phase 14, but it sits directly above the new `Uncommitted` picker group this phase adds and is worth a follow-up ticket. The phase's own new `UNCOMMITTED_BASE_PROMPT` string (`picker.ts:30-31`) is spelled correctly.
+
+### Pillar 2: Visuals (3/4)
+
+- Three-way `IdentityHeader.vue` comparison strip (BASE → HEAD, `Frozen snapshot` cue, Refresh button, change indicator) is visually clean and structurally identical to the existing two-way strip — no competing visual elements, confirmed across `01`, `03`, `04`, `06`, `09`.
+- Single-pane reuse for Working-tree untracked files renders correctly: `untracked.ts` shows only a `HEAD` column with `Added · Head only` label, no phantom `BASE` pane (`05-worktree-untracked-added-single-pane-desktop.png`) — confirms Phase 13's single-pane adapter is genuinely reused, not reimplemented.
+- `RefreshSummaryPanel` renders its `Added`/`Removed`/`Modified` sections and comment-reclassification count cleanly inside the existing `InlineNotice` shell, with a working `Dismiss` affordance (`07-refresh-summary-panel-desktop.png`).
+- Dirty badge is correctly suppressed for all three uncommitted session kinds — not present in any of the 12 captures, consistent with the Component Contract's explicit "must not render for uncommitted sessions."
+- **Bug (Priority Fix #3):** the `tree-row__refresh-marker`'s missing grid-column slot pushes the row onto an uneven second line whenever a file has been touched by the most recent Refresh, visibly taller than every sibling row in the same list (`07`, `08`). Because the marker clears the moment the file is reopened, this also means the row's height visibly shrinks on click — a small but real layout jump during normal Refresh-then-review flow.
+
+### Pillar 3: Color (3/4)
+
+- Grepped `styles.css` for new hardcoded hex/rgb: none introduced by the phase; every new rule (`.identity-disclosure`, `.ui-button--primary` reuse, `.pin-cue`) consumes existing custom properties.
+- Accent (`--interactive-accent`/`--focus-ring`) usage for the Refresh control is confined to hover/focus states exactly as the Color Contract specifies, matching the existing `identity-disclosure` pattern pixel-for-pixel (same CSS rule, no new selector).
+- The `Resume` button in the D-19 banner uses `.ui-button--primary` (`src/web/App.vue`), which resolves to `--interactive-accent-emphasis`. This is **not** a new accent consumer introduced by the phase — the same class is already used by `CommentComposer.vue`'s "Add comment", `SummarySection.vue`'s save button, `SupportDialog.vue`'s "Support Cumpa", and `DraftRecovery.vue`'s "Finish review"; it's the codebase's established primary-CTA treatment, correctly reused rather than inventing a new one.
+- **Bug (ties to Priority Fix #2):** because `.tree-row__refresh-marker` has no CSS rule, it never receives the Color Contract's explicit `--text-secondary` (muted/neutral) assignment for this marker. It instead inherits whatever ambient text color its container provides, which in the capture is rendered noticeably bolder/less muted than the metadata-role text immediately next to it (line counts, availability markers) — visible in `07`/`08` side-by-side with the correctly-muted `+1 −0` line-count text.
+
+### Pillar 4: Typography (2/4)
+
+- Snapshot digest text (`· snapshot 0a6ecc4`), pin-cue, and dismiss-button labels all correctly reuse the existing Metadata role (`12px`/`400`/mono) with zero new font sizes or weights introduced anywhere else in the diff — confirmed by inspection of every new template against the Typography table.
+- **Bug (Priority Fix #2):** `grep -c refresh-marker src/web/styles.css` returns 0. The Component Contract's numeric typography requirement for this specific new element (`12px`/`600`/mono/`--text-secondary`) was never implemented. This is not a nuance like a casing mismatch — the declared styling for a phase-introduced element simply doesn't exist in the stylesheet, verifiable with a single grep and visually confirmed (the marker reads in a different weight/color than its metadata-role siblings in `07`/`08`).
+
+### Pillar 5: Spacing (2/4)
+
+- Refresh button correctly reuses `identity-disclosure`'s existing `--space-1` icon/label gap (confirmed: Refresh renders with the same tight icon-text spacing as the pre-existing `Support Cumpa`/`Review notes` buttons in every header screenshot).
+- `RefreshSummaryPanel` and the session banner both correctly reuse `.inline-notice__content`'s existing internal spacing with zero new padding/margin rules — confirmed visually against the pre-existing `InlineNotice` family (the D-19 banner and the Refresh summary panel share identical internal spacing in `07` and `09`, as the spec requires).
+- **Bug:** the Spacing Scale table asserts `--space-2` (8px) "matches the existing `header-facts` inline gap," but the actual rule (`src/web/styles.css:362-364`) is `.header-facts { gap: var(--space-1); }` — 4px, not 8px. The phase's new elements (Refresh button, change indicator) do correctly inherit whatever the real `header-facts` gap is, so there's no visible defect in the new elements themselves — but the spec's own factual claim about the token it's "matching" is wrong, the same claimed-vs-shipped-token gap pattern Phase 13's UI review already flagged for a different token/selector pair in this codebase.
+
+### Pillar 6: Experience Design (3/4)
+
+- Full live round trip verified end-to-end, not just read in code: launch `--staged` → frozen snapshot shows only the pre-edit content even after re-staging an external edit → click `Refresh snapshot` → `RefreshSummaryPanel` opens automatically with the correct `1 modified` heading and `1 comment now orphaned` count → tree-row `Changed` marker appears and clears on file-open (matches `tests/e2e/uncommitted-review.spec.ts`'s own assertions, independently reproduced here via screenshots rather than test-runner assertions).
+- D-19 recovery loop verified live across two separate CLI launches on the same fixture with different staged content: first launch seeds a comment on a newly-added file, second launch (different digest, same source+base) surfaces `Resume previous uncommitted review?` in `.shell-warning-stack`, confirmed via screenshot (`09-d19-resume-recovery-banner-desktop.png`).
+- `InlineNotice` roles are correct and non-alarming: the session banner and Refresh summary panel both use `role="note"`/`role="status"` (never `alert`), matching the UI-SPEC's "informational, not error" framing — confirmed by reading `InlineNotice.vue`'s `role` prop default and the two call sites in `App.vue`.
+- Passive change indicator (`Working tree changed since snapshot`) correctly appears after a real external re-staged edit once the 30s poll interval (`src/web/App.vue:1069`, `window.setInterval(refreshWorktreeIndicatorWhenVisible, 30_000)`) elapses — confirmed live (`06-refresh-passive-change-indicator-desktop.png`); it never auto-triggers a refresh, matching D-14's "inert text, not a button" requirement.
+- **Minor deduction:** the same generic `Repository object` label from Priority Fix #1 slightly undermines the "truthful footer" invariant this codebase otherwise holds consistently elsewhere — a reviewer comparing Staged changes against a non-default `--base` has no way to tell, from the header alone, which ref they're actually reviewing against.
+
+---
+
+## Files Audited
+
+- `src/web/components/IdentityHeader.vue` (three-way comparison strip, Refresh control, passive indicator)
+- `src/web/components/RefreshSummaryPanel.vue`
+- `src/web/components/FileRow.vue` (`availabilityLabel`, `tree-row__refresh-marker`)
+- `src/web/components/InlineNotice.vue` (`dismissible` prop, role defaults)
+- `src/web/App.vue` (`.shell-warning-stack` wiring, D-19 recovery banner, Refresh orchestration)
+- `src/web/components/ui/UiIcon.vue` (`refresh` glyph)
+- `src/web/styles.css` (`.session-header__comparison`, `.header-facts`, `.pin-cue`, `.tree-row`/`.file-row` grid, `.ui-button--primary`, `.identity-disclosure`)
+- `src/cli/picker.ts` (`Uncommitted` picker group, Base-prompt copy variants)
+- `src/cli/run.ts` (`resolveUncommittedFlagSelection`, `validateUncommittedFlags`, CLI flag definitions)
+- `src/contracts/api.ts` (`UncommittedSessionResponseSchema`, confirms no base-label field exists server-side)
+- `tests/e2e/uncommitted-review.spec.ts` (reused as the reference pattern for live CLI harness + screenshot driving, and for the exact D-19/Refresh flow this audit reproduced)
+- `14-UI-SPEC.md`, `14-CONTEXT.md`, `14-01..16-PLAN.md`/`-SUMMARY.md` (contract and execution-intent baseline, including the 14-14/14-15/14-16 gap-closure work)
+
+**Live capture evidence:** `.planning/ui-reviews/14-20261031-012608/` — 12 screenshots (desktop 1440×900: staged identity header + open file, unstaged identity header, worktree identity header + untracked single-pane file, passive change indicator after a real 30s poll cycle, Refresh summary panel, tree-row `Changed` marker, D-19 recovery banner; mobile 375×812: staged identity header, Refresh summary panel, D-19 recovery banner), gitignored per the screenshot-safety gate.
