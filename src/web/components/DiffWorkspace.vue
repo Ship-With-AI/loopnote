@@ -46,6 +46,8 @@ const emit = defineEmits<{
 }>();
 
 const host = ref<HTMLElement>();
+const basePaneRef = ref<InstanceType<typeof RenderedMarkdownView>>();
+const headPaneRef = ref<InstanceType<typeof RenderedMarkdownView>>();
 const anchorAffordance = ref<AnchorAffordanceTarget>();
 const lineChanges = ref<readonly monaco.editor.ILineChange[]>([]);
 let adapter: MonacoDiffAdapter | undefined;
@@ -448,6 +450,7 @@ onBeforeUnmount(() => {
         <div ref="host" class="diff-workspace__editor" v-show="mode === 'source'" :aria-hidden="mode === 'rendered'" />
         <RenderedMarkdownView
           v-if="mode === 'rendered'"
+          ref="basePaneRef"
           :content="baseText"
           side="base"
           :changes="lineChanges"
@@ -464,9 +467,11 @@ onBeforeUnmount(() => {
           @keep-writing="emit('keepWriting')"
           @ready="(fileId) => emit('ready', fileId)"
           @update-text="(text) => emit('updateText', text)"
+          @scrolled-to-block="(range) => headPaneRef?.scrollToRange(range.start, range.end)"
         />
         <RenderedMarkdownView
           v-if="mode === 'rendered'"
+          ref="headPaneRef"
           :content="headText"
           side="head"
           :changes="lineChanges"
@@ -483,6 +488,7 @@ onBeforeUnmount(() => {
           @keep-writing="emit('keepWriting')"
           @ready="(fileId) => emit('ready', fileId)"
           @update-text="(text) => emit('updateText', text)"
+          @scrolled-to-block="(range) => basePaneRef?.scrollToRange(range.start, range.end)"
         />
       </div>
     </div>
