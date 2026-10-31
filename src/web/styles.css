@@ -1996,6 +1996,18 @@ h3.conversation-card__identity {
   padding: var(--space-1) 0;
 }
 
+.rendered-block--added {
+  border-left: 2px solid var(--status-added-foreground);
+}
+
+.rendered-block--removed {
+  border-left: 2px solid var(--status-deleted-foreground);
+}
+
+.rendered-block--changed {
+  border-left: 2px solid var(--status-modified-foreground);
+}
+
 .rendered-markdown table,
 .rendered-markdown th,
 .rendered-markdown td {

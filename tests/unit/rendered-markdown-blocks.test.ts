@@ -1,7 +1,27 @@
+import type * as monaco from 'monaco-editor';
 import { describe, expect, test } from 'vitest';
 
 import { renderMarkdownPreview } from '../../src/web/model/markdown-preview.js';
-import { buildImageRouteUrl, extractSourceBlocks } from '../../src/web/model/rendered-markdown-blocks.js';
+import {
+  buildImageRouteUrl,
+  classifyBlockChange,
+  extractSourceBlocks,
+} from '../../src/web/model/rendered-markdown-blocks.js';
+
+function change(
+  originalStartLineNumber: number,
+  originalEndLineNumber: number,
+  modifiedStartLineNumber = originalStartLineNumber,
+  modifiedEndLineNumber = originalEndLineNumber,
+): monaco.editor.ILineChange {
+  return {
+    originalStartLineNumber,
+    originalEndLineNumber,
+    modifiedStartLineNumber,
+    modifiedEndLineNumber,
+    charChanges: [],
+  };
+}
 
 describe('extractSourceBlocks', () => {
   test('extracts every block type D-05 names from a real renderMarkdownPreview fixture, in document order', () => {
@@ -64,3 +84,34 @@ describe('buildImageRouteUrl', () => {
     expect(pathValue).not.toContain(' ');
   });
 });
+
+describe('classifyBlockChange', () => {
+  test('returns "changed" for both sides when a change has nonzero ranges on both sides', () => {
+    const changes = [change(5, 6, 5, 6)];
+    expect(classifyBlockChange(5, 6, 'base', changes)).toBe('changed');
+    expect(classifyBlockChange(5, 6, 'head', changes)).toBe('changed');
+  });
+
+  test('returns "added" on head and undefined on base for a pure insertion (originalEndLineNumber === 0)', () => {
+    const changes = [change(4, 0, 5, 6)];
+    expect(classifyBlockChange(5, 6, 'head', changes)).toBe('added');
+    expect(classifyBlockChange(5, 6, 'base', changes)).toBeUndefined();
+  });
+
+  test('returns "removed" on base and undefined on head for a pure deletion (modifiedEndLineNumber === 0)', () => {
+    const changes = [change(5, 6, 4, 0)];
+    expect(classifyBlockChange(5, 6, 'base', changes)).toBe('removed');
+    expect(classifyBlockChange(5, 6, 'head', changes)).toBeUndefined();
+  });
+
+  test('returns undefined when the block overlaps no entry in changes, regardless of side', () => {
+    const changes = [change(10, 12, 10, 12)];
+    expect(classifyBlockChange(1, 2, 'base', changes)).toBeUndefined();
+    expect(classifyBlockChange(1, 2, 'head', changes)).toBeUndefined();
+  });
+
+  test('returns undefined when changes is null', () => {
+    expect(classifyBlockChange(1, 2, 'base', null)).toBeUndefined();
+  });
+});
+

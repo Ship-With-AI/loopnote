@@ -1,3 +1,5 @@
+import type * as monaco from 'monaco-editor';
+
 import type { DiffSide } from '../monaco/diff-adapter.js';
 
 // Matches a block-level opening tag carrying both `data-source-start`/`data-source-end`
@@ -33,4 +35,42 @@ export function extractSourceBlocks(html: string): SourceBlockRange[] {
  */
 export function buildImageRouteUrl(fileId: string, side: DiffSide, path: string): string {
   return `/api/files/${encodeURIComponent(fileId)}/image?path=${encodeURIComponent(path)}&side=${side}`;
+}
+
+/**
+ * Classifies a rendered block against a side-by-side `changes` array (D-01/D-02).
+ *
+ * Reuses the exact side-to-field mapping convention `diff-semantics.ts` already uses for its
+ * own glyph-margin markers: `side === 'base'` reads `original*LineNumber`, `side === 'head'`
+ * reads `modified*LineNumber`. `blockStart`/`blockEnd` are the block's 1-indexed inclusive
+ * source range (`[block.start + 1, block.end]`).
+ */
+export function classifyBlockChange(
+  blockStart: number,
+  blockEnd: number,
+  side: DiffSide,
+  changes: readonly monaco.editor.ILineChange[] | null,
+): 'added' | 'removed' | 'changed' | undefined {
+  if (changes === null) return undefined;
+
+  for (const change of changes) {
+    // A pure insertion/deletion where this side has no content at all: the block cannot be
+    // classified against this side from this change.
+    if (side === 'base' && change.originalEndLineNumber === 0) continue;
+    if (side === 'head' && change.modifiedEndLineNumber === 0) continue;
+
+    const relevantStart = side === 'base' ? change.originalStartLineNumber : change.modifiedStartLineNumber;
+    const relevantEnd = side === 'base' ? change.originalEndLineNumber : change.modifiedEndLineNumber;
+    if (relevantEnd < blockStart || relevantStart > blockEnd) continue;
+
+    const otherSideEmpty = side === 'base'
+      ? change.modifiedEndLineNumber === 0
+      : change.originalEndLineNumber === 0;
+    if (otherSideEmpty) {
+      return side === 'head' ? 'added' : 'removed';
+    }
+    return 'changed';
+  }
+
+  return undefined;
 }

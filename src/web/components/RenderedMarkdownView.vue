@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed, h, onBeforeUnmount, onMounted, ref, render, watch } from 'vue';
+import type * as monaco from 'monaco-editor';
 
 import type { DiffSide } from '../monaco/diff-adapter.js';
 import type { WorkspaceComment, WorkspaceComposer } from '../model/workspace-state.js';
 import { renderMarkdownPreview } from '../model/markdown-preview.js';
-import { buildImageRouteUrl, extractSourceBlocks } from '../model/rendered-markdown-blocks.js';
+import { buildImageRouteUrl, classifyBlockChange, extractSourceBlocks } from '../model/rendered-markdown-blocks.js';
 import CommentComposer from './CommentComposer.vue';
 import PathText from './ui/PathText.vue';
 import ReviewStateBadge from './ui/ReviewStateBadge.vue';
@@ -17,6 +18,7 @@ const props = defineProps<{
   mutationsLocked?: boolean;
   path: string;
   fileId: string;
+  changes?: readonly monaco.editor.ILineChange[] | null;
 }>();
 
 const emit = defineEmits<{
@@ -104,6 +106,23 @@ function clearAnnotations(): void {
 function firstOverlappingBlockIndex(line: number): number | undefined {
   const index = blocks.value.findIndex((block) => block.start + 1 <= line && line <= block.end);
   return index === -1 ? undefined : index;
+}
+
+function applyMarkers(): void {
+  for (const block of blocks.value) {
+    block.element.classList.remove('rendered-block--added', 'rendered-block--removed', 'rendered-block--changed');
+    block.element.querySelector(':scope > .status-badge')?.remove();
+
+    const classification = classifyBlockChange(block.start + 1, block.end, props.side, props.changes ?? null);
+    if (classification === undefined) continue;
+
+    block.element.classList.add(`rendered-block--${classification}`);
+    const modifier = classification === 'removed' ? 'deleted' : classification === 'changed' ? 'modified' : 'added';
+    const chip = document.createElement('span');
+    chip.className = `status-badge status-badge--${modifier}`;
+    chip.textContent = classification === 'added' ? 'Added' : classification === 'removed' ? 'Removed' : 'Changed';
+    block.element.prepend(chip);
+  }
 }
 
 function mountAnnotation(afterElement: HTMLElement): HTMLElement {
@@ -205,6 +224,7 @@ function buildBlocks(): void {
 
   host.replaceChildren(...Array.from(parsed.childNodes));
   blocks.value = entries;
+  applyMarkers();
   renderAnnotations();
   emit('ready', props.fileId);
 }
@@ -212,6 +232,7 @@ function buildBlocks(): void {
 onMounted(buildBlocks);
 watch(() => [props.content, props.fileId, props.side] as const, buildBlocks);
 watch(() => [props.comments, props.composer] as const, renderAnnotations, { deep: true });
+watch(() => props.changes, applyMarkers);
 watch(() => props.mutationsLocked, () => {
   if (activeButton !== undefined) activeButton.disabled = props.mutationsLocked === true;
 });
