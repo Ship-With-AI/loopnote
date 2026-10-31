@@ -32,7 +32,13 @@ export const AddCommentRequestSchema = z
     fileId: OpaqueFileIdSchema,
     side: AnchorSideSchema,
     line: z.number().int().positive(),
+    endLine: z.number().int().positive().optional(),
     body: CommentBodySchema,
+  })
+  .superRefine((value, context) => {
+    if (value.endLine !== undefined && value.endLine < value.line) {
+      context.addIssue({ code: 'custom', message: 'endLine must be >= line.', path: ['endLine'] });
+    }
   })
   .readonly();
 

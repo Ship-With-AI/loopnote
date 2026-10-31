@@ -32,6 +32,7 @@ export const DurableAnchorV1Schema = z
     safeDisplayPath: z.string(),
     side: AnchorSideSchema,
     line: z.number().int().positive(),
+    endLine: z.number().int().positive().optional(),
     blobOid: GitObjectIdSchema,
     selectedText: z.string(),
     context: z
@@ -48,6 +49,11 @@ export const DurableAnchorV1Schema = z
       })
       .readonly(),
     uniqueKey: z.string().regex(/^[0-9a-f]{64}$/),
+  })
+  .superRefine((value, context) => {
+    if (value.endLine !== undefined && value.endLine < value.line) {
+      context.addIssue({ code: 'custom', message: 'endLine must be >= line.', path: ['endLine'] });
+    }
   })
   .readonly();
 
