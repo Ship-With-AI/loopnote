@@ -163,6 +163,7 @@ const uncommittedSession = computed(() =>
     ? (session.value as Extract<SessionResponse, { uncommitted: unknown }>).uncommitted
     : undefined,
 );
+const isStandaloneSession = computed(() => uncommittedSession.value?.sourceKind === 'standalone');
 const recoveryAvailable = computed(() => uncommittedSession.value?.recoveryAvailable === true);
 const uncommittedBaseLabel = 'Repository object';
 const singlePaneSide = computed(() =>
@@ -1392,8 +1393,7 @@ onBeforeUnmount(() => {
       :attached-failure="attachedResult"
       :mutation-locked="attachedMutationLocked"
       :is-exact-patch="isExactPatchSession"
-      :export-supported="!isUncommittedSession"
-      @close="closeReviewNotes"
+      :export-supported="!isUncommittedSession || isStandaloneSession"
       @cancel-summary="if (!attachedMutationLocked) { reviewState?.setSummaryBuffer(reviewDraft?.canonical.summary ?? ''); refreshReviewSnapshot(); }"
       @reload-latest="reloadLatestReview"
       @save-summary="saveSummary"
