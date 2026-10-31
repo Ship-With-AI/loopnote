@@ -17,6 +17,11 @@ import type { ObjectReader } from '../git/objects.js';
 import { createGitRunner } from '../git/runner.js';
 import type { GitRunner } from '../git/runner.js';
 import { createWorktreeChangedFileInventory } from '../git/worktree-inventory.js';
+import {
+  classifyStandaloneGitState,
+  createStandaloneChangedFileInventory,
+  resolveStandaloneArguments,
+} from '../git/standalone-resolution.js';
 import { resolveWorktreeSideContent } from '../git/worktree-content.js';
 
 import { boundedFileBytes, digest, isMissing, syncDirectory, writeOwned, MAX_SIDE_BYTES } from './snapshot-fs.js';
@@ -60,20 +65,22 @@ export const WorktreeSnapshotEntrySchema = z.strictObject({
 
 export const WorktreeSnapshotManifestSchema = z.strictObject({
   version: z.literal(SNAPSHOT_VERSION),
-  sourceKind: z.enum(['staged', 'unstaged', 'worktree']),
+  sourceKind: z.enum(['staged', 'unstaged', 'worktree', 'standalone']),
   repositoryIdentity: z.string().min(1),
   baseCommitOid: GitObjectIdSchema.optional(),
+  standaloneArguments: z.array(z.string().min(1)).max(256).optional(),
   objectFormat: z.enum(['sha1', 'sha256']),
   entries: z.array(WorktreeSnapshotEntrySchema).max(MAX_SNAPSHOT_FILES).readonly(),
   chain: z.array(z.string().regex(/^[0-9a-f]{64}$/u)).min(1).readonly(),
   provenanceDigest: z.string().regex(/^[0-9a-f]{64}$/u),
 }).superRefine((manifest, context) => {
   const hasBase = manifest.baseCommitOid !== undefined;
-  if (manifest.sourceKind === 'unstaged') {
+  const isNoBaseKind = manifest.sourceKind === 'unstaged' || manifest.sourceKind === 'standalone';
+  if (isNoBaseKind) {
     if (hasBase) {
       context.addIssue({
         code: 'custom',
-        message: 'Unstaged snapshots must not carry a base commit.',
+        message: 'Unstaged and Standalone snapshots must not carry a base commit.',
         path: ['baseCommitOid'],
       });
     }
@@ -82,6 +89,22 @@ export const WorktreeSnapshotManifestSchema = z.strictObject({
       code: 'custom',
       message: 'Staged and Working tree snapshots require a base commit.',
       path: ['baseCommitOid'],
+    });
+  }
+
+  const hasStandaloneArguments = manifest.standaloneArguments !== undefined;
+  const isStandalone = manifest.sourceKind === 'standalone';
+  if (isStandalone && !hasStandaloneArguments) {
+    context.addIssue({
+      code: 'custom',
+      message: 'Standalone snapshots require standaloneArguments.',
+      path: ['standaloneArguments'],
+    });
+  } else if (!isStandalone && hasStandaloneArguments) {
+    context.addIssue({
+      code: 'custom',
+      message: 'Only Standalone snapshots may have standaloneArguments.',
+      path: ['standaloneArguments'],
     });
   }
 }).readonly();
@@ -215,6 +238,39 @@ async function readObjectBackedSide(
 }
 
 /**
+ * Enumerates the expected/observed `ChangedFile` set for one capture pass.
+ * Standalone sessions have no git diff to enumerate — they resolve their
+ * original pathspec arguments fresh (picking up additions/removals since
+ * the prior pass) via `resolveStandaloneArguments`/`classifyStandaloneGitState`
+ * /`createStandaloneChangedFileInventory` instead of
+ * `createWorktreeChangedFileInventory`. Every other sourceKind is unchanged.
+ */
+async function inventoryForScope(
+  scope: UncommittedScope,
+  repositoryRoot: string,
+  runner: GitRunner,
+  objectReader: ObjectReader,
+): Promise<readonly ChangedFile[]> {
+  if (scope.sourceKind === 'standalone') {
+    const resolved = await resolveStandaloneArguments(repositoryRoot, scope.standaloneArguments!, { runner });
+    const gitStates = await classifyStandaloneGitState(repositoryRoot, resolved, { runner });
+    return createStandaloneChangedFileInventory(repositoryRoot, resolved, gitStates, scope.objectFormat, {
+      runner,
+      objectReader,
+    });
+  }
+  return createWorktreeChangedFileInventory(
+    {
+      sourceKind: scope.sourceKind,
+      repositoryRoot,
+      mergeBaseOid: scope.mergeBaseOid,
+      objectFormat: scope.objectFormat,
+    },
+    { runner, objectReader },
+  );
+}
+
+/**
  * Implements Required Focus 3(b): enumerate the expected file set once,
  * capture every file's content (object-backed sides via `ObjectReader`,
  * worktree-resident sides via `resolveWorktreeSideContent`/bounded raw read
@@ -227,23 +283,10 @@ async function captureWorktreeManifest(
   repositoryRoot: string,
   dependencies: CaptureWorktreeManifestDependencies = {},
 ): Promise<WorktreeManifestCapture> {
-  if (scope.sourceKind === 'standalone') {
-    throw new RangeError(
-      'Unreachable: captureWorktreeManifest does not support standalone scopes; standalone sessions use a dedicated capture path.',
-    );
-  }
   const runner = dependencies.runner ?? createGitRunner();
   const objectReader = dependencies.objectReader ?? createObjectReader(repositoryRoot, { runner });
   await dependencies.onCaptureStart?.();
-  const expected = await createWorktreeChangedFileInventory(
-    {
-      sourceKind: scope.sourceKind,
-      repositoryRoot,
-      mergeBaseOid: scope.mergeBaseOid,
-      objectFormat: scope.objectFormat,
-    },
-    { runner, objectReader },
-  );
+  const expected = await inventoryForScope(scope, repositoryRoot, runner, objectReader);
   if (expected.length > MAX_SNAPSHOT_FILES) throw new WorktreeSnapshotError('snapshot-unavailable', false);
 
   interface Intermediate {
@@ -312,15 +355,7 @@ async function captureWorktreeManifest(
   }
 
   await dependencies.onBeforeObservedEnumeration?.();
-  const observed = await createWorktreeChangedFileInventory(
-    {
-      sourceKind: scope.sourceKind,
-      repositoryRoot,
-      mergeBaseOid: scope.mergeBaseOid,
-      objectFormat: scope.objectFormat,
-    },
-    { runner, objectReader },
-  );
+  const observed = await inventoryForScope(scope, repositoryRoot, runner, objectReader);
   const observedKeys = new Set(observed.map((file) => pathKey(file)));
 
   const entries: WorktreeSnapshotEntry[] = [];
@@ -366,6 +401,7 @@ async function captureWorktreeManifest(
       sourceKind: scope.sourceKind,
       repositoryIdentity: repositoryRoot,
       ...(scope.baseCommitOid === undefined ? {} : { baseCommitOid: scope.baseCommitOid }),
+      ...(scope.sourceKind === 'standalone' ? { standaloneArguments: scope.standaloneArguments } : {}),
       objectFormat: scope.objectFormat,
       entries: Object.freeze(entries),
     },
@@ -629,6 +665,7 @@ export class WorktreeSnapshot {
       objectFormat: previous.objectFormat,
       baseCommitOid: previous.baseCommitOid,
       mergeBaseOid,
+      standaloneArguments: previous.standaloneArguments,
       changedFiles: [],
     };
 
