@@ -45,7 +45,7 @@ deferred from v2.0.
 
 - [x] **Phase 13: Single-Pane File Rendering** - Added/deleted files render as one full-width commentable pane instead of a diff with an empty side. (completed 2026-10-30)
 - [x] **Phase 14: Uncommitted Source Review & Frozen Snapshots** - Staged/Unstaged/Working-tree review against any base, frozen at session start with explicit, comment-safe Refresh. (completed 2026-10-30)
-- [ ] **Phase 15: Standalone File Review** - Named files/globs open and review full width without choosing Base/Head.
+- [x] **Phase 15: Standalone File Review** - Named files/globs open and review full width without choosing Base/Head. (completed 2026-10-31)
 - [ ] **Phase 16: Rendered Markdown Preview** - Any Markdown file toggles between source and rendered view with block-anchored commenting.
 - [ ] **Phase 17: Agent Protocol Extension & Marketplace Skill** - Agents request uncommitted/standalone review over stdin and through the marketplace skill with versioned exports.
 - [ ] **Phase 18: Product Repositioning Copy** - README, npm page, CLI copy, and workspace text describe artifact review, not only code diffs.
@@ -133,26 +133,26 @@ Plans:
 **Plans**: 0/8 plans executed
 **Wave 1**
 
-- [ ] 15-01-PLAN.md
-- [ ] 15-02-PLAN.md
+- [x] 15-01-PLAN.md
+- [x] 15-02-PLAN.md
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 15-03-PLAN.md
-- [ ] 15-04-PLAN.md
-- [ ] 15-05-PLAN.md
+- [x] 15-03-PLAN.md
+- [x] 15-04-PLAN.md
+- [x] 15-05-PLAN.md
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 15-06-PLAN.md
+- [x] 15-06-PLAN.md
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 15-07-PLAN.md
+- [x] 15-07-PLAN.md
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
-- [ ] 15-08-PLAN.md
+- [x] 15-08-PLAN.md
 
 **Research flag**: yes — path-traversal/symlink-escape hardening (`realpath`/per-segment resolution) is security-sensitive; verify against the existing `exact-patch.ts` precedent during planning, per `research/SUMMARY.md`.
 
@@ -171,12 +171,14 @@ Plans:
 **Plans**: 6 plans
 
 Plans:
+
 - [ ] 16-01-PLAN.md — Hardened renderer extensions: block source-map stamping, front matter, task lists, image inline-rule hardening (D-05/D-09/D-11, MDV-02/MDV-04)
 - [ ] 16-02-PLAN.md — Same-origin repo-local image content route with path-safety + extension allow-list (D-09, MDV-04)
 - [ ] 16-03-PLAN.md — RenderedMarkdownView.vue: block rendering, D-01/D-02 markers, D-04 comment trigger, D-07 inline comments, D-09 images, D-11 styling (MDV-01/02/03/04)
 - [ ] 16-04-PLAN.md — Source/Rendered toggle + DiffWorkspace host-swap in both layouts (D-02/D-12, MDV-01)
 - [ ] 16-05-PLAN.md — D-03 block-aligned scroll sync between side-by-side rendered panes (MDV-01)
 - [ ] 16-06-PLAN.md — e2e toggle round-trip, full comment flow, and negative security coverage under production CSP (MDV-01/02/03/04)
+
 **UI hint**: yes
 
 ### Phase 17: Agent Protocol Extension & Marketplace Skill
@@ -230,7 +232,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 13. Single-Pane File Rendering | 5/5 | Complete    | 2026-10-30 |
 | 14. Uncommitted Source Review & Frozen Snapshots | 15/16 | In Progress|  |
-| 15. Standalone File Review | 0/8 | Planned    |  |
+| 15. Standalone File Review | 8/8 | Complete    | 2026-10-31 |
 | 16. Rendered Markdown Preview | 0/6 | Planned | - |
 | 17. Agent Protocol Extension & Marketplace Skill | 0/TBD | Not started | - |
 | 18. Product Repositioning Copy | 0/TBD | Not started | - |

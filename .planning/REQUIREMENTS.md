@@ -33,11 +33,11 @@
 
 ### Standalone Files
 
-- [ ] **FILE-01**: User can run `cumpa <path|glob>...` to open the named files, tracked or untracked, changed or unchanged, without choosing Base and Head.
-- [ ] **FILE-02**: User's path and glob arguments resolve with Git pathspec semantics and respect ignore rules; an argument matching no file fails before launch with a clear message.
-- [ ] **FILE-03**: User sees each standalone file full width with its current working-tree content and can comment on any line.
-- [ ] **FILE-04**: User gets a clear error before launch when any argument resolves outside the repository, including `../` traversal, absolute paths outside the repository, and symlink escapes.
-- [ ] **FILE-05**: User can finish a standalone-file review and export Markdown plus canonical JSON whose provenance identifies the reviewed paths and their snapshot content.
+- [x] **FILE-01**: User can run `cumpa <path|glob>...` to open the named files, tracked or untracked, changed or unchanged, without choosing Base and Head.
+- [x] **FILE-02**: User's path and glob arguments resolve with Git pathspec semantics and respect ignore rules; an argument matching no file fails before launch with a clear message.
+- [x] **FILE-03**: User sees each standalone file full width with its current working-tree content and can comment on any line.
+- [x] **FILE-04**: User gets a clear error before launch when any argument resolves outside the repository, including `../` traversal, absolute paths outside the repository, and symlink escapes.
+- [x] **FILE-05**: User can finish a standalone-file review and export Markdown plus canonical JSON whose provenance identifies the reviewed paths and their snapshot content.
 
 ### Markdown Preview
 
@@ -112,11 +112,11 @@ Deferred, tracked but not in the v2.0 roadmap.
 | SNAP-03 | Phase 14 | Complete |
 | SNAP-04 | Phase 14 | Complete |
 | SNAP-05 | Phase 14 | Complete |
-| FILE-01 | Phase 15 | Pending |
-| FILE-02 | Phase 15 | Pending |
-| FILE-03 | Phase 15 | Pending |
-| FILE-04 | Phase 15 | Pending |
-| FILE-05 | Phase 15 | Pending |
+| FILE-01 | Phase 15 | Complete |
+| FILE-02 | Phase 15 | Complete |
+| FILE-03 | Phase 15 | Complete |
+| FILE-04 | Phase 15 | Complete |
+| FILE-05 | Phase 15 | Complete |
 | MDV-01 | Phase 16 | Pending |
 | MDV-02 | Phase 16 | Pending |
 | MDV-03 | Phase 16 | Pending |
