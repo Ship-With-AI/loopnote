@@ -130,7 +130,30 @@ Plans:
   4. User sees each standalone file rendered full width with its current working-tree content and can comment on any line.
   5. User finishes a standalone-file review and exports Markdown plus canonical JSON whose provenance identifies exactly which paths and snapshot content were reviewed.
 
-**Plans**: TBD
+**Plans**: 0/8 plans executed
+**Wave 1**
+
+- [ ] 15-01-PLAN.md
+- [ ] 15-02-PLAN.md
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 15-03-PLAN.md
+- [ ] 15-04-PLAN.md
+- [ ] 15-05-PLAN.md
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 15-06-PLAN.md
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 15-07-PLAN.md
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
+- [ ] 15-08-PLAN.md
+
 **Research flag**: yes — path-traversal/symlink-escape hardening (`realpath`/per-segment resolution) is security-sensitive; verify against the existing `exact-patch.ts` precedent during planning, per `research/SUMMARY.md`.
 
 ### Phase 16: Rendered Markdown Preview
@@ -199,7 +222,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 13. Single-Pane File Rendering | 5/5 | Complete    | 2026-10-30 |
 | 14. Uncommitted Source Review & Frozen Snapshots | 15/16 | In Progress|  |
-| 15. Standalone File Review | 0/TBD | Not started | - |
+| 15. Standalone File Review | 0/8 | Planned    |  |
 | 16. Rendered Markdown Preview | 0/TBD | Not started | - |
 | 17. Agent Protocol Extension & Marketplace Skill | 0/TBD | Not started | - |
 | 18. Product Repositioning Copy | 0/TBD | Not started | - |
