@@ -283,17 +283,17 @@ export const DIRTY_EXPLANATION =
 
 ## Open Questions
 
-1. **`<repo>` segment data source for the D-09 tab-title pattern**
+1. **`<repo>` segment data source for the D-09 tab-title pattern** (RESOLVED — see 18-04 Task 1)
    - What we know: `18-UI-SPEC.md`'s own Open Questions section confirms no `repoName` field exists in `src/contracts/api.ts` or anywhere in `src/web` today.
    - What's unclear: whether the planner adds a minimal server-side field (e.g., resolved repo root's basename) to the session response in this phase, or whether that wiring is deferred/descoped.
    - Recommendation: size it as a small, explicit task in the apply plan — UI-SPEC is already approved and expects this field to exist for the tab title to be fully implemented.
 
-2. **Exact-patch / pinned-range session-kind tab-title phrasing**
+2. **Exact-patch / pinned-range session-kind tab-title phrasing** (RESOLVED — deferred to the human; see 18-01's "Browser tab title open questions" section)
    - What we know: `18-CONTEXT.md`'s own literal examples only cover uncommitted (`Working tree vs HEAD`) and standalone (`3 files`) cases.
    - What's unclear: whether `Exact patch` and `{N} files` (proposed in `18-UI-SPEC.md`, echoing the existing `'Frozen patch'`/`'…loading exact patch'` copy) are acceptable as-is or need separate user sign-off, since they are UI-SPEC's grounded recommendation, not a `18-CONTEXT.md`-locked decision.
    - Recommendation: carry these two phrasings into `18-COPY-DRAFT.md` explicitly flagged as "UI-SPEC proposed, not CONTEXT-locked" so the human checkpoint can confirm or adjust them.
 
-3. **Does `IdentityHeader.vue`'s dirty-badge SR text get its own literal rewrite, or get refactored to import `DIRTY_EXPLANATION`?**
+3. **Does `IdentityHeader.vue`'s dirty-badge SR text get its own literal rewrite, or get refactored to import `DIRTY_EXPLANATION`?** (RESOLVED — see 18-04 Task 2, literal rewrite, no shared import)
    - What we know: the two strings are currently independent and already textually different (see Pitfall 1); `18-CONTEXT.md`'s Claude's-Discretion note treats them as "same offending phrase, two call sites" but they are not byte-identical today.
    - What's unclear: whether consolidating them (web imports the CLI constant, or both import a shared constant) is in scope for this copy-only phase, or whether that refactor belongs to a later phase since it touches code structure, not just string values.
    - Recommendation: default to editing both literal strings to the same new wording without introducing a shared import (keeps the phase copy-only, per the zero-new-architecture framing), but flag the duplication risk in `18-COPY-DRAFT.md` for the planner to decide explicitly.
