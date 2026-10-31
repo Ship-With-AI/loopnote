@@ -313,6 +313,24 @@ watch(() => [props.composer, props.comments] as const, () => {
 }, { deep: true });
 
 watch(visibleSides, syncSideNames);
+watch(() => props.mode, () => {
+  // v-show toggles the Monaco container's display between none/block; Monaco never
+  // observes that transition on its own (ResizeObserver timing is not reliable enough
+  // for anchor zones created while hidden), so force a relayout once the container is
+  // visible again, or the editor — and any anchor zone/decoration created while hidden
+  // (e.g. a rendered-block comment) — stays laid out at its stale zero-size dimensions.
+  // A zone created while the editor had zero size also never renders correctly once the
+  // editor is resized, so re-apply the active anchor to force rebuildAnchoredLayout()
+  // to recreate it against the now-correctly-sized editor.
+  void nextTick(() => {
+    adapter?.layout();
+    const anchor = adapter?.getActiveAnchor();
+    if (anchor !== undefined) {
+      adapter?.setActiveAnchor(anchor);
+      void nextTick(renderAnnotation);
+    }
+  });
+});
 
 watch(() => props.content, () => {
   observedAnchor = '';

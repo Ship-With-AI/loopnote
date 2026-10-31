@@ -318,6 +318,11 @@ class PublicMonacoDiffAdapter {
       this.onChange();
       return;
     }
+    // Rendered-view composer creation (plan 16) can anchor any block, including one
+    // Monaco would otherwise fold inside a collapsed unchanged region; force it visible
+    // the same way revealAnchor() does, or the anchor zone renders with zero height.
+    this.contextMode = 'all-revealed';
+    this.diffEditor.updateOptions({ hideUnchangedRegions: { enabled: false } });
     this.activeComposer = {
       fileId: anchor.fileId,
       side: anchor.side,
@@ -349,7 +354,12 @@ class PublicMonacoDiffAdapter {
   }
 
   layout(): void {
-    this.diffEditor.layout();
+    // Monaco's DiffEditorWidget does not reliably re-measure its sub-editor heights from a
+    // parameterless layout() call when automaticLayout is off (verified: a diff pane left
+    // display:none while a cross-mode anchor zone was created — plan 16's Rendered->Source
+    // toggle — stays pinned at a stale ~5px height even after an explicit no-arg layout()
+    // call; only an explicit {width, height} forces the sub-editors to re-measure).
+    this.diffEditor.layout({ width: this.host.clientWidth, height: this.host.clientHeight });
     this.refreshAnchorAffordance();
   }
 
@@ -807,7 +817,7 @@ class PublicMonacoSinglePaneAdapter {
   }
 
   layout(): void {
-    this.editor.layout();
+    this.editor.layout({ width: this.host.clientWidth, height: this.host.clientHeight });
     this.refreshAnchorAffordance();
   }
 

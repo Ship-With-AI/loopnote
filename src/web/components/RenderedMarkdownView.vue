@@ -175,7 +175,7 @@ function renderAnnotations(): void {
   }
 
   const composer = props.composer;
-  if (composer === undefined) return;
+  if (composer === undefined || composer.side !== props.side) return;
   const blockIndex = firstOverlappingBlockIndex(composer.line);
   if (blockIndex === undefined) return;
   const block = blocks.value[blockIndex];
