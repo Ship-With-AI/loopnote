@@ -1,5 +1,7 @@
 import { resolve } from 'node:path';
 
+import type * as monaco from 'monaco-editor';
+
 import { canonicalRoot } from '../helpers/canonical-root.js';
 import { resolveToken } from '../../src/web/theme/token-contract.js';
 import { describe, expect, it, vi } from 'vitest';
@@ -7,7 +9,7 @@ import { describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => {
   const disposable = () => ({ dispose: vi.fn() });
   const cursorListeners: Array<(event: { position: { lineNumber: number } }) => void> = [];
-  const decorationCollection = () => ({ clear: vi.fn(), set: vi.fn() });
+  const decorationCollection = (_decorations?: readonly monaco.editor.IModelDeltaDecoration[]) => ({ clear: vi.fn(), set: vi.fn() });
   const codeEditor = () => {
     const addZone = vi.fn(() => 'zone');
     const removeZone = vi.fn();
@@ -296,7 +298,7 @@ describe('PublicMonacoDiffAdapter construction', () => {
       adapter.activateAnchor('head', 10, 14);
 
       expect(adapter.getActiveAnchor()).toEqual({ fileId: 'file_a', side: 'head', line: 10, endLine: 14 });
-      const decoration = mocks.modifiedEditor.createDecorationsCollection.mock.calls.at(-1)?.[0]?.[0];
+      const decoration = mocks.modifiedEditor.createDecorationsCollection.mock.calls.at(-1)![0]![0]!;
       expect(decoration.range).toEqual({ startLineNumber: 10, startColumn: 1, endLineNumber: 14, endColumn: 1 });
     } finally {
       vi.unstubAllGlobals();
@@ -324,7 +326,7 @@ describe('PublicMonacoDiffAdapter construction', () => {
       adapter.activateAnchor('head', 10);
 
       expect(adapter.getActiveAnchor()).toEqual({ fileId: 'file_a', side: 'head', line: 10 });
-      const decoration = mocks.modifiedEditor.createDecorationsCollection.mock.calls.at(-1)?.[0]?.[0];
+      const decoration = mocks.modifiedEditor.createDecorationsCollection.mock.calls.at(-1)![0]![0]!;
       expect(decoration.range).toEqual({ startLineNumber: 10, startColumn: 1, endLineNumber: 10, endColumn: 1 });
     } finally {
       vi.unstubAllGlobals();

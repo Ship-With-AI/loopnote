@@ -29,6 +29,7 @@
     "tests/unit/monaco-diff-adapter.test.ts",
     "tests/unit/monaco-diff-semantics.test.ts",
     "tests/unit/monaco-theme.test.ts",
+    "tests/unit/rendered-markdown-blocks.test.ts",
     "tests/unit/token-contract.test.ts",
     "tests/unit/workspace-state.test.ts"
   ]
