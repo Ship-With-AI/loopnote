@@ -1000,6 +1000,7 @@ export async function createUncommittedCapabilityRegistry(
       'Unreachable: createUncommittedCapabilityRegistry does not support standalone scopes; standalone sessions use a dedicated capability registry.',
     );
   }
+  const sourceKind = scope.sourceKind;
   const storageScope = options.attachedCompletion === undefined
     ? undefined
     : assertAttachedStorageScope(options.attachedCompletion.storageScope);
@@ -1140,8 +1141,67 @@ export async function createUncommittedCapabilityRegistry(
     return { changed: indexChanged || changedPaths.length > 0, paths: changedPaths };
   };
 
+  const attachedCompletion = options.attachedCompletion === undefined ? undefined : {
+    status: () => options.attachedCompletion!.coordinator.status(),
+    markResponseSettled: () => options.attachedCompletion!.coordinator.markResponseSettled(),
+    finish: async (expectedRevision: number): Promise<FinishReviewResult> => {
+      return options.attachedCompletion!.coordinator.finish(expectedRevision, async () => {
+        const settled = await draftStore.settle(expectedRevision, {
+          prepare: async (acceptedDraft) => {
+            const drift = await collectWorkingTreeDrift();
+            const verification = Object.fromEntries(await Promise.all(acceptedDraft.comments.map(async (comment) => [comment.id, await verifyAnchor(comment.anchor)] as const)));
+            const affectedCommentIds = acceptedDraft.comments.filter((comment) => verification[comment.id]?.state !== 'verified').map((comment) => comment.id);
+            if (affectedCommentIds.length !== 0) return { kind: 'staleAnchors' as const, affectedCommentIds, affectedCount: affectedCommentIds.length };
+            try {
+              const exportedAt = new Date().toISOString();
+              const bytes = canonicalizeReviewExport(buildReviewExportV5(
+                { acceptedDraft, commentVerification: verification },
+                {
+                  sourceKind,
+                  baseCommitOid: scope.baseCommitOid,
+                  pathspecs: options.requestPathspecs ?? [],
+                  reviewKey,
+                  snapshotChain: snapshotSession.chain,
+                },
+                drift,
+                exportedAt,
+              ));
+              return { kind: 'ready' as const, bytes, revision: acceptedDraft.revision };
+            } catch {
+              return { kind: 'canonicalizationFailure' as const };
+            }
+          },
+          finalize: async ({ draft, prepared }) => {
+            if (prepared.kind !== 'ready') return prepared;
+            const affectedCommentIds = (await Promise.all(draft.comments.map(async (comment) => ({ id: comment.id, verification: await verifyAnchor(comment.anchor) })))).filter(({ verification }) => verification.state !== 'verified').map(({ id }) => id);
+            if (affectedCommentIds.length !== 0) return { kind: 'staleAnchors' as const, affectedCommentIds, affectedCount: affectedCommentIds.length };
+            try {
+              const document = parseCanonicalReviewExport(prepared.bytes);
+              if (document.schemaVersion !== 5 || document.acceptedDraftRevision !== draft.revision) return { kind: 'canonicalizationFailure' as const };
+            } catch {
+              return { kind: 'canonicalizationFailure' as const };
+            }
+            try {
+              if (!await options.attachedCompletion!.deliver(prepared.bytes)) {
+                return { kind: 'deliveryFailed' as const };
+              }
+              return { kind: 'completed' as const, revision: prepared.revision };
+            } catch {
+              return { kind: 'deliveryFailed' as const };
+            }
+          },
+        });
+        if (settled.kind === 'accepted') return settled.value;
+        if (settled.kind === 'revisionConflict') return { kind: 'revisionConflict', expectedRevision: settled.expectedRevision, actualRevision: settled.actualRevision };
+        if (settled.kind === 'draftChanged') return { kind: 'revisionConflict', expectedRevision, actualRevision: settled.actualRevision };
+        return settled.kind === 'readOnly' ? { kind: 'draftReadOnly' } : { kind: 'persistenceFailure' };
+      });
+    },
+  };
+
   return Object.freeze({
     session: sessionResponse,
+    attachedCompletion,
     onAnchorAdd: options.onAnchorAdd,
     draftStore,
     support: options.support,
@@ -1439,8 +1499,77 @@ export async function createStandaloneCapabilityRegistry(
     return { changed: indexChanged || changedPaths.length > 0, paths: changedPaths };
   };
 
+  const attachedCompletion = options.attachedCompletion === undefined ? undefined : {
+    status: () => options.attachedCompletion!.coordinator.status(),
+    markResponseSettled: () => options.attachedCompletion!.coordinator.markResponseSettled(),
+    finish: async (expectedRevision: number): Promise<FinishReviewResult> => {
+      return options.attachedCompletion!.coordinator.finish(expectedRevision, async () => {
+        const settled = await draftStore.settle(expectedRevision, {
+          prepare: async (acceptedDraft) => {
+            const drift = await collectWorkingTreeDrift();
+            const verification = Object.fromEntries(await Promise.all(acceptedDraft.comments.map(async (comment) => [comment.id, await verifyAnchor(comment.anchor)] as const)));
+            const affectedCommentIds = acceptedDraft.comments.filter((comment) => verification[comment.id]?.state !== 'verified').map((comment) => comment.id);
+            if (affectedCommentIds.length !== 0) return { kind: 'staleAnchors' as const, affectedCommentIds, affectedCount: affectedCommentIds.length };
+            const exportedAt = new Date().toISOString();
+            const files = await snapshot.files();
+            const resolvedPaths = files.map((file) => file.newPath!);
+            const fileDigests = (
+              await Promise.all(files.map(async (file) => {
+                const content = await snapshot.readContent(file.id);
+                if (content?.postimage === undefined) return undefined;
+                return { path: file.newPath!, sha256: createHash('sha256').update(content.postimage).digest('hex') };
+              }))
+            ).filter((entry): entry is { path: NonNullable<ChangedFile['newPath']>; sha256: string } => entry !== undefined);
+            const standaloneScope = {
+              originalArguments: [...scope.standaloneArguments!].sort(),
+              resolvedPaths,
+              fileDigests,
+              snapshotChain: snapshotSession.chain,
+              reviewKey,
+            };
+            try {
+              const bytes = canonicalizeReviewExport(buildReviewExportV6(
+                { acceptedDraft, commentVerification: verification },
+                standaloneScope,
+                drift,
+                exportedAt,
+              ));
+              return { kind: 'ready' as const, bytes, revision: acceptedDraft.revision };
+            } catch {
+              return { kind: 'canonicalizationFailure' as const };
+            }
+          },
+          finalize: async ({ draft, prepared }) => {
+            if (prepared.kind !== 'ready') return prepared;
+            const affectedCommentIds = (await Promise.all(draft.comments.map(async (comment) => ({ id: comment.id, verification: await verifyAnchor(comment.anchor) })))).filter(({ verification }) => verification.state !== 'verified').map(({ id }) => id);
+            if (affectedCommentIds.length !== 0) return { kind: 'staleAnchors' as const, affectedCommentIds, affectedCount: affectedCommentIds.length };
+            try {
+              const document = parseCanonicalReviewExport(prepared.bytes);
+              if (document.schemaVersion !== 6 || document.acceptedDraftRevision !== draft.revision) return { kind: 'canonicalizationFailure' as const };
+            } catch {
+              return { kind: 'canonicalizationFailure' as const };
+            }
+            try {
+              if (!await options.attachedCompletion!.deliver(prepared.bytes)) {
+                return { kind: 'deliveryFailed' as const };
+              }
+              return { kind: 'completed' as const, revision: prepared.revision };
+            } catch {
+              return { kind: 'deliveryFailed' as const };
+            }
+          },
+        });
+        if (settled.kind === 'accepted') return settled.value;
+        if (settled.kind === 'revisionConflict') return { kind: 'revisionConflict', expectedRevision: settled.expectedRevision, actualRevision: settled.actualRevision };
+        if (settled.kind === 'draftChanged') return { kind: 'revisionConflict', expectedRevision, actualRevision: settled.actualRevision };
+        return settled.kind === 'readOnly' ? { kind: 'draftReadOnly' } : { kind: 'persistenceFailure' };
+      });
+    },
+  };
+
   return Object.freeze({
     session: sessionResponse,
+    attachedCompletion,
     onAnchorAdd: options.onAnchorAdd,
     draftStore,
     support: options.support,
