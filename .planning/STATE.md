@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Artifact Review
-current_phase: 16
-current_phase_name: Rendered Markdown Preview
+current_phase: 17
+current_phase_name: agent-protocol-extension-marketplace-skill
 status: executing
-stopped_at: Completed 14-16-PLAN.md
-last_updated: "2026-10-31T09:12:27.129Z"
+stopped_at: Completed 17-01-PLAN.md
+last_updated: "2026-10-31T15:53:16.558Z"
 last_activity: 2026-10-31
-last_activity_desc: Phase 15 complete, transitioned to Phase 16
+last_activity_desc: Phase 17 execution started
 progress:
   total_phases: 7
-  completed_phases: 3
-  total_plans: 35
-  completed_plans: 29
-  percent: 43
+  completed_phases: 4
+  total_plans: 42
+  completed_plans: 38
+  percent: 57
 ---
 
 # Project State
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-09)
 
 **Core value:** A developer can accurately review repository-grounded changes chosen by a developer or coding agent and return precise, drift-detectable feedback the agent can act on.
-**Current focus:** Phase 13 — single-pane-file-rendering
+**Current focus:** Phase 17 — agent-protocol-extension-marketplace-skill
 
 ## Current Position
 
-Phase: 16 — Rendered Markdown Preview
-Plan: Not started
+Phase: 17 (agent-protocol-extension-marketplace-skill) — EXECUTING
+Plan: 2 of 5
 Status: Ready to execute
-Last activity: 2026-10-31 — Phase 15 complete, transitioned to Phase 16
+Last activity: 2026-10-31 — Phase 17 execution started
 
 ## Performance Metrics
 
@@ -83,6 +83,7 @@ Last activity: 2026-10-31 — Phase 15 complete, transitioned to Phase 16
 | Phase 14 P14 | 70min | 3 tasks | 5 files |
 | Phase 14-uncommitted-source-review-frozen-snapshots P15 | 45min | 4 tasks | 6 files |
 | Phase 14-uncommitted-source-review-frozen-snapshots P16 | 25min | 3 tasks | 3 files |
+| Phase 17 P01 | 10min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -136,6 +137,8 @@ Decisions are logged in PROJECT.md Key Decisions.
 - [Phase 14]: 14-14: fixed reconciledWorkspaceComments() discarding fresh comment status/exactFile/fileId on every call — Merge logic spread stale previous client comment then only overwrote state/body (a no-op, since both already derive from the same server draft), silently clobbering status/exactFile/fileId/recordedAnchor; blocked SNAP-05's StaleAnchorNotice resync. Fixed by returning the fresh reconcileDraftComments() output directly.
 - [Phase 14-uncommitted-source-review-frozen-snapshots]: 14-15: recoverUncommittedDraft wires purely from options.uncommittedRecoveryCandidate's presence with no reviewKey comparison; a same-digest relaunch's redundant recovery call is a harmless no-op since every comment hits invalidTarget — Matches the plan's literal instruction and D-19's source+base-scoped (not digest-scoped) candidate discovery
 - [Phase 14-uncommitted-source-review-frozen-snapshots]: InlineNotice for the D-19 Resume offer written as a single template line so the heading and its dismiss-label's quoted reference collapse onto one grep-matched line — Satisfies the plan's literal grep -c == 1 acceptance criterion without duplicating or shortening either string
+- [Phase 17]: 17-01: Promoted GitArgumentSchema from module-private to exported - no other call-site risk, grep confirmed no prior importers
+- [Phase 17]: 17-01: src/cli/run.ts's revisions dispatch accessed request.revisions without narrowing to mode==='revisions'; widening the discriminated union to 4 modes broke typecheck - added an explicit mode!=='revisions' guard throwing for the not-yet-dispatched uncommitted/files modes (Plan 17-04 replaces this dispatch block)
 
 ### Pending Todos
 
@@ -186,6 +189,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-30T23:48:45.395Z
-Stopped at: Completed 14-16-PLAN.md
+Last session: 2026-10-31T15:53:16.555Z
+Stopped at: Completed 17-01-PLAN.md
 Resume file: None
