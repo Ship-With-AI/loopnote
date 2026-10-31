@@ -199,7 +199,9 @@ export function renderReviewMarkdown(canonicalBytes: Uint8Array): string {
     '## Applying-agent instructions',
     exactPatch
       ? 'Before editing, verify the exact patch digest, frozen snapshot facts, relevant blob, repository-relative path, preimage/postimage side, exact selected text, and context hash.'
-      : 'Before editing, verify the pinned comparison commit, relevant blob, repository-relative path, base/head side, exact selected text, and context hash.',
+      : standalone
+        ? 'Before editing, verify the standalone review key, snapshot chain, relevant blob, repository-relative path, head side, exact selected text, and context hash.'
+        : 'Before editing, verify the pinned comparison commit, relevant blob, repository-relative path, base/head side, exact selected text, and context hash.',
     'Line number is a navigation hint, never editing authority.',
     'Do not guess, fuzzy-match, silently relocate, or apply resolved feedback.',
     'Do not apply stale, orphaned, missing, or ambiguous anchors.',

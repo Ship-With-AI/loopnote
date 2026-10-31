@@ -171,6 +171,11 @@ describe('exact patch Markdown', () => {
     expect(markdown).toContain(`Patch digest: \`${'e'.repeat(64)}\``);
     expect(markdown).toContain('Preimage');
     expect(markdown).toContain('Postimage');
+    // Regression: restructuring the ternary for WR-03's standalone branch
+    // must not disturb the exactPatch branch's own wording.
+    expect(markdown).toContain(
+      'Before editing, verify the exact patch digest, frozen snapshot facts, relevant blob, repository-relative path, preimage/postimage side, exact selected text, and context hash.',
+    );
   });
 });
 
@@ -209,6 +214,15 @@ describe('standalone Markdown', () => {
     expect(markdown).toContain('## Standalone file digests');
     expect(markdown).toContain(`File digest (sha256 ${'e'.repeat(64)}):`);
     expect(markdown).toContain('Side: `head`');
+    // WR-03 regression: the standalone branch of the "Applying-agent
+    // instructions" footer must reference real StandaloneExportScopeSchema
+    // provenance (review key, snapshot chain, head side), never the
+    // base/head-diff-only "pinned comparison commit" wording.
+    expect(markdown).toContain(
+      'Before editing, verify the standalone review key, snapshot chain, relevant blob, repository-relative path, head side, exact selected text, and context hash.',
+    );
+    expect(markdown).not.toContain('pinned comparison commit');
+    expect(markdown).not.toContain('base/head side');
     expect(markdown).not.toContain('Preimage');
     expect(markdown).not.toContain('Postimage');
   });
