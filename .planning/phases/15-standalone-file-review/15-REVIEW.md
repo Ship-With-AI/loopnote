@@ -1,7 +1,8 @@
 ---
 phase: 15-standalone-file-review
-reviewed: 2026-10-31T09:22:51Z
+reviewed: 2026-10-31T09:40:00Z
 depth: standard
+iteration: 2
 files_reviewed: 27
 files_reviewed_list:
   - src/cli/run.ts
@@ -32,110 +33,66 @@ files_reviewed_list:
   - tests/unit/review-markdown.test.ts
   - tests/unit/uncommitted-contracts.test.ts
 findings:
-  critical: 1
-  warning: 1
+  critical: 0
+  warning: 2
   info: 0
   total: 2
 status: issues_found
 ---
 
-# Phase 15: Code Review Report
+# Phase 15: Code Review Report (Re-review, iteration 2)
 
-**Reviewed:** 2026-10-31T09:22:51Z
+**Reviewed:** 2026-10-31T09:40:00Z
 **Depth:** standard
 **Files Reviewed:** 27
 **Status:** issues_found
 
 ## Summary
 
-Reviewed the full Phase 15 "Standalone File Review" diff: the new `src/git/standalone-resolution.ts` module, the `standalone` `sourceKind`/`WorktreeSnapshot` plumbing in `src/server/worktree-snapshot.ts`, the new `createStandaloneCapabilityRegistry`/`createStandaloneSessionApp` server surface, the CLI's new positional-paths action in `src/cli/run.ts`, the `ReviewExportV4`/schema additions in `src/contracts/`, the Markdown/export renderers, and the Vue UI surfacing (`App.vue`, `ActiveFileToolbar.vue`, `ExportReceipt.vue`, `FileRow.vue`, `IdentityHeader.vue`). Cross-referenced imports/exports between `standalone-resolution.ts` → `worktree-snapshot.ts` → `capabilities.ts` → `app.ts` → `run.ts`, and the Zod contracts shared between client and server (`comparison.ts`, `draft.ts`, `api.ts`). Confirmed the `@close="closeReviewNotes"` handler is present at `src/web/App.vue:1397` as expected (already fixed upstream, not re-flagged).
+Re-reviewed the full Phase 15 "Standalone File Review" scope after the `--fix --auto` pass that claims to resolve CR-01 and WR-01 (commits `479b438`, `795220d`). Both prior findings are **genuinely resolved** — verified by reading the current code (not the commit messages) and by running the affected test suites.
 
-One BLOCKER: the standalone session's live `/api/refresh` path reuses `resolveStandaloneArguments`'s hard-fail-on-no-match design (correct for the initial CLI launch) inside the recurring snapshot-refresh loop, where it is not tolerant of drift the way every other `sourceKind` is — a single originally-opened file disappearing (not a directory/glob argument, which the shipped tests cover) crashes the refresh request instead of reporting the file as removed. One WARNING: the new `createStandaloneCapabilityRegistry` omits the scope-kind defense-in-depth guard its sibling `createUncommittedCapabilityRegistry` added in the same diff, and carries over dead `uncommittedRecoveryCandidate`/`recoverUncommittedDraft` branches that can never activate for standalone sessions (no caller ever supplies that option for `sourceKind: 'standalone'`), which is confusing for future maintainers.
+- **CR-01 (was BLOCKER) — resolved.** `resolveStandaloneArguments` (`src/git/standalone-resolution.ts:140-188`) now takes an `options.toleratesNoMatch` flag that swallows only the specific "did not match any file" error (not the `.gitignore`-only-match or repository-escape errors), letting the argument resolve to zero matches. `inventoryForScope`/`captureWorktreeManifest` (`src/server/worktree-snapshot.ts:219-306`) thread a `toleratesNoMatch` dependency down to both of `inventoryForScope`'s calls, and `WorktreeSnapshot.refresh()` (`src/server/worktree-snapshot.ts:688-696`) explicitly passes `{ ...this.dependencies, toleratesNoMatch: true }`, so a vanished single-file standalone argument now surfaces as a clean `removed` delta instead of crashing `/api/refresh`. The initial CLI launch (`src/cli/run.ts:850-854`, `launchStandaloneSession`'s own `resolveStandaloneArguments` call) is untouched and stays strict, exactly as intended. The new regression test (`tests/api/worktree-snapshot.test.ts:515-538`) exercises the exact scenario from the original finding and passes (`npx vitest run tests/api/worktree-snapshot.test.ts` — 1 file, all tests green).
+- **WR-01 (was WARNING) — resolved.** `createStandaloneCapabilityRegistry` (`src/server/capabilities.ts:1150-1159`) now has the mirrored defense-in-depth guard (`throw new RangeError(...)` when `scope.sourceKind !== 'standalone'`), symmetric with `createUncommittedCapabilityRegistry`'s guard at `src/server/capabilities.ts:902-906`. The dead `options.uncommittedRecoveryCandidate → recoveryAvailable` spread was dropped from `createStandaloneCapabilityRegistry`'s `sessionResponse` (`src/server/capabilities.ts:1166-1190`, no `recoveryAvailable` field present); `uncommittedRecoveryCandidate` remains wired only through `createUncommittedCapabilityRegistry`, which still has a real `recoverUncommittedDraft` implementation, and `launchStandaloneSession` (`src/cli/run.ts:799-944`) never supplies it. Confirmed `findUncommittedDraftCandidate`/`uncommittedRecoveryCandidate` only reach `createUncommittedSessionApp`'s call site (`src/cli/run.ts:723-740`, the staged/unstaged/worktree path), never the standalone path.
 
-Everything else checked out: the `StandaloneGitState`/`ReviewExportV4`/`StandaloneExportScopeSchema` contracts are internally consistent across `contracts/comparison.ts`, `contracts/draft.ts`, and `contracts/api.ts`; `standaloneReviewKey` is always called with pre-sorted arguments per its documented contract (verified against `tests/unit/comparison-key.test.ts`); the Vue components' `isStandalone`/`isUncommitted` computed properties are correctly mutually exclusive; `export-store.ts`'s `stableNameFor`/`matchesPublicationIdentity` correctly branch on the new `'standalone'` identity kind; and a suspected rename-record parsing bug in `classifyStandaloneGitState`'s `parsePorcelainRecords` (the second NUL-delimited segment of a porcelain rename record would be mis-sliced) was verified empirically to be unreachable from this call site — `git status` only emits the two-segment rename record when both old and new paths are included in the pathspec, and a standalone argument's old (pre-rename) path can never successfully resolve via `resolveStandaloneArguments` once renamed away, so it is never present in the pathspec passed to `classifyStandaloneGitState`.
-
-## Critical Issues
-
-### CR-01: Standalone session `refresh()` crashes instead of reporting file removal when a single-file argument's only match disappears
-
-**File:** `src/git/standalone-resolution.ts:79-125` (`resolveOneArgument`), consumed by `src/server/worktree-snapshot.ts:248-269` (`inventoryForScope`) and `src/server/worktree-snapshot.ts:647-676` (`WorktreeSnapshot.refresh`)
-
-**Issue:** For every other `sourceKind` (`staged`/`unstaged`/`worktree`), file enumeration is diff-based: `createWorktreeChangedFileInventory` simply omits a file that no longer differs/exists — it never throws when a previously-changed file disappears, so `WorktreeSnapshot.refresh()` can always compute a clean `added`/`removed`/`modified` delta.
-
-For `standalone`, `inventoryForScope` instead re-resolves the user's *original CLI arguments* on every refresh via `resolveStandaloneArguments` → `resolveOneArgument`. `resolveOneArgument` throws a plain `Error` ("did not match any file.") whenever an argument stops matching *any* file at all (`src/git/standalone-resolution.ts:118-124`). This throw propagates uncaught through `inventoryForScope` → `captureWorktreeManifest` → `captureWithIndexRaceGuard` → `WorktreeSnapshot.refresh()` (`src/server/worktree-snapshot.ts:442-458`, `647-676`) — none of these catch it — and then through `createStandaloneCapabilityRegistry`'s `refresh()` capability (`src/server/capabilities.ts:1028`) into the unguarded `/api/refresh` Fastify route handler (`capabilities.refresh!()` with no try/catch), which Fastify turns into a generic 500 response instead of the graceful `{ added, removed, modified, staleCount, orphanedCount }` delta every other source kind returns.
-
-This is reachable in an ordinary flow: a user runs `cumpa some-scratch-file.ts` (an untracked file, or any single-file argument that is not a directory/glob), reviews it, then deletes or moves the file while the session is open (e.g. cleans up the scratch file, or an editor atomically replaces it) and clicks "Refresh" (or the `r` keypress / `/api/refresh` poll). `resolveStandaloneArguments(['some-scratch-file.ts'])` finds zero matches via `ls-files`, the file is not gitignored, so it throws — the refresh fails hard instead of reporting the file removed.
-
-The shipped tests only exercise the case where the *argument* keeps resolving to at least one file after a deletion (`tests/api/worktree-snapshot.test.ts:507-512` explicitly notes: *"'sub' still matches sub/c.txt, so the argument itself keeps resolving to at least one file"*) — the single-file-argument-fully-disappears case this finding describes is untested and unhandled.
-
-**Fix:** Make refresh-time resolution tolerant of an argument that stops matching anything, consistent with how every other `sourceKind` tolerates disappearance. For example, give `resolveStandaloneArguments` (or a refresh-specific variant) a mode that treats a no-match argument as "resolves to zero files" instead of throwing, used only from `inventoryForScope`'s refresh path (the initial CLI-launch call in `src/cli/run.ts:799-944` should keep failing hard, since that path legitimately wants to reject typos/missing files at startup):
-
-```ts
-// standalone-resolution.ts
-export async function resolveStandaloneArguments(
-  repositoryRoot: string,
-  rawArguments: readonly string[],
-  dependencies: ResolveStandaloneArgumentsDependencies = {},
-  options: { readonly toleratesNoMatch?: boolean } = {},
-): Promise<readonly ExactPath[]> {
-  // ...
-  for (const argument of rawArguments) {
-    try {
-      const matches = await resolveOneArgument(repositoryRoot, argument, runner);
-      for (const match of matches) { /* ... */ }
-    } catch (error) {
-      if (options.toleratesNoMatch === true && error instanceof Error && /did not match any file/.test(error.message)) {
-        continue; // argument now resolves to nothing; let diffManifestEntries report the removal
-      }
-      throw error;
-    }
-  }
-  // ...
-}
-```
-
-and pass `{ toleratesNoMatch: true }` from `inventoryForScope` (worktree-snapshot.ts) while leaving `launchStandaloneSession`'s initial call (run.ts) strict.
+Fresh adversarial pass over the rest of the scope (newly-added `src/git/worktree-inventory.ts`, the `ReviewExportV4`/standalone export plumbing in `src/contracts/draft.ts`, `src/export/review-export.ts`, `src/server/export-store.ts`, and the standalone-aware Vue components) found two new **WARNING**-tier issues, both narrower in scope than the BLOCKER that was already fixed. No new Critical/BLOCKER findings.
 
 ## Warnings
 
-### WR-01: `createStandaloneCapabilityRegistry` lacks the sibling registry's scope-kind guard and ships dead recovery-availability branches
+### WR-02: Initial standalone snapshot capture still crashes on the same vanished-single-file race CR-01 fixed for `refresh()`
 
-**File:** `src/server/capabilities.ts:1150-1170`
+**File:** `src/server/worktree-snapshot.ts:714-725`, `src/server/app.ts:225-238`
+**Issue:** CR-01's fix only sets `toleratesNoMatch: true` inside `WorktreeSnapshot.refresh()` (`src/server/worktree-snapshot.ts:688-696`). `materializeWorktreeSnapshot()` — called once by `createStandaloneSessionApp` to build the *initial* snapshot (`src/server/app.ts:229-231`, no third `dependencies` argument) — still calls `captureWithIndexRaceGuard(scope, scope.repositoryRoot, runner, dependencies)` with the caller-supplied `dependencies` as-is, so `captureWorktreeManifest`'s internal `toleratesNoMatch` defaults to `false` (`src/server/worktree-snapshot.ts:304`).
 
-**Issue:** In the same diff, `createUncommittedCapabilityRegistry` was given an explicit defense-in-depth guard:
+`captureWorktreeManifest` enumerates the standalone argument set *twice* per capture — once before reading file bytes (`expected`, line 305) and once after (`observed`, line 374) — specifically to detect files that disappear mid-capture and mark them `'changed-during-capture'` instead of silently dropping them (D-10, documented at lines 288-295). For every other `sourceKind` this diff-based enumeration never throws on disappearance. For `standalone`, both enumeration calls go through `resolveStandaloneArguments`, which (without `toleratesNoMatch`) still throws "did not match any file" the moment a single-file argument's only match vanishes between the two calls.
 
-```ts
-if (scope.sourceKind === 'standalone') {
-  throw new RangeError(
-    'Unreachable: createUncommittedCapabilityRegistry does not support standalone scopes; standalone sessions use a dedicated capability registry.',
-  );
-}
-```
+Net effect: if a user opens `cumpa scratch.ts` and the file is deleted/atomically replaced in the narrow window between the two enumeration passes of the *very first* capture (session startup), the uncaught throw propagates through `captureWithIndexRaceGuard` → `materializeWorktreeSnapshot` → `createStandaloneSessionApp`, crashing session creation instead of the file being reported as `'changed-during-capture'` the way D-10 promises for every other case. This is the identical defect class as CR-01 (an uncaught "did not match any file" `Error` crashing a capture instead of producing a tolerant result), just triggered by the race window inside a single capture's two internal enumerations rather than by the longer window between two `refresh()` calls. It is not covered by the new CR-01 regression test, which only exercises `refresh()` (`tests/api/worktree-snapshot.test.ts:515-538`), nor by the existing initial-capture torn-file test (`tests/api/worktree-snapshot.test.ts:560-583`), which uses a directory argument (`sub`) that still has a surviving match after one file disappears, so `resolveStandaloneArguments` never throws there.
+**Fix:** Make the double-enumeration inside `captureWorktreeManifest` always tolerate no-match, independent of the `refresh`-vs-`initial-launch` distinction — the "reject typos/missing files up front" behavior CR-01 deliberately preserved already lives one layer up, in `launchStandaloneSession`'s own `resolveStandaloneArguments` call before the scope is ever built (`src/cli/run.ts:850-854`). E.g., hardcode `toleratesNoMatch: true` for both `inventoryForScope` calls inside `captureWorktreeManifest` (or default `captureWorktreeManifest`'s own `toleratesNoMatch` to `true` and let only `launchStandaloneSession`'s pre-scope validation stay strict), rather than relying on each caller of `materializeWorktreeSnapshot`/`captureWithIndexRaceGuard` to opt in.
 
-(`src/server/capabilities.ts:902-906`). `createStandaloneCapabilityRegistry` (the function right below it) has no equivalent guard rejecting non-`'standalone'` scopes — it silently accepts `staged`/`unstaged`/`worktree` scopes and would build a `SessionResponseSchema` with the wrong `sourceKind` label leaking through. The two registries should be symmetric.
+### WR-03: Exported standalone review markdown tells the applying agent to verify a "pinned comparison commit" that does not exist
 
-Separately, `createStandaloneCapabilityRegistry` copies the `options.uncommittedRecoveryCandidate` → `recoveryAvailable: true` session field (`src/server/capabilities.ts:1170`) verbatim from `createUncommittedCapabilityRegistry`, but — unlike the sibling function (`src/server/capabilities.ts:1070-1097`) — never implements the corresponding `recoverUncommittedDraft` capability. `launchStandaloneSession` in `src/cli/run.ts:799-944` never passes `uncommittedRecoveryCandidate` to `createStandaloneSessionApp` (there is no `findStandaloneDraftCandidate` equivalent of `findUncommittedDraftCandidate`), so today this is unreachable dead code rather than a live bug — but it leaves a confusing, partially-wired "recovery" code path in a public capability type (`CapabilityRegistryOptions.uncommittedRecoveryCandidate` is accepted by `CreateStandaloneSessionAppOptions` via `CreateSessionAppOptions`) that a future caller could trip on: passing `uncommittedRecoveryCandidate` to `createStandaloneSessionApp` would advertise `recoveryAvailable: true` in the session response with no matching `recoverUncommittedDraft` method, which the client would then be unable to act on.
-
-**Fix:** Add the mirrored guard to `createStandaloneCapabilityRegistry`:
+**File:** `src/export/render-review-markdown.ts:195-202`
+**Issue:** `renderReviewMarkdown` only special-cases `exactPatch` (`document.schemaVersion === 3`) when emitting the closing "Applying-agent instructions" paragraph; everything else — including the new `standalone` (`schemaVersion === 4`) case introduced in this phase — falls through to the generic pinned-comparison wording:
 
 ```ts
-export async function createStandaloneCapabilityRegistry(
-  scope: UncommittedScope,
-  snapshot: WorktreeSnapshot,
-  options: CapabilityRegistryOptions = {},
-): Promise<CapabilityRegistry> {
-  if (scope.sourceKind !== 'standalone') {
-    throw new RangeError(
-      'Unreachable: createStandaloneCapabilityRegistry only supports standalone scopes.',
-    );
-  }
-  // ...
+exactPatch
+  ? 'Before editing, verify the exact patch digest, frozen snapshot facts, relevant blob, repository-relative path, preimage/postimage side, exact selected text, and context hash.'
+  : 'Before editing, verify the pinned comparison commit, relevant blob, repository-relative path, base/head side, exact selected text, and context hash.',
 ```
 
-and either drop the `uncommittedRecoveryCandidate`/`recoveryAvailable` plumbing from the standalone registry entirely (since nothing wires it), or implement the equivalent `recoverUncommittedDraft` capability so the advertised flag is backed by a real implementation.
+A standalone review's `ReviewExportV4` document has no "pinned comparison commit" at all — it has `standalone.originalArguments`, `standalone.resolvedPaths`, `standalone.fileDigests`, and `standalone.snapshotChain` instead (`src/contracts/draft.ts`'s `StandaloneExportScopeSchema`), and every anchor's `side` is always `head` (per the test at `tests/unit/review-markdown.test.ts:177-214`, which explicitly asserts `markdown).not.toContain('Preimage'/'Postimage')` but never asserts anything about the "Applying-agent instructions" wording). Every standalone export therefore instructs the agent/human applying the feedback to "verify the pinned comparison commit" and a "base/head side" that are both meaningless for that export kind — the instructions actively point at provenance fields the document doesn't have, rather than the snapshot-chain/file-digest provenance it actually carries. The earlier `exactPatch` precedent in the same file (adding a dedicated branch when `schemaVersion === 3` was introduced) was not followed when `schemaVersion === 4` was added.
+**Fix:** Add a `standalone` branch alongside the existing `exactPatch` ternary, e.g.:
+
+```ts
+exactPatch
+  ? 'Before editing, verify the exact patch digest, frozen snapshot facts, relevant blob, repository-relative path, preimage/postimage side, exact selected text, and context hash.'
+  : standalone
+    ? 'Before editing, verify the standalone review key, snapshot chain, relevant blob, repository-relative path, head side, exact selected text, and context hash.'
+    : 'Before editing, verify the pinned comparison commit, relevant blob, repository-relative path, base/head side, exact selected text, and context hash.',
+```
 
 ---
 
-_Reviewed: 2026-10-31T09:22:51Z_
+_Reviewed: 2026-10-31T09:40:00Z_
 _Reviewer: the agent (gsd-code-reviewer)_
 _Depth: standard_
+_Iteration: 2 (re-review after --fix --auto)_
