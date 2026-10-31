@@ -77,6 +77,7 @@ type AttachedLifecycle = 'ordinary' | 'waiting' | 'waitingDisconnected' | 'finis
 type ShellDialog = 'changed-files' | 'review-notes' | 'support';
 
 const session = shallowRef<SessionResponse>();
+const sessionToken = ref('');
 const errorMessage = ref('');
 const selectedFile = shallowRef<SessionFile>();
 const selectedContent = shallowRef<FileContentResponse>();
@@ -1140,6 +1141,7 @@ onMounted(async () => {
   viewportMedia.addEventListener('change', handleViewportChange);
   try {
     sessionClient = createSessionClient();
+    sessionToken.value = sessionClient.sessionToken;
     const loaded = await sessionClient.getSession();
     session.value = loaded;
     if (isAttachedSession.value) {
@@ -1341,6 +1343,7 @@ onBeforeUnmount(() => {
           :content="selectedContent"
           :mode="activeFileMode"
           :path="selectedPath"
+          :session-token="sessionToken"
           :source-kind="isExactPatchSession ? 'exact-patch' : 'range'"
           :single-pane-side="singlePaneSide"
           :base-oid="singlePaneBaseOid"

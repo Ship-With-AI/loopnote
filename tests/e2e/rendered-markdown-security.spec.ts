@@ -245,6 +245,14 @@ test('the relative image loads only through the same-origin content route, never
     expect(imageSrc).toMatch(/^\/api\/files\//);
     expect(imageSrc).not.toMatch(/^https?:\/\//);
 
+    // GAP-01 regression (16-UI-REVIEW): the literal rendered <img> tag cannot attach an
+    // Authorization header, so the route URL itself must carry a `?token=` query parameter
+    // the browser can use, and the real <img> element (not a manually-headered fetch) must
+    // actually load the resource through it.
+    expect(imageSrc).toMatch(/[?&]token=[^&]+/);
+    await expect.poll(() => logoImage.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
+    await expect.poll(() => logoImage.evaluate((img: HTMLImageElement) => img.complete)).toBe(true);
+
     const traversalUrl = new URL(imageSrc!, page.url());
     traversalUrl.searchParams.set('path', '../../../../etc/passwd');
     const response = await page.request.get(traversalUrl.toString(), {

@@ -74,17 +74,24 @@ describe('extractSourceBlocks', () => {
 });
 
 describe('buildImageRouteUrl', () => {
-  test('builds the same-origin image route URL with path/side query params', () => {
-    expect(buildImageRouteUrl('file-1', 'head', './assets/logo.svg')).toBe(
-      '/api/files/file-1/image?path=.%2Fassets%2Flogo.svg&side=head',
+  test('builds the same-origin image route URL with path/side/token query params', () => {
+    expect(buildImageRouteUrl('file-1', 'head', './assets/logo.svg', 'session-token')).toBe(
+      '/api/files/file-1/image?path=.%2Fassets%2Flogo.svg&side=head&token=session-token',
     );
   });
 
   test('encodeURIComponent escapes a literal & or space inside the path so neither survives unencoded', () => {
-    const url = buildImageRouteUrl('file-1', 'base', 'a & b c.png');
+    const url = buildImageRouteUrl('file-1', 'base', 'a & b c.png', 'session-token');
     const pathValue = url.slice(url.indexOf('path=') + 'path='.length, url.indexOf('&side='));
     expect(pathValue).not.toContain('&');
     expect(pathValue).not.toContain(' ');
+  });
+
+  test('encodeURIComponent escapes the token so it never breaks the query string', () => {
+    const url = buildImageRouteUrl('file-1', 'base', 'logo.svg', 'a&b c');
+    const tokenValue = url.slice(url.indexOf('token=') + 'token='.length);
+    expect(tokenValue).not.toContain('&');
+    expect(tokenValue).not.toContain(' ');
   });
 });
 

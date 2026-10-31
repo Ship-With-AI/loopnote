@@ -24,6 +24,7 @@ const props = withDefaults(defineProps<{
   mutationsLocked?: boolean;
   content: FileContentResponse;
   path: string;
+  sessionToken: string;
   baseOid?: string;
   headOid?: string;
   singlePaneSide?: DiffSide;
@@ -429,6 +430,7 @@ onBeforeUnmount(() => {
             :mutations-locked="mutationsLocked"
             :path="path"
             :file-id="content.fileId"
+            :session-token="sessionToken"
             @add="emit('add')"
             @cancel="emit('cancel')"
             @confirm-discard="emit('confirmDiscard')"
@@ -480,6 +482,7 @@ onBeforeUnmount(() => {
           :mutations-locked="mutationsLocked"
           :path="path"
           :file-id="content.fileId"
+          :session-token="sessionToken"
           @add="emit('add')"
           @cancel="emit('cancel')"
           @confirm-discard="emit('confirmDiscard')"
@@ -501,6 +504,7 @@ onBeforeUnmount(() => {
           :mutations-locked="mutationsLocked"
           :path="path"
           :file-id="content.fileId"
+          :session-token="sessionToken"
           @add="emit('add')"
           @cancel="emit('cancel')"
           @confirm-discard="emit('confirmDiscard')"

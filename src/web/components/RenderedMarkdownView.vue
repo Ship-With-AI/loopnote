@@ -25,6 +25,7 @@ const props = defineProps<{
   mutationsLocked?: boolean;
   path: string;
   fileId: string;
+  sessionToken: string;
   changes?: readonly monaco.editor.ILineChange[] | null;
 }>();
 
@@ -208,7 +209,7 @@ function buildBlocks(): void {
   for (const image of parsed.querySelectorAll('img')) {
     const originalSrc = image.getAttribute('src');
     if (originalSrc === null || originalSrc === '') continue;
-    image.setAttribute('src', buildImageRouteUrl(props.fileId, props.side, originalSrc));
+    image.setAttribute('src', buildImageRouteUrl(props.fileId, props.side, originalSrc, props.sessionToken));
   }
 
   const ranges = extractSourceBlocks(html.value);

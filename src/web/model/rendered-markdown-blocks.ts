@@ -32,9 +32,14 @@ export function extractSourceBlocks(html: string): SourceBlockRange[] {
 /**
  * Builds the same-origin content-route URL (GET /api/files/:fileId/image, plan 16-02) a
  * relative image `src` is rewritten to before insertion into the DOM.
+ *
+ * The token is carried as a `?token=` query parameter (GAP-01, 16-UI-REVIEW) rather than
+ * an `Authorization` header because the rendered `<img>` tag this URL is assigned to
+ * cannot attach custom headers; `security.ts`'s auth gate accepts this query parameter
+ * only for this one route.
  */
-export function buildImageRouteUrl(fileId: string, side: DiffSide, path: string): string {
-  return `/api/files/${encodeURIComponent(fileId)}/image?path=${encodeURIComponent(path)}&side=${side}`;
+export function buildImageRouteUrl(fileId: string, side: DiffSide, path: string, token: string): string {
+  return `/api/files/${encodeURIComponent(fileId)}/image?path=${encodeURIComponent(path)}&side=${side}&token=${encodeURIComponent(token)}`;
 }
 
 /**

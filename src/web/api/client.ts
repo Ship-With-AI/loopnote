@@ -84,6 +84,7 @@ export type RefreshResult = z.infer<typeof RefreshResultSchema>;
 const WorktreeStatusResponseSchema = z.strictObject({ changed: z.boolean() }).readonly();
 
 export interface SessionClient {
+  readonly sessionToken: string;
   mutate(request: DraftMutationRequest): Promise<DraftMutationResult>;
   getAttachedCompletionStatus(): Promise<AttachedCompletionStatus>;
   finishReview(input: { readonly expectedRevision: number }): Promise<FinishReviewResult>;
@@ -179,6 +180,7 @@ export function createSessionClient(environment: SessionClientEnvironment = {}):
   };
 
   const client: SessionClient = {
+    sessionToken: token,
     async getSupportStatus() {
       const result = SupportStatusSchema.safeParse(await requestJson('/api/support/status', 'GET', 'session'));
       if (!result.success) throw new SessionClientError('session', SESSION_UNAVAILABLE_MESSAGE);

@@ -59,14 +59,35 @@ function isApiRequest(request: FastifyRequest): boolean {
   return request.url === '/api' || request.url.startsWith('/api/') || request.url.startsWith('/api?');
 }
 
+// The rendered Markdown preview's relative images (GAP-01, 16-UI-REVIEW) are loaded via a
+// literal <img src> tag, which structurally cannot attach an Authorization header. This
+// matches only the image content route so no other /api/* path accepts a query-string token.
+const IMAGE_ROUTE_PATTERN = /^\/api\/files\/[^/?]+\/image(?:\?.*)?$/u;
+
+function tokenMatches(candidate: string | undefined, expectedToken: Buffer): boolean {
+  if (candidate === undefined) {
+    return false;
+  }
+  const candidateBuffer = Buffer.from(candidate, 'utf8');
+  return candidateBuffer.length === expectedToken.length && timingSafeEqual(candidateBuffer, expectedToken);
+}
+
 function hasBearerToken(request: FastifyRequest, expectedToken: Buffer): boolean {
   const authorization = request.headers.authorization;
   if (authorization === undefined || !authorization.startsWith('Bearer ')) {
     return false;
   }
 
-  const candidate = Buffer.from(authorization.slice('Bearer '.length), 'utf8');
-  return candidate.length === expectedToken.length && timingSafeEqual(candidate, expectedToken);
+  return tokenMatches(authorization.slice('Bearer '.length), expectedToken);
+}
+
+function hasImageRouteQueryToken(request: FastifyRequest, expectedToken: Buffer): boolean {
+  const queryIndex = request.url.indexOf('?');
+  if (queryIndex === -1) {
+    return false;
+  }
+  const candidate = new URLSearchParams(request.url.slice(queryIndex + 1)).get('token');
+  return tokenMatches(candidate ?? undefined, expectedToken);
 }
 
 export function registerSessionSecurity(
@@ -107,7 +128,9 @@ export function registerSessionSecurity(
       return;
     }
 
-    if (isApiRequest(request) && !hasBearerToken(request, expectedToken)) {
+    const authorized = hasBearerToken(request, expectedToken)
+      || (IMAGE_ROUTE_PATTERN.test(request.url) && hasImageRouteQueryToken(request, expectedToken));
+    if (isApiRequest(request) && !authorized) {
       deny(reply, 401, 'token-mismatch');
       return;
     }

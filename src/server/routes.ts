@@ -36,6 +36,9 @@ import { REQUEST_UNAVAILABLE_ERROR } from './security.js';
 const FileImageQuerySchema = z.strictObject({
   path: z.string().min(1),
   side: z.enum(['base', 'head']),
+  // Carries the session token for same-origin <img src> requests (GAP-01, 16-UI-REVIEW);
+  // security.ts's auth gate validates it, this schema just tolerates its presence.
+  token: z.string().optional(),
 });
 const EMPTY_QUERY_SCHEMA = {
   type: 'object',
@@ -343,7 +346,7 @@ export function registerSessionRoutes(app: FastifyInstance, capabilities: Capabi
 
   app.get<{
     Params: { fileId: string };
-    Querystring: { path?: string; side?: string };
+    Querystring: { path?: string; side?: string; token?: string };
   }>(
     '/api/files/:fileId/image',
     async (request, reply) => {
