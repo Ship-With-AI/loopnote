@@ -421,6 +421,7 @@ export function registerSessionRoutes(app: FastifyInstance, capabilities: Capabi
                 side: requestMutation.data.side,
                 blobOid: selectedSide.blobOid,
                 line: requestMutation.data.line,
+                endLine: requestMutation.data.endLine,
                 text: selectedSide.text,
               }),
             ),

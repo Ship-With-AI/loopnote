@@ -441,6 +441,7 @@ export function createCapabilityRegistry(
           side: anchor.side,
           blobOid: side.blobOid,
           line: anchor.line,
+          endLine: anchor.endLine,
           text: side.text,
         }));
       } catch {
@@ -759,6 +760,7 @@ export async function createExactPatchCapabilityRegistry(
         side: anchor.side,
         blobOid: anchor.blobOid,
         line: anchor.line,
+        endLine: anchor.endLine,
         text: strictTextDecoder.decode(bytes),
       }),
     );
@@ -1028,6 +1030,7 @@ export async function createUncommittedCapabilityRegistry(
         side: anchor.side,
         blobOid: anchor.blobOid,
         line: anchor.line,
+        endLine: anchor.endLine,
         text: strictTextDecoder.decode(bytes),
       }),
     );
@@ -1288,6 +1291,7 @@ export async function createStandaloneCapabilityRegistry(
         side: anchor.side,
         blobOid: anchor.blobOid,
         line: anchor.line,
+        endLine: anchor.endLine,
         text: strictTextDecoder.decode(bytes),
       }),
     );
