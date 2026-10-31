@@ -898,6 +898,11 @@ export async function createUncommittedCapabilityRegistry(
   snapshot: WorktreeSnapshot,
   options: CapabilityRegistryOptions = {},
 ): Promise<CapabilityRegistry> {
+  if (scope.sourceKind === 'standalone') {
+    throw new RangeError(
+      'Unreachable: createUncommittedCapabilityRegistry does not support standalone scopes; standalone sessions use a dedicated capability registry.',
+    );
+  }
   const storageScope = options.attachedCompletion === undefined
     ? undefined
     : assertAttachedStorageScope(options.attachedCompletion.storageScope);

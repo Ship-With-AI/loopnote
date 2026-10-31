@@ -227,6 +227,11 @@ async function captureWorktreeManifest(
   repositoryRoot: string,
   dependencies: CaptureWorktreeManifestDependencies = {},
 ): Promise<WorktreeManifestCapture> {
+  if (scope.sourceKind === 'standalone') {
+    throw new RangeError(
+      'Unreachable: captureWorktreeManifest does not support standalone scopes; standalone sessions use a dedicated capture path.',
+    );
+  }
   const runner = dependencies.runner ?? createGitRunner();
   const objectReader = dependencies.objectReader ?? createObjectReader(repositoryRoot, { runner });
   await dependencies.onCaptureStart?.();

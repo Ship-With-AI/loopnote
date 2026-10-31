@@ -128,27 +128,34 @@ export const ChangedFileSchema = z
     additions: z.number().int().nonnegative().nullable(),
     deletions: z.number().int().nonnegative().nullable(),
     availability: AvailabilitySchema,
+    standaloneGitState: z
+      .enum(['modified-uncommitted', 'untracked', 'unchanged'])
+      .optional(),
   })
   .readonly();
 
 export const UncommittedScopeSchema = z
   .strictObject({
     kind: z.literal('uncommitted'),
-    sourceKind: z.enum(['staged', 'unstaged', 'worktree']),
+    sourceKind: z.enum(['staged', 'unstaged', 'worktree', 'standalone']),
     repositoryRoot: z.string().min(1),
     objectFormat: z.enum(['sha1', 'sha256']),
     baseCommitOid: GitObjectIdSchema.optional(),
     mergeBaseOid: GitObjectIdSchema.optional(),
+    standaloneArguments: z.array(z.string().min(1)).max(256).optional(),
     changedFiles: z.array(ChangedFileSchema).readonly(),
   })
   .superRefine((scope, context) => {
     const hasBase = scope.baseCommitOid !== undefined;
     const hasMergeBase = scope.mergeBaseOid !== undefined;
-    if (scope.sourceKind === 'unstaged') {
+    const isNoBaseKind =
+      scope.sourceKind === 'unstaged' || scope.sourceKind === 'standalone';
+    if (isNoBaseKind) {
       if (hasBase || hasMergeBase) {
         context.addIssue({
           code: 'custom',
-          message: 'Unstaged comparisons must not have a base commit.',
+          message:
+            'Unstaged and Standalone comparisons must not have a base commit.',
           path: ['baseCommitOid'],
         });
       }
@@ -158,6 +165,22 @@ export const UncommittedScopeSchema = z
         message:
           'Staged and Working tree comparisons require a base commit.',
         path: ['baseCommitOid'],
+      });
+    }
+
+    const hasStandaloneArguments = scope.standaloneArguments !== undefined;
+    const isStandalone = scope.sourceKind === 'standalone';
+    if (isStandalone && !hasStandaloneArguments) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Standalone comparisons require standaloneArguments.',
+        path: ['standaloneArguments'],
+      });
+    } else if (!isStandalone && hasStandaloneArguments) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Only Standalone comparisons may have standaloneArguments.',
+        path: ['standaloneArguments'],
       });
     }
   })

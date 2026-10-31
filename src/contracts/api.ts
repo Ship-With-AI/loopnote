@@ -319,6 +319,9 @@ export const SessionFileSchema = z
     additions: z.number().int().nonnegative().nullable(),
     deletions: z.number().int().nonnegative().nullable(),
     availability: AvailabilitySchema,
+    standaloneGitState: z
+      .enum(['modified-uncommitted', 'untracked', 'unchanged'])
+      .optional(),
   })
   .readonly();
 
@@ -416,7 +419,7 @@ const UncommittedSessionResponseSchema = z
     uncommitted: z
       .strictObject({
         kind: z.literal('uncommitted'),
-        sourceKind: z.enum(['staged', 'unstaged', 'worktree']),
+        sourceKind: z.enum(['staged', 'unstaged', 'worktree', 'standalone']),
         baseCommitOid: GitObjectIdSchema.optional(),
         reviewKey: z.string().regex(/^[0-9a-f]{64}$/u),
         changedFileCount: z.number().int().nonnegative(),

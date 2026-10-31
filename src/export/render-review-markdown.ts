@@ -46,6 +46,7 @@ function appendComment(
 export function renderReviewMarkdown(canonicalBytes: Uint8Array): string {
   const document = parseCanonicalReviewExport(canonicalBytes);
   const exactPatch = document.schemaVersion === 3;
+  const standalone = document.schemaVersion === 4;
   const lines: string[] = ['# Cumpa Export', ''];
 
   if (exactPatch) {
@@ -78,6 +79,33 @@ export function renderReviewMarkdown(canonicalBytes: Uint8Array): string {
         if (file.newPath !== undefined) {
           appendFencedData(lines, 'Raw postimage path:', file.newPath.utf8 ?? file.newPath.bytesBase64url);
         }
+      }
+    }
+  } else if (standalone) {
+    lines.push(
+      '## Standalone review',
+      `Accepted draft revision: ${document.acceptedDraftRevision}`,
+      `Exported at: ${document.exportedAt}`,
+      `Review key: \`${document.standalone.reviewKey}\``,
+      'No Base/Head selection; files reviewed as current working-tree content.',
+      '',
+      '## Reviewed arguments',
+    );
+    if (document.standalone.originalArguments.length === 0) {
+      lines.push('No arguments were recorded.');
+    } else {
+      let index = 0;
+      for (const argument of document.standalone.originalArguments) {
+        index += 1;
+        appendFencedData(lines, `Argument ${index}:`, controlSafeDisplay(argument));
+      }
+    }
+    lines.push('', '## Resolved paths');
+    if (document.standalone.resolvedPaths.length === 0) {
+      lines.push('No paths were resolved.');
+    } else {
+      for (const path of document.standalone.resolvedPaths) {
+        appendFencedData(lines, 'Resolved path:', path.utf8 ?? path.display);
       }
     }
   } else {

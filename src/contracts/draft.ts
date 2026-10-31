@@ -92,21 +92,23 @@ const ExactPatchDraftComparisonSchema = z
 const UncommittedDraftComparisonSchema = z
   .strictObject({
     kind: z.literal('uncommitted'),
-    sourceKind: z.enum(['staged', 'unstaged', 'worktree']),
+    sourceKind: z.enum(['staged', 'unstaged', 'worktree', 'standalone']),
     baseCommitOid: GitObjectIdSchema.optional(),
     reviewKey: z.string().regex(/^[0-9a-f]{64}$/u),
     snapshotChain: z.array(z.string().regex(/^[0-9a-f]{64}$/u)).min(1).readonly(),
   })
   .superRefine((comparison, context) => {
     const hasBase = comparison.baseCommitOid !== undefined;
-    if (comparison.sourceKind === 'unstaged' && hasBase) {
+    const isNoBaseKind =
+      comparison.sourceKind === 'unstaged' || comparison.sourceKind === 'standalone';
+    if (isNoBaseKind && hasBase) {
       context.addIssue({
         code: 'custom',
-        message: 'Unstaged comparisons have no base.',
+        message: 'Unstaged and Standalone comparisons have no base.',
         path: ['baseCommitOid'],
       });
     }
-    if (comparison.sourceKind !== 'unstaged' && !hasBase) {
+    if (!isNoBaseKind && !hasBase) {
       context.addIssue({
         code: 'custom',
         message: 'Staged and Working tree comparisons require a base commit.',
@@ -468,6 +470,64 @@ export const ReviewExportV3Schema = z
   })
   .readonly();
 
+const StandaloneExportScopeSchema = z
+  .strictObject({
+    originalArguments: z.array(z.string().min(1)).readonly(),
+    resolvedPaths: z.array(ExactPathSchema).readonly(),
+    fileDigests: z
+      .array(
+        z
+          .strictObject({
+            path: ExactPathSchema,
+            sha256: z.string().regex(/^[0-9a-f]{64}$/u),
+          })
+          .readonly(),
+      )
+      .readonly(),
+    snapshotChain: z.array(z.string().regex(/^[0-9a-f]{64}$/u)).min(1).readonly(),
+    reviewKey: z.string().regex(/^[0-9a-f]{64}$/u),
+  })
+  .readonly();
+
+export const ReviewExportV4Schema = z
+  .strictObject({
+    schemaVersion: z.literal(4),
+    kind: z.literal('cumpa/export'),
+    exportedAt: z.string().datetime(),
+    acceptedDraftRevision: RevisionSchema,
+    standalone: StandaloneExportScopeSchema,
+    summary: z.strictObject({ markdown: ExportStringSchema.min(1).nullable() }).readonly(),
+    files: z.array(ExportFileSchema).readonly(),
+    counts: ExportCountsSchema,
+  })
+  .superRefine((document, context) => {
+    const feedback = ReviewExportV1Schema.safeParse({
+      schemaVersion: 1,
+      kind: document.kind,
+      exportedAt: document.exportedAt,
+      acceptedDraftRevision: document.acceptedDraftRevision,
+      comparison: {
+        selectedBase: { label: 'preimage', launchOid: '0'.repeat(40) },
+        selectedHead: { label: 'postimage', launchOid: '0'.repeat(40) },
+        mergeBaseOid: '0'.repeat(40),
+        comparisonKey: '0'.repeat(64),
+      },
+      drift: {
+        observedAt: document.exportedAt,
+        acknowledged: false,
+        base: { launchOid: '0'.repeat(40), currentOid: '0'.repeat(40), status: 'unchanged' },
+        head: { launchOid: '0'.repeat(40), currentOid: '0'.repeat(40), status: 'unchanged' },
+      },
+      summary: document.summary,
+      files: document.files,
+      counts: document.counts,
+    });
+    if (!feedback.success) {
+      context.addIssue({ code: 'custom', message: 'Version 4 export must retain valid review feedback.' });
+    }
+  })
+  .readonly();
+
 export const DraftMutationSchema = z
   .discriminatedUnion('type', [
     z.strictObject({ type: z.literal('addComment'), commentId: CommentIdSchema, body: CommentBodySchema, anchor: DurableAnchorV1Schema }),
@@ -484,8 +544,10 @@ export type DraftComparison = z.infer<typeof DraftComparisonSchema>;
 export type ReviewExportV1 = z.infer<typeof ReviewExportV1Schema>;
 export type ReviewExportV2 = z.infer<typeof ReviewExportV2Schema>;
 export type ReviewExportV3 = z.infer<typeof ReviewExportV3Schema>;
-export type ReviewExport = ReviewExportV1 | ReviewExportV2 | ReviewExportV3;
+export type ReviewExportV4 = z.infer<typeof ReviewExportV4Schema>;
+export type ReviewExport = ReviewExportV1 | ReviewExportV2 | ReviewExportV3 | ReviewExportV4;
 export type ExactPatchExportScope = z.infer<typeof ExactPatchExportScopeSchema>;
+export type StandaloneExportScope = z.infer<typeof StandaloneExportScopeSchema>;
 export type ReviewDraftCommentV1 = z.infer<typeof DraftCommentSchema>;
 export type DraftMutation = z.infer<typeof DraftMutationSchema>;
 
