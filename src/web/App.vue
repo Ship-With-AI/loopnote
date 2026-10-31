@@ -1394,6 +1394,7 @@ onBeforeUnmount(() => {
       :mutation-locked="attachedMutationLocked"
       :is-exact-patch="isExactPatchSession"
       :export-supported="!isUncommittedSession || isStandaloneSession"
+      @close="closeReviewNotes"
       @cancel-summary="if (!attachedMutationLocked) { reviewState?.setSummaryBuffer(reviewDraft?.canonical.summary ?? ''); refreshReviewSnapshot(); }"
       @reload-latest="reloadLatestReview"
       @save-summary="saveSummary"
