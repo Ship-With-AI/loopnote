@@ -5,6 +5,7 @@ import {
   launchPinnedComparison,
   resolveUncommittedFlagSelection,
   runCli,
+  validateStandaloneExclusivity,
   validateUncommittedFlags,
   type RunCliDependencies,
 } from '../../src/cli/run.js';
@@ -647,5 +648,45 @@ describe('uncommitted flag validation', () => {
     ).toThrow(
       '--base cannot be used with --unstaged — Unstaged always compares the index against the working tree.',
     );
+  });
+});
+
+describe('standalone positional-argument exclusivity validation', () => {
+  it('does not throw with no positional paths, regardless of flags', () => {
+    expect(() => validateStandaloneExclusivity([], {})).not.toThrow();
+  });
+
+  it('does not throw with positional paths and no conflicting flags', () => {
+    expect(() => validateStandaloneExclusivity(['a.ts'], {})).not.toThrow();
+  });
+
+  it('throws when positional paths are combined with --staged', () => {
+    expect(() =>
+      validateStandaloneExclusivity(['a.ts'], { staged: true }),
+    ).toThrow(/positional path|--staged/i);
+  });
+
+  it('throws when positional paths are combined with --unstaged', () => {
+    expect(() =>
+      validateStandaloneExclusivity(['a.ts'], { unstaged: true }),
+    ).toThrow(/positional path|--unstaged/i);
+  });
+
+  it('throws when positional paths are combined with --worktree', () => {
+    expect(() =>
+      validateStandaloneExclusivity(['a.ts'], { worktree: true }),
+    ).toThrow(/positional path|--worktree/i);
+  });
+
+  it('throws when positional paths are combined with --base', () => {
+    expect(() =>
+      validateStandaloneExclusivity(['a.ts'], { base: 'main' }),
+    ).toThrow(/positional path|--base/i);
+  });
+
+  it('throws exactly once even when multiple conflicting flags are set', () => {
+    expect(() =>
+      validateStandaloneExclusivity(['a.ts'], { staged: true, base: 'main' }),
+    ).toThrow();
   });
 });
