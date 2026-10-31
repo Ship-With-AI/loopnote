@@ -46,7 +46,8 @@ function appendComment(
 export function renderReviewMarkdown(canonicalBytes: Uint8Array): string {
   const document = parseCanonicalReviewExport(canonicalBytes);
   const exactPatch = document.schemaVersion === 3;
-  const standalone = document.schemaVersion === 4;
+  const standalone = document.schemaVersion === 4 || document.schemaVersion === 6;
+  const uncommitted = document.schemaVersion === 5;
   const lines: string[] = ['# Cumpa Export', ''];
 
   if (exactPatch) {
@@ -81,7 +82,7 @@ export function renderReviewMarkdown(canonicalBytes: Uint8Array): string {
         }
       }
     }
-  } else if (standalone) {
+  } else if (document.schemaVersion === 4 || document.schemaVersion === 6) {
     lines.push(
       '## Standalone files',
       `Accepted draft revision: ${document.acceptedDraftRevision}`,
@@ -110,6 +111,37 @@ export function renderReviewMarkdown(canonicalBytes: Uint8Array): string {
       for (const digest of document.standalone.fileDigests) {
         appendFencedData(lines, `File digest (sha256 ${digest.sha256}):`, digest.path.utf8 ?? digest.path.bytesBase64url);
       }
+    }
+    if (document.schemaVersion === 6) {
+      lines.push(
+        '',
+        '## Working tree drift',
+        `Changed since final snapshot: ${document.workingTreeChangedAfterFinalSnapshot.changed ? 'yes' : 'no'}`,
+      );
+      for (const driftPath of document.workingTreeChangedAfterFinalSnapshot.paths) {
+        appendFencedData(lines, 'Changed path:', driftPath.utf8 ?? driftPath.bytesBase64url);
+      }
+    }
+  } else if (document.schemaVersion === 5) {
+    lines.push(
+      '## Uncommitted scope',
+      `Accepted draft revision: ${document.acceptedDraftRevision}`,
+      `Exported at: ${document.exportedAt}`,
+      `Source kind: \`${document.uncommitted.sourceKind}\``,
+    );
+    if (document.uncommitted.baseCommitOid !== undefined) {
+      lines.push(`Base commit: \`${document.uncommitted.baseCommitOid}\``);
+    }
+    lines.push(
+      `Review key: \`${document.uncommitted.reviewKey}\``,
+      `Snapshot chain: ${document.uncommitted.snapshotChain.join(' → ')}`,
+      'Anchor side: `Head` (current content).',
+      '',
+      '## Working tree drift',
+      `Changed since final snapshot: ${document.workingTreeChangedAfterFinalSnapshot.changed ? 'yes' : 'no'}`,
+    );
+    for (const driftPath of document.workingTreeChangedAfterFinalSnapshot.paths) {
+      appendFencedData(lines, 'Changed path:', driftPath.utf8 ?? driftPath.bytesBase64url);
     }
   } else {
     lines.push(
@@ -201,7 +233,9 @@ export function renderReviewMarkdown(canonicalBytes: Uint8Array): string {
       ? 'Before editing, verify the exact patch digest, frozen snapshot facts, relevant blob, repository-relative path, preimage/postimage side, exact selected text, and context hash.'
       : standalone
         ? 'Before editing, verify the standalone review key, snapshot chain, relevant blob, repository-relative path, head side, exact selected text, and context hash.'
-        : 'Before editing, verify the pinned comparison commit, relevant blob, repository-relative path, base/head side, exact selected text, and context hash.',
+        : uncommitted
+          ? 'Before editing, verify the uncommitted review key, snapshot chain, relevant blob, repository-relative path, head side, exact selected text, and context hash.'
+          : 'Before editing, verify the pinned comparison commit, relevant blob, repository-relative path, base/head side, exact selected text, and context hash.',
     'Line number is a navigation hint, never editing authority.',
     'Do not guess, fuzzy-match, silently relocate, or apply resolved feedback.',
     'Do not apply stale, orphaned, missing, or ambiguous anchors.',

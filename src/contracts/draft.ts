@@ -534,6 +534,117 @@ export const ReviewExportV4Schema = z
   })
   .readonly();
 
+const UncommittedExportScopeSchema = z
+  .strictObject({
+    sourceKind: z.enum(['staged', 'unstaged', 'worktree']),
+    baseCommitOid: GitObjectIdSchema.optional(),
+    pathspecs: z.array(z.string()).readonly(),
+    reviewKey: z.string().regex(/^[0-9a-f]{64}$/u),
+    snapshotChain: z.array(z.string().regex(/^[0-9a-f]{64}$/u)).min(1).readonly(),
+  })
+  .superRefine((scope, context) => {
+    const hasBase = scope.baseCommitOid !== undefined;
+    if (scope.sourceKind === 'unstaged' && hasBase) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Unstaged comparisons have no base.',
+        path: ['baseCommitOid'],
+      });
+    }
+    if (scope.sourceKind !== 'unstaged' && !hasBase) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Staged and Working tree comparisons require a base commit.',
+        path: ['baseCommitOid'],
+      });
+    }
+  })
+  .readonly();
+
+const WorkingTreeDriftFlagSchema = z
+  .strictObject({
+    changed: z.boolean(),
+    paths: z.array(ExportExactPathSchema).readonly(),
+  })
+  .superRefine((flag, context) => {
+    if (!flag.changed && flag.paths.length !== 0) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Unchanged working tree drift flag must list no paths.',
+        path: ['paths'],
+      });
+    }
+    if (flag.changed && flag.paths.length === 0) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Changed working tree drift flag must list at least one path.',
+        path: ['paths'],
+      });
+    }
+  })
+  .readonly();
+
+export const ReviewExportV5Schema = z
+  .strictObject({
+    schemaVersion: z.literal(5),
+    kind: z.literal('cumpa/export'),
+    exportedAt: z.string().datetime(),
+    acceptedDraftRevision: RevisionSchema,
+    uncommitted: UncommittedExportScopeSchema,
+    workingTreeChangedAfterFinalSnapshot: WorkingTreeDriftFlagSchema,
+    summary: z.strictObject({ markdown: ExportStringSchema.min(1).nullable() }).readonly(),
+    files: z.array(ExportFileSchema).readonly(),
+    counts: ExportCountsSchema,
+  })
+  .superRefine((document, context) => {
+    const feedback = ReviewExportV1Schema.safeParse({
+      schemaVersion: 1,
+      kind: document.kind,
+      exportedAt: document.exportedAt,
+      acceptedDraftRevision: document.acceptedDraftRevision,
+      comparison: {
+        selectedBase: { label: 'preimage', launchOid: '0'.repeat(40) },
+        selectedHead: { label: 'postimage', launchOid: '0'.repeat(40) },
+        mergeBaseOid: '0'.repeat(40),
+        comparisonKey: '0'.repeat(64),
+      },
+      drift: {
+        observedAt: document.exportedAt,
+        acknowledged: false,
+        base: { launchOid: '0'.repeat(40), currentOid: '0'.repeat(40), status: 'unchanged' },
+        head: { launchOid: '0'.repeat(40), currentOid: '0'.repeat(40), status: 'unchanged' },
+      },
+      summary: document.summary,
+      files: document.files,
+      counts: document.counts,
+    });
+    if (!feedback.success) {
+      context.addIssue({ code: 'custom', message: 'Version 5 export must retain valid review feedback.' });
+    }
+  })
+  .readonly();
+
+export const ReviewExportV6Schema = z
+  .strictObject({
+    schemaVersion: z.literal(6),
+    kind: z.literal('cumpa/export'),
+    exportedAt: z.string().datetime(),
+    acceptedDraftRevision: RevisionSchema,
+    standalone: StandaloneExportScopeSchema,
+    workingTreeChangedAfterFinalSnapshot: WorkingTreeDriftFlagSchema,
+    summary: z.strictObject({ markdown: ExportStringSchema.min(1).nullable() }).readonly(),
+    files: z.array(ExportFileSchema).readonly(),
+    counts: ExportCountsSchema,
+  })
+  .superRefine((document, context) => {
+    const { workingTreeChangedAfterFinalSnapshot: _drift, ...rest } = document;
+    const feedback = ReviewExportV4Schema.safeParse({ ...rest, schemaVersion: 4 });
+    if (!feedback.success) {
+      context.addIssue({ code: 'custom', message: 'Version 6 export must retain a valid version 4 export shape.' });
+    }
+  })
+  .readonly();
+
 export const DraftMutationSchema = z
   .discriminatedUnion('type', [
     z.strictObject({ type: z.literal('addComment'), commentId: CommentIdSchema, body: CommentBodySchema, anchor: DurableAnchorV1Schema }),
@@ -551,9 +662,13 @@ export type ReviewExportV1 = z.infer<typeof ReviewExportV1Schema>;
 export type ReviewExportV2 = z.infer<typeof ReviewExportV2Schema>;
 export type ReviewExportV3 = z.infer<typeof ReviewExportV3Schema>;
 export type ReviewExportV4 = z.infer<typeof ReviewExportV4Schema>;
-export type ReviewExport = ReviewExportV1 | ReviewExportV2 | ReviewExportV3 | ReviewExportV4;
+export type ReviewExportV5 = z.infer<typeof ReviewExportV5Schema>;
+export type ReviewExportV6 = z.infer<typeof ReviewExportV6Schema>;
+export type ReviewExport = ReviewExportV1 | ReviewExportV2 | ReviewExportV3 | ReviewExportV4 | ReviewExportV5 | ReviewExportV6;
 export type ExactPatchExportScope = z.infer<typeof ExactPatchExportScopeSchema>;
 export type StandaloneExportScope = z.infer<typeof StandaloneExportScopeSchema>;
+export type UncommittedExportScope = z.infer<typeof UncommittedExportScopeSchema>;
+export type WorkingTreeDriftFlag = z.infer<typeof WorkingTreeDriftFlagSchema>;
 export type ReviewDraftCommentV1 = z.infer<typeof DraftCommentSchema>;
 export type DraftMutation = z.infer<typeof DraftMutationSchema>;
 
