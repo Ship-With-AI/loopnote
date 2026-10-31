@@ -7,12 +7,16 @@ import {
   ReviewExportV2Schema,
   ReviewExportV3Schema,
   ReviewExportV4Schema,
+  ReviewExportV5Schema,
+  ReviewExportV6Schema,
 } from '../../src/contracts/draft.js';
 import {
   buildReviewExportV1,
   buildReviewExportV2,
   buildReviewExportV3,
   buildReviewExportV4,
+  buildReviewExportV5,
+  buildReviewExportV6,
   canonicalizeReviewExport,
   hashExportBytes,
   parseCanonicalReviewExport,
@@ -99,6 +103,39 @@ function rangeSnapshot(range: RangeReviewScope) {
       selectedHead: { label: range.requestedHead, launchOid: range.headOid },
       mergeBaseOid: range.baseOid,
       comparisonKey: range.reviewKey,
+    },
+  };
+}
+
+function uncommittedSnapshot(sourceKind: 'staged' | 'unstaged' | 'worktree', baseCommitOid?: string) {
+  const base = snapshot();
+  return {
+    ...base,
+    acceptedDraft: {
+      ...base.acceptedDraft,
+      comparison: {
+        kind: 'uncommitted' as const,
+        sourceKind,
+        ...(baseCommitOid === undefined ? {} : { baseCommitOid }),
+        reviewKey: 'e'.repeat(64),
+        snapshotChain: ['e'.repeat(64)],
+      },
+    },
+  };
+}
+
+function standaloneSnapshot() {
+  const base = snapshot();
+  return {
+    ...base,
+    acceptedDraft: {
+      ...base.acceptedDraft,
+      comparison: {
+        kind: 'uncommitted' as const,
+        sourceKind: 'standalone' as const,
+        reviewKey: 'e'.repeat(64),
+        snapshotChain: ['e'.repeat(64)],
+      },
     },
   };
 }
@@ -406,4 +443,197 @@ describe('ReviewExportV4 standalone contract', () => {
     expect(() => parseCanonicalReviewExport(malformedBytes)).toThrow();
     expect(() => parseCanonicalReviewExport(canonicalizeReviewExport(document))).not.toThrow();
   });
+});
+
+describe('ReviewExportV5 canonical contract', () => {
+  test('binds accepted feedback to uncommitted provenance and rejects spoofed identity', () => {
+    const uncommitted = {
+      sourceKind: 'worktree' as const,
+      baseCommitOid: oid,
+      pathspecs: [],
+      reviewKey: 'e'.repeat(64),
+      snapshotChain: ['e'.repeat(64)],
+    };
+    const drift = { changed: false, paths: [] };
+    const document = buildReviewExportV5(
+      uncommittedSnapshot('worktree', oid),
+      uncommitted,
+      drift,
+      '2026-10-31T08:00:00.000Z',
+    );
+    const bytes = canonicalizeReviewExport(document);
+    expect(bytes.at(-1)).not.toBe(0x0a);
+
+    expect(parseCanonicalReviewExport(bytes)).toEqual(document);
+    expect(ReviewExportV5Schema.parse(document)).toEqual(document);
+    expect(document).toMatchObject({
+      schemaVersion: 5,
+      kind: 'cumpa/export',
+      uncommitted,
+      workingTreeChangedAfterFinalSnapshot: drift,
+    });
+    expect(document).not.toHaveProperty('comparison');
+    expect(document).not.toHaveProperty('drift');
+    expect(function () {
+      return buildReviewExportV5(
+        uncommittedSnapshot('worktree', oid),
+        { ...uncommitted, reviewKey: 'a'.repeat(64) },
+        drift,
+        '2026-10-31T08:00:00.000Z',
+      );
+    }).toThrow(TypeError);
+    expect(function () {
+      return buildReviewExportV5(
+        uncommittedSnapshot('staged', oid),
+        uncommitted,
+        drift,
+        '2026-10-31T08:00:00.000Z',
+      );
+    }).toThrow(TypeError);
+    expect(function () {
+      return ReviewExportV5Schema.parse({ ...document, extra: true });
+    }).toThrow();
+  });
+
+  test('rejects a working tree drift flag whose changed/paths fields are inconsistent', () => {
+    const document = buildReviewExportV5(
+      uncommittedSnapshot('worktree', oid),
+      {
+        sourceKind: 'worktree' as const,
+        baseCommitOid: oid,
+        pathspecs: [],
+        reviewKey: 'e'.repeat(64),
+        snapshotChain: ['e'.repeat(64)],
+      },
+      { changed: false, paths: [] },
+      '2026-10-31T08:00:00.000Z',
+    );
+    expect(function () {
+      return ReviewExportV5Schema.parse({
+        ...document,
+        workingTreeChangedAfterFinalSnapshot: { changed: false, paths: [path('src/a.ts')] },
+      });
+    }).toThrow();
+  });
+});
+
+describe('ReviewExportV6 canonical contract', () => {
+  test('binds accepted feedback to standalone provenance and is a strict superset of V4', () => {
+    const standalone = {
+      originalArguments: ['src/a.ts'],
+      resolvedPaths: [],
+      fileDigests: [],
+      snapshotChain: ['e'.repeat(64)],
+      reviewKey: 'e'.repeat(64),
+    };
+    const drift = { changed: true, paths: [path('src/a.ts')] };
+    const document = buildReviewExportV6(
+      standaloneSnapshot(),
+      standalone,
+      drift,
+      '2026-10-31T08:00:00.000Z',
+    );
+    const bytes = canonicalizeReviewExport(document);
+    expect(bytes.at(-1)).not.toBe(0x0a);
+
+    expect(parseCanonicalReviewExport(bytes)).toEqual(document);
+    expect(ReviewExportV6Schema.parse(document)).toEqual(document);
+    expect(document).toMatchObject({
+      schemaVersion: 6,
+      kind: 'cumpa/export',
+      standalone,
+      workingTreeChangedAfterFinalSnapshot: drift,
+    });
+
+    const { workingTreeChangedAfterFinalSnapshot: _drift, ...rest } = document as unknown as Record<string, unknown>;
+    expect(ReviewExportV4Schema.parse({ ...rest, schemaVersion: 4 })).toBeDefined();
+
+    expect(function () {
+      return buildReviewExportV6(
+        standaloneSnapshot(),
+        { ...standalone, reviewKey: 'a'.repeat(64) },
+        drift,
+        '2026-10-31T08:00:00.000Z',
+      );
+    }).toThrow(TypeError);
+    expect(function () {
+      return ReviewExportV6Schema.parse({ ...document, extra: true });
+    }).toThrow();
+  });
+});
+
+test('V1-V4 regression: all pre-existing review-export fixtures still parse and serialize unchanged', () => {
+  const decoder = new TextDecoder();
+
+  const v1 = buildReviewExportV1(snapshot(), '2026-07-23T08:02:00.000Z');
+  expect(decoder.decode(canonicalizeReviewExport(v1))).toMatchSnapshot('v1');
+  expect(ReviewExportV1Schema.parse(v1)).toEqual(v1);
+
+  const range: RangeReviewScope = {
+    kind: 'revisions' as const,
+    requestedBase: 'main',
+    requestedHead: 'topic',
+    baseOid: oid,
+    headOid: oid,
+    pathspecs: [],
+    reviewKey: 'd'.repeat(64),
+  };
+  const v2 = buildReviewExportV2(rangeSnapshot(range), range, '2026-07-23T08:02:00.000Z');
+  expect(decoder.decode(canonicalizeReviewExport(v2))).toMatchSnapshot('v2');
+  expect(ReviewExportV2Schema.parse(v2)).toEqual(v2);
+
+  const base = snapshot();
+  const patch = {
+    digest: 'e'.repeat(64),
+    validationTarget: { kind: 'repository' as const },
+    reviewKey: 'f'.repeat(64),
+    snapshot: { status: 'drifted' as const, files: [] },
+  };
+  const v3 = buildReviewExportV3(
+    {
+      acceptedDraft: {
+        ...base.acceptedDraft,
+        comparison: {
+          kind: 'exact-patch',
+          digest: patch.digest,
+          validationTarget: patch.validationTarget,
+          reviewKey: patch.reviewKey,
+        },
+      },
+      commentVerification: base.commentVerification,
+    },
+    patch,
+    '2026-07-23T08:02:00.000Z',
+  );
+  expect(decoder.decode(canonicalizeReviewExport(v3))).toMatchSnapshot('v3');
+  expect(ReviewExportV3Schema.parse(v3)).toEqual(v3);
+
+  const standalone = {
+    originalArguments: ['src/a.ts', 'src/b.ts'],
+    resolvedPaths: [path('src/a.ts'), path('src/b.ts')],
+    fileDigests: [
+      { path: path('src/a.ts'), sha256: 'e'.repeat(64) },
+      { path: path('src/b.ts'), sha256: 'f'.repeat(64) },
+    ],
+    snapshotChain: ['a'.repeat(64)],
+    reviewKey: 'f'.repeat(64),
+  };
+  const v4 = buildReviewExportV4(
+    {
+      acceptedDraft: {
+        ...base.acceptedDraft,
+        comparison: {
+          kind: 'uncommitted',
+          sourceKind: 'standalone',
+          reviewKey: standalone.reviewKey,
+          snapshotChain: standalone.snapshotChain,
+        },
+      },
+      commentVerification: base.commentVerification,
+    },
+    standalone,
+    '2026-07-23T08:02:00.000Z',
+  );
+  expect(decoder.decode(canonicalizeReviewExport(v4))).toMatchSnapshot('v4');
+  expect(ReviewExportV4Schema.parse(v4)).toEqual(v4);
 });
