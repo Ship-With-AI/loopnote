@@ -39,6 +39,7 @@ export interface GitFixture {
 export interface GitFixtureOptions {
   readonly committedHeadChange?: boolean;
   readonly anchoredReview?: boolean;
+  readonly markdownPreview?: boolean;
   readonly registeredWorktree?: boolean;
 }
 
@@ -116,6 +117,54 @@ export async function createGitFixture(
     );
     await writeFile(join(repositoryRoot, 'src', 'deleted.ts'), 'export const deleted = true;\n');
   }
+  if (options.markdownPreview === true) {
+    await mkdir(join(repositoryRoot, 'docs', 'assets'), { recursive: true });
+    await writeFile(
+      join(repositoryRoot, 'docs', 'preview.md'),
+      [
+        '---',
+        'title: Preview',
+        '---',
+        '',
+        '# Preview Heading',
+        '',
+        'First paragraph line of the preview.',
+        'Second paragraph line of the preview.',
+        '',
+        '- First item',
+        '- [ ] Second item',
+        '',
+        '| Col A | Col B |',
+        '| --- | --- |',
+        '| 1 | 2 |',
+        '',
+        '> Blockquote paragraph text.',
+        '',
+        '```ts',
+        'const value: number = 1;',
+        '```',
+        '',
+        '![logo](./assets/logo.svg)',
+        '',
+        '![remote](https://example.test/remote.png)',
+        '',
+        '<script>window.__xssMarker = true;</script>',
+        '',
+        '[bad link](javascript:window.__xssMarker=true)',
+        '',
+        '[bad2](data:text/html,<script>window.__xssMarker=true</script>)',
+        '',
+        '<img src="x" onerror="window.__xssMarker=true">',
+        '',
+        '[good link](https://example.test)',
+        '',
+      ].join('\n'),
+    );
+    await writeFile(
+      join(repositoryRoot, 'docs', 'assets', 'logo.svg'),
+      '<svg xmlns="http://www.w3.org/2000/svg"></svg>\n',
+    );
+  }
   invokeGit(['add', '-A']);
   invokeGit(['commit', '-m', 'base']);
   invokeGit(['switch', '-c', 'feature']);
@@ -149,6 +198,60 @@ export async function createGitFixture(
     invokeGit(['rm', '--', 'src/deleted.ts']);
     invokeGit(['add', '-A']);
     invokeGit(['commit', '-m', 'anchored review changes']);
+  } else if (options.markdownPreview === true) {
+    await writeFile(
+      join(repositoryRoot, 'docs', 'preview.md'),
+      [
+        '---',
+        'title: Preview',
+        '---',
+        '',
+        '# Preview Heading',
+        '',
+        'First paragraph line of the preview.',
+        'Second paragraph line of the preview. (edited on head)',
+        '',
+        '- First item',
+        '- [ ] Second item',
+        '- Third item (added on head)',
+        '',
+        '| Col A | Col B |',
+        '| --- | --- |',
+        '| 1 | 2 |',
+        '',
+        '> Blockquote paragraph text.',
+        '',
+        '```ts',
+        'const value: number = 1;',
+        '```',
+        '',
+        '![logo](./assets/logo.svg)',
+        '',
+        '![remote](https://example.test/remote.png)',
+        '',
+        '<script>window.__xssMarker = true;</script>',
+        '',
+        '[bad link](javascript:window.__xssMarker=true)',
+        '',
+        '[bad2](data:text/html,<script>window.__xssMarker=true</script>)',
+        '',
+        '<img src="x" onerror="window.__xssMarker=true">',
+        '',
+        '[good link](https://example.test)',
+        '',
+      ].join('\n'),
+    );
+    await writeFile(
+      join(repositoryRoot, 'docs', 'added-note.md'),
+      [
+        '# Added Note',
+        '',
+        'This file exists only on head, for single-pane markdown preview testing.',
+        '',
+      ].join('\n'),
+    );
+    invokeGit(['add', '-A']);
+    invokeGit(['commit', '-m', 'markdown preview changes']);
   } else if (options.committedHeadChange === false) {
     invokeGit(['commit', '--allow-empty', '-m', 'empty feature head']);
   } else {
