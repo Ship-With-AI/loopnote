@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
-import { renderMarkdownPreview } from '../../src/web/model/markdown-preview.js';
+import { renderMarkdownPreview, validateImageHref } from '../../src/web/model/markdown-preview.js';
 
 describe('renderMarkdownPreview', () => {
   test('renders the exact local Markdown buffer and treats hostile content as inert', () => {
@@ -101,5 +101,32 @@ describe('renderMarkdownPreview', () => {
     const dangerousData = renderMarkdownPreview('![bad2](data:image/png;base64,AAAA)');
     expect(dangerousData).not.toContain('<img');
     expect(dangerousData).toContain('![bad2](data:image/png;base64,AAAA)');
+  });
+});
+
+describe('validateImageHref (WR-02)', () => {
+  test('rejects a tab-smuggled javascript: scheme that a bare .trim() blocklist would miss', () => {
+    // markdown-it's own normalizeLink already percent-encodes a raw control
+    // character before validateImageHref runs via the public
+    // renderMarkdownPreview() pipeline, so this exercises the function
+    // directly with the literal embedded-control-character payload
+    // 16-REVIEW.md's WR-02 describes.
+    expect(validateImageHref('ja\tvascript:alert(1)')).toBe(false);
+    expect(validateImageHref('java\tscript:alert(document.cookie)')).toBe(false);
+  });
+
+  test('rejects a newline/CR-smuggled data: scheme', () => {
+    expect(validateImageHref('da\nta:image/svg+xml;base64,AAAA')).toBe(false);
+    expect(validateImageHref('da\rta:image/svg+xml;base64,AAAA')).toBe(false);
+  });
+
+  test('still allows a plain relative image reference and an https URL', () => {
+    expect(validateImageHref('./relative/path.png')).toBe(true);
+    expect(validateImageHref('https://example.test/x.png')).toBe(true);
+  });
+
+  test('still rejects an unsmuggled dangerous scheme', () => {
+    expect(validateImageHref('javascript:alert(1)')).toBe(false);
+    expect(validateImageHref('data:image/svg+xml;base64,AAAA')).toBe(false);
   });
 });
