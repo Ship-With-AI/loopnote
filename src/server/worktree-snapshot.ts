@@ -180,8 +180,9 @@ async function captureFileWithRetry(
       if (before.size === after.size && before.mtimeMs === after.mtimeMs) {
         return { bytes, sha256: digest(bytes) };
       }
-    } catch {
-      // fall through to retry
+    } catch (error) {
+      if (!isMissing(error)) throw error;
+      // ENOENT: file disappeared/replaced mid-capture — legitimate race, fall through to retry.
     }
     if (attempt < maxAttempts - 1) {
       const { promise, resolve } = Promise.withResolvers<void>();
