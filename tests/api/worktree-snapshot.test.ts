@@ -530,3 +530,44 @@ describe('standalone sourceKind capture and refresh (Plan 15-03)', () => {
     expect(content?.postimage?.toString('utf8')).toBe('staged edit\n');
   });
 });
+
+describe('standalone sourceKind: torn-capture and invalid-scope rejection (Plan 15-03 Task 3)', () => {
+  it('marks a standalone file that disappears between enumerations as "changed-during-capture", reusing the generic torn-capture pipeline (D-10)', async () => {
+    const fixture = await makeFixture();
+    const root = await makeRoot();
+    await fixture.write('sub/torn.txt', 'will disappear\n');
+    await fixture.write('sub/keep.txt', 'stays put\n');
+
+    const dependencies: WorktreeSnapshotRefreshDependencies = {
+      onBeforeObservedEnumeration: async () => {
+        await rm(join(fixture.root, 'sub', 'torn.txt'));
+      },
+    };
+
+    const snapshot = await materializeWorktreeSnapshot(
+      scopeFor(fixture, 'standalone', { standaloneArguments: ['sub'] }),
+      { root },
+      dependencies,
+    );
+    const files = await snapshot.files();
+    expect(files).toHaveLength(2);
+    const tornFile = files.find((file) => file.newPath?.utf8 === 'sub/torn.txt');
+    expect(tornFile?.availability).toEqual({ kind: 'unsupported', reason: 'changed-during-capture' });
+    const keepFile = files.find((file) => file.newPath?.utf8 === 'sub/keep.txt');
+    expect(keepFile?.availability).not.toEqual({ kind: 'unsupported', reason: 'changed-during-capture' });
+  });
+
+  it('rejects an invalid scope (standalone sourceKind with a baseCommitOid) at WorktreeSnapshotManifestSchema.parse, before any file is written', async () => {
+    const fixture = await makeFixture();
+    const root = await makeRoot();
+    const baseOid = headOid(fixture);
+
+    const invalidScope = scopeFor(fixture, 'standalone', {
+      baseCommitOid: baseOid,
+      standaloneArguments: ['tracked.txt'],
+    });
+
+    await expect(materializeWorktreeSnapshot(invalidScope, { root })).rejects.toThrow();
+    expect(await readdir(root)).toEqual([]);
+  });
+});
