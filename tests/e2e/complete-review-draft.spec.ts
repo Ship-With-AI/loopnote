@@ -148,7 +148,7 @@ async function openReviewNotes(page: Page): Promise<void> {
 
 async function openGeneratedReview(page: Page, url: string): Promise<void> {
   await page.goto(url, { waitUntil: 'domcontentloaded' });
-  await expect(page.locator('.monaco-diff-editor')).toBeVisible();
+  await expect(page.locator('.diff-workspace__editor')).toBeVisible();
   const endpoints = page.getByRole('banner');
   await expect(endpoints.getByText('BASE', { exact: true })).toBeVisible();
   await expect(endpoints.getByText('HEAD', { exact: true })).toBeVisible();
