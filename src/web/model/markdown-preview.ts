@@ -3,6 +3,7 @@ import { escapeHtml } from 'markdown-it/lib/common/utils.mjs';
 import defaultImageRule from 'markdown-it/lib/rules_inline/image.mjs';
 import type StateBlock from 'markdown-it/lib/rules_block/state_block.mjs';
 import type Token from 'markdown-it/lib/token.mjs';
+import type { RenderRule } from 'markdown-it/lib/renderer.mjs';
 
 const renderer = new MarkdownIt({
   html: false,
@@ -27,20 +28,14 @@ function stampSourceMap(token: Token): void {
   token.attrSet('data-source-end', String(token.map[1]));
 }
 
-renderer.renderer.rules.paragraph_open = (tokens, index, options, environment, self) => {
+const stampAndRenderToken: RenderRule = (tokens, index, options, environment, self) => {
   stampSourceMap(tokens[index]);
   return self.renderToken(tokens, index, options);
 };
 
-renderer.renderer.rules.heading_open = (tokens, index, options, environment, self) => {
-  stampSourceMap(tokens[index]);
-  return self.renderToken(tokens, index, options);
-};
-
-renderer.renderer.rules.tr_open = (tokens, index, options, environment, self) => {
-  stampSourceMap(tokens[index]);
-  return self.renderToken(tokens, index, options);
-};
+renderer.renderer.rules.paragraph_open = stampAndRenderToken;
+renderer.renderer.rules.heading_open = stampAndRenderToken;
+renderer.renderer.rules.tr_open = stampAndRenderToken;
 
 renderer.renderer.rules.list_item_open = (tokens, index, options, environment, self) => {
   const token = tokens[index];
