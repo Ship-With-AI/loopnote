@@ -51,6 +51,7 @@ export type MonacoDiffAdapter = Readonly<{
   dispose: () => void;
   getActiveAnchor: () => Anchor | undefined;
   getAnchorAffordance: () => AnchorAffordanceTarget | undefined;
+  getLineChanges: () => readonly monaco.editor.ILineChange[];
   getAnchorAffordanceAt: (side: DiffSide, line: number) => AnchorAffordanceTarget | undefined;
   getDiagnostics: () => AdapterDiagnostics;
   goToChange: (direction: 'next' | 'previous') => void;
@@ -290,6 +291,9 @@ class PublicMonacoDiffAdapter {
 
   getAnchorAffordance(): AnchorAffordanceTarget | undefined {
     return this.anchorAffordance;
+  }
+  getLineChanges(): readonly monaco.editor.ILineChange[] {
+    return this.diffEditor.getLineChanges() ?? [];
   }
   getAnchorAffordanceAt(side: DiffSide, line: number): AnchorAffordanceTarget | undefined {
     if (!this.isValidLine(side, line)) {
@@ -745,6 +749,10 @@ class PublicMonacoSinglePaneAdapter {
 
   getAnchorAffordance(): AnchorAffordanceTarget | undefined {
     return this.anchorAffordance;
+  }
+
+  getLineChanges(): readonly monaco.editor.ILineChange[] {
+    return [];
   }
 
   getAnchorAffordanceAt(side: DiffSide, line: number): AnchorAffordanceTarget | undefined {

@@ -248,6 +248,21 @@ describe('PublicMonacoDiffAdapter construction', () => {
       vi.unstubAllGlobals();
     }
   });
+
+  it('forwards the diff editor\'s computed line changes through getLineChanges()', () => {
+    const sampleChanges = [{
+      originalStartLineNumber: 1,
+      originalEndLineNumber: 1,
+      modifiedStartLineNumber: 1,
+      modifiedEndLineNumber: 1,
+      charChanges: undefined,
+    }];
+    const adapter = createMonacoDiffAdapter({} as HTMLElement, () => 'typescript', vi.fn());
+    const diffEditorInstance = mocks.createDiffEditor.mock.results.at(-1)?.value;
+    diffEditorInstance.getLineChanges.mockReturnValueOnce(sampleChanges);
+
+    expect(adapter.getLineChanges()).toBe(sampleChanges);
+  });
 });
 
 describe('PublicMonacoSinglePaneAdapter construction', () => {
@@ -355,6 +370,12 @@ describe('PublicMonacoSinglePaneAdapter construction', () => {
     const firstInstance = mocks.createEditor.mock.results[0]?.value;
     const secondInstance = mocks.createEditor.mock.results[1]?.value;
     expect(firstInstance).not.toBe(secondInstance);
+  });
+
+  it('always returns an empty array since single-pane has no diff editor to compute changes from', () => {
+    const adapter = createMonacoSinglePaneAdapter({} as HTMLElement, () => 'typescript', vi.fn(), 'head');
+
+    expect(adapter.getLineChanges()).toEqual([]);
   });
 });
 
