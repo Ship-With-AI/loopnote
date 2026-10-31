@@ -171,12 +171,25 @@ Plans:
 **Plans**: 6 plans
 
 Plans:
+**Wave 1**
 
 - [ ] 16-01-PLAN.md — Hardened renderer extensions: block source-map stamping, front matter, task lists, image inline-rule hardening (D-05/D-09/D-11, MDV-02/MDV-04)
 - [ ] 16-02-PLAN.md — Same-origin repo-local image content route with path-safety + extension allow-list (D-09, MDV-04)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 16-03-PLAN.md — RenderedMarkdownView.vue: block rendering, D-01/D-02 markers, D-04 comment trigger, D-07 inline comments, D-09 images, D-11 styling (MDV-01/02/03/04)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 16-04-PLAN.md — Source/Rendered toggle + DiffWorkspace host-swap in both layouts (D-02/D-12, MDV-01)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 16-05-PLAN.md — D-03 block-aligned scroll sync between side-by-side rendered panes (MDV-01)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 16-06-PLAN.md — e2e toggle round-trip, full comment flow, and negative security coverage under production CSP (MDV-01/02/03/04)
 
 **UI hint**: yes
