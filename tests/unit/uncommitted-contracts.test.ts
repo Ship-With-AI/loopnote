@@ -5,7 +5,7 @@ import {
   UncommittedScopeSchema,
   UnsupportedAvailabilityReasonSchema,
 } from '../../src/contracts/comparison.js';
-import { DraftComparisonSchema } from '../../src/contracts/draft.js';
+import { DraftComparisonSchema, ReviewExportV4Schema } from '../../src/contracts/draft.js';
 
 const base40 = 'a'.repeat(40);
 const mergeBase40 = 'b'.repeat(40);
@@ -305,6 +305,41 @@ describe('UncommittedDraftComparisonSchema (via DraftComparisonSchema)', () => {
       reviewKey: reviewKey64,
       snapshotChain: [digest64],
       extra: true,
+    });
+
+    expect(result.success).toBe(false);
+  });
+});
+
+describe('ReviewExportV4Schema', () => {
+  const standalonePath = { bytesBase64url: 'YS50eHQ', display: 'a.txt' };
+  const validReviewExportV4 = {
+    schemaVersion: 4 as const,
+    kind: 'cumpa/export' as const,
+    exportedAt: '2026-01-01T00:00:00.000Z',
+    acceptedDraftRevision: 1,
+    standalone: {
+      originalArguments: ['a.txt'],
+      resolvedPaths: [standalonePath],
+      fileDigests: [{ path: standalonePath, sha256: digest64 }],
+      snapshotChain: [digest64],
+      reviewKey: reviewKey64,
+    },
+    summary: { markdown: null },
+    files: [],
+    counts: { all: 0, openActionable: 0, openNeedsAttention: 0, resolved: 0 },
+  };
+
+  it('parses a minimal valid standalone export document whose synthetic V1-shaped sub-document round-trips', () => {
+    const result = ReviewExportV4Schema.safeParse(validReviewExportV4);
+
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects a V4 document whose counts do not match derived V1 feedback, proving the backward-compatibility re-derivation runs', () => {
+    const result = ReviewExportV4Schema.safeParse({
+      ...validReviewExportV4,
+      counts: { ...validReviewExportV4.counts, all: 1 },
     });
 
     expect(result.success).toBe(false);
