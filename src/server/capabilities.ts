@@ -1152,6 +1152,11 @@ export async function createStandaloneCapabilityRegistry(
   snapshot: WorktreeSnapshot,
   options: CapabilityRegistryOptions = {},
 ): Promise<CapabilityRegistry> {
+  if (scope.sourceKind !== 'standalone') {
+    throw new RangeError(
+      'Unreachable: createStandaloneCapabilityRegistry only supports standalone scopes; non-standalone scopes use createUncommittedCapabilityRegistry.',
+    );
+  }
   const storageScope = options.attachedCompletion === undefined
     ? undefined
     : assertAttachedStorageScope(options.attachedCompletion.storageScope);
@@ -1167,7 +1172,6 @@ export async function createStandaloneCapabilityRegistry(
         ...(scope.baseCommitOid === undefined ? {} : { baseCommitOid: scope.baseCommitOid }),
         reviewKey,
         changedFileCount: files.length,
-        ...(options.uncommittedRecoveryCandidate === undefined ? {} : { recoveryAvailable: true as const }),
       },
       files: files.map((file) => ({
         fileId: file.id,
