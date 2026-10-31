@@ -6,6 +6,7 @@ import {
   ReviewExportV1Schema,
   ReviewExportV2Schema,
   ReviewExportV3Schema,
+  ReviewExportV4Schema,
   orderReviewExportComments,
   orderUtf16CodeUnits,
   type AnchorVerificationDto,
@@ -15,12 +16,15 @@ import {
   type ReviewExportV1,
   type ReviewExportV2,
   type ReviewExportV3,
+  type ReviewExportV4,
+  type StandaloneExportScope,
 } from '../contracts/draft.js';
 export type {
   ReviewExport,
   ReviewExportV1,
   ReviewExportV2,
   ReviewExportV3,
+  ReviewExportV4,
 } from '../contracts/draft.js';
 import type { RangeReviewScope } from '../contracts/comparison.js';
 import { orderExactPaths } from '../domain/path-bytes.js';
@@ -45,6 +49,11 @@ export interface AcceptedReviewSnapshotV1 {
 }
 
 export interface AcceptedExactPatchReviewSnapshot {
+  readonly acceptedDraft: ReviewDraftV1;
+  readonly commentVerification: Readonly<Record<string, AnchorVerificationDto>>;
+}
+
+export interface AcceptedStandaloneReviewSnapshot {
   readonly acceptedDraft: ReviewDraftV1;
   readonly commentVerification: Readonly<Record<string, AnchorVerificationDto>>;
 }
@@ -217,6 +226,44 @@ export function buildReviewExportV3(
   return ReviewExportV3Schema.parse({ ...document, schemaVersion: 3, patch });
 }
 
+export function buildReviewExportV4(
+  snapshot: AcceptedStandaloneReviewSnapshot,
+  standalone: StandaloneExportScope,
+  exportedAt: string,
+): ReviewExportV4 {
+  const draft = ReviewDraftV1Schema.parse(snapshot.acceptedDraft);
+  if (
+    !('kind' in draft.comparison)
+    || draft.comparison.kind !== 'uncommitted'
+    || draft.comparison.sourceKind !== 'standalone'
+    || draft.comparison.reviewKey !== standalone.reviewKey
+  ) {
+    throw new TypeError('Standalone export provenance does not match accepted draft.');
+  }
+
+  const feedback = buildReviewExportV1(
+    {
+      acceptedDraft: draft,
+      commentVerification: snapshot.commentVerification,
+      comparison: {
+        selectedBase: { label: 'preimage', launchOid: '0'.repeat(40) },
+        selectedHead: { label: 'postimage', launchOid: '0'.repeat(40) },
+        mergeBaseOid: '0'.repeat(40),
+        comparisonKey: '0'.repeat(64),
+      },
+      drift: {
+        observedAt: exportedAt,
+        acknowledged: false,
+        base: { launchOid: '0'.repeat(40), currentOid: '0'.repeat(40), status: 'unchanged' },
+        head: { launchOid: '0'.repeat(40), currentOid: '0'.repeat(40), status: 'unchanged' },
+      },
+    },
+    exportedAt,
+  );
+  const { comparison: _comparison, drift: _drift, ...document } = feedback;
+  return ReviewExportV4Schema.parse({ ...document, schemaVersion: 4, standalone });
+}
+
 export function canonicalizeReviewExport(document: unknown): Uint8Array {
   return new TextEncoder().encode(serializeCanonicalJson(document));
 }
@@ -239,6 +286,7 @@ function zodParseReviewExport(document: unknown): ReviewExport {
   if (document.schemaVersion === 1) return ReviewExportV1Schema.parse(document);
   if (document.schemaVersion === 2) return ReviewExportV2Schema.parse(document);
   if (document.schemaVersion === 3) return ReviewExportV3Schema.parse(document);
+  if (document.schemaVersion === 4) return ReviewExportV4Schema.parse(document);
   throw new TypeError('Export schema version unsupported.');
 }
 

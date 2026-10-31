@@ -83,13 +83,10 @@ export function renderReviewMarkdown(canonicalBytes: Uint8Array): string {
     }
   } else if (standalone) {
     lines.push(
-      '## Standalone review',
+      '## Standalone files',
       `Accepted draft revision: ${document.acceptedDraftRevision}`,
       `Exported at: ${document.exportedAt}`,
-      `Review key: \`${document.standalone.reviewKey}\``,
-      'No Base/Head selection; files reviewed as current working-tree content.',
-      '',
-      '## Reviewed arguments',
+      'Original arguments:',
     );
     if (document.standalone.originalArguments.length === 0) {
       lines.push('No arguments were recorded.');
@@ -100,12 +97,18 @@ export function renderReviewMarkdown(canonicalBytes: Uint8Array): string {
         appendFencedData(lines, `Argument ${index}:`, controlSafeDisplay(argument));
       }
     }
-    lines.push('', '## Resolved paths');
-    if (document.standalone.resolvedPaths.length === 0) {
-      lines.push('No paths were resolved.');
+    lines.push(
+      `Resolved paths: ${document.standalone.resolvedPaths.length}`,
+      `Snapshot chain: ${document.standalone.snapshotChain.join(' → ')}`,
+      'Anchor side: `Head` (current content).',
+      '',
+      '## Standalone file digests',
+    );
+    if (document.standalone.fileDigests.length === 0) {
+      lines.push('No file digests were recorded.');
     } else {
-      for (const path of document.standalone.resolvedPaths) {
-        appendFencedData(lines, 'Resolved path:', path.utf8 ?? path.display);
+      for (const digest of document.standalone.fileDigests) {
+        appendFencedData(lines, `File digest (sha256 ${digest.sha256}):`, digest.path.utf8 ?? digest.path.bytesBase64url);
       }
     }
   } else {
