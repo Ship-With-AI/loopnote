@@ -9,6 +9,18 @@ import { createGitRunner, GitRunnerError } from './runner.js';
 import type { GitRunner } from './runner.js';
 import { buildUntrackedChangedFile } from './worktree-inventory.js';
 
+export type StandaloneResolutionErrorKind = 'path-outside-repository' | 'pathspec-ignored' | 'pathspec-no-match';
+
+export class StandaloneResolutionError extends Error {
+  readonly kind: StandaloneResolutionErrorKind;
+
+  constructor(kind: StandaloneResolutionErrorKind, message: string) {
+    super(message);
+    this.name = 'StandaloneResolutionError';
+    this.kind = kind;
+  }
+}
+
 /**
  * Mirrors `MAX_PATHSPEC_COUNT` (`src/contracts/request.ts:7`), duplicated as
  * a local literal because this phase is the first caller applying that bound
@@ -89,7 +101,7 @@ async function resolveOneArgument(
     ));
   } catch (error) {
     if (error instanceof GitRunnerError && error.kind === 'exit' && error.exitCode === 128) {
-      throw new Error(`Argument "${argument}" resolves outside the repository.`);
+      throw new StandaloneResolutionError('path-outside-repository', `Argument "${argument}" resolves outside the repository.`);
     }
     throw error;
   }
@@ -117,11 +129,12 @@ async function resolveOneArgument(
   }
 
   if (ignored) {
-    throw new Error(
+    throw new StandaloneResolutionError(
+      'pathspec-ignored',
       `Argument "${argument}" matched only a path excluded via .gitignore; it was not opened.`,
     );
   }
-  throw new Error(`Argument "${argument}" did not match any file.`);
+  throw new StandaloneResolutionError('pathspec-no-match', `Argument "${argument}" did not match any file.`);
 }
 
 function rejectReservedSegments(path: ExactPath): void {

@@ -40,6 +40,7 @@ import {
   classifyStandaloneGitState,
   createStandaloneChangedFileInventory,
   resolveStandaloneArguments,
+  StandaloneResolutionError,
 } from '../git/standalone-resolution.js';
 import {
   createPinnedComparison,
@@ -1081,6 +1082,78 @@ async function launchExactPatchSession(
   );
 }
 
+function mapStandaloneResolutionError(error: unknown): never {
+  if (error instanceof StandaloneResolutionError) {
+    throw new AgentRequestError(error.kind);
+  }
+  throw error;
+}
+
+function mapGitPathspecError(error: unknown): never {
+  if (error instanceof GitRunnerError && error.kind === 'exit' && error.exitCode === 128) {
+    throw new AgentRequestError('path-outside-repository');
+  }
+  throw error;
+}
+
+async function launchUncommittedAgentSession(
+  scope: UncommittedScope,
+  requestPathspecs: readonly string[],
+  dependencies: OrdinaryActionDependencies,
+  support: SupportCapability | undefined,
+  activeGit: AbortController,
+): Promise<void> {
+  await launchAttachedSession(
+    dependencies,
+    support,
+    activeGit,
+    async (sessionToken, attachedCompletion, revealDraftFile) => {
+      return await (dependencies.createUncommittedSessionApp ?? createUncommittedSessionApp)(
+        scope,
+        {
+          webRoot: dependencies.webRoot,
+          sessionToken,
+          revealDraftFile,
+          support,
+          attachedCompletion,
+          requestPathspecs,
+          diagnostics: () => {
+            (dependencies.output ?? console.error)('Uncommitted review request denied.');
+          },
+        },
+      );
+    },
+  );
+}
+
+async function launchStandaloneAgentSession(
+  scope: UncommittedScope,
+  dependencies: OrdinaryActionDependencies,
+  support: SupportCapability | undefined,
+  activeGit: AbortController,
+): Promise<void> {
+  await launchAttachedSession(
+    dependencies,
+    support,
+    activeGit,
+    async (sessionToken, attachedCompletion, revealDraftFile) => {
+      return await (dependencies.createStandaloneSessionApp ?? createStandaloneSessionApp)(
+        scope,
+        {
+          webRoot: dependencies.webRoot,
+          sessionToken,
+          revealDraftFile,
+          support,
+          attachedCompletion,
+          diagnostics: () => {
+            (dependencies.output ?? console.error)('Standalone review request denied.');
+          },
+        },
+      );
+    },
+  );
+}
+
 export async function runOrdinaryAction(
   options: RunCliOptions,
   dependencies: OrdinaryActionDependencies = {},
@@ -1114,8 +1187,67 @@ export async function runOrdinaryAction(
       return;
     }
 
-    if (request.mode !== 'revisions') {
-      throw new Error(`Request mode "${request.mode}" dispatch is not yet implemented.`);
+    if (request.mode === 'uncommitted') {
+      const runner = createGitRunner();
+      const repository = await discoverGitRepository(options.cwd, runner, activeGit.signal);
+      const objectFormat = await resolveUncommittedObjectFormat(repository.root, runner, activeGit.signal);
+      const baseCommitOid = request.uncommitted.source === 'unstaged'
+        ? undefined
+        : await resolveUncommittedBaseCommitOid(request.uncommitted.base, repository, runner, activeGit.signal);
+      const mergeBaseOid = baseCommitOid === undefined
+        ? undefined
+        : await resolveUncommittedMergeBaseOid(baseCommitOid, repository.headOid, repository.root, runner, activeGit.signal);
+      const changedFiles = await createWorktreeChangedFileInventory(
+        {
+          sourceKind: request.uncommitted.source,
+          repositoryRoot: repository.root,
+          objectFormat,
+          signal: activeGit.signal,
+          pathspecs: request.uncommitted.pathspecs,
+          ...(mergeBaseOid === undefined ? {} : { mergeBaseOid }),
+        },
+        { runner },
+      ).catch(mapGitPathspecError);
+      const scope: UncommittedScope = UncommittedScopeSchema.parse({
+        kind: 'uncommitted',
+        sourceKind: request.uncommitted.source,
+        repositoryRoot: repository.root,
+        objectFormat,
+        changedFiles,
+        ...(baseCommitOid === undefined ? {} : { baseCommitOid }),
+        ...(mergeBaseOid === undefined ? {} : { mergeBaseOid }),
+      });
+      await launchUncommittedAgentSession(scope, request.uncommitted.pathspecs, dependencies, support, activeGit);
+      return;
+    }
+
+    if (request.mode === 'files') {
+      const runner = createGitRunner();
+      const repository = await discoverGitRepository(options.cwd, runner, activeGit.signal);
+      const objectFormat = await resolveUncommittedObjectFormat(repository.root, runner, activeGit.signal);
+      const resolvedPaths = await resolveStandaloneArguments(
+        repository.root,
+        request.files.paths,
+        { runner },
+      ).catch(mapStandaloneResolutionError);
+      const gitStates = await classifyStandaloneGitState(repository.root, resolvedPaths, { runner });
+      const changedFiles = await createStandaloneChangedFileInventory(
+        repository.root,
+        resolvedPaths,
+        gitStates,
+        objectFormat,
+        { runner, signal: activeGit.signal },
+      );
+      const scope: UncommittedScope = UncommittedScopeSchema.parse({
+        kind: 'uncommitted',
+        sourceKind: 'standalone',
+        repositoryRoot: repository.root,
+        objectFormat,
+        standaloneArguments: request.files.paths,
+        changedFiles,
+      });
+      await launchStandaloneAgentSession(scope, dependencies, support, activeGit);
+      return;
     }
 
     const comparison = await createRangeComparison({
