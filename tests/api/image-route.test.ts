@@ -95,6 +95,15 @@ describe('image-content: resolveRelativeImagePath', () => {
   test('decodes URL-encoded segments before joining', () => {
     expect(resolveRelativeImagePath('docs/readme.md', './assets/logo%20final.png')).toBe('docs/assets/logo final.png');
   });
+
+  test('rejects a NUL-containing decoded src instead of letting it reach fs (WR-03)', () => {
+    expect(resolveRelativeImagePath('docs/readme.md', './assets/logo%00.png')).toBeUndefined();
+  });
+
+  test('rejects other embedded C0 control characters in a decoded src (WR-03)', () => {
+    expect(resolveRelativeImagePath('docs/readme.md', './assets/logo%01.png')).toBeUndefined();
+    expect(resolveRelativeImagePath('docs/readme.md', './assets/logo%0a.png')).toBeUndefined();
+  });
 });
 
 describe('image-content: readWorktreeImageBytes', () => {
@@ -438,6 +447,58 @@ function exactPatchGrounded(repositoryRoot: string): GroundedExactPatch {
   });
 }
 
+const exactPatchImageFileId = `file_${'i'.repeat(43)}`;
+
+function exactPatchGroundedWithChangedImage(repositoryRoot: string): GroundedExactPatch {
+  return Object.freeze({
+    repositoryRoot,
+    objectFormat: 'sha1' as const,
+    scope: Object.freeze({
+      kind: 'exact-patch' as const,
+      digest: 'b'.repeat(64),
+      validationTarget: Object.freeze({ kind: 'worktree' as const }),
+      submittedByteLength: 42,
+    }),
+    changedFiles: Object.freeze([
+      Object.freeze({
+        id: exactPatchFileId,
+        status: Object.freeze({ code: 'M', kind: 'modified' as const, similarity: null }),
+        oldMode: '100644',
+        newMode: '100644',
+        oldBlobOid: '1'.repeat(40),
+        newBlobOid: '2'.repeat(40),
+        oldPath: markdownPath('docs/readme.md'),
+        newPath: markdownPath('docs/readme.md'),
+        additions: 1,
+        deletions: 1,
+        availability: Object.freeze({ kind: 'text' as const }),
+      }),
+      // The embedded image is itself a changed file in this diff — the case
+      // WR-01 found the base-side preview silently getting wrong.
+      Object.freeze({
+        id: exactPatchImageFileId,
+        status: Object.freeze({ code: 'M', kind: 'modified' as const, similarity: null }),
+        oldMode: '100644',
+        newMode: '100644',
+        oldBlobOid: '3'.repeat(40),
+        newBlobOid: '4'.repeat(40),
+        oldPath: markdownPath('docs/assets/logo.png'),
+        newPath: markdownPath('docs/assets/logo.png'),
+        additions: 0,
+        deletions: 0,
+        availability: Object.freeze({ kind: 'unsupported' as const, reason: 'binary' as const }),
+      }),
+    ]),
+    contents: new Map([
+      [exactPatchFileId, Object.freeze({ preimage: Buffer.from('before\n'), postimage: Buffer.from('after\n') })],
+      [
+        exactPatchImageFileId,
+        Object.freeze({ preimage: Buffer.from('BASE-IMAGE-BYTES'), postimage: Buffer.from('HEAD-IMAGE-BYTES') }),
+      ],
+    ]),
+  });
+}
+
 describe('GET /api/files/:fileId/image — worktree-disk sessions (exact-patch)', () => {
   test('serves real on-disk bytes for a relative image reference next to the markdown file', async () => {
     const repositoryRoot = await root();
@@ -477,5 +538,54 @@ describe('GET /api/files/:fileId/image — worktree-disk sessions (exact-patch)'
       headers,
     });
     expect(response.statusCode).toBe(409);
+  });
+
+  test('returns 409 (not a 500) for a NUL-containing path instead of throwing ERR_INVALID_ARG_VALUE (WR-03)', async () => {
+    const repositoryRoot = await root();
+    await mkdir(join(repositoryRoot, 'docs', 'assets'), { recursive: true });
+    await writeFile(join(repositoryRoot, 'docs', 'assets', 'logo.png'), 'worktree-png-bytes');
+    const app = await createExactPatchSessionApp(exactPatchGrounded(repositoryRoot), {
+      sessionToken: token,
+      snapshotParent: repositoryRoot,
+    });
+    app.bindSessionSecurity({ expectedHost, expectedOrigin });
+    apps.add(app);
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/files/${exactPatchFileId}/image?path=${encodeURIComponent('./assets/logo%00.png')}&side=head`,
+      headers,
+    });
+    expect(response.statusCode).toBe(409);
+  });
+
+  test('serves the materialized base-side blob for an image that is itself part of the diff, not the live worktree (WR-01)', async () => {
+    const repositoryRoot = await root();
+    await mkdir(join(repositoryRoot, 'docs', 'assets'), { recursive: true });
+    // Live worktree bytes deliberately differ from both the preimage and the
+    // postimage, so a passing assertion proves the base-side read did not
+    // fall through to disk (the pre-fix behavior).
+    await writeFile(join(repositoryRoot, 'docs', 'assets', 'logo.png'), 'DISK-PNG-BYTES');
+    const app = await createExactPatchSessionApp(exactPatchGroundedWithChangedImage(repositoryRoot), {
+      sessionToken: token,
+      snapshotParent: repositoryRoot,
+    });
+    app.bindSessionSecurity({ expectedHost, expectedOrigin });
+    apps.add(app);
+    const baseResponse = await app.inject({
+      method: 'GET',
+      url: `/api/files/${exactPatchFileId}/image?path=${encodeURIComponent('./assets/logo.png')}&side=base`,
+      headers,
+    });
+    expect(baseResponse.statusCode).toBe(200);
+    expect(baseResponse.body).toBe('BASE-IMAGE-BYTES');
+
+    // Head side is unaffected by the fix: it still reads the live worktree.
+    const headResponse = await app.inject({
+      method: 'GET',
+      url: `/api/files/${exactPatchFileId}/image?path=${encodeURIComponent('./assets/logo.png')}&side=head`,
+      headers,
+    });
+    expect(headResponse.statusCode).toBe(200);
+    expect(headResponse.body).toBe('DISK-PNG-BYTES');
   });
 });
