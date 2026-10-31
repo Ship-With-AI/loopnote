@@ -5,15 +5,15 @@ milestone_name: Artifact Review
 current_phase: 17
 current_phase_name: agent-protocol-extension-marketplace-skill
 status: executing
-stopped_at: Completed 17-02-PLAN.md
-last_updated: "2026-10-31T16:03:00.788Z"
+stopped_at: Completed 17-03-PLAN.md
+last_updated: "2026-10-31T16:12:03.019Z"
 last_activity: 2026-10-31
 last_activity_desc: Phase 17 execution started
 progress:
   total_phases: 7
   completed_phases: 4
   total_plans: 42
-  completed_plans: 39
+  completed_plans: 40
   percent: 57
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-09-09)
 ## Current Position
 
 Phase: 17 (agent-protocol-extension-marketplace-skill) — EXECUTING
-Plan: 3 of 5
+Plan: 4 of 5
 Status: Ready to execute
 Last activity: 2026-10-31 — Phase 17 execution started
 
@@ -85,6 +85,7 @@ Last activity: 2026-10-31 — Phase 17 execution started
 | Phase 14-uncommitted-source-review-frozen-snapshots P16 | 25min | 3 tasks | 3 files |
 | Phase 17 P01 | 10min | 2 tasks | 4 files |
 | Phase 17 P02 | 35min | 2 tasks | 5 files |
+| Phase 17 P03 | 10min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -143,6 +144,9 @@ Decisions are logged in PROJECT.md Key Decisions.
 - [Phase 17]: V1-V4 export byte-stability regression pinned via committed Vitest toMatchSnapshot fixtures of canonicalizeReviewExport output rather than hand-captured literal bytes
 - [Phase 17]: ReviewExportV6Schema proves strict-superset of V4 by direct strip-and-reparse against ReviewExportV4Schema rather than re-deriving the V1 zeroed-placeholder proof
 - [Phase 17]: ReviewExportV4Schema and buildReviewExportV4 left byte-for-byte untouched; new workingTreeChangedAfterFinalSnapshot drift field lives only on V5/V6 per RESEARCH.md Pitfall 1
+- [Phase 17]: attachedCompletion wired into uncommitted/standalone registries using the exact-patch template verbatim; drift always included, never rejects Finish (D-03)
+- [Phase 17]: Stale/orphaned comment anchor handling in the two new attachedCompletion blocks kept byte-identical to the pinned/exact-patch registries (D-02)
+- [Phase 17]: collectWorkingTreeDrift duplicated between the two registries rather than extracted to a shared helper, matching the file's existing duplication precedent
 
 ### Pending Todos
 
@@ -193,6 +197,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-31T16:03:00.784Z
-Stopped at: Completed 17-02-PLAN.md
+Last session: 2026-10-31T16:12:03.015Z
+Stopped at: Completed 17-03-PLAN.md
 Resume file: None
