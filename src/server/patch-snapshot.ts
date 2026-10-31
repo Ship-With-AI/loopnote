@@ -430,6 +430,21 @@ export class PatchSnapshot {
     });
   }
 
+  /**
+   * Reads the materialized, digest-verified preimage bytes for any entry in
+   * the manifest, regardless of `availability.kind` (unlike `readContent`,
+   * which is scoped to text files for the code-content API). Used by
+   * `readRelativeImage` (WR-01) to serve the true base-side bytes of an
+   * embedded image that is itself one of the diff's changed files, instead
+   * of silently falling back to the live worktree.
+   */
+  async readPreimageBytes(fileId: string): Promise<Buffer | undefined> {
+    if (this.unavailable) this.fail();
+    const entry = this.entry(fileId, await this.verifiedManifest());
+    if (entry === undefined) return undefined;
+    return this.readSide(fileId, 'preimage', entry.preimage);
+  }
+
   async files(): Promise<readonly ChangedFile[]> {
     return (await this.verifiedManifest()).entries.map((entry) => entry.file);
   }

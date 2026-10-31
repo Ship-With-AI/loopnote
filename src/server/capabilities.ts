@@ -43,6 +43,7 @@ import type { ObjectReader } from '../git/objects.js';
 import { createGitRunner } from '../git/runner.js';
 import {
   IMAGE_CONTENT_TYPE_BY_EXTENSION,
+  MAX_IMAGE_BYTES,
   readCommittedImageBytes,
   readWorktreeImageBytes,
   resolveRelativeImagePath,
@@ -131,6 +132,28 @@ async function resolveImageBytes(
   }
   const bytes = await readBytes(resolvedPath);
   return bytes === undefined ? undefined : Object.freeze({ bytes, contentType });
+}
+
+/**
+ * WR-01: the base-side (pre-change) text content for a markdown file is
+ * always sourced from the git-tracked blob, never the live worktree — but
+ * an image *embedded* in that markdown is only "unchanged sibling asset"
+ * safe to read from disk when it is not itself one of the diff's own
+ * changed files. This locates that changed-file entry (if any) so callers
+ * can prefer its recorded base blob over a live disk read.
+ */
+function findChangedImageEntry(
+  files: readonly ChangedFile[],
+  resolvedPath: string,
+): ChangedFile | undefined {
+  return files.find((candidate) =>
+    candidate.oldPath?.display === resolvedPath || candidate.newPath?.display === resolvedPath,
+  );
+}
+
+async function readObjectBackedImage(objectReader: ObjectReader, blobOid: string): Promise<Buffer | undefined> {
+  const content = await objectReader.read(blobOid, { maxBytes: MAX_IMAGE_BYTES });
+  return content.kind === 'available' ? Buffer.from(content.bytes) : undefined;
 }
 
 export type DraftRevealPort = (canonicalPath: string) => Promise<void>;
@@ -872,9 +895,17 @@ export async function createExactPatchCapabilityRegistry(
     async readRelativeImage(fileId, side, relativeSrc) {
       const file = (await snapshot.files()).find((candidate) => candidate.id === fileId);
       const markdownPath = file === undefined ? undefined : side === 'base' ? file.oldPath : file.newPath;
-      return resolveImageBytes(markdownPath, relativeSrc, (resolvedPath) =>
-        readWorktreeImageBytes(grounded.repositoryRoot, resolvedPath),
-      );
+      return resolveImageBytes(markdownPath, relativeSrc, async (resolvedPath) => {
+        if (side === 'base') {
+          const changedEntry = findChangedImageEntry(await snapshot.files(), resolvedPath);
+          if (changedEntry !== undefined) {
+            // Image is itself part of the diff: serve the materialized, digest-verified
+            // preimage (or nothing, if it did not exist at base) instead of live disk bytes.
+            return changedEntry.oldMode === '000000' ? undefined : snapshot.readPreimageBytes(changedEntry.id);
+          }
+        }
+        return readWorktreeImageBytes(grounded.repositoryRoot, resolvedPath); // unchanged sibling asset, or head side
+      });
     },
     verifyAnchor,
     async revealDraftFile() {
@@ -970,6 +1001,10 @@ export async function createUncommittedCapabilityRegistry(
     : assertAttachedStorageScope(options.attachedCompletion.storageScope);
   const snapshotSession = await snapshot.session();
   const reviewKey = uncommittedReviewKey(scope.sourceKind, scope.baseCommitOid, snapshotSession.chain[0]!);
+  // WR-01: WorktreeSnapshot never captures image bytes (it only captures
+  // text-availability sides), so a dedicated ObjectReader is needed to
+  // serve the base-side blob of an image that is itself part of the diff.
+  const reader = options.objectReader ?? createObjectReader(scope.repositoryRoot);
 
   const sessionResponse = async () => {
     const files = await snapshot.files();
@@ -1198,9 +1233,17 @@ export async function createUncommittedCapabilityRegistry(
     async readRelativeImage(fileId, side, relativeSrc) {
       const file = (await snapshot.files()).find((candidate) => candidate.id === fileId);
       const markdownPath = file === undefined ? undefined : side === 'base' ? file.oldPath : file.newPath;
-      return resolveImageBytes(markdownPath, relativeSrc, (resolvedPath) =>
-        readWorktreeImageBytes(scope.repositoryRoot, resolvedPath),
-      );
+      return resolveImageBytes(markdownPath, relativeSrc, async (resolvedPath) => {
+        if (side === 'base') {
+          const changedEntry = findChangedImageEntry(await snapshot.files(), resolvedPath);
+          if (changedEntry !== undefined) {
+            // Image is itself part of the diff: serve its base blob via the
+            // object store instead of the live disk (which is the head side).
+            return changedEntry.oldMode === '000000' ? undefined : readObjectBackedImage(reader, changedEntry.oldBlobOid);
+          }
+        }
+        return readWorktreeImageBytes(scope.repositoryRoot, resolvedPath); // unchanged sibling asset, or head side
+      });
     },
     verifyAnchor,
     async revealDraftFile() {
@@ -1231,6 +1274,10 @@ export async function createStandaloneCapabilityRegistry(
     : assertAttachedStorageScope(options.attachedCompletion.storageScope);
   const snapshotSession = await snapshot.session();
   const reviewKey = standaloneReviewKey([...scope.standaloneArguments!].sort(), snapshotSession.chain[0]!);
+  // WR-01: WorktreeSnapshot never captures image bytes (it only captures
+  // text-availability sides), so a dedicated ObjectReader is needed to
+  // serve the base-side blob of an image that is itself part of the diff.
+  const reader = options.objectReader ?? createObjectReader(scope.repositoryRoot);
 
   const sessionResponse = async () => {
     const files = await snapshot.files();
@@ -1433,9 +1480,17 @@ export async function createStandaloneCapabilityRegistry(
     async readRelativeImage(fileId, side, relativeSrc) {
       const file = (await snapshot.files()).find((candidate) => candidate.id === fileId);
       const markdownPath = file === undefined ? undefined : side === 'base' ? file.oldPath : file.newPath;
-      return resolveImageBytes(markdownPath, relativeSrc, (resolvedPath) =>
-        readWorktreeImageBytes(scope.repositoryRoot, resolvedPath),
-      );
+      return resolveImageBytes(markdownPath, relativeSrc, async (resolvedPath) => {
+        if (side === 'base') {
+          const changedEntry = findChangedImageEntry(await snapshot.files(), resolvedPath);
+          if (changedEntry !== undefined) {
+            // Image is itself part of the diff: serve its base blob via the
+            // object store instead of the live disk (which is the head side).
+            return changedEntry.oldMode === '000000' ? undefined : readObjectBackedImage(reader, changedEntry.oldBlobOid);
+          }
+        }
+        return readWorktreeImageBytes(scope.repositoryRoot, resolvedPath); // unchanged sibling asset, or head side
+      });
     },
     verifyAnchor,
     async revealDraftFile() {
