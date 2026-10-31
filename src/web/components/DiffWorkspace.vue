@@ -446,7 +446,7 @@ onBeforeUnmount(() => {
   </section>
   <section v-else class="diff-workspace" :aria-label="`${path}: ${visibleSides.originalName} and ${visibleSides.modifiedName} side-by-side diff`">
     <div class="diff-workspace__viewport">
-      <div class="diff-workspace__canvas">
+      <div class="diff-workspace__canvas" :class="{ 'diff-workspace__canvas--rendered': mode === 'rendered' }">
         <div class="diff-workspace__side-labels" aria-hidden="true">
           <span>
             <span>{{ visibleSides.original }}</span>

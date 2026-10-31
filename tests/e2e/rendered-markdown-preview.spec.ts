@@ -182,6 +182,21 @@ test('toggles source and rendered views in single-pane and side-by-side layouts'
     await expect(page.locator('.diff-workspace__editor')).toHaveAttribute('aria-hidden', 'true');
     await expect(page.locator('.rendered-block').filter({ hasText: 'Preview Heading' }).first()).toBeVisible();
 
+    // GAP-02 regression (16-UI-REVIEW): side-by-side Rendered mode must lay Base and Head
+    // out as two columns, not stack them into rows with Base collapsed to 0px tall.
+    const renderedPanes = page.locator('.rendered-markdown');
+    await expect(renderedPanes).toHaveCount(2);
+    const baseBox = await renderedPanes.nth(0).boundingBox();
+    const headBox = await renderedPanes.nth(1).boundingBox();
+    expect(baseBox?.width ?? 0).toBeGreaterThan(0);
+    expect(baseBox?.height ?? 0).toBeGreaterThan(0);
+    expect(headBox?.width ?? 0).toBeGreaterThan(0);
+    expect(headBox?.height ?? 0).toBeGreaterThan(0);
+    const canvasColumnTracks = await page
+      .locator('.diff-workspace__canvas')
+      .evaluate((element) => getComputedStyle(element).gridTemplateColumns.trim().split(/\s+/u).length);
+    expect(canvasColumnTracks).toBe(2);
+
     // GAP-03 regression (16-UI-REVIEW): the comment-trigger label must name the real block
     // type (e.g. "heading"), not always say "paragraph".
     const headingBlock = page.locator('.rendered-block').filter({ hasText: 'Preview Heading' }).first();

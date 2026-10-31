@@ -1565,6 +1565,21 @@ input:-webkit-autofill:focus {
   grid-template-rows: 37px minmax(0, 1fr);
 }
 
+/*
+ * Side-by-side Rendered mode (GAP-02, 16-UI-REVIEW): Monaco's diff editor renders its
+ * own internal two-pane split inside a single `.diff-workspace__editor` host, so the
+ * canvas grid otherwise stays single-column. The rendered-Markdown panes are two
+ * separate sibling elements instead, so this modifier gives the canvas explicit
+ * side-by-side columns and keeps the header row spanning both of them.
+ */
+.diff-workspace__canvas--rendered {
+  grid-template-columns: 1fr 1fr;
+}
+
+.diff-workspace__canvas--rendered > .diff-workspace__side-labels {
+  grid-column: 1 / -1;
+}
+
 .diff-workspace__side-labels {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1987,6 +2002,10 @@ h3.conversation-card__identity {
 }
 
 .rendered-markdown {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  min-height: 0;
   overflow-x: auto;
   overflow-y: auto;
   overflow-wrap: anywhere;
