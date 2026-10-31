@@ -20,6 +20,7 @@ export type Anchor = Readonly<{
   fileId: string;
   side: DiffSide;
   line: number;
+  endLine?: number;
 }>;
 
 export type AnchorAffordanceTarget = Readonly<{
@@ -46,7 +47,7 @@ export type AdapterDiagnostics = Readonly<{
 }>;
 
 export type MonacoDiffAdapter = Readonly<{
-  activateAnchor: (side: DiffSide, line: number) => void;
+  activateAnchor: (side: DiffSide, line: number, endLine?: number) => void;
   clearAnchor: () => void;
   dispose: () => void;
   getActiveAnchor: () => Anchor | undefined;
@@ -255,7 +256,7 @@ class PublicMonacoDiffAdapter {
     this.onChange();
   }
 
-  activateAnchor(side: DiffSide, line: number): void {
+  activateAnchor(side: DiffSide, line: number, endLine?: number): void {
     if (this.currentFile === undefined || !this.isValidLine(side, line)) {
       return;
     }
@@ -264,9 +265,11 @@ class PublicMonacoDiffAdapter {
       fileId: this.currentFile.id,
       side,
       line,
+      endLine,
       text: this.activeComposer?.fileId === this.currentFile.id
         && this.activeComposer.side === side
         && this.activeComposer.line === line
+        && this.activeComposer.endLine === endLine
         ? this.activeComposer.text
         : '',
     };
@@ -286,7 +289,7 @@ class PublicMonacoDiffAdapter {
   getActiveAnchor(): Anchor | undefined {
     return this.activeComposer === undefined
       ? undefined
-      : { fileId: this.activeComposer.fileId, side: this.activeComposer.side, line: this.activeComposer.line };
+      : { fileId: this.activeComposer.fileId, side: this.activeComposer.side, line: this.activeComposer.line, endLine: this.activeComposer.endLine };
   }
 
   getAnchorAffordance(): AnchorAffordanceTarget | undefined {
@@ -319,9 +322,11 @@ class PublicMonacoDiffAdapter {
       fileId: anchor.fileId,
       side: anchor.side,
       line: anchor.line,
+      endLine: anchor.endLine,
       text: this.activeComposer?.fileId === anchor.fileId
         && this.activeComposer.side === anchor.side
         && this.activeComposer.line === anchor.line
+        && this.activeComposer.endLine === anchor.endLine
         ? this.activeComposer.text
         : '',
     };
@@ -336,7 +341,7 @@ class PublicMonacoDiffAdapter {
     // Monaco 0.55.1 exposes no public selective hidden-region expansion API.
     this.contextMode = 'all-revealed';
     this.diffEditor.updateOptions({ hideUnchangedRegions: { enabled: false } });
-    this.activateAnchor(anchor.side, anchor.line);
+    this.activateAnchor(anchor.side, anchor.line, anchor.endLine);
   }
 
   goToChange(direction: 'next' | 'previous'): void {
@@ -557,18 +562,18 @@ class PublicMonacoDiffAdapter {
       this.originalZone = { id: anchoredZoneId, zone: anchoredZone };
       this.modifiedZone = { id: spacerZoneId, zone: spacerZone };
       this.positionZones(anchor.line, counterpartLine);
-      this.originalDecorations = anchoredEditor.createDecorationsCollection([this.anchorDecoration(anchor.line)]);
+      this.originalDecorations = anchoredEditor.createDecorationsCollection([this.anchorDecoration(anchor.line, anchor.endLine)]);
     } else {
       this.modifiedZone = { id: anchoredZoneId, zone: anchoredZone };
       this.originalZone = { id: spacerZoneId, zone: spacerZone };
       this.positionZones(counterpartLine, anchor.line);
-      this.modifiedDecorations = anchoredEditor.createDecorationsCollection([this.anchorDecoration(anchor.line)]);
+      this.modifiedDecorations = anchoredEditor.createDecorationsCollection([this.anchorDecoration(anchor.line, anchor.endLine)]);
     }
   }
 
-  private anchorDecoration(line: number): monaco.editor.IModelDeltaDecoration {
+  private anchorDecoration(line: number, endLine?: number): monaco.editor.IModelDeltaDecoration {
     return {
-      range: new monaco.Range(line, 1, line, 1),
+      range: new monaco.Range(line, 1, endLine ?? line, 1),
       options: { isWholeLine: true, className: 'monaco-anchor-line' },
     };
   }
@@ -714,7 +719,7 @@ class PublicMonacoSinglePaneAdapter {
     this.onChange();
   }
 
-  activateAnchor(side: DiffSide, line: number): void {
+  activateAnchor(side: DiffSide, line: number, endLine?: number): void {
     if (side !== this.side || this.currentFile === undefined || !this.isValidLine(line)) {
       return;
     }
@@ -723,7 +728,9 @@ class PublicMonacoSinglePaneAdapter {
       fileId: this.currentFile.id,
       side: this.side,
       line,
+      endLine,
       text: this.activeComposer?.fileId === this.currentFile.id && this.activeComposer.line === line
+        && this.activeComposer.endLine === endLine
         ? this.activeComposer.text
         : '',
     };
@@ -744,7 +751,7 @@ class PublicMonacoSinglePaneAdapter {
   getActiveAnchor(): Anchor | undefined {
     return this.activeComposer === undefined
       ? undefined
-      : { fileId: this.activeComposer.fileId, side: this.activeComposer.side, line: this.activeComposer.line };
+      : { fileId: this.activeComposer.fileId, side: this.activeComposer.side, line: this.activeComposer.line, endLine: this.activeComposer.endLine };
   }
 
   getAnchorAffordance(): AnchorAffordanceTarget | undefined {
@@ -778,7 +785,9 @@ class PublicMonacoSinglePaneAdapter {
       fileId: anchor.fileId,
       side: this.side,
       line: anchor.line,
+      endLine: anchor.endLine,
       text: this.activeComposer?.fileId === anchor.fileId && this.activeComposer.line === anchor.line
+        && this.activeComposer.endLine === anchor.endLine
         ? this.activeComposer.text
         : '',
     };
@@ -790,7 +799,7 @@ class PublicMonacoSinglePaneAdapter {
     if (this.currentFile?.id !== anchor.fileId || anchor.side !== this.side) {
       return;
     }
-    this.activateAnchor(anchor.side, anchor.line);
+    this.activateAnchor(anchor.side, anchor.line, anchor.endLine);
   }
 
   goToChange(_direction: 'next' | 'previous'): void {
@@ -944,12 +953,12 @@ class PublicMonacoSinglePaneAdapter {
     const zone = this.createComposerZone(anchor);
     const zoneId = this.addZone(zone);
     this.zone = { id: zoneId, zone };
-    this.decorations = this.editor.createDecorationsCollection([this.anchorDecoration(anchor.line)]);
+    this.decorations = this.editor.createDecorationsCollection([this.anchorDecoration(anchor.line, anchor.endLine)]);
   }
 
-  private anchorDecoration(line: number): monaco.editor.IModelDeltaDecoration {
+  private anchorDecoration(line: number, endLine?: number): monaco.editor.IModelDeltaDecoration {
     return {
-      range: new monaco.Range(line, 1, line, 1),
+      range: new monaco.Range(line, 1, endLine ?? line, 1),
       options: { isWholeLine: true, className: 'monaco-anchor-line' },
     };
   }

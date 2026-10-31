@@ -88,7 +88,18 @@ const mocks = vi.hoisted(() => {
 vi.mock('monaco-editor', () => ({
   KeyCode: { Enter: 1 },
   KeyMod: { Alt: 1 },
-  Range: class Range {},
+  Range: class Range {
+    startLineNumber: number;
+    startColumn: number;
+    endLineNumber: number;
+    endColumn: number;
+    constructor(startLineNumber: number, startColumn: number, endLineNumber: number, endColumn: number) {
+      this.startLineNumber = startLineNumber;
+      this.startColumn = startColumn;
+      this.endLineNumber = endLineNumber;
+      this.endColumn = endColumn;
+    }
+  },
   Uri: { parse: mocks.parseUri },
   editor: {
     create: mocks.createEditor,
@@ -262,6 +273,62 @@ describe('PublicMonacoDiffAdapter construction', () => {
     diffEditorInstance.getLineChanges.mockReturnValueOnce(sampleChanges);
 
     expect(adapter.getLineChanges()).toBe(sampleChanges);
+  });
+
+  it('threads an activated endLine through getActiveAnchor() and into the anchor decoration range', async () => {
+    vi.stubGlobal('document', {
+      createElement: vi.fn(() => ({ className: '', setAttribute: vi.fn() })),
+    });
+    try {
+      mocks.diffUpdateListeners.length = 0;
+      mocks.modifiedEditor.createDecorationsCollection.mockClear();
+      const adapter = createMonacoDiffAdapter({ offsetTop: 0 } as HTMLElement, () => 'typescript', vi.fn());
+      const loading = adapter.setFile({
+        id: 'file_a',
+        base: { path: 'src/example.ts', text: 'const base = 1;' },
+        head: { path: 'src/example.ts', text: 'const head = 2;' },
+      });
+      const finishInitialDiff = mocks.diffUpdateListeners.at(-1);
+      if (finishInitialDiff === undefined) throw new Error('expected pending initial diff listener');
+      finishInitialDiff();
+      await loading;
+
+      adapter.activateAnchor('head', 10, 14);
+
+      expect(adapter.getActiveAnchor()).toEqual({ fileId: 'file_a', side: 'head', line: 10, endLine: 14 });
+      const decoration = mocks.modifiedEditor.createDecorationsCollection.mock.calls.at(-1)?.[0]?.[0];
+      expect(decoration.range).toEqual({ startLineNumber: 10, startColumn: 1, endLineNumber: 14, endColumn: 1 });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('collapses the anchor decoration to a single line when endLine is omitted (legacy behavior unchanged)', async () => {
+    vi.stubGlobal('document', {
+      createElement: vi.fn(() => ({ className: '', setAttribute: vi.fn() })),
+    });
+    try {
+      mocks.diffUpdateListeners.length = 0;
+      mocks.modifiedEditor.createDecorationsCollection.mockClear();
+      const adapter = createMonacoDiffAdapter({ offsetTop: 0 } as HTMLElement, () => 'typescript', vi.fn());
+      const loading = adapter.setFile({
+        id: 'file_a',
+        base: { path: 'src/example.ts', text: 'const base = 1;' },
+        head: { path: 'src/example.ts', text: 'const head = 2;' },
+      });
+      const finishInitialDiff = mocks.diffUpdateListeners.at(-1);
+      if (finishInitialDiff === undefined) throw new Error('expected pending initial diff listener');
+      finishInitialDiff();
+      await loading;
+
+      adapter.activateAnchor('head', 10);
+
+      expect(adapter.getActiveAnchor()).toEqual({ fileId: 'file_a', side: 'head', line: 10 });
+      const decoration = mocks.modifiedEditor.createDecorationsCollection.mock.calls.at(-1)?.[0]?.[0];
+      expect(decoration.range).toEqual({ startLineNumber: 10, startColumn: 1, endLineNumber: 10, endColumn: 1 });
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });
 
@@ -460,6 +527,44 @@ describe('PublicMonacoSinglePaneAdapter unpaired anchor and view-zone wiring', (
 
       expect(mockEditor.addZone).not.toHaveBeenCalled();
       expect(adapter.getAnchorAffordanceAt('base', 5)).toBeUndefined();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('threads an activated endLine through getActiveAnchor() and into the anchor decoration range', async () => {
+    vi.stubGlobal('document', {
+      createElement: vi.fn(() => ({ className: '', setAttribute: vi.fn() })),
+    });
+    try {
+      const adapter = createMonacoSinglePaneAdapter({ offsetTop: 0 } as HTMLElement, () => 'typescript', vi.fn(), 'head');
+      const mockEditor = mocks.createEditor.mock.results.at(-1)?.value;
+      await adapter.setFile(sampleFile);
+
+      adapter.activateAnchor('head', 5, 8);
+
+      expect(adapter.getActiveAnchor()).toEqual({ fileId: 'file_a', side: 'head', line: 5, endLine: 8 });
+      const decoration = mockEditor.createDecorationsCollection.mock.calls.at(-1)?.[0]?.[0];
+      expect(decoration.range).toEqual({ startLineNumber: 5, startColumn: 1, endLineNumber: 8, endColumn: 1 });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('collapses the anchor decoration to a single line when endLine is omitted (legacy behavior unchanged)', async () => {
+    vi.stubGlobal('document', {
+      createElement: vi.fn(() => ({ className: '', setAttribute: vi.fn() })),
+    });
+    try {
+      const adapter = createMonacoSinglePaneAdapter({ offsetTop: 0 } as HTMLElement, () => 'typescript', vi.fn(), 'head');
+      const mockEditor = mocks.createEditor.mock.results.at(-1)?.value;
+      await adapter.setFile(sampleFile);
+
+      adapter.activateAnchor('head', 5);
+
+      expect(adapter.getActiveAnchor()).toEqual({ fileId: 'file_a', side: 'head', line: 5 });
+      const decoration = mockEditor.createDecorationsCollection.mock.calls.at(-1)?.[0]?.[0];
+      expect(decoration.range).toEqual({ startLineNumber: 5, startColumn: 1, endLineNumber: 5, endColumn: 1 });
     } finally {
       vi.unstubAllGlobals();
     }
