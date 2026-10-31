@@ -122,3 +122,144 @@ describe('canonical side-specific anchors', () => {
     expect(recorded.line).toBe(2);
   });
 });
+
+describe('range-aware durable anchors (A-01)', () => {
+  test('golden regression: omitting endLine reproduces the exact pre-A-01 contextHash byte sequence', () => {
+    const anchor = buildDurableAnchor({
+      path: path('src/example.ts'),
+      safeDisplayPath: 'src/example.ts',
+      side: 'base',
+      blobOid: 'a'.repeat(40),
+      line: 4,
+      text: 'one\ntwo\nthree\nfour\nfive\nsix\nseven\neight',
+    });
+
+    expect(anchor.endLine).toBeUndefined();
+    expect(anchor.contextHash.value).toBe(
+      '23c54f8ce14e00f3cd68a697a3ff909a4cc33b5998cc4325b07595fdfef71e6b',
+    );
+  });
+
+  test('a range anchor spans the full [line, endLine] block in selectedText and computes trailing context after endLine', () => {
+    const anchor = buildDurableAnchor({
+      path: path('src/example.ts'),
+      safeDisplayPath: 'src/example.ts',
+      side: 'base',
+      blobOid: 'a'.repeat(40),
+      line: 4,
+      endLine: 6,
+      text: 'one\ntwo\nthree\nfour\nfive\nsix\nseven\neight',
+    });
+
+    expect(anchor.endLine).toBe(6);
+    expect(anchor.selectedText).toBe('four\nfive\nsix');
+    expect(anchor.context.target).toEqual({ line: 4, text: 'four' });
+    expect(anchor.context.before).toEqual([
+      { line: 1, text: 'one' },
+      { line: 2, text: 'two' },
+      { line: 3, text: 'three' },
+    ]);
+    expect(anchor.context.after[0]).toEqual({ line: 7, text: 'seven' });
+  });
+
+  test('range anchors hash differently from a single-line anchor at the same line but share the same uniqueKey', () => {
+    const common = {
+      path: path('src/example.ts'),
+      safeDisplayPath: 'src/example.ts',
+      side: 'base',
+      blobOid: 'a'.repeat(40),
+      line: 4,
+      text: 'one\ntwo\nthree\nfour\nfive\nsix\nseven\neight',
+    } as const;
+    const singleLine = buildDurableAnchor(common);
+    const range = buildDurableAnchor({ ...common, endLine: 6 });
+
+    expect(range.contextHash.value).not.toBe(singleLine.contextHash.value);
+    expect(range.uniqueKey).toBe(singleLine.uniqueKey);
+  });
+
+  test('rejects endLine below line or beyond the frozen text, matching the existing line-bounds RangeError', () => {
+    const input = {
+      path: path('bounds.ts'),
+      safeDisplayPath: 'bounds.ts',
+      side: 'base',
+      blobOid: 'h'.repeat(40),
+      text: 'one\ntwo\nthree',
+    } as const;
+
+    expect(() => buildDurableAnchor({ ...input, line: 2, endLine: 1 })).toThrow(RangeError);
+    expect(() => buildDurableAnchor({ ...input, line: 2, endLine: 10 })).toThrow(RangeError);
+  });
+
+  test('range anchor verification covers the whole stored range and flips to stale on interior drift or a grown/shrunk range', () => {
+    const baseInput = {
+      path: path('doc.md'),
+      safeDisplayPath: 'doc.md',
+      side: 'base',
+      blobOid: 'f'.repeat(40),
+    } as const;
+    const recorded = buildDurableAnchor({
+      ...baseInput,
+      line: 2,
+      endLine: 4,
+      text: 'alpha\nbeta\ngamma\ndelta\nepsilon',
+    });
+    const unchanged = buildDurableAnchor({
+      ...baseInput,
+      line: 2,
+      endLine: 4,
+      text: 'alpha\nbeta\ngamma\ndelta\nepsilon',
+    });
+    const driftedInterior = buildDurableAnchor({
+      ...baseInput,
+      line: 2,
+      endLine: 4,
+      text: 'alpha\nbeta\nGAMMA-CHANGED\ndelta\nepsilon',
+    });
+    const grownRange = buildDurableAnchor({
+      ...baseInput,
+      line: 2,
+      endLine: 5,
+      text: 'alpha\nbeta\ngamma\ndelta\nepsilon\nzeta',
+    });
+
+    expect(verifyDurableAnchor(recorded, unchanged)).toMatchObject({
+      state: 'verified',
+      reason: 'exact-match',
+    });
+    expect(verifyDurableAnchor(recorded, driftedInterior)).toMatchObject({
+      state: 'stale',
+      reason: 'anchor-mismatch',
+    });
+    expect(verifyDurableAnchor(recorded, grownRange)).toMatchObject({
+      state: 'stale',
+      reason: 'anchor-mismatch',
+    });
+  });
+
+  test('legacy single-line verification stays unchanged when both recorded and current omit endLine', () => {
+    const recorded = buildDurableAnchor({
+      path: path('legacy.ts'),
+      safeDisplayPath: 'legacy.ts',
+      side: 'head',
+      blobOid: 'g'.repeat(40),
+      line: 2,
+      text: 'first\nneedle\nlast',
+    });
+    const current = buildDurableAnchor({
+      path: path('legacy.ts'),
+      safeDisplayPath: 'legacy.ts',
+      side: 'head',
+      blobOid: 'g'.repeat(40),
+      line: 2,
+      text: 'first\nneedle\nlast',
+    });
+
+    expect(recorded.endLine).toBeUndefined();
+    expect(current.endLine).toBeUndefined();
+    expect(verifyDurableAnchor(recorded, current)).toMatchObject({
+      state: 'verified',
+      reason: 'exact-match',
+    });
+  });
+});
