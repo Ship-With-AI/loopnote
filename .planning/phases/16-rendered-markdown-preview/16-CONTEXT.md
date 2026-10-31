@@ -108,3 +108,9 @@ Out of scope: Mermaid/math rendering, remote images, in-session relative-link na
 
 *Phase: 16-rendered-markdown-preview*
 *Context gathered: 2026-10-30*
+
+<amendments>
+## Amendments
+
+- **A-01 (2026-10-31, user decision after research found `DurableAnchorV1Schema` is single-line only):** Rendered-block comments must store the **true block source line range**. Extend the durable anchor with an **additive, optional range** (`endLine` plus a range-aware context hash/selected text), versioned so that every existing draft and V1–V4 export still parses and verifies unchanged. A single-line anchor stays the default (`endLine` absent = one line). Drift verification classifies the whole range (current/stale/orphaned); it never relocates. Source view shows the stored range. Exports carry the range (Phase 17 export work includes it). Supersedes the research recommendation "anchor to the block's first line".
+</amendments>
