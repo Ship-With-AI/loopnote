@@ -9,12 +9,14 @@ import StatusBadge from './StatusBadge.vue';
 const props = defineProps<{
   readonly filesCollapsed: boolean;
   readonly filesDrawer: boolean;
+  readonly mode: 'source' | 'rendered';
   readonly selectedFile?: SessionFile;
   readonly selectedPath: string;
 }>();
 
 const emit = defineEmits<{
   toggleFiles: [];
+  'toggle-mode': [mode: 'source' | 'rendered'];
 }>();
 
 const filesToggle = ref<HTMLButtonElement>();
@@ -61,6 +63,10 @@ const counts = computed(() => props.selectedFile !== undefined
   && props.selectedFile.deletions !== null
   ? `+${props.selectedFile.additions} −${props.selectedFile.deletions}`
   : undefined);
+const isMarkdownFile = computed(() => {
+  const path = effectivePath.value.toLowerCase();
+  return path.endsWith('.md') || path.endsWith('.markdown');
+});
 const filesHostVisible = computed(() => !props.filesDrawer && !props.filesCollapsed);
 const filesToggleCopy = computed(() => props.filesDrawer ? 'Files' : props.filesCollapsed ? 'Show files' : 'Hide files');
 const filesToggleLabel = computed(() => props.filesDrawer
@@ -96,6 +102,20 @@ defineExpose({ focusFilesToggle, focusHeading });
       <span v-else class="review-toolbar__status">{{ selectedFile.status.kind }}</span>
     </template>
     <span v-if="counts !== undefined" class="review-toolbar__counts">{{ counts }}</span>
+    <template v-if="isMarkdownFile">
+      <button
+        type="button"
+        class="ui-button"
+        :aria-pressed="mode === 'source'"
+        @click="emit('toggle-mode', 'source')"
+      >Source</button>
+      <button
+        type="button"
+        class="ui-button"
+        :aria-pressed="mode === 'rendered'"
+        @click="emit('toggle-mode', 'rendered')"
+      >Rendered</button>
+    </template>
     <button
       ref="filesToggle"
       type="button"
