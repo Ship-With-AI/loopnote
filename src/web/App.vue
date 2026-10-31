@@ -88,6 +88,8 @@ const changedFilesOpen = computed(() => shellDialog.value === 'changed-files');
 const changedFilesRestoreFocus = ref(true);
 const focusActiveFileAfterDialog = ref(false);
 const filesCollapsed = ref(false);
+const fileModeByFileId = shallowRef<Map<string, 'source' | 'rendered'>>(new Map());
+const activeFileMode = computed(() => fileModeByFileId.value.get(selectedContent.value?.fileId ?? '') ?? 'source');
 const reviewNotesOpen = computed(() => shellDialog.value === 'review-notes');
 const shellModalOpen = computed(() => shellDialog.value !== null);
 const liveMessage = ref('');
@@ -313,6 +315,12 @@ function toggleFiles(): void {
   dispatchWorkspace({ type: 'resize' });
   diffWorkspace.value?.layout();
   void nextTick(() => activeFileToolbar.value?.focusFilesToggle());
+}
+
+function setFileMode(fileId: string, mode: 'source' | 'rendered'): void {
+  const next = new Map(fileModeByFileId.value);
+  next.set(fileId, mode);
+  fileModeByFileId.value = next;
 }
 
 function closeChangedFiles(restoreFocus = true): void {
@@ -1288,9 +1296,11 @@ onBeforeUnmount(() => {
             ref="activeFileToolbar"
             :files-collapsed="filesCollapsed"
             :files-drawer="isNarrow"
+            :mode="activeFileMode"
             :selected-file="selectedFile"
             :selected-path="selectedPath"
             @toggle-files="toggleFiles"
+            @toggle-mode="(mode) => selectedContent !== undefined && setFileMode(selectedContent.fileId, mode)"
           />
         </ReviewToolbar>
 
@@ -1326,6 +1336,7 @@ onBeforeUnmount(() => {
           :comments="workspaceComments"
           :composer="activeComposer"
           :content="selectedContent"
+          :mode="activeFileMode"
           :path="selectedPath"
           :source-kind="isExactPatchSession ? 'exact-patch' : 'range'"
           :single-pane-side="singlePaneSide"

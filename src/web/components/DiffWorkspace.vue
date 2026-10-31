@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, render, watch } from 'vue';
+import type * as monaco from 'monaco-editor';
 
 import type { FileContentResponse } from '../../contracts/api.js';
 import CommentComposer from './CommentComposer.vue';
 import InlineNotice from './InlineNotice.vue';
 import PathText from './ui/PathText.vue';
 import ReviewStateBadge from './ui/ReviewStateBadge.vue';
+import RenderedMarkdownView from './RenderedMarkdownView.vue';
 import {
   createMonacoDiffAdapter,
   createMonacoSinglePaneAdapter,
@@ -26,8 +28,10 @@ const props = withDefaults(defineProps<{
   headOid?: string;
   singlePaneSide?: DiffSide;
   sourceKind?: 'range' | 'exact-patch';
+  mode?: 'source' | 'rendered';
 }>(), {
   sourceKind: 'range',
+  mode: 'source',
 });
 
 const emit = defineEmits<{
@@ -43,6 +47,7 @@ const emit = defineEmits<{
 
 const host = ref<HTMLElement>();
 const anchorAffordance = ref<AnchorAffordanceTarget>();
+const lineChanges = ref<readonly monaco.editor.ILineChange[]>([]);
 let adapter: MonacoDiffAdapter | undefined;
 let resizeObserver: ResizeObserver | undefined;
 let wideCodeMedia: MediaQueryList | undefined;
@@ -74,6 +79,12 @@ function immutableFile() {
       : { path: fallbackPath, text: '' },
   };
 }
+const baseText = computed(() => (props.content.base.exists ? props.content.base.text : ''));
+const headText = computed(() => (props.content.head.exists ? props.content.head.text : ''));
+const singlePaneRenderedSide = computed<DiffSide>(() => props.singlePaneSide ?? 'head');
+const singlePaneRenderedContent = computed(() =>
+  singlePaneRenderedSide.value === 'base' ? baseText.value : headText.value,
+);
 
 const singlePaneSideWord = computed(() =>
   props.singlePaneSide === 'base' ? visibleSides.value.original : visibleSides.value.modified,
@@ -192,6 +203,7 @@ function renderAnnotation(): void {
 }
 
 function syncAdapterState(): void {
+  lineChanges.value = adapter?.getLineChanges() ?? [];
   const pendingMove = props.composer?.pendingMove;
   anchorAffordance.value = pendingMove === undefined
     ? adapter?.getAnchorAffordance()
@@ -384,7 +396,25 @@ onBeforeUnmount(() => {
             :disabled="mutationsLocked"
             @click="addComment(anchorAffordance)"
           >+</button>
-          <div ref="host" class="diff-workspace__editor" />
+          <div ref="host" class="diff-workspace__editor" v-show="mode === 'source'" :aria-hidden="mode === 'rendered'" />
+          <RenderedMarkdownView
+            v-if="mode === 'rendered'"
+            :content="singlePaneRenderedContent"
+            :side="singlePaneRenderedSide"
+            :comments="comments"
+            :composer="composer"
+            :mutations-locked="mutationsLocked"
+            :path="path"
+            :file-id="content.fileId"
+            @add="emit('add')"
+            @cancel="emit('cancel')"
+            @confirm-discard="emit('confirmDiscard')"
+            @confirm-move="emit('confirmMove')"
+            @activate="(side, line) => emit('activate', side, line)"
+            @keep-writing="emit('keepWriting')"
+            @ready="(fileId) => emit('ready', fileId)"
+            @update-text="(text) => emit('updateText', text)"
+          />
         </template>
       </div>
     </div>
@@ -415,7 +445,45 @@ onBeforeUnmount(() => {
           :disabled="mutationsLocked"
           @click="addComment(anchorAffordance)"
         >+</button>
-        <div ref="host" class="diff-workspace__editor" />
+        <div ref="host" class="diff-workspace__editor" v-show="mode === 'source'" :aria-hidden="mode === 'rendered'" />
+        <RenderedMarkdownView
+          v-if="mode === 'rendered'"
+          :content="baseText"
+          side="base"
+          :changes="lineChanges"
+          :comments="comments"
+          :composer="composer"
+          :mutations-locked="mutationsLocked"
+          :path="path"
+          :file-id="content.fileId"
+          @add="emit('add')"
+          @cancel="emit('cancel')"
+          @confirm-discard="emit('confirmDiscard')"
+          @confirm-move="emit('confirmMove')"
+          @activate="(side, line) => emit('activate', side, line)"
+          @keep-writing="emit('keepWriting')"
+          @ready="(fileId) => emit('ready', fileId)"
+          @update-text="(text) => emit('updateText', text)"
+        />
+        <RenderedMarkdownView
+          v-if="mode === 'rendered'"
+          :content="headText"
+          side="head"
+          :changes="lineChanges"
+          :comments="comments"
+          :composer="composer"
+          :mutations-locked="mutationsLocked"
+          :path="path"
+          :file-id="content.fileId"
+          @add="emit('add')"
+          @cancel="emit('cancel')"
+          @confirm-discard="emit('confirmDiscard')"
+          @confirm-move="emit('confirmMove')"
+          @activate="(side, line) => emit('activate', side, line)"
+          @keep-writing="emit('keepWriting')"
+          @ready="(fileId) => emit('ready', fileId)"
+          @update-text="(text) => emit('updateText', text)"
+        />
       </div>
     </div>
     <p class="diff-workspace__horizontal-cue" aria-hidden="true">Scroll horizontally to view {{ visibleSides.modified }}.</p>
