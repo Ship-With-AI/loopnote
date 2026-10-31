@@ -650,3 +650,12 @@ export function buildReviewExportV6(
 
 **Research date:** 2026-10-31
 **Valid until:** No external-dependency expiry; revalidate only if `src/contracts/draft.ts`, `src/server/capabilities.ts`, or `src/cli/run.ts` change materially before planning executes (internal-only staleness risk, not a time-boxed external one).
+
+## Amendment (post-research, 2026-10-31): Phase 16 A-01 — anchor range extension
+
+While this research was being written, Phase 16 (`16-rendered-markdown-preview`, executing concurrently) locked a new decision in its own CONTEXT.md (`<amendments>` A-01): `DurableAnchorV1Schema` gains an **additive, optional** range — `endLine` plus a range-aware context hash/selected text — versioned so every existing draft and V1–V4 export still parses and verifies unchanged. A single-line anchor stays the default (`endLine` absent).
+
+**Implication for this phase's V5/V6 design (does not change the Pattern 2 / Code Examples sections above):**
+- `DurableAnchorV1Schema` and `ExportCommentSchema` are owned and versioned by Phase 16, not this phase. Phase 17 MUST NOT redefine, widen, or fork the anchor schema — it already reuses `ExportCommentSchema`/`DurableAnchorV1Schema` unmodified (see Pattern 2), so once Phase 16 ships, V5/V6 inherit the optional range automatically through that unmodified reuse. No new Phase 17 schema field is needed for the range itself.
+- Treat Phase 16 as an added implicit prerequisite alongside Phase 14/15 for this phase's export work: the planner should sequence Phase 17's export-schema tasks to depend on (or at minimum verify against) Phase 16's shipped `DurableAnchorV1Schema` shape rather than the pre-amendment single-line-only shape this research's direct file reads observed.
+- Drift/verification semantics stay as Phase 16 defines them (classify the whole range current/stale/orphaned; never relocate) — D-01/D-02/D-03 in this phase's CONTEXT.md are unaffected.
