@@ -56,7 +56,7 @@ export type MonacoDiffAdapter = Readonly<{
   getAnchorAffordanceAt: (side: DiffSide, line: number) => AnchorAffordanceTarget | undefined;
   getDiagnostics: () => AdapterDiagnostics;
   goToChange: (direction: 'next' | 'previous') => void;
-  layout: () => void;
+  layout: (forceDimensions?: Readonly<{ width: number; height: number }>) => void;
   revealAnchor: (anchor: Anchor) => void;
   setAnchorZoneHeight: (heightInPx: number) => void;
   setActiveAnchor: (anchor: Anchor | undefined) => void;
@@ -353,13 +353,21 @@ class PublicMonacoDiffAdapter {
     this.diffEditor.goToDiff(direction);
   }
 
-  layout(): void {
+  layout(forceDimensions?: Readonly<{ width: number; height: number }>): void {
     // Monaco's DiffEditorWidget does not reliably re-measure its sub-editor heights from a
     // parameterless layout() call when automaticLayout is off (verified: a diff pane left
     // display:none while a cross-mode anchor zone was created — plan 16's Rendered->Source
     // toggle — stays pinned at a stale ~5px height even after an explicit no-arg layout()
-    // call; only an explicit {width, height} forces the sub-editors to re-measure).
-    this.diffEditor.layout({ width: this.host.clientWidth, height: this.host.clientHeight });
+    // call; only an explicit {width, height} forces the sub-editors to re-measure). Every
+    // other call site (ResizeObserver, window resize, next/previous file) keeps using the
+    // parameterless auto-detect it always has, since that already works correctly there
+    // and passing explicit dimensions from every call site risks capturing a transiently
+    // wrong read (e.g. mid-reflow from an unrelated banner).
+    if (forceDimensions === undefined) {
+      this.diffEditor.layout();
+    } else {
+      this.diffEditor.layout(forceDimensions);
+    }
     this.refreshAnchorAffordance();
   }
 
@@ -816,8 +824,12 @@ class PublicMonacoSinglePaneAdapter {
     // A single pane has no paired hunks to navigate between; nothing to do.
   }
 
-  layout(): void {
-    this.editor.layout({ width: this.host.clientWidth, height: this.host.clientHeight });
+  layout(forceDimensions?: Readonly<{ width: number; height: number }>): void {
+    if (forceDimensions === undefined) {
+      this.editor.layout();
+    } else {
+      this.editor.layout(forceDimensions);
+    }
     this.refreshAnchorAffordance();
   }
 

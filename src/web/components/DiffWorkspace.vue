@@ -323,7 +323,9 @@ watch(() => props.mode, () => {
   // editor is resized, so re-apply the active anchor to force rebuildAnchoredLayout()
   // to recreate it against the now-correctly-sized editor.
   void nextTick(() => {
-    adapter?.layout();
+    const width = host.value?.clientWidth ?? 0;
+    const height = host.value?.clientHeight ?? 0;
+    adapter?.layout(width > 0 && height > 0 ? { width, height } : undefined);
     const anchor = adapter?.getActiveAnchor();
     if (anchor !== undefined) {
       adapter?.setActiveAnchor(anchor);
