@@ -1,10 +1,11 @@
 ---
 phase: 16
 slug: rendered-markdown-preview
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-10-31
+reviewed_at: 2026-10-31T00:00:00Z
 ---
 
 # Phase 16 — UI Design Contract
@@ -234,14 +235,14 @@ No shadcn, no registry, no third-party component or markdown-it-plugin source in
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS (FLAG — see checker recommendations)
+- [x] Dimension 2 Visuals: PASS (FLAG — see checker recommendations)
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** approved 2026-10-31
 
 ---
 
