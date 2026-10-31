@@ -119,3 +119,9 @@ This is the Phase 16 advisory UI gate. **Non-blocking** — does not change rele
 - Live artifacts: `tests/e2e/rendered-markdown-preview.spec.ts`, `tests/e2e/anchored-review.spec.ts`, `tests/helpers/git-fixture.ts` (reused launch/fixture pattern, not modified)
 
 Screenshots (gitignored, local evidence only): `.planning/ui-reviews/16-rendered-markdown-preview/01-08-*.webp`
+
+---
+
+## Addendum: Gap-Closure Confirmation (2026-10-31)
+
+All 3 BLOCKER findings above (image-route 401, side-by-side Base-pane collapse, block-kind mislabeling) were fixed in a dedicated gap-closure cycle — see `16-GAP-CLOSURE.md` (commits `69afe20`, `67d9de8`, `9c838f8`, docs `5998a68`) — and independently re-verified against the real codebase (not the fix's own claims) in `16-VERIFICATION.md`'s re-verification pass (commit `8640ead`), including a live `<img>` `naturalWidth` check, a real `getBoundingClientRect()`/`gridTemplateColumns` measurement on both rendered-mode panes, and an accessible-name assertion that trigger labels now read the real block kind. This UI review's screenshots/scores above are preserved as the original audit record; they are superseded by the gap-closure for release-readiness purposes. No fresh live re-screenshot pass was run after the fixes — the regression evidence is e2e/DOM-assertion based, not a second manual visual audit.
