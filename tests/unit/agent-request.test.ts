@@ -169,6 +169,7 @@ describe('readAgentReviewRequest - new error kinds', () => {
     const request = await readAgentReviewRequest(input);
 
     expect(Object.isFrozen(request)).toBe(true);
+    expect(request.mode).toBe('uncommitted');
     if (request.mode === 'uncommitted') {
       expect(Object.isFrozen(request.uncommitted)).toBe(true);
       expect(Object.isFrozen(request.uncommitted.pathspecs)).toBe(true);
@@ -186,6 +187,7 @@ describe('readAgentReviewRequest - new error kinds', () => {
     const request = await readAgentReviewRequest(input);
 
     expect(Object.isFrozen(request)).toBe(true);
+    expect(request.mode).toBe('files');
     if (request.mode === 'files') {
       expect(Object.isFrozen(request.files)).toBe(true);
       expect(Object.isFrozen(request.files.paths)).toBe(true);
