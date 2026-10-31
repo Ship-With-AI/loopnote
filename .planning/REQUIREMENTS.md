@@ -50,7 +50,7 @@
 
 - [x] **AGENT-06**: Coding agent can submit a stdin request for uncommitted review (source kind, optional base, optional pathspecs) and receive one canonical JSON result after the developer finishes.
 - [x] **AGENT-07**: Coding agent can submit a stdin request for standalone-file review (paths or pathspecs) and receive one canonical JSON result after the developer finishes.
-- [ ] **AGENT-08**: Coding agent receives uncommitted and standalone results in new versioned export formats carrying their provenance; existing range and exact-patch requests and V1–V3 exports are unchanged.
+- [x] **AGENT-08**: Coding agent receives uncommitted and standalone results in new versioned export formats carrying their provenance; existing range and exact-patch requests and V1–V3 exports are unchanged.
 - [x] **AGENT-09**: Coding agent gets a specific validation error before any browser launch for a malformed, oversized, or out-of-repository uncommitted or standalone request.
 
 ### Marketplace Skill
@@ -123,7 +123,7 @@ Deferred, tracked but not in the v2.0 roadmap.
 | MDV-04 | Phase 16 | Pending |
 | AGENT-06 | Phase 17 | Complete |
 | AGENT-07 | Phase 17 | Complete |
-| AGENT-08 | Phase 17 | Pending |
+| AGENT-08 | Phase 17 | Complete |
 | AGENT-09 | Phase 17 | Complete |
 | SKL-04 | Phase 17 | Pending |
 | REN-01 | Phase 17.1 | Pending |

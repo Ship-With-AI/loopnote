@@ -5,15 +5,15 @@ milestone_name: Artifact Review
 current_phase: 17
 current_phase_name: agent-protocol-extension-marketplace-skill
 status: executing
-stopped_at: Completed 17-01-PLAN.md
-last_updated: "2026-10-31T15:53:16.558Z"
+stopped_at: Completed 17-02-PLAN.md
+last_updated: "2026-10-31T16:03:00.788Z"
 last_activity: 2026-10-31
 last_activity_desc: Phase 17 execution started
 progress:
   total_phases: 7
   completed_phases: 4
   total_plans: 42
-  completed_plans: 38
+  completed_plans: 39
   percent: 57
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-09-09)
 ## Current Position
 
 Phase: 17 (agent-protocol-extension-marketplace-skill) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 Status: Ready to execute
 Last activity: 2026-10-31 — Phase 17 execution started
 
@@ -84,6 +84,7 @@ Last activity: 2026-10-31 — Phase 17 execution started
 | Phase 14-uncommitted-source-review-frozen-snapshots P15 | 45min | 4 tasks | 6 files |
 | Phase 14-uncommitted-source-review-frozen-snapshots P16 | 25min | 3 tasks | 3 files |
 | Phase 17 P01 | 10min | 2 tasks | 4 files |
+| Phase 17 P02 | 35min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -139,6 +140,9 @@ Decisions are logged in PROJECT.md Key Decisions.
 - [Phase 14-uncommitted-source-review-frozen-snapshots]: InlineNotice for the D-19 Resume offer written as a single template line so the heading and its dismiss-label's quoted reference collapse onto one grep-matched line — Satisfies the plan's literal grep -c == 1 acceptance criterion without duplicating or shortening either string
 - [Phase 17]: 17-01: Promoted GitArgumentSchema from module-private to exported - no other call-site risk, grep confirmed no prior importers
 - [Phase 17]: 17-01: src/cli/run.ts's revisions dispatch accessed request.revisions without narrowing to mode==='revisions'; widening the discriminated union to 4 modes broke typecheck - added an explicit mode!=='revisions' guard throwing for the not-yet-dispatched uncommitted/files modes (Plan 17-04 replaces this dispatch block)
+- [Phase 17]: V1-V4 export byte-stability regression pinned via committed Vitest toMatchSnapshot fixtures of canonicalizeReviewExport output rather than hand-captured literal bytes
+- [Phase 17]: ReviewExportV6Schema proves strict-superset of V4 by direct strip-and-reparse against ReviewExportV4Schema rather than re-deriving the V1 zeroed-placeholder proof
+- [Phase 17]: ReviewExportV4Schema and buildReviewExportV4 left byte-for-byte untouched; new workingTreeChangedAfterFinalSnapshot drift field lives only on V5/V6 per RESEARCH.md Pitfall 1
 
 ### Pending Todos
 
@@ -189,6 +193,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-31T15:53:16.555Z
-Stopped at: Completed 17-01-PLAN.md
+Last session: 2026-10-31T16:03:00.784Z
+Stopped at: Completed 17-02-PLAN.md
 Resume file: None

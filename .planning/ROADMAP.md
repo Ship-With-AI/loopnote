@@ -212,13 +212,13 @@ Plans:
   4. Coding agent gets a specific validation error before any browser launch for a malformed, oversized, or out-of-repository uncommitted or standalone request.
   5. Coding-agent users of the ShipWithAI marketplace skill can request uncommitted and standalone-file reviews through it, with the CLI version prerequisite updated to the release that supports them.
 
-**Plans**: 1/5 plans executed
+**Plans**: 2/5 plans executed
 
 Plans:
 **Wave 1**
 
 - [x] 17-01-PLAN.md — Agent request contract: `mode:'uncommitted'`/`mode:'files'` + extended validation error taxonomy (AGENT-06/07/09)
-- [ ] 17-02-PLAN.md — `ReviewExportV5Schema`/`V6Schema` + `buildReviewExportV5`/`V6` with V1–V4 regression proof (D-01, AGENT-08)
+- [x] 17-02-PLAN.md — `ReviewExportV5Schema`/`V6Schema` + `buildReviewExportV5`/`V6` with V1–V4 regression proof (D-01, AGENT-08)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -271,7 +271,7 @@ Plans:
 | 14. Uncommitted Source Review & Frozen Snapshots | 15/16 | In Progress|  |
 | 15. Standalone File Review | 8/8 | Complete    | 2026-10-31 |
 | 16. Rendered Markdown Preview | 0/6 | Planned | - |
-| 17. Agent Protocol Extension & Marketplace Skill | 1/5 | In Progress|  |
+| 17. Agent Protocol Extension & Marketplace Skill | 2/5 | In Progress|  |
 | 18. Product Repositioning Copy | 0/TBD | Not started | - |
 
 ## Backlog
