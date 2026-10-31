@@ -655,9 +655,20 @@ const ExactPatchExportReviewResultSchema = z.strictObject({
   files: ExportReceiptFilesSchema,
 }).readonly();
 
+const StandaloneExportReviewResultSchema = z.strictObject({
+  kind: z.literal('exported'),
+  draftRevision: RevisionSchema,
+  exportedAt: z.string().datetime(),
+  standalone: z.strictObject({
+    reviewKey: z.string().regex(/^[0-9a-f]{64}$/u),
+  }).readonly(),
+  files: ExportReceiptFilesSchema,
+}).readonly();
+
 export const ExportReviewResultSchema = z.union([
   ComparisonExportReviewResultSchema,
   ExactPatchExportReviewResultSchema,
+  StandaloneExportReviewResultSchema,
   z.discriminatedUnion('kind', [
     z.strictObject({
       kind: z.literal('revisionConflict'),

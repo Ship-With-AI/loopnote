@@ -33,7 +33,7 @@ import {
   type AnchorVerification,
   type DurableAnchorV1,
 } from '../domain/anchor.js';
-import { comparisonKey, uncommittedReviewKey } from '../domain/comparison-key.js';
+import { comparisonKey, uncommittedReviewKey, standaloneReviewKey } from '../domain/comparison-key.js';
 import { decodeBase64url } from '../domain/path-bytes.js';
 import { MAX_INLINE_TEXT_BYTES } from '../git/availability.js';
 import { createObjectReader } from '../git/objects.js';
@@ -49,6 +49,7 @@ import {
   buildReviewExportV1,
   buildReviewExportV2,
   buildReviewExportV3,
+  buildReviewExportV4,
   canonicalizeReviewExport,
 } from '../export/review-export.js';
 import { parseCanonicalReviewExport } from '../export/review-export.js';
@@ -1136,6 +1137,306 @@ export async function createUncommittedCapabilityRegistry(
     async revealDraftFile() {
       if (options.revealDraftFile === undefined) throw new Error('Draft reveal adapter is unavailable.');
       await options.revealDraftFile(draftStore.canonicalPath);
+    },
+    async inspectCumpaIgnore() {
+      return CumpaIgnoreStatusSchema.parse({ kind: 'unavailable' });
+    },
+    async appendCumpaIgnoreRule() {
+      return AppendCumpaIgnoreResultSchema.parse({ kind: 'unconfirmed' });
+    },
+  });
+}
+
+export async function createStandaloneCapabilityRegistry(
+  scope: UncommittedScope,
+  snapshot: WorktreeSnapshot,
+  options: CapabilityRegistryOptions = {},
+): Promise<CapabilityRegistry> {
+  const storageScope = options.attachedCompletion === undefined
+    ? undefined
+    : assertAttachedStorageScope(options.attachedCompletion.storageScope);
+  const snapshotSession = await snapshot.session();
+  const reviewKey = standaloneReviewKey([...scope.standaloneArguments!].sort(), snapshotSession.chain[0]!);
+
+  const sessionResponse = async () => {
+    const files = await snapshot.files();
+    return SessionResponseSchema.parse({
+      uncommitted: {
+        kind: 'uncommitted' as const,
+        sourceKind: scope.sourceKind,
+        ...(scope.baseCommitOid === undefined ? {} : { baseCommitOid: scope.baseCommitOid }),
+        reviewKey,
+        changedFileCount: files.length,
+        ...(options.uncommittedRecoveryCandidate === undefined ? {} : { recoveryAvailable: true as const }),
+      },
+      files: files.map((file) => ({
+        fileId: file.id,
+        status: file.status.similarity === null ? { kind: file.status.kind } : { kind: file.status.kind, similarity: file.status.similarity },
+        oldMode: file.oldMode,
+        ...(file.oldPath === undefined ? {} : { oldPath: file.oldPath }),
+        ...(file.newPath === undefined ? {} : { newPath: file.newPath }),
+        additions: file.additions,
+        deletions: file.deletions,
+        availability: file.availability,
+        ...(file.standaloneGitState === undefined ? {} : { standaloneGitState: file.standaloneGitState }),
+      })),
+      ...(options.attachedCompletion === undefined ? {} : { attached: { kind: 'agent-review' as const } }),
+      ...(options.support === undefined ? {} : { support: { enabled: true as const } }),
+    });
+  };
+
+  const draftStore = options.draftStore ?? createDraftStore({
+    repositoryRoot: scope.repositoryRoot,
+    comparison: {
+      kind: 'uncommitted',
+      sourceKind: scope.sourceKind,
+      ...(scope.baseCommitOid === undefined ? {} : { baseCommitOid: scope.baseCommitOid }),
+      reviewKey,
+      snapshotChain: snapshotSession.chain,
+    },
+    ...(storageScope === undefined ? {} : { storageScope }),
+  });
+
+  const verifyAnchor = async (anchor: DurableAnchorV1): Promise<AnchorVerification> => {
+    const file = (await snapshot.files()).find((candidate) => {
+      const path = anchor.side === 'base' ? candidate.oldPath : candidate.newPath;
+      return path?.bytesBase64url === anchor.path.bytesBase64url;
+    });
+    if (file === undefined) return { state: 'orphaned', reason: 'anchor-unavailable' };
+    const content = await snapshot.readContent(file.id);
+    const bytes = anchor.side === 'base' ? content?.preimage : content?.postimage;
+    const blobOid = anchor.side === 'base' ? content?.preimageBlobOid : content?.postimageBlobOid;
+    const path = anchor.side === 'base' ? file.oldPath : file.newPath;
+    if (bytes === undefined || path === undefined || blobOid === undefined || blobOid !== anchor.blobOid) {
+      return { state: 'orphaned', reason: 'anchor-unavailable' };
+    }
+    return verifyDurableAnchor(
+      anchor,
+      buildDurableAnchor({
+        path,
+        safeDisplayPath: path.display,
+        side: anchor.side,
+        blobOid: anchor.blobOid,
+        line: anchor.line,
+        text: strictTextDecoder.decode(bytes),
+      }),
+    );
+  };
+
+  const diskPathFor = (file: ChangedFile): string | undefined => {
+    const path = file.newPath ?? file.oldPath;
+    if (path === undefined) return undefined;
+    return join(scope.repositoryRoot, Buffer.from(decodeBase64url(path.bytesBase64url)).toString('utf8'));
+  };
+
+  const indexStatIdentity = async (): Promise<Readonly<{ readonly size: number; readonly mtimeMs: number }>> => {
+    const runner = createGitRunner();
+    const result = await runner.run(['rev-parse', '--git-path', 'index'], { cwd: scope.repositoryRoot });
+    const indexPathRaw = result.stdout.toString('utf8').trim();
+    const resolvedIndexPath = indexPathRaw.startsWith('/') ? indexPathRaw : join(scope.repositoryRoot, indexPathRaw);
+    const info = await lstat(resolvedIndexPath);
+    return { size: info.size, mtimeMs: info.mtimeMs };
+  };
+
+  type StatIdentity = Readonly<{ readonly size: number; readonly mtimeMs: number }>;
+
+  const captureChangeBaseline = async (): Promise<Readonly<{
+    readonly index: StatIdentity;
+    readonly files: ReadonlyMap<string, StatIdentity | undefined>;
+  }>> => {
+    const index = await indexStatIdentity();
+    const files = await snapshot.files();
+    const fileStats = new Map<string, StatIdentity | undefined>();
+    for (const file of files) {
+      const diskPath = diskPathFor(file);
+      if (diskPath === undefined) continue;
+      try {
+        const info = await lstat(diskPath);
+        fileStats.set(file.id, { size: info.size, mtimeMs: info.mtimeMs });
+      } catch {
+        fileStats.set(file.id, undefined);
+      }
+    }
+    return Object.freeze({ index, files: fileStats });
+  };
+
+  let changeBaseline = await captureChangeBaseline();
+
+  return Object.freeze({
+    session: sessionResponse,
+    onAnchorAdd: options.onAnchorAdd,
+    draftStore,
+    support: options.support,
+    async refresh() {
+      const stateBefore = await draftStore.loadState();
+      const commentsBefore = stateBefore.kind === 'current' ? stateBefore.draft.comments : [];
+      const verificationBefore = new Map<string, AnchorVerification>();
+      for (const comment of commentsBefore) {
+        verificationBefore.set(comment.id, await verifyAnchor(comment.anchor));
+      }
+      const delta = await snapshot.refresh();
+      changeBaseline = await captureChangeBaseline();
+      let staleCount = 0;
+      let orphanedCount = 0;
+      for (const comment of commentsBefore) {
+        if (verificationBefore.get(comment.id)?.state !== 'verified') continue;
+        const after = await verifyAnchor(comment.anchor);
+        if (after.state === 'stale') staleCount += 1;
+        else if (after.state === 'orphaned') orphanedCount += 1;
+      }
+      return {
+        added: delta.added,
+        removed: delta.removed,
+        modified: delta.modified,
+        staleCount,
+        orphanedCount,
+      };
+    },
+    async worktreeChangeIndicator() {
+      const index = await indexStatIdentity();
+      if (index.size !== changeBaseline.index.size || index.mtimeMs !== changeBaseline.index.mtimeMs) {
+        return { changed: true };
+      }
+      const files = await snapshot.files();
+      for (const file of files) {
+        const diskPath = diskPathFor(file);
+        if (diskPath === undefined) continue;
+        const expected = changeBaseline.files.get(file.id);
+        let actual: StatIdentity | undefined;
+        try {
+          const info = await lstat(diskPath);
+          actual = { size: info.size, mtimeMs: info.mtimeMs };
+        } catch {
+          actual = undefined;
+        }
+        const changed = expected === undefined
+          ? actual !== undefined
+          : actual === undefined || actual.size !== expected.size || actual.mtimeMs !== expected.mtimeMs;
+        if (changed) return { changed: true };
+      }
+      return { changed: false };
+    },
+    async lookup(fileId) {
+      options.onCapabilityLookup?.(fileId);
+      const file = (await snapshot.files()).find((candidate) => candidate.id === fileId);
+      if (file === undefined) return undefined;
+      return FileMetadataResponseSchema.parse({
+        fileId: file.id,
+        status: file.status.similarity === null ? { kind: file.status.kind } : { kind: file.status.kind, similarity: file.status.similarity },
+        oldMode: file.oldMode,
+        newMode: file.newMode,
+        ...(file.oldPath === undefined ? {} : { oldPath: file.oldPath }),
+        ...(file.newPath === undefined ? {} : { newPath: file.newPath }),
+        additions: file.additions,
+        deletions: file.deletions,
+        availability: file.availability,
+      });
+    },
+    async readContent(fileId) {
+      const content = await snapshot.readContent(fileId);
+      if (content === undefined) return undefined;
+      const { file, preimage, preimageBlobOid, postimage, postimageBlobOid } = content;
+      const makeSide = (
+        bytes: Buffer | undefined,
+        path: ChangedFile['oldPath'],
+        mode: string,
+        blobOid: string,
+      ) => bytes === undefined || path === undefined || mode === '000000'
+        ? { exists: false as const }
+        : {
+            exists: true as const,
+            path,
+            language: languageForPath(path.utf8),
+            blobOid,
+            text: strictTextDecoder.decode(bytes),
+          };
+      return FileContentResponseSchema.parse({
+        fileId,
+        base: makeSide(preimage, file.oldPath, file.oldMode, preimageBlobOid),
+        head: makeSide(postimage, file.newPath, file.newMode, postimageBlobOid),
+      });
+    },
+    verifyAnchor,
+    async revealDraftFile() {
+      if (options.revealDraftFile === undefined) throw new Error('Draft reveal adapter is unavailable.');
+      await options.revealDraftFile(draftStore.canonicalPath);
+    },
+    async revealExportDirectory() {
+      if (options.revealDraftFile === undefined) throw new Error('Export reveal adapter is unavailable.');
+      const managedRoot = await ensureManagedExportsRoot(scope.repositoryRoot, false);
+      if (managedRoot === undefined) throw new Error('Export reveal adapter is unavailable.');
+      const exportDirectory = join(managedRoot.exportsRoot, storageScope ?? reviewKey);
+      await assertManagedExportsRoot(managedRoot);
+      if (!(await isCompleteExportDirectory(exportDirectory))) throw new Error('Export reveal adapter is unavailable.');
+      await assertManagedExportsRoot(managedRoot);
+      await options.revealDraftFile(exportDirectory);
+    },
+    async exportReview(input) {
+      const initial = await draftStore.loadState();
+      if (initial.kind !== 'current') return ExportReviewResultSchema.parse({ kind: 'draftReadOnly' });
+      if (initial.draft.revision !== input.expectedRevision) {
+        return ExportReviewResultSchema.parse({
+          kind: 'revisionConflict',
+          expectedRevision: input.expectedRevision,
+          actualRevision: initial.draft.revision,
+        });
+      }
+      const acceptedDraft = structuredClone(initial.draft);
+      const draftFingerprint = createHash('sha256').update(initial.raw).digest('hex');
+      const exportedAt = new Date().toISOString();
+      const commentVerification = Object.fromEntries(
+        await Promise.all(acceptedDraft.comments.map(async (comment) => [comment.id, await verifyAnchor(comment.anchor)] as const)),
+      );
+      const files = await snapshot.files();
+      const resolvedPaths = files.map((file) => file.newPath!);
+      const fileDigests = (
+        await Promise.all(files.map(async (file) => {
+          const content = await snapshot.readContent(file.id);
+          if (content?.postimage === undefined) return undefined;
+          return { path: file.newPath!, sha256: createHash('sha256').update(content.postimage).digest('hex') };
+        }))
+      ).filter((entry): entry is { path: NonNullable<ChangedFile['newPath']>; sha256: string } => entry !== undefined);
+      const standaloneScope = {
+        originalArguments: [...scope.standaloneArguments!].sort(),
+        resolvedPaths,
+        fileDigests,
+        snapshotChain: snapshotSession.chain,
+        reviewKey,
+      };
+      const json = canonicalizeReviewExport(buildReviewExportV4(
+        { acceptedDraft, commentVerification },
+        standaloneScope,
+        exportedAt,
+      ));
+      const published = await publishReviewExport({
+        repositoryRoot: scope.repositoryRoot,
+        identity: { kind: 'standalone', reviewKey },
+        ...(storageScope === undefined ? {} : { storageScope }),
+        json,
+        markdown: Buffer.from(renderReviewMarkdown(json), 'utf8'),
+        reExportCapability: await getObservedNativeExchangeCapability(),
+        revalidate: async () => {
+          const current = await draftStore.loadState();
+          if (
+            current.kind !== 'current'
+            || current.draft.revision !== acceptedDraft.revision
+            || createHash('sha256').update(current.raw).digest('hex') !== draftFingerprint
+          ) {
+            return false;
+          }
+          const currentSession = await snapshot.session();
+          return currentSession.chain.length === snapshotSession.chain.length
+            && currentSession.chain.every((digest, index) => digest === snapshotSession.chain[index]);
+        },
+      });
+      if (published.kind !== 'exported') return ExportReviewResultSchema.parse({ kind: published.kind });
+      return ExportReviewResultSchema.parse({
+        kind: 'exported',
+        draftRevision: acceptedDraft.revision,
+        exportedAt,
+        standalone: { reviewKey },
+        files: published.receipt.files,
+      });
     },
     async inspectCumpaIgnore() {
       return CumpaIgnoreStatusSchema.parse({ kind: 'unavailable' });

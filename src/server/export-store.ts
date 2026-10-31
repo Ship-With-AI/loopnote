@@ -37,7 +37,8 @@ export type PublishReviewExportResult =
 export type ExportPublicationIdentity =
   | Readonly<{ readonly kind: 'interactive'; readonly baseOid: string; readonly headOid: string }>
   | Readonly<{ readonly kind: 'range'; readonly reviewKey: string }>
-  | Readonly<{ readonly kind: 'exact-patch'; readonly reviewKey: string }>;
+  | Readonly<{ readonly kind: 'exact-patch'; readonly reviewKey: string }>
+  | Readonly<{ readonly kind: 'standalone'; readonly reviewKey: string }>;
 
 export type PublishReviewExportInput = Readonly<{
   readonly revalidate?: () => Promise<boolean>;
@@ -131,7 +132,7 @@ function stableNameFor(
       return undefined;
     }
   }
-  if (identity.kind === 'range' || identity.kind === 'exact-patch') {
+  if (identity.kind === 'range' || identity.kind === 'exact-patch' || identity.kind === 'standalone') {
     return Object.keys(identity).length === 2 && /^[0-9a-f]{64}$/u.test(identity.reviewKey)
       ? identity.reviewKey
       : undefined;
@@ -144,6 +145,9 @@ function stableNameFor(
 }
 
 function matchesPublicationIdentity(document: ReviewExport, identity: ExportPublicationIdentity): boolean {
+  if (identity.kind === 'standalone') {
+    return document.schemaVersion === 4 && document.standalone.reviewKey === identity.reviewKey;
+  }
   if (identity.kind === 'exact-patch') {
     return document.schemaVersion === 3 && document.patch.reviewKey === identity.reviewKey;
   }
