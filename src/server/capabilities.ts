@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { lstat, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
+import { extname as posixExtname } from 'node:path/posix';
 
 import type { GroundedExactPatch, PinnedComparison, ChangedFile, UncommittedScope } from '../contracts/comparison.js';
 import {
@@ -30,6 +31,7 @@ import { AttachedCompletionCoordinator } from './attached-completion.js';
 import {
   buildDurableAnchor,
   verifyDurableAnchor,
+  type AnchorSide,
   type AnchorVerification,
   type DurableAnchorV1,
 } from '../domain/anchor.js';
@@ -39,6 +41,12 @@ import { MAX_INLINE_TEXT_BYTES } from '../git/availability.js';
 import { createObjectReader } from '../git/objects.js';
 import type { ObjectReader } from '../git/objects.js';
 import { createGitRunner } from '../git/runner.js';
+import {
+  IMAGE_CONTENT_TYPE_BY_EXTENSION,
+  readCommittedImageBytes,
+  readWorktreeImageBytes,
+  resolveRelativeImagePath,
+} from './image-content.js';
 import {
   createSelectorDriftObserver,
   type SelectorDriftObserver,
@@ -99,6 +107,32 @@ const LANGUAGE_BY_BASENAME: Readonly<Record<string, string>> = {
   makefile: 'makefile',
 };
 const strictTextDecoder = new TextDecoder('utf-8', { fatal: true });
+
+function imageContentTypeFor(relativePath: string): string | undefined {
+  const extension = posixExtname(relativePath).slice(1).toLowerCase();
+  return extension.length === 0 ? undefined : IMAGE_CONTENT_TYPE_BY_EXTENSION[extension];
+}
+
+async function resolveImageBytes(
+  markdownPath: ChangedFile['oldPath'],
+  relativeSrc: string,
+  readBytes: (relativePath: string) => Promise<Buffer | undefined>,
+): Promise<Readonly<{ readonly bytes: Buffer; readonly contentType: string }> | undefined> {
+  if (markdownPath === undefined) {
+    return undefined;
+  }
+  const resolvedPath = resolveRelativeImagePath(markdownPath.display, relativeSrc);
+  if (resolvedPath === undefined) {
+    return undefined;
+  }
+  const contentType = imageContentTypeFor(resolvedPath);
+  if (contentType === undefined) {
+    return undefined;
+  }
+  const bytes = await readBytes(resolvedPath);
+  return bytes === undefined ? undefined : Object.freeze({ bytes, contentType });
+}
+
 export type DraftRevealPort = (canonicalPath: string) => Promise<void>;
 
 export type SupportCapability = Readonly<{
@@ -150,6 +184,11 @@ export type CapabilityRegistry = Readonly<{
   }>;
   readonly lookup: (fileId: string) => Promise<FileMetadataResponse | undefined>;
   readonly readContent: (fileId: string) => Promise<FileContentResponse | undefined>;
+  readonly readRelativeImage: (
+    fileId: string,
+    side: AnchorSide,
+    relativeSrc: string,
+  ) => Promise<Readonly<{ readonly bytes: Buffer; readonly contentType: string }> | undefined>;
   readonly verifyAnchor: (anchor: DurableAnchorV1) => Promise<AnchorVerification>;
   readonly revealDraftFile: () => Promise<void>;
   readonly revealExportDirectory?: () => Promise<void>;
@@ -657,6 +696,19 @@ export function createCapabilityRegistry(
       }
       return FileContentResponseSchema.parse({ fileId, base, head });
     },
+    async readRelativeImage(fileId, side, relativeSrc) {
+      const file = frozenFilesByCapability.get(fileId);
+      const markdownPath = file === undefined ? undefined : side === 'base' ? file.oldPath : file.newPath;
+      return resolveImageBytes(markdownPath, relativeSrc, (resolvedPath) =>
+        readCommittedImageBytes(
+          comparison.repositoryRoot,
+          side === 'base' ? comparison.base.oid : comparison.head.oid,
+          resolvedPath,
+          createGitRunner(),
+          reader,
+        ),
+      );
+    },
     verifyAnchor,
   });
 }
@@ -814,6 +866,13 @@ export async function createExactPatchCapabilityRegistry(
         base: makeSide(preimage, file.oldPath, file.oldMode, file.oldBlobOid),
         head: makeSide(postimage, file.newPath, file.newMode, file.newBlobOid),
       });
+    },
+    async readRelativeImage(fileId, side, relativeSrc) {
+      const file = (await snapshot.files()).find((candidate) => candidate.id === fileId);
+      const markdownPath = file === undefined ? undefined : side === 'base' ? file.oldPath : file.newPath;
+      return resolveImageBytes(markdownPath, relativeSrc, (resolvedPath) =>
+        readWorktreeImageBytes(grounded.repositoryRoot, resolvedPath),
+      );
     },
     verifyAnchor,
     async revealDraftFile() {
@@ -1133,6 +1192,13 @@ export async function createUncommittedCapabilityRegistry(
         head: makeSide(postimage, file.newPath, file.newMode, postimageBlobOid),
       });
     },
+    async readRelativeImage(fileId, side, relativeSrc) {
+      const file = (await snapshot.files()).find((candidate) => candidate.id === fileId);
+      const markdownPath = file === undefined ? undefined : side === 'base' ? file.oldPath : file.newPath;
+      return resolveImageBytes(markdownPath, relativeSrc, (resolvedPath) =>
+        readWorktreeImageBytes(scope.repositoryRoot, resolvedPath),
+      );
+    },
     verifyAnchor,
     async revealDraftFile() {
       if (options.revealDraftFile === undefined) throw new Error('Draft reveal adapter is unavailable.');
@@ -1359,6 +1425,13 @@ export async function createStandaloneCapabilityRegistry(
         base: makeSide(preimage, file.oldPath, file.oldMode, preimageBlobOid),
         head: makeSide(postimage, file.newPath, file.newMode, postimageBlobOid),
       });
+    },
+    async readRelativeImage(fileId, side, relativeSrc) {
+      const file = (await snapshot.files()).find((candidate) => candidate.id === fileId);
+      const markdownPath = file === undefined ? undefined : side === 'base' ? file.oldPath : file.newPath;
+      return resolveImageBytes(markdownPath, relativeSrc, (resolvedPath) =>
+        readWorktreeImageBytes(scope.repositoryRoot, resolvedPath),
+      );
     },
     verifyAnchor,
     async revealDraftFile() {

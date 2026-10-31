@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 
 import {
   AppendCumpaIgnoreResultSchema,
@@ -32,6 +33,10 @@ import type { DraftLoadState } from './draft-loader.js';
 import type { DraftMutationResult as StoreDraftMutationResult, DraftStoreMutation } from './draft-store.js';
 import { REQUEST_UNAVAILABLE_ERROR } from './security.js';
 
+const FileImageQuerySchema = z.strictObject({
+  path: z.string().min(1),
+  side: z.enum(['base', 'head']),
+});
 const EMPTY_QUERY_SCHEMA = {
   type: 'object',
   properties: {},
@@ -333,6 +338,32 @@ export function registerSessionRoutes(app: FastifyInstance, capabilities: Capabi
         return unavailable(reply, 409);
       }
       return content;
+    },
+  );
+
+  app.get<{
+    Params: { fileId: string };
+    Querystring: { path?: string; side?: string };
+  }>(
+    '/api/files/:fileId/image',
+    async (request, reply) => {
+      const query = FileImageQuerySchema.safeParse(request.query);
+      if (!query.success) {
+        return unavailable(reply, 400);
+      }
+      const fileId = OpaqueFileIdSchema.safeParse(request.params.fileId);
+      if (!fileId.success) {
+        return unavailable(reply, 404);
+      }
+      const metadata = await capabilities.lookup(fileId.data);
+      if (metadata === undefined) {
+        return unavailable(reply, 404);
+      }
+      const image = await capabilities.readRelativeImage(fileId.data, query.data.side, query.data.path);
+      if (image === undefined) {
+        return unavailable(reply, 409);
+      }
+      return reply.type(image.contentType).send(image.bytes);
     },
   );
 
