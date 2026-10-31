@@ -48,6 +48,14 @@ const layoutLabel = computed(() => {
       return undefined;
   }
 });
+const standaloneStateLabel = computed(() => {
+  switch (props.selectedFile?.standaloneGitState) {
+    case 'modified-uncommitted': return 'Standalone · Modified (uncommitted)';
+    case 'untracked': return 'Standalone · Untracked';
+    case 'unchanged': return 'Standalone · Unchanged';
+    default: return undefined;
+  }
+});
 const counts = computed(() => props.selectedFile !== undefined
   && props.selectedFile.additions !== null
   && props.selectedFile.deletions !== null
@@ -77,7 +85,11 @@ defineExpose({ focusFilesToggle, focusHeading });
       <template v-else>{{ selectedPath }}</template>
     </h1>
     <template v-if="selectedFile !== undefined">
-      <template v-if="layoutLabel !== undefined">
+      <template v-if="standaloneStateLabel !== undefined">
+        <StatusBadge :kind="selectedFile.status.kind" reviewable />
+        <span class="review-toolbar__status">{{ standaloneStateLabel }}</span>
+      </template>
+      <template v-else-if="layoutLabel !== undefined">
         <StatusBadge :kind="selectedFile.status.kind" reviewable />
         <span class="review-toolbar__status">{{ layoutLabel }}</span>
       </template>

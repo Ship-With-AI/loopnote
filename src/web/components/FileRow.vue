@@ -38,6 +38,14 @@ const availabilityLabel = computed(() => {
       return 'Unavailable';
   }
 });
+const standaloneStateLabel = computed(() => {
+  switch (props.leaf.file.standaloneGitState) {
+    case 'modified-uncommitted': return 'Standalone · Modified (uncommitted)';
+    case 'untracked': return 'Standalone · Untracked';
+    case 'unchanged': return 'Standalone · Unchanged';
+    default: return undefined;
+  }
+});
 </script>
 
 <template>
@@ -66,6 +74,7 @@ const availabilityLabel = computed(() => {
         <span v-else aria-hidden="true">—</span>
       </span>
       <span v-if="recentlyChanged" class="tree-row__refresh-marker" aria-label="Changed since last snapshot">Changed</span>
+      <span v-if="standaloneStateLabel !== undefined" class="standalone-state-marker">{{ standaloneStateLabel }}</span>
       <span
         class="availability-marker"
         :class="[
