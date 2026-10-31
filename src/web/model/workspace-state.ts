@@ -30,10 +30,11 @@ export type WorkspaceComment = Readonly<{
 export type WorkspaceComposer = Readonly<{
   side: DiffSide;
   line: number;
+  endLine?: number;
   text: string;
   status: ComposerStatus;
   requestId?: number;
-  pendingMove?: Readonly<{ side: DiffSide; line: number }>;
+  pendingMove?: Readonly<{ side: DiffSide; line: number; endLine?: number }>;
   validation?: string;
   error?: string;
 }>;
@@ -60,8 +61,8 @@ export type WorkspaceTransition = Readonly<{
 }>;
 
 export type WorkspaceEvent =
-  | Readonly<{ type: 'activate-focused-line'; side: DiffSide; line: number }>
-  | Readonly<{ type: 'activate-line'; side: DiffSide; line: number }>
+  | Readonly<{ type: 'activate-focused-line'; side: DiffSide; line: number; endLine?: number }>
+  | Readonly<{ type: 'activate-line'; side: DiffSide; line: number; endLine?: number }>
   | Readonly<{ type: 'add-comment' }>
   | Readonly<{ type: 'add-duplicate'; fileId: string; requestId: number; comment: WorkspaceComment }>
   | Readonly<{ type: 'add-failed'; fileId: string; requestId: number; message: string }>
@@ -151,7 +152,7 @@ function switchFile(state: WorkspaceState, fileId: string): WorkspaceTransition 
   return transition({ ...state, activeFileId: fileId, readyFileId: null }, [{ type: 'load-file', fileId }]);
 }
 
-function activateLine(state: WorkspaceState, side: DiffSide, line: number): WorkspaceTransition {
+function activateLine(state: WorkspaceState, side: DiffSide, line: number, endLine?: number): WorkspaceTransition {
   const existing = canonicalComment(state.comments, state.activeFileId, side, line);
   if (existing !== undefined) {
     return transition(state, [{ type: 'focus-comment', commentId: existing.id }]);
@@ -168,7 +169,7 @@ function activateLine(state: WorkspaceState, side: DiffSide, line: number): Work
       composer: {
         ...composer,
         status: 'confirm-move',
-        pendingMove: { side, line },
+        pendingMove: { side, line, endLine },
       },
     });
     return transition(next, [{ type: 'rebuild-annotations', fileId: state.activeFileId }]);
@@ -180,6 +181,7 @@ function activateLine(state: WorkspaceState, side: DiffSide, line: number): Work
     composer: {
       side,
       line,
+      endLine,
       text: composer?.side === side && composer.line === line ? composer.text : '',
       status: 'ready',
     },
@@ -247,7 +249,7 @@ function showComment(state: WorkspaceState, commentId: string): WorkspaceTransit
   const commands: WorkspaceCommand[] = [
     { type: 'reveal-comment-context', fileId, side: comment.side, line: comment.line },
     { type: 'rebuild-annotations', fileId },
-    { type: 'reveal-line', fileId, side: comment.side, line: comment.line, center: true },
+    { type: 'reveal-line', fileId, side: comment.side, line: comment.line, endLine: comment.recordedAnchor.endLine, center: true },
     { type: 'focus-comment', commentId: comment.id },
     { type: 'announce', text: `Showing comment on ${comment.side} line ${comment.line}.` },
   ];
@@ -263,7 +265,7 @@ function applyEvent(
   switch (event.type) {
     case 'activate-focused-line':
     case 'activate-line':
-      return activateLine(state, event.side, event.line);
+      return activateLine(state, event.side, event.line, event.endLine);
     case 'add-comment': {
       const current = fileState(state);
       const composer = current.composer;
@@ -283,6 +285,7 @@ function applyEvent(
         requestId: pending.requestId,
         side: composer.side,
         line: composer.line,
+        endLine: composer.endLine,
         body: composer.text,
       }]);
     }
@@ -355,6 +358,7 @@ function applyEvent(
         composer: {
           side: target.side,
           line: target.line,
+          endLine: target.endLine,
           text: '',
           status: 'ready',
         },
@@ -375,7 +379,7 @@ function applyEvent(
         { type: 'restore-view', fileId: event.fileId, scrollTop: fileState(ready).scrollTop, context: fileState(ready).context },
         { type: 'reveal-comment-context', fileId: event.fileId, side: pendingComment.side, line: pendingComment.line },
         { type: 'rebuild-annotations', fileId: event.fileId },
-        { type: 'reveal-line', fileId: event.fileId, side: pendingComment.side, line: pendingComment.line, center: true },
+        { type: 'reveal-line', fileId: event.fileId, side: pendingComment.side, line: pendingComment.line, endLine: pendingComment.recordedAnchor.endLine, center: true },
         { type: 'focus-comment', commentId: pendingComment.id },
         { type: 'announce', text: `Showing comment on ${pendingComment.side} line ${pendingComment.line}.` },
       ]);

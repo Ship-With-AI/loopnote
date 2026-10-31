@@ -39,7 +39,7 @@ const emit = defineEmits<{
   cancel: [];
   confirmDiscard: [];
   confirmMove: [];
-  activate: [side: DiffSide, line: number];
+  activate: [side: DiffSide, line: number, endLine?: number];
   keepWriting: [];
   ready: [fileId: string];
   updateText: [text: string];
@@ -272,8 +272,8 @@ function focusComment(commentId: string): void {
 }
 
 
-function revealComment(side: DiffSide, line: number): void {
-  adapter?.revealAnchor({ fileId: props.content.fileId, side, line });
+function revealComment(side: DiffSide, line: number, endLine?: number): void {
+  adapter?.revealAnchor({ fileId: props.content.fileId, side, line, endLine });
   void nextTick(renderAnnotation);
 }
 
@@ -412,7 +412,7 @@ onBeforeUnmount(() => {
             @cancel="emit('cancel')"
             @confirm-discard="emit('confirmDiscard')"
             @confirm-move="emit('confirmMove')"
-            @activate="(side, line) => emit('activate', side, line)"
+            @activate="(side, line, endLine) => emit('activate', side, line, endLine)"
             @keep-writing="emit('keepWriting')"
             @ready="(fileId) => emit('ready', fileId)"
             @update-text="(text) => emit('updateText', text)"
@@ -463,7 +463,7 @@ onBeforeUnmount(() => {
           @cancel="emit('cancel')"
           @confirm-discard="emit('confirmDiscard')"
           @confirm-move="emit('confirmMove')"
-          @activate="(side, line) => emit('activate', side, line)"
+          @activate="(side, line, endLine) => emit('activate', side, line, endLine)"
           @keep-writing="emit('keepWriting')"
           @ready="(fileId) => emit('ready', fileId)"
           @update-text="(text) => emit('updateText', text)"
@@ -484,7 +484,7 @@ onBeforeUnmount(() => {
           @cancel="emit('cancel')"
           @confirm-discard="emit('confirmDiscard')"
           @confirm-move="emit('confirmMove')"
-          @activate="(side, line) => emit('activate', side, line)"
+          @activate="(side, line, endLine) => emit('activate', side, line, endLine)"
           @keep-writing="emit('keepWriting')"
           @ready="(fileId) => emit('ready', fileId)"
           @update-text="(text) => emit('updateText', text)"

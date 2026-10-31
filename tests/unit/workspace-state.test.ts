@@ -6,27 +6,29 @@ import {
 } from '../../src/web/model/workspace-state.js';
 
 function workspaceComment(
-  comment: Pick<WorkspaceComment, 'id' | 'fileId' | 'side' | 'line' | 'body' | 'status'>,
+  comment: Pick<WorkspaceComment, 'id' | 'fileId' | 'side' | 'line' | 'body' | 'status'> & { endLine?: number },
 ): WorkspaceComment {
-  const displayPath = comment.fileId === null ? 'recorded/file.ts' : `src/${comment.fileId}.ts`;
+  const { endLine, ...base } = comment;
+  const displayPath = base.fileId === null ? 'recorded/file.ts' : `src/${base.fileId}.ts`;
   return {
-    ...comment,
-    exactFile: comment.fileId === null
+    ...base,
+    exactFile: base.fileId === null
       ? { kind: 'unavailable' }
-      : { kind: 'available', fileId: comment.fileId },
+      : { kind: 'available', fileId: base.fileId },
     state: 'open',
     createdAt: '2026-07-24T00:00:00.000Z',
     recordedAnchor: {
       version: 'durable-anchor-v1',
       path: { bytesBase64url: 'c3JjL2ZpbGUudHM', display: displayPath },
       safeDisplayPath: displayPath,
-      side: comment.side,
-      line: comment.line,
+      side: base.side,
+      line: base.line,
+      endLine,
       blobOid: '0'.repeat(40),
-      selectedText: comment.body,
+      selectedText: base.body,
       context: {
         before: [],
-        target: { line: comment.line, text: comment.body },
+        target: { line: base.line, text: base.body },
         after: [],
       },
       contextHash: { algorithm: 'sha256-v1', value: '0'.repeat(64) },
@@ -442,5 +444,42 @@ describe('workspace session state', () => {
       comment: workspaceComment({ id: 'comment-head-20', fileId: 'file-a', side: 'head', line: 20, body: 'Active origin success', status: 'verified' }),
     });
     expect(accepted.commands).toEqual([{ type: 'focus-comment', commentId: 'comment-head-20' }]);
+  });
+
+  it('threads an optional endLine through activate-line, confirm-move, persist-comment, and a stored range comment into reveal-line', () => {
+    const rangeComments: readonly WorkspaceComment[] = [
+      workspaceComment({
+        id: 'comment-range-5',
+        fileId: 'file-a',
+        side: 'head',
+        line: 5,
+        endLine: 9,
+        body: 'Range comment',
+        status: 'verified',
+      }),
+    ];
+    const workspace = createWorkspaceState(['file-a'], rangeComments);
+    workspace.dispatch({ type: 'diff-ready', fileId: 'file-a' });
+
+    workspace.dispatch({ type: 'activate-line', side: 'head', line: 15, endLine: 18 });
+    workspace.dispatch({ type: 'composer-text-changed', text: 'Draft about to move' });
+
+    const moving = workspace.dispatch({ type: 'activate-line', side: 'head', line: 25, endLine: 30 });
+    expect(moving.state.files['file-a'].composer).toMatchObject({
+      status: 'confirm-move',
+      pendingMove: { side: 'head', line: 25, endLine: 30 },
+    });
+
+    const moved = workspace.dispatch({ type: 'confirm-move' });
+    expect(moved.state.files['file-a'].composer).toEqual({ side: 'head', line: 25, endLine: 30, text: '', status: 'ready' });
+
+    workspace.dispatch({ type: 'composer-text-changed', text: 'Range feedback' });
+    const pending = workspace.dispatch({ type: 'add-comment' });
+    const command = pending.commands.find((candidate) => candidate.type === 'persist-comment');
+    expect(command).toMatchObject({ type: 'persist-comment', side: 'head', line: 25, endLine: 30 });
+
+    const revealed = workspace.dispatch({ type: 'show-comment', commentId: 'comment-range-5' });
+    const reveal = revealed.commands.find((candidate) => candidate.type === 'reveal-line');
+    expect(reveal).toEqual({ type: 'reveal-line', fileId: 'file-a', side: 'head', line: 5, endLine: 9, center: true });
   });
 });

@@ -712,6 +712,7 @@ async function runCommands(commands: readonly WorkspaceCommand[]): Promise<void>
           fileId: command.fileId,
           side: command.side,
           line: command.line,
+          endLine: command.endLine,
           body: command.body,
         }).then((result) => {
           if (workspace !== originWorkspace) {
@@ -774,8 +775,10 @@ async function runCommands(commands: readonly WorkspaceCommand[]): Promise<void>
         break;
       }
       case 'reveal-comment-context':
-      case 'reveal-line':
         diffWorkspace.value?.revealComment(command.side, command.line);
+        break;
+      case 'reveal-line':
+        diffWorkspace.value?.revealComment(command.side, command.line, command.endLine);
         break;
       case 'load-file': {
         const file = activeFile(command.fileId);
@@ -1343,7 +1346,7 @@ onBeforeUnmount(() => {
           :base-oid="singlePaneBaseOid"
           :head-oid="singlePaneHeadOid"
           :mutations-locked="attachedMutationLocked"
-          @activate="(side, line) => dispatchWorkspace({ type: 'activate-line', side, line })"
+          @activate="(side, line, endLine) => dispatchWorkspace({ type: 'activate-line', side, line, endLine })"
           @add="dispatchWorkspace({ type: 'add-comment' })"
           @cancel="dispatchWorkspace({ type: 'cancel-composer' })"
           @confirm-discard="dispatchWorkspace({ type: 'confirm-discard' })"
