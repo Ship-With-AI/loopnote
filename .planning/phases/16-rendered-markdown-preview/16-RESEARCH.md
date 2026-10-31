@@ -628,7 +628,7 @@ for (const [index, part] of parts.entries()) {
 
 **If this table is empty:** N/A — one item above; every other claim in this document is `[VERIFIED]` against either the installed package's actual source/behavior or this project's own codebase.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Does `src/git/objects.ts` (or a sibling module) already expose a "resolve relative path → blob at this commit" primitive, or does the planner need to add one?**
    - What we know: `ObjectReader.read(oid, options)` reads a blob given its OID; the existing diff/comparison machinery must already resolve `(commit, path) → blob OID` somewhere (that's how `changedFiles` get their `oldBlobOid`/`newBlobOid` in the first place), but this session did not trace which module performs that resolution for arbitrary (not-already-known) paths.
