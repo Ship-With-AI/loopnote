@@ -1116,8 +1116,6 @@ export async function createUncommittedCapabilityRegistry(
   let changeBaseline = await captureChangeBaseline();
 
   const collectWorkingTreeDrift = async (): Promise<WorkingTreeDriftFlag> => {
-    const index = await indexStatIdentity();
-    const indexChanged = index.size !== changeBaseline.index.size || index.mtimeMs !== changeBaseline.index.mtimeMs;
     const changedPaths: NonNullable<ChangedFile['newPath']>[] = [];
     const files = await snapshot.files();
     for (const file of files) {
@@ -1138,7 +1136,7 @@ export async function createUncommittedCapabilityRegistry(
       const path = file.newPath ?? file.oldPath;
       if (path !== undefined) changedPaths.push(path);
     }
-    return { changed: indexChanged || changedPaths.length > 0, paths: changedPaths };
+    return { changed: changedPaths.length > 0, paths: changedPaths };
   };
 
   const attachedCompletion = options.attachedCompletion === undefined ? undefined : {
@@ -1474,8 +1472,6 @@ export async function createStandaloneCapabilityRegistry(
   let changeBaseline = await captureChangeBaseline();
 
   const collectWorkingTreeDrift = async (): Promise<WorkingTreeDriftFlag> => {
-    const index = await indexStatIdentity();
-    const indexChanged = index.size !== changeBaseline.index.size || index.mtimeMs !== changeBaseline.index.mtimeMs;
     const changedPaths: NonNullable<ChangedFile['newPath']>[] = [];
     const files = await snapshot.files();
     for (const file of files) {
@@ -1496,7 +1492,7 @@ export async function createStandaloneCapabilityRegistry(
       const path = file.newPath ?? file.oldPath;
       if (path !== undefined) changedPaths.push(path);
     }
-    return { changed: indexChanged || changedPaths.length > 0, paths: changedPaths };
+    return { changed: changedPaths.length > 0, paths: changedPaths };
   };
 
   const attachedCompletion = options.attachedCompletion === undefined ? undefined : {
