@@ -55,7 +55,7 @@
 
 ### Marketplace Skill
 
-- [ ] **SKL-04**: Coding-agent users of the ShipWithAI marketplace skill can request uncommitted and standalone-file reviews through it, with the CLI version prerequisite updated to the release that supports them.
+- [x] **SKL-04**: Coding-agent users of the ShipWithAI marketplace skill can request uncommitted and standalone-file reviews through it, with the CLI version prerequisite updated to the release that supports them.
 
 ### Rename
 
@@ -125,7 +125,7 @@ Deferred, tracked but not in the v2.0 roadmap.
 | AGENT-07 | Phase 17 | Complete |
 | AGENT-08 | Phase 17 | Complete |
 | AGENT-09 | Phase 17 | Complete |
-| SKL-04 | Phase 17 | Pending |
+| SKL-04 | Phase 17 | Complete |
 | REN-01 | Phase 17.1 | Pending |
 | REN-02 | Phase 17.1 | Pending |
 | REN-03 | Phase 17.1 | Pending |

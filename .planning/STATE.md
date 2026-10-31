@@ -4,17 +4,17 @@ milestone: v2.0
 milestone_name: Artifact Review
 current_phase: 17
 current_phase_name: agent-protocol-extension-marketplace-skill
-status: executing
-stopped_at: Completed 17-04-PLAN.md
-last_updated: "2026-10-31T16:49:59.936Z"
+status: verifying
+stopped_at: "Completed 17-05-PLAN.md (checkpoint:human-action reached; stopped before PR)"
+last_updated: "2026-10-31T16:58:39.816Z"
 last_activity: 2026-10-31
 last_activity_desc: Phase 17 execution started
 progress:
   total_phases: 7
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 42
-  completed_plans: 41
-  percent: 57
+  completed_plans: 42
+  percent: 71
 ---
 
 # Project State
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-09-09)
 
 Phase: 17 (agent-protocol-extension-marketplace-skill) — EXECUTING
 Plan: 5 of 5
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-10-31 — Phase 17 execution started
 
 ## Performance Metrics
@@ -87,6 +87,7 @@ Last activity: 2026-10-31 — Phase 17 execution started
 | Phase 17 P02 | 35min | 2 tasks | 5 files |
 | Phase 17 P03 | 10min | 2 tasks | 1 files |
 | Phase 17-agent-protocol-extension-marketplace-skill P04 | 55min | 2 tasks | 3 files |
+| Phase 17 P05 | 35min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -151,6 +152,8 @@ Decisions are logged in PROJECT.md Key Decisions.
 - [Phase ?]: 17-04: typed-error adapters re-throw the generic AgentRequestError(kind) message (not the lower-level Git-adapter wording); negative e2e assertions check the shared 'outside the repository' substring.
 - [Phase 17]: 17-04: uncommitted/files positive e2e scenarios interact through DiffWorkspace.vue's single-pane host (uppercase BASE/HEAD affordances), not the two-pane revisions/patch Monaco diff editor; added a local addSinglePaneComment helper.
 - [Phase 17]: 17-04: discovered a pre-existing, out-of-scope bug in tests/helpers/open-runtime-session.ts (hardcoded .monaco-diff-editor visibility check fails whenever the auto-selected default file is single-pane); logged to deferred-items.md rather than fixed, since it reproduces identically with the unmodified pre-17-04 spec file and is unrelated to this plan's files_modified.
+- [Phase 17]: Branched shipwithai-skills' local branch cumpa-uncommitted-files-request-modes off a verified-clean main (not the pre-existing skill/write-it-down branch) to avoid carrying unrelated local commits. — The plan requires branching off the current default branch; main was confirmed byte-identical to origin/main before branching.
+- [Phase 17]: Verified the version-gate bump end-to-end by temporarily setting diff-review's own package.json to 2.0.0, packing a development-check runtime artifact, installing it into an isolated npm global prefix, and running check-cumpa.mjs against it, then reverting package.json to zero residual diff. — No npm registry was touched and the 2.0.0 tarball was never published; this proves the regex/guidance changes work against real packed bytes without requiring an actual 2.0.0 release.
 
 ### Pending Todos
 
@@ -201,6 +204,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-31T16:49:59.932Z
-Stopped at: Completed 17-04-PLAN.md
+Last session: 2026-10-31T16:58:29.458Z
+Stopped at: Completed 17-05-PLAN.md (checkpoint:human-action reached; stopped before PR)
 Resume file: None

@@ -47,7 +47,7 @@ deferred from v2.0.
 - [x] **Phase 14: Uncommitted Source Review & Frozen Snapshots** - Staged/Unstaged/Working-tree review against any base, frozen at session start with explicit, comment-safe Refresh. (completed 2026-10-30)
 - [x] **Phase 15: Standalone File Review** - Named files/globs open and review full width without choosing Base/Head. (completed 2026-10-31)
 - [ ] **Phase 16: Rendered Markdown Preview** - Any Markdown file toggles between source and rendered view with block-anchored commenting.
-- [ ] **Phase 17: Agent Protocol Extension & Marketplace Skill** - Agents request uncommitted/standalone review over stdin and through the marketplace skill with versioned exports.
+- [x] **Phase 17: Agent Protocol Extension & Marketplace Skill** - Agents request uncommitted/standalone review over stdin and through the marketplace skill with versioned exports. (completed 2026-10-31)
 - [ ] **Phase 18: Product Repositioning Copy** - README, npm page, CLI copy, and workspace text describe artifact review, not only code diffs.
 
 ## Phase Details
@@ -212,7 +212,7 @@ Plans:
   4. Coding agent gets a specific validation error before any browser launch for a malformed, oversized, or out-of-repository uncommitted or standalone request.
   5. Coding-agent users of the ShipWithAI marketplace skill can request uncommitted and standalone-file reviews through it, with the CLI version prerequisite updated to the release that supports them.
 
-**Plans**: 4/5 plans executed
+**Plans**: 5/5 plans complete
 
 Plans:
 **Wave 1**
@@ -230,7 +230,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 17-05-PLAN.md — Marketplace skill: uncommitted/files request modes, local-tarball-verified prerequisite bump, draft-PR-ready branch with blocking human checkpoint (D-04/D-05/D-06, SKL-04)
+- [x] 17-05-PLAN.md — Marketplace skill: uncommitted/files request modes, local-tarball-verified prerequisite bump, draft-PR-ready branch with blocking human checkpoint (D-04/D-05/D-06, SKL-04)
 
 **Research flag**: yes — exact `ReviewExportV4Schema`/`V5Schema` field shapes (uncommitted/standalone provenance metadata) aren't fully specified in any research file; finalize during planning against the established V1→V2→V3 superset pattern, per `research/SUMMARY.md`.
 
@@ -271,7 +271,7 @@ Plans:
 | 14. Uncommitted Source Review & Frozen Snapshots | 15/16 | In Progress|  |
 | 15. Standalone File Review | 8/8 | Complete    | 2026-10-31 |
 | 16. Rendered Markdown Preview | 0/6 | Planned | - |
-| 17. Agent Protocol Extension & Marketplace Skill | 4/5 | In Progress|  |
+| 17. Agent Protocol Extension & Marketplace Skill | 5/5 | Complete   | 2026-10-31 |
 | 18. Product Repositioning Copy | 0/TBD | Not started | - |
 
 ## Backlog
