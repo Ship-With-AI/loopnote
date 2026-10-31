@@ -16,6 +16,7 @@ export type DurableAnchorV1 = Readonly<{
   readonly safeDisplayPath: string;
   readonly side: AnchorSide;
   readonly line: number;
+  readonly endLine?: number; // absent = single-line anchor (pre-A-01 shape, byte-for-byte unchanged)
   readonly blobOid: string;
   readonly selectedText: string;
   readonly context: Readonly<{
@@ -36,6 +37,7 @@ export type BuildDurableAnchorInput = Readonly<{
   readonly side: AnchorSide;
   readonly blobOid: string;
   readonly line: number;
+  readonly endLine?: number;
   readonly text: string;
 }>;
 
@@ -84,15 +86,25 @@ function contextHash(
   side: AnchorSide,
   blobOid: string,
   line: number,
+  endLine: number | undefined,
   context: DurableAnchorV1['context'],
+  selectedText: string,
 ): string {
   const fields: Uint8Array[] = [
     pathBytes,
     UTF8.encode(side),
     UTF8.encode(blobOid),
     UTF8.encode(String(line)),
-    UTF8.encode('before'),
   ];
+  if (endLine !== undefined) {
+    fields.push(
+      UTF8.encode('endLine'),
+      UTF8.encode(String(endLine)),
+      UTF8.encode('selectedText'),
+      UTF8.encode(selectedText),
+    );
+  }
+  fields.push(UTF8.encode('before'));
   for (const entry of context.before) {
     fields.push(...encodeLine(entry));
   }
@@ -116,25 +128,43 @@ export function buildDurableAnchor(input: BuildDurableAnchorInput): DurableAncho
   if (!Number.isSafeInteger(input.line) || input.line < 1) {
     throw new RangeError('Anchor line must be a positive safe integer.');
   }
+  if (
+    input.endLine !== undefined &&
+    (!Number.isSafeInteger(input.endLine) || input.endLine < input.line)
+  ) {
+    throw new RangeError('Anchor endLine must be a safe integer not less than line.');
+  }
   const lines = input.text.split(/\r\n|\n/u);
-  if (input.line > lines.length) {
+  const lastLine = input.endLine ?? input.line;
+  if (lastLine > lines.length) {
     throw new RangeError('Anchor line is outside frozen text.');
   }
   const targetIndex = input.line - 1;
+  const endIndex = lastLine - 1;
   const before = lines
     .slice(Math.max(0, targetIndex - 3), targetIndex)
     .map((text, index) => Object.freeze({ line: Math.max(1, input.line - 3) + index, text }));
   const target = Object.freeze({ line: input.line, text: lines[targetIndex]! });
   const after = lines
-    .slice(targetIndex + 1, targetIndex + 4)
-    .map((text, index) => Object.freeze({ line: input.line + index + 1, text }));
+    .slice(endIndex + 1, endIndex + 4)
+    .map((text, index) => Object.freeze({ line: lastLine + index + 1, text }));
   const context = Object.freeze({
     before: Object.freeze(before),
     target,
     after: Object.freeze(after),
   });
+  const selectedText =
+    input.endLine === undefined ? target.text : lines.slice(targetIndex, endIndex + 1).join('\n');
   const pathBytes = decodeBase64url(input.path.bytesBase64url);
-  const contextHashValue = contextHash(pathBytes, input.side, input.blobOid, input.line, context);
+  const contextHashValue = contextHash(
+    pathBytes,
+    input.side,
+    input.blobOid,
+    input.line,
+    input.endLine,
+    context,
+    selectedText,
+  );
 
   return Object.freeze({
     version: 'durable-anchor-v1',
@@ -142,8 +172,9 @@ export function buildDurableAnchor(input: BuildDurableAnchorInput): DurableAncho
     safeDisplayPath: input.safeDisplayPath,
     side: input.side,
     line: input.line,
+    ...(input.endLine === undefined ? {} : { endLine: input.endLine }),
     blobOid: input.blobOid,
-    selectedText: target.text,
+    selectedText,
     context,
     contextHash: Object.freeze({ algorithm: 'sha256-v1', value: contextHashValue }),
     uniqueKey: duplicateKey(pathBytes, input.side, input.blobOid, input.line),
@@ -162,6 +193,7 @@ export function verifyDurableAnchor(
     samePath(recorded.path, current.path) &&
     recorded.side === current.side &&
     recorded.line === current.line &&
+    recorded.endLine === current.endLine &&
     recorded.blobOid === current.blobOid &&
     recorded.selectedText === current.selectedText &&
     sameLines(recorded.context.before, current.context.before) &&
