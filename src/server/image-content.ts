@@ -34,7 +34,11 @@ export function resolveRelativeImagePath(markdownDisplayPath: string, rawSrc: st
   } catch {
     return undefined;
   }
-  if (decoded.length === 0 || decoded.startsWith('/')) {
+  if (
+    decoded.length === 0 ||
+    decoded.startsWith('/') ||
+    /[\u0000-\u001f]/u.test(decoded)
+  ) {
     return undefined;
   }
   const normalized = normalize(join(dirname(markdownDisplayPath), decoded));
