@@ -149,7 +149,6 @@ None yet.
 - [Phase 5 owner decision] Plan a fresh CI-built stable candidate, actual new digest-bound approval and unchanged-byte publication in the same workflow run/attempt, per 05-CONTEXT.md. The old Phase 4 archive (SHA-256 e7766d43f7f804b138e694b298480cdec62ebfc16960f86d4c1e3c7959cf1dca, 3513998 bytes) and sealed evidence (3bf27f13de08b85527240c76ddc1e4df6c37dc06a5e1bbf006ab9d45f94fb379) remain immutable history. Do not publish that old artifact as a fallback or mutate any remote state under planning approval.
 - [Publication boundary] Phase 3 published commit ff72519969da8d2c0761c9533ccb27b809cd17bb. Later local evidence and completion commits are not automatically authorized for pushing.
 - Phase 14 verification: two confirmed gaps from 14-13's e2e coverage need remediation decisions — (1) registerUncommittedRefreshKeypress's TTY requirement blocks terminal r-keypress e2e verification (src/cli/run.ts, outside 14-13 scope); (2) performRefresh() never resyncs client-side comment status so StaleAnchorNotice never appears after Refresh (src/web/App.vue, outside 14-13 scope). See 14-13-SUMMARY.md Deviations for full detail and remediation options.
-- tests/e2e/complete-review-draft.spec.ts (8/8) fails against the packaged build: the default-selected file on load for its fixture is single-pane-rendered since Phase 13, while the test still asserts .monaco-diff-editor. Pre-existing Phase 13 regression, unrelated to 14-14; discovered during 14-14 Task 3's sanity check, not fixed (out of scope).
 
 ### Roadmap Evolution
 
@@ -174,6 +173,7 @@ None yet.
 | 260915-jbv | Remove the Details, Review, and Keyboard help surfaces | 2026-09-15 | 2feafcc |  | [260915-jbv-remove-details-review-keyboard-help](./quick/260915-jbv-remove-details-review-keyboard-help/) |
 | 260916-h7p | Enable coupon codes | 2026-09-16 | 8d47c62 | Verified | [260916-h7p-enable-coupon-codes](./quick/260916-h7p-enable-coupon-codes/) |
 | 260916-ide | Deploy coupon support and publish 1.6.1 | 2026-09-16 | 2d3d71e | Verified | [260916-ide-release-1-6-1](./quick/260916-ide-release-1-6-1/) |
+| 261031-au0 | Fix complete-review-draft e2e regression from Phase 13 single-pane rendering | 2026-10-31 | 25eedc2 | Verified | [261031-au0-fix-complete-review-draft-e2e-regression](./quick/261031-au0-fix-complete-review-draft-e2e-regression/) |
 
 ## Deferred Items
 
