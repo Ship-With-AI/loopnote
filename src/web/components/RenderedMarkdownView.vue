@@ -41,7 +41,7 @@ const emit = defineEmits<{
   scrolledToBlock: [range: { start: number; end: number }];
 }>();
 
-type RenderedBlockEntry = Readonly<{ element: HTMLElement; start: number; end: number }>;
+type RenderedBlockEntry = Readonly<{ element: HTMLElement; contentElement: HTMLElement; start: number; end: number }>;
 
 const container = ref<HTMLElement>();
 const blocks = ref<RenderedBlockEntry[]>([]);
@@ -73,7 +73,7 @@ function showButtonFor(entry: RenderedBlockEntry): void {
   removeActiveButton();
 
   const sideWord = props.side === 'base' ? 'Base' : 'Head';
-  const label = `Add comment · ${sideWord} · ${blockKindWord(entry.element)}`;
+  const label = `Add comment · ${sideWord} · ${blockKindWord(entry.contentElement)}`;
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'diff-workspace__gutter-action';
@@ -163,7 +163,7 @@ function renderAnnotations(): void {
       h('header', { class: 'conversation-card__header' }, [
         h('h3', { tabindex: -1, class: 'conversation-card__identity' }, [
           h(PathText, { display: props.path }),
-          h('span', ` · ${sideWord} · ${blockKindWord(block.element)}`),
+          h('span', ` · ${sideWord} · ${blockKindWord(block.contentElement)}`),
         ]),
         h('div', { class: 'conversation-card__badges' }, [
           h(ReviewStateBadge, { kind: comment.state, label: comment.state === 'open' ? 'Open' : 'Resolved' }),
@@ -227,7 +227,7 @@ function buildBlocks(): void {
     element.replaceWith(wrapper);
     wrapper.appendChild(element);
 
-    const entry: RenderedBlockEntry = { element: wrapper, start: range.start, end: range.end };
+    const entry: RenderedBlockEntry = { element: wrapper, contentElement: element, start: range.start, end: range.end };
     attachBlockInteractions(entry);
     entries.push(entry);
   });

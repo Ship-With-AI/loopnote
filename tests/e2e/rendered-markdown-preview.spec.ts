@@ -182,6 +182,15 @@ test('toggles source and rendered views in single-pane and side-by-side layouts'
     await expect(page.locator('.diff-workspace__editor')).toHaveAttribute('aria-hidden', 'true');
     await expect(page.locator('.rendered-block').filter({ hasText: 'Preview Heading' }).first()).toBeVisible();
 
+    // GAP-03 regression (16-UI-REVIEW): the comment-trigger label must name the real block
+    // type (e.g. "heading"), not always say "paragraph".
+    const headingBlock = page.locator('.rendered-block').filter({ hasText: 'Preview Heading' }).first();
+    await headingBlock.hover();
+    const headingAddButton = headingBlock.getByRole('button', { name: /Add comment/ });
+    await expect(headingAddButton).toBeVisible();
+    await expect(headingAddButton).toHaveAccessibleName(/heading/);
+    await expect(headingAddButton).not.toHaveAccessibleName(/paragraph/);
+
     await sourceToggle.click();
     await expect(sourceToggle).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('.diff-workspace__editor')).toBeVisible();
