@@ -1,53 +1,68 @@
 # Deferred items — Phase 17
 
-## 17-04: pre-existing `.monaco-diff-editor` auto-selection race in `tests/helpers/open-runtime-session.ts`
+## 17-04: pre-existing `.monaco-diff-editor` auto-selection race in `tests/helpers/open-runtime-session.ts` — RESOLVED by quick task 261031-q09
 
 **Found during:** Plan 17-04, Task 2 GREEN verification (`npm run test:runtime-artifact -- tests/e2e/agent-ready-export.spec.ts`).
 
-**Symptom:** `openRuntimeSession()` (`tests/helpers/open-runtime-session.ts:26`) asserts
-`page.locator('.monaco-diff-editor')` is visible immediately after `page.goto()`. When the
+**Symptom:** `openRuntimeSession()` (`tests/helpers/open-runtime-session.ts:26`) asserted
+`page.locator('.monaco-diff-editor')` visible immediately after `page.goto()`. When the
 browser session's first auto-selected file in the changed-files tree is a single-pane
 file (added/deleted-only, or in `DiffWorkspace.vue` terms any file with `singlePaneSide`
 set), the page renders through `createMonacoSinglePaneAdapter` instead of
 `createMonacoDiffAdapter`, so no `.monaco-diff-editor` element ever appears and the
-assertion times out and fails (even though the page loaded correctly — the Playwright
-accessibility snapshot captured on failure shows the file tree, the selected file, and a
-working `textbox` region, i.e. the app is functioning as designed).
+assertion times out and fails (even though the page loaded correctly — Playwright's
+accessibility snapshot captured on failure shows the file tree, selected file, and a
+working `textbox` region, i.e. the app functioning as designed).
 
-**Scope and reproduction:** Confirmed via `git show 0a92585:tests/e2e/agent-ready-export.spec.ts`
+**Scope reproduction:** Confirmed via `git show 0a92585:tests/e2e/agent-ready-export.spec.ts`
 (the file's exact content immediately before Plan 17-04 touched it) swapped back into
-`tests/e2e/agent-ready-export.spec.ts`, built and packed from the current (17-04) source
-tree, and run against the `'attached review blocks Finish while an inline composer has
+`tests/e2e/agent-ready-export.spec.ts`, built against the packed current (17-04) source
+tree, and run against the `'attached review blocks Finish while inline composer has
 unsaved text'` and `'attached range review stays silent until Finish...'` scenarios in
-isolation — both pre-existing, both fail identically. Plan 17-04 does not modify
+isolation — both pre-existing, both failed identically. Plan 17-04 did not modify
 `tests/helpers/open-runtime-session.ts`, `src/web/**`, or any file-ordering/selection
-logic, so this is not caused by 17-04's `src/cli/run.ts` / `src/git/standalone-resolution.ts`
-changes. It affects every scenario in `tests/e2e/agent-ready-export.spec.ts` whose fixture's
-alphabetically-first changed file is single-pane (e.g. `createDirtyGitFixture`'s fixtures,
-where `src/added.ts` sorts before `src/changed.ts`), plus `tests/e2e/package-assets.spec.ts`'s
-one browser scenario.
+logic, so this was not caused by 17-04's dispatch changes.
 
-**Effect on 17-04 specifically:** `tests/e2e/agent-ready-export.spec.ts`'s two new positive
-scenarios (`'installed uncommitted review resolves worktree changes and emits canonical V5
-only after Finish'`, `'installed files review resolves standalone paths and emits canonical
-V6 only after Finish'`) call the same shared `openAcceptanceRuntimeSession` → `openRuntimeSession`
-helper other scenarios use, so they hit this pre-existing bug too and fail at the same
-first-page-load assertion, before ever reaching the new dispatch code's own behavior.
+**Resolution (quick task `261031-q09`, 2026-10-31):** Applied the proposed fix below,
+plus one newly-exposed sibling bug in the same target file. `tests/helpers/open-runtime-session.ts:26`
+and the inline duplicate at `tests/e2e/package-assets.spec.ts:203` now assert
+`.diff-workspace__editor` instead of `.monaco-diff-editor`. Full custody-gated suite
+(`npm run test:runtime-artifact`) went from 6/16 to 15/16 passing, deterministically
+across 3 runs. See `.planning/quick/261031-q09-fix-open-runtime-session-helper-stale-mo/`
+for the full root-cause audit, fix, and verification evidence.
 
-**Independent correctness evidence:** The `src/cli/run.ts` / `src/git/standalone-resolution.ts`
-dispatch implementation itself was verified correct end-to-end with a standalone Playwright
-script that opens the session directly against `.diff-workspace__editor` (bypassing the
-`.monaco-diff-editor` helper check) instead of through `openRuntimeSession`: both
-`mode:'uncommitted'` (`source:'worktree'`) and `mode:'files'` sessions load, accept a comment
-(`201`), Finish (`201`), and deliver exactly one well-formed `schemaVersion: 5` /
-`schemaVersion: 6` canonical export on stdout containing the submitted comment body and
-(`files` mode) the correct `standalone.originalArguments`. This confirms the new dispatch
-branches work; the open item is purely in the shared test helper's pre-existing selection
-assumption.
-
-**Proposed fix (not applied — out of 17-04's scope):** `openRuntimeSession` should wait on
+**Proposed fix (as originally written, now applied):** `openRuntimeSession` should wait on
 `.diff-workspace__editor` (the generic host Vue always renders, per `DiffWorkspace.vue`)
-rather than the Monaco-internal `.monaco-diff-editor` class, or should wait for the file
-tree's auto-selection to settle before asserting on either locator. This should be
-scheduled as its own small fix-and-regression-check task; it must not be special-cased
-around any Phase 17 scope.
+rather than the Monaco-internal `.monaco-diff-editor` class.
+
+## New findings from quick task 261031-q09 (not fixed, follow-up candidates)
+
+### 1. `/staged-20\.txt/` regex collision in `tests/e2e/agent-ready-export.spec.ts` — FIXED
+
+Once the assertion above no longer masked every positive scenario, the `'installed
+uncommitted review resolves worktree changes...'` test (line 898) reached far enough to
+expose a second, independent bug written in the same Plan 17-04: its
+`addSinglePaneComment(page, /staged-20\.txt/, ...)` call (line 916) strict-mode-matched
+**two** tree rows (`dirty/staged-20.txt` and `dirty/unstaged-20.txt`, since the latter
+contains the former as a substring). Fixed in the same quick task by anchoring on the
+path separator: `/\/staged-20\.txt/`.
+
+### 2. Full-suite-only flake in `'installed agent request rejects an oversized uncommitted request'` — NOT FIXED, candidate for a narrow follow-up
+
+`tests/e2e/agent-ready-export.spec.ts:1157` is a pure CLI stdin/stdout negative test (no
+browser page interaction at all). It reproduces identically in the pre-fix baseline, so
+it predates and is unrelated to the `.monaco-diff-editor` bug. It passes cleanly and
+deterministically every time it is run alone or paired with just its immediate
+predecessor, but fails (`write EPIPE` plus an empty-string read where
+`'exceeds 1048576 bytes'` is expected) when run as the last test in the full 16-test
+sequential file (`workers: 1`, `fullyParallel: false`). Likely cause:
+`waitForAttachedRejectionWithoutLoopbackUrl` (`agent-ready-export.spec.ts:218`) reads the
+CLI's stderr file the instant it observes `child.exitCode !== null`, which can race the
+OS flush of the child's final write under the cumulative system load of 14 preceding
+Chromium-driven scenarios. `17-04-SUMMARY.md` already independently characterized this
+exact test's full-suite failures as a "cosmetic afterAll-hook attribution artifact" before
+this quick task began; this task's isolated/paired runs are consistent with and extend
+that finding. A defensive fix (e.g. one more delayed re-read of the stderr file after
+exit is first observed) is plausible but was not applied here, since it is unrelated to
+quick task 261031-q09's named scope.
+

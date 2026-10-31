@@ -5,8 +5,8 @@ milestone_name: Artifact Review
 current_phase: 17
 current_phase_name: agent-protocol-extension-marketplace-skill
 status: human_needed
-stopped_at: "Phase 17 complete: all 5 plans executed, VERIFICATION.md (human_needed: open-runtime-session.ts helper bug fix + draft PR), REVIEW.md (0 critical/0 warning after fix, 4 info non-blocking), SECURITY.md (18/18 threats closed) all committed. Ready for human action on the two human_needed items."
-last_updated: "2026-10-31T17:40:36.107Z"
+stopped_at: "Phase 17 re-verified after quick task 261031-q09: open-runtime-session.ts's stale .monaco-diff-editor assertion (Human Verification #1) is fixed, confirmed, and committed — 17-VERIFICATION.md now scores 14/15 (up from 10/15). The sole remaining human_needed item is opening the draft PR against Ship-With-AI/skills (D-05)."
+last_updated: "2026-10-31T19:50:00.000Z"
 last_activity: 2026-10-31
 last_activity_desc: Phase 17 execution started
 progress:
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-09-09)
 
 Phase: 17 (agent-protocol-extension-marketplace-skill) — HUMAN_NEEDED
 Plan: 5 of 5
-Status: Executed, verified (10/15 truths; 5 behavior-unverified pending a pre-existing test-helper fix), reviewed (clean of blockers after CR-01/WR-01 fix), security-closed (18/18). Awaiting two human actions: (1) fix tests/helpers/open-runtime-session.ts's .monaco-diff-editor race (out of Phase 17 scope) and re-run the blocked e2e scenarios; (2) open the draft PR against Ship-With-AI/skills from the local cumpa-uncommitted-files-request-modes branch once a real 2.0.0-equivalent release publishes (D-05).
+Status: Executed, re-verified (14/15 truths; 1 behavior-unverified is an unrelated multi-file-drift test-coverage gap, not blocked by any e2e harness issue), reviewed (clean of blockers after CR-01/WR-01 fix), security-closed (18/18). Quick task 261031-q09 fixed and closed the open-runtime-session.ts .monaco-diff-editor test-harness bug (Human Verification #1). Awaiting one remaining human action: open the draft PR against Ship-With-AI/skills from the local cumpa-uncommitted-files-request-modes branch once a real 2.0.0-equivalent release publishes (D-05).
 Last activity: 2026-10-31 — Phase 17 execution started
 
 ## Performance Metrics
@@ -154,6 +154,7 @@ Decisions are logged in PROJECT.md Key Decisions.
 - [Phase 17]: 17-04: discovered a pre-existing, out-of-scope bug in tests/helpers/open-runtime-session.ts (hardcoded .monaco-diff-editor visibility check fails whenever the auto-selected default file is single-pane); logged to deferred-items.md rather than fixed, since it reproduces identically with the unmodified pre-17-04 spec file and is unrelated to this plan's files_modified.
 - [Phase 17]: Branched shipwithai-skills' local branch cumpa-uncommitted-files-request-modes off a verified-clean main (not the pre-existing skill/write-it-down branch) to avoid carrying unrelated local commits. — The plan requires branching off the current default branch; main was confirmed byte-identical to origin/main before branching.
 - [Phase 17]: Verified the version-gate bump end-to-end by temporarily setting diff-review's own package.json to 2.0.0, packing a development-check runtime artifact, installing it into an isolated npm global prefix, and running check-cumpa.mjs against it, then reverting package.json to zero residual diff. — No npm registry was touched and the 2.0.0 tarball was never published; this proves the regex/guidance changes work against real packed bytes without requiring an actual 2.0.0 release.
+- [quick-261031-q09]: Fixed the open-runtime-session.ts stale .monaco-diff-editor assertion flagged by 17-04/17-VERIFICATION.md Human Verification #1 — now asserts .diff-workspace__editor, matching the pattern already established by quick task 261031-au0. Custody-gated suite went from 6/16 to 15/16 passing (deterministic across 3 runs); the 1 remaining failure is an independently-confirmed pre-existing, load-dependent harness artifact unrelated to this fix (reproduces in the pre-fix baseline; passes cleanly in isolation). See 261031-q09-SUMMARY.md and deferred-items.md.
 
 ### Pending Todos
 
@@ -192,6 +193,7 @@ None yet.
 | 260916-h7p | Enable coupon codes | 2026-09-16 | 8d47c62 | Verified | [260916-h7p-enable-coupon-codes](./quick/260916-h7p-enable-coupon-codes/) |
 | 260916-ide | Deploy coupon support and publish 1.6.1 | 2026-09-16 | 2d3d71e | Verified | [260916-ide-release-1-6-1](./quick/260916-ide-release-1-6-1/) |
 | 261031-au0 | Fix complete-review-draft e2e regression from Phase 13 single-pane rendering | 2026-10-31 | 25eedc2 | Verified | [261031-au0-fix-complete-review-draft-e2e-regression](./quick/261031-au0-fix-complete-review-draft-e2e-regression/) |
+| 261031-q09 | Fix open-runtime-session helper stale .monaco-diff-editor assertion | 2026-10-31 | 5bde4cd | Verified | [261031-q09-fix-open-runtime-session-helper-stale-mo](./quick/261031-q09-fix-open-runtime-session-helper-stale-mo/) |
 
 ## Deferred Items
 
@@ -201,9 +203,11 @@ None yet.
 | Verification | Instantiate unsupported/unavailable rows in responsive fixture coverage if that path changes | Deferred | v1.1 close |
 | Design | Align 7px icon-button padding with documented spacing when control geometry changes | Deferred | v1.1 close |
 | Verification | Stabilise two nondeterministic Playwright specs that gate every push to `main`: `tests/e2e/responsive-session.spec.ts:773` and `tests/integration/anchored-workspace.spec.ts:1039` (both failed on the docs-only commit 4016226 and passed on rerun with no change) | Deferred | 260916-ide |
+| Verification | Stabilise `tests/e2e/agent-ready-export.spec.ts:1157` ('rejects an oversized uncommitted request'), which fails only when run as the last test in the full 16-test custody-gated file (likely a stderr-read-vs-exit-flush race in `waitForAttachedRejectionWithoutLoopbackUrl` under cumulative system load); passes cleanly alone or paired with its predecessor. See `.planning/phases/17-agent-protocol-extension-marketplace-skill/deferred-items.md`. | Deferred | 261031-q09 |
+| Verification | Fix `tests/integration/selector-drift-ui.spec.ts:422` and `:440` ('exact patch resumed drafts...' / 'exact patch retry stays snapshot-only...'), which fail on a malformed `exactPatchSession` fixture's `SessionResponseSchema.parse` call; confirmed pre-existing and unrelated to Phase 13/17 via `git stash` round-trip during 261031-q09. | Deferred | 261031-q09 |
 
 ## Session Continuity
 
-Last session: 2026-10-31T17:40:36.103Z
-Stopped at: Phase 17 complete: all 5 plans executed, VERIFICATION.md (human_needed: open-runtime-session.ts helper bug fix + draft PR), REVIEW.md (0 critical/0 warning after fix, 4 info non-blocking), SECURITY.md (18/18 threats closed) all committed. Ready for human action on the two human_needed items.
+Last session: 2026-10-31T19:50:00.000Z
+Stopped at: Phase 17 re-verified after quick task 261031-q09 fixed the open-runtime-session.ts .monaco-diff-editor test-harness bug — 17-VERIFICATION.md now 14/15 truths verified. Sole remaining human_needed item: open the draft PR against Ship-With-AI/skills (D-05).
 Resume file: None
