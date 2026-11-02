@@ -223,6 +223,7 @@ watch(reviewFailure, (failed) => {
           <div class="inline-notice__content">
             <h4 ref="completionFailure" tabindex="-1">Attached review disconnected</h4>
             <p>{{ `The browser lost its connection to ${RENAME_MAP.displayName}. This review is still unfinished. Reload this page while ${RENAME_MAP.displayName} is running, then choose Finish review.` }}</p>
+            <button type="button" class="ui-button" @click="emit('reloadAttached')">Reload page</button>
           </div>
         </div>
       </template>
@@ -233,6 +234,7 @@ watch(reviewFailure, (failed) => {
           <div class="inline-notice__content">
             <h4 ref="completionFailure" tabindex="-1">Completion status unavailable</h4>
             <p>{{ `${RENAME_MAP.displayName} disconnected before this tab received confirmation. This tab does not claim the review was finished. Check the invoking terminal. If ${RENAME_MAP.displayName} is still running, reload to reconnect.` }}</p>
+            <button type="button" class="ui-button" @click="emit('reloadAttached')">Reload page</button>
           </div>
         </div>
       </template>
@@ -274,6 +276,7 @@ watch(reviewFailure, (failed) => {
           <div class="inline-notice__content">
             <h4 ref="completionFailure" tabindex="-1">Review draft can’t be validated</h4>
             <p>{{ `The accepted local draft is corrupt, incomplete, or read-only. No feedback was returned. Reload the review; if it remains unavailable, relaunch ${RENAME_MAP.displayName}.` }}</p>
+            <button type="button" class="ui-button" @click="emit('reloadAttached')">Reload review</button>
           </div>
         </div>
       </template>
@@ -284,6 +287,7 @@ watch(reviewFailure, (failed) => {
           <div class="inline-notice__content">
             <h4 ref="completionFailure" tabindex="-1">Review was not finished</h4>
             <p>{{ `No feedback was returned. Check that ${RENAME_MAP.displayName} is still running, then try Finish review again.` }}</p>
+            <button type="button" class="ui-button ui-button--primary" @click="finishAttachedReview">Try Finish review again</button>
           </div>
         </div>
       </template>

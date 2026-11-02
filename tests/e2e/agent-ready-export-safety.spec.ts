@@ -146,7 +146,7 @@ test('forced unavailable capability refuses re-export before touching the comple
   const fixture = await createDirtyGitFixture();
   try {
     const before = await captureSourceControlSnapshot(fixture.root);
-    const stable = join(fixture.root, '.cumpa', 'exports', `${'1'.repeat(40)}..${'2'.repeat(40)}`);
+    const stable = join(fixture.root, RENAME_MAP.repoStateDir, 'exports', `${'1'.repeat(40)}..${'2'.repeat(40)}`);
     const oldPair = pair('old generation');
 
     await expect(runGeneratedExport(fixture.root, oldPair, 'unsupported')).resolves.toMatchObject({ kind: 'exported' });

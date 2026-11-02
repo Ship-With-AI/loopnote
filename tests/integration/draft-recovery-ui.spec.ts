@@ -327,8 +327,8 @@ test('newer drafts are upgrade-only and expose only fixed reveal and safe copy a
   });
 
   await openDraft(page);
-  await expect(page.getByRole('heading', { name: 'This draft needs a newer Cumpa' })).toBeVisible();
-  await expect(page.getByText('Draft schema version 2 is newer than supported version 1. Upgrade Cumpa to open it. The file has not been changed.', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: `This draft needs a newer ${RENAME_MAP.displayName}` })).toBeVisible();
+  await expect(page.getByText(`Draft schema version 2 is newer than supported version 1. Upgrade ${RENAME_MAP.displayName} to open it. The file has not been changed.`, { exact: true })).toBeVisible();
   await expect(page.getByText('Read only', { exact: true })).toBeVisible();
   await expect(page.locator('.draft-recovery__status')).toContainText('Read only');
   await expect(page.locator('.draft-recovery__status .ui-icon')).toHaveCount(1);
@@ -336,7 +336,7 @@ test('newer drafts are upgrade-only and expose only fixed reveal and safe copy a
   await expect(page.getByText(safeDraftPath, { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Reveal draft file' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Copy draft path' })).toBeVisible();
-  await expect(page.getByRole('alert')).toContainText('This draft needs a newer Cumpa');
+  await expect(page.getByRole('alert')).toContainText(`This draft needs a newer ${RENAME_MAP.displayName}`);
   await page.locator('html').evaluate((element) => { element.style.zoom = '2'; });
   const reveal = page.getByRole('button', { name: 'Reveal draft file' });
   await reveal.focus();
