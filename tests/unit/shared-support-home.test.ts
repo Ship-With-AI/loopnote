@@ -4,6 +4,8 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
+
 import { createSharedSupportHome } from '../helpers/public-runtime.js';
 
 describe('shared support HOME', () => {
@@ -17,7 +19,7 @@ describe('shared support HOME', () => {
   });
 
   it('uses an explicit external override', () => {
-    const home = join(tmpdir(), `cumpa-support-override-${crypto.randomUUID()}`);
+    const home = join(tmpdir(), `${RENAME_MAP.slug}-support-override-${crypto.randomUUID()}`);
     try {
       const supportHome = createSharedSupportHome(home);
       const env: NodeJS.ProcessEnv = {};

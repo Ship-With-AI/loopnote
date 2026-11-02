@@ -6,6 +6,7 @@ import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import * as contracts from '../../src/contracts/api.js';
 import type { GroundedExactPatch, PinnedComparison } from '../../src/contracts/comparison.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 import { createExactPatchSessionApp, createSessionApp, type SessionApp } from '../../src/server/app.js';
 import { createSupportCapability } from '../../src/server/capabilities.js';
 import type { CapabilityRegistry } from '../../src/server/capabilities.js';
@@ -72,7 +73,7 @@ function exactPatch(repositoryRoot: string): GroundedExactPatch {
 }
 
 async function root(): Promise<string> {
-  const value = await mkdtemp(join(tmpdir(), 'cumpa-support-'));
+  const value = await mkdtemp(join(tmpdir(), `${RENAME_MAP.slug}-support-`));
   roots.push(value);
   return value;
 }

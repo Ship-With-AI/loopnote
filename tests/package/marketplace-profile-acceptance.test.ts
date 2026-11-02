@@ -113,9 +113,9 @@ function writePlaywrightConfig(root: string): string {
 test('isolated OMP marketplace skill supervises the exact public CLI through Finish', { timeout: 10 * 60_000 }, async () => {
   const report = process.env[`${RENAME_MAP.envPrefix}MARKETPLACE_ACCEPTANCE_REPORT`];
   const supportHomePath = process.env[`${RENAME_MAP.envPrefix}ACCEPTANCE_SUPPORT_HOME`];
-  const window = process.env.CUMPA_SUPPORT_STATE_WINDOW;
+  const window = process.env[`${RENAME_MAP.envPrefix}SUPPORT_STATE_WINDOW`];
   if (!report || !supportHomePath || existsSync(report)) throw new Error('[marketplace-profile] a new report path and shared support HOME are required');
-  if (window !== 'pre-restore' && window !== 'post-restore') throw new Error('[marketplace-profile] CUMPA_SUPPORT_STATE_WINDOW must be pre-restore or post-restore');
+  if (window !== 'pre-restore' && window !== 'post-restore') throw new Error(`[marketplace-profile] ${RENAME_MAP.envPrefix}SUPPORT_STATE_WINDOW must be pre-restore or post-restore`);
 
   const capability = discoverOmpIsolationCapability();
   const browser = await observedBrowserVersion();
@@ -175,7 +175,7 @@ test('isolated OMP marketplace skill supervises the exact public CLI through Fin
       CUMPA_AGENT_READY_EVIDENCE_REPORT: bridge,
       CUMPA_AGENT_READY_EVIDENCE_RUN_ID: randomUUID(),
       [`${RENAME_MAP.envPrefix}ACCEPTANCE_SUPPORT_HOME`]: supportHome.home,
-      CUMPA_SUPPORT_STATE_WINDOW: window,
+      [`${RENAME_MAP.envPrefix}SUPPORT_STATE_WINDOW`]: window,
     };
     const readinessStarted = new Date().toISOString();
     const browserChild = startChild(process.execPath, [join(projectRoot, 'node_modules/@playwright/test/cli.js'), 'test', '--config', playwrightConfig, 'tests/e2e/marketplace-review.spec.ts'], environment);

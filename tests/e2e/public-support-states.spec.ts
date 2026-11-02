@@ -16,6 +16,7 @@ import { expect, test } from '@playwright/test';
 import type { Browser, Page } from '@playwright/test';
 
 import { ExportReviewResultSchema, SupportStartResultSchema, SupportStatusSchema } from '../../src/contracts/api.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 import { parseCanonicalReviewExport } from '../../src/export/review-export.js';
 import { SupportStateV1Schema, resolveSupportStatePath } from '../../src/server/support-store.js';
 import { resolveAcceptanceRuntime, publicSupportHomeOf } from '../helpers/acceptance-runtime.js';
@@ -78,10 +79,10 @@ let sourceControlUnchanged = true;
 let restoreDefectObservation: RestoreDefectObservation | undefined;
 
 function stateWindowFromEnvironment(): SupportStateWindow {
-  const value = process.env.CUMPA_SUPPORT_STATE_WINDOW;
+  const value = process.env[`${RENAME_MAP.envPrefix}SUPPORT_STATE_WINDOW`];
   if (value === undefined) return undefined;
   if (value === 'pre-restore' || value === 'post-restore') return value;
-  throw new Error('[public-support-states] CUMPA_SUPPORT_STATE_WINDOW must be pre-restore, post-restore, or unset');
+  throw new Error(`[public-support-states] ${RENAME_MAP.envPrefix}SUPPORT_STATE_WINDOW must be pre-restore, post-restore, or unset`);
 }
 
 function startCli(fixture: DirtyGitFixture): RunningCli {
@@ -123,7 +124,7 @@ function startAttachedCli(fixture: DirtyGitFixture): RunningAttachedCli {
     stdio: ['pipe', stdoutDescriptor, stderrDescriptor],
   });
   child.stdin!.end(JSON.stringify({
-    kind: 'cumpa.review-request',
+    kind: `${RENAME_MAP.kindPrefix}.review-request`,
     schemaVersion: 1,
     mode: 'revisions',
     revisions: { base: fixture.baseRef, head: fixture.headRef },
@@ -368,8 +369,8 @@ test('records live unverified and dismissed support rows with unrestricted revie
       const observation = await openRuntimeSession(page, await waitForLoopbackUrl(running), { dismissUnverified: false });
       expect(observation).toEqual({ enabled: true, observedStatus: 'unverified', dismissed: false });
       const dialog = page.getByRole('dialog');
-      await expect(dialog.getByRole('heading', { name: 'Support Cumpa' })).toBeVisible();
-      await expect(dialog.getByText('Cumpa stays fully usable. One optional USD $49.99 payment supports development. Paying once stops the launch prompt.')).toBeVisible();
+      await expect(dialog.getByRole('heading', { name: `Support ${RENAME_MAP.displayName}` })).toBeVisible();
+      await expect(dialog.getByText(`${RENAME_MAP.displayName} stays fully usable. One optional USD $49.99 payment supports development. Paying once stops the launch prompt.`)).toBeVisible();
       await expect(dialog.getByRole('button', { name: 'Restore support', exact: true })).toBeVisible();
       await expect(dialog.getByRole('button', { name: 'Not now', exact: true })).toBeVisible();
       await expect(page.locator('.support-dialog-backdrop')).toHaveCSS('position', 'fixed');
@@ -442,7 +443,7 @@ test('records verified support with its own unrestricted review, export, and Fin
             return;
           }
           expect(new URL(hosted.url()).origin).toBe(new URL(start.flowUrl).origin);
-          reportedComplete = hosted.getByText('Support flow complete. You can return to Cumpa.').waitFor({ timeout: 15 * 60_000 }).then(() => true, () => false);
+          reportedComplete = hosted.getByText(`Support flow complete. You can return to ${RENAME_MAP.displayName}.`).waitFor({ timeout: 15 * 60_000 }).then(() => true, () => false);
         } catch {
           blockedReason = 'hosted-support-unreachable';
           await page.waitForTimeout(15 * 60_000);
@@ -489,7 +490,7 @@ test('records verified support with its own unrestricted review, export, and Fin
 
       await expect.poll(() => readSupportState().status).toBe('verified');
       await expect(page.locator('.support-dialog-backdrop')).toBeHidden();
-      await page.getByRole('button', { name: 'Support Cumpa', exact: true }).click();
+      await page.getByRole('button', { name: `Support ${RENAME_MAP.displayName}`, exact: true }).click();
       await expect(dialog.getByText('Support is verified on this machine.')).toBeVisible();
       await dialog.getByRole('button', { name: 'Close', exact: true }).click();
       await expect(page.locator('.support-dialog-backdrop')).toBeHidden();
