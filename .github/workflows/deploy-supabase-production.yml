@@ -40,7 +40,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     env:
-      CUMPA_DEPLOYMENT_ENVIRONMENT: production
+      LOOPNOTE_DEPLOYMENT_ENVIRONMENT: production
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
@@ -82,7 +82,7 @@ jobs:
           trap cleanup EXIT
           trap 'exit 130' INT
           trap 'exit 143' TERM
-          export CUMPA_RELEASE_SUPPORT_SERVICE_URL="$origin"
+          export LOOPNOTE_RELEASE_SUPPORT_SERVICE_URL="$origin"
           node scripts/pack-runtime.mjs --purpose deployment-check --custody-dir "$custody" --evidence "$evidence"
           archive_basename="$(node -e "process.stdout.write(JSON.parse(require('node:fs').readFileSync(process.argv[1], 'utf8')).archive.basename)" "$evidence")"
           archive="$custody/$archive_basename"

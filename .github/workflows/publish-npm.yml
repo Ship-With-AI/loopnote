@@ -7,7 +7,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: cumpa-npm-stable
+  group: loopnote-npm-stable
   cancel-in-progress: false
 
 jobs:
@@ -27,10 +27,10 @@ jobs:
     steps:
       - name: Require the separately authorized source before checkout
         env:
-          CUMPA_RELEASE_SOURCE_SHA: ${{ vars.CUMPA_RELEASE_SOURCE_SHA }}
+          LOOPNOTE_RELEASE_SOURCE_SHA: ${{ vars.LOOPNOTE_RELEASE_SOURCE_SHA }}
         run: |
           node --input-type=module <<'NODE'
-          const authorized = process.env.CUMPA_RELEASE_SOURCE_SHA;
+          const authorized = process.env.LOOPNOTE_RELEASE_SOURCE_SHA;
           if (!/^[a-f0-9]{40}$/.test(authorized ?? '') || authorized !== process.env.GITHUB_SHA) {
             throw new Error('Release source is not authorized');
           }
@@ -63,40 +63,40 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - name: Produce one configured stable candidate
         env:
-          CUMPA_RELEASE_SUPPORT_SERVICE_URL: ${{ secrets.CUMPA_RELEASE_BUILD_ORIGIN }}
+          LOOPNOTE_RELEASE_SUPPORT_SERVICE_URL: ${{ secrets.LOOPNOTE_RELEASE_BUILD_ORIGIN }}
         run: |
           umask 077
-          preparation="$RUNNER_TEMP/cumpa-stable-preparation"
-          payload="$RUNNER_TEMP/cumpa-stable-payload"
+          preparation="$RUNNER_TEMP/loopnote-stable-preparation"
+          payload="$RUNNER_TEMP/loopnote-stable-payload"
           mkdir -m 700 "$preparation"
           node scripts/pack-runtime.mjs --purpose candidate --custody-dir "$payload" --evidence "$preparation/producer.json"
       - name: Inspect the unchanged candidate archive
         env:
-          CUMPA_RELEASE_SUPPORT_SERVICE_URL: ${{ secrets.CUMPA_RELEASE_BUILD_ORIGIN }}
+          LOOPNOTE_RELEASE_SUPPORT_SERVICE_URL: ${{ secrets.LOOPNOTE_RELEASE_BUILD_ORIGIN }}
         run: |
           umask 077
           set -C
-          preparation="$RUNNER_TEMP/cumpa-stable-preparation"
-          payload="$RUNNER_TEMP/cumpa-stable-payload"
+          preparation="$RUNNER_TEMP/loopnote-stable-preparation"
+          payload="$RUNNER_TEMP/loopnote-stable-payload"
           expected_sha256="$(node -e 'process.stdout.write(JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8")).archive.sha256)' "$preparation/producer.json")"
-          node scripts/verify-production-artifacts.mjs --archive "$payload/$CUMPA_RELEASE_ARCHIVE_BASENAME" --expected-sha256 "$expected_sha256" --evidence "$preparation/producer.json" > "$preparation/scanner.json"
+          node scripts/verify-production-artifacts.mjs --archive "$payload/$LOOPNOTE_RELEASE_ARCHIVE_BASENAME" --expected-sha256 "$expected_sha256" --evidence "$preparation/producer.json" > "$preparation/scanner.json"
       - name: Prove installed browser and native acceptance
         env:
-          CUMPA_RELEASE_SUPPORT_SERVICE_URL: ${{ secrets.CUMPA_RELEASE_BUILD_ORIGIN }}
+          LOOPNOTE_RELEASE_SUPPORT_SERVICE_URL: ${{ secrets.LOOPNOTE_RELEASE_BUILD_ORIGIN }}
         run: |
           umask 077
-          preparation="$RUNNER_TEMP/cumpa-stable-preparation"
-          export CUMPA_RUNTIME_CUSTODY_DIR="$RUNNER_TEMP/cumpa-stable-payload"
-          export CUMPA_RUNTIME_ARCHIVE_BASENAME="$CUMPA_RELEASE_ARCHIVE_BASENAME"
-          export CUMPA_RUNTIME_ARCHIVE_SHA256="$(node -e 'process.stdout.write(JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8")).archive.sha256)' "$preparation/producer.json")"
-          export CUMPA_RUNTIME_EVIDENCE="$preparation/producer.json"
-          export CUMPA_RUNTIME_ACCEPTANCE_REPORT="$preparation/acceptance.json"
+          preparation="$RUNNER_TEMP/loopnote-stable-preparation"
+          export LOOPNOTE_RUNTIME_CUSTODY_DIR="$RUNNER_TEMP/loopnote-stable-payload"
+          export LOOPNOTE_RUNTIME_ARCHIVE_BASENAME="$LOOPNOTE_RELEASE_ARCHIVE_BASENAME"
+          export LOOPNOTE_RUNTIME_ARCHIVE_SHA256="$(node -e 'process.stdout.write(JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8")).archive.sha256)' "$preparation/producer.json")"
+          export LOOPNOTE_RUNTIME_EVIDENCE="$preparation/producer.json"
+          export LOOPNOTE_RUNTIME_ACCEPTANCE_REPORT="$preparation/acceptance.json"
           npm run accept:runtime-artifact
       - name: Seal the verified same-run candidate
         run: |
-          preparation="$RUNNER_TEMP/cumpa-stable-preparation"
-          payload="$RUNNER_TEMP/cumpa-stable-payload"
-          node scripts/verify-npm-release.mjs seal-candidate --archive "$payload/$CUMPA_RELEASE_ARCHIVE_BASENAME" --producer-evidence "$preparation/producer.json" --scanner-report "$preparation/scanner.json" --acceptance-report "$preparation/acceptance.json" --output "$payload/evidence.json" > /dev/null
+          preparation="$RUNNER_TEMP/loopnote-stable-preparation"
+          payload="$RUNNER_TEMP/loopnote-stable-payload"
+          node scripts/verify-npm-release.mjs seal-candidate --archive "$payload/$LOOPNOTE_RELEASE_ARCHIVE_BASENAME" --producer-evidence "$preparation/producer.json" --scanner-report "$preparation/scanner.json" --acceptance-report "$preparation/acceptance.json" --output "$payload/evidence.json" > /dev/null
       - name: Independently hash and make the sealed payload read-only
         id: identity
         run: |
@@ -104,9 +104,9 @@ jobs:
           import { createHash } from 'node:crypto';
           import { appendFileSync, chmodSync, lstatSync, readFileSync, readdirSync } from 'node:fs';
           import { join } from 'node:path';
-          const archiveName = process.env.CUMPA_RELEASE_ARCHIVE_BASENAME;
+          const archiveName = process.env.LOOPNOTE_RELEASE_ARCHIVE_BASENAME;
           if (!/^[A-Za-z0-9][A-Za-z0-9._-]*\.tgz$/u.test(archiveName ?? '')) throw new Error('Invalid release archive basename');
-          const payload = join(process.env.RUNNER_TEMP, 'cumpa-stable-payload');
+          const payload = join(process.env.RUNNER_TEMP, 'loopnote-stable-payload');
           const names = ['evidence.json', archiveName].sort();
           if (JSON.stringify(readdirSync(payload).sort()) !== JSON.stringify(names)) throw new Error('Unexpected release payload');
           const identities = new Map();
@@ -128,8 +128,8 @@ jobs:
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         id: upload
         with:
-          name: cumpa-stable-candidate-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/cumpa-stable-payload/
+          name: loopnote-stable-candidate-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/loopnote-stable-payload/
           if-no-files-found: error
 
   publish:
@@ -162,12 +162,12 @@ jobs:
           NODE
           derived="$(node scripts/release-identity.mjs archiveBasename)"
           test "$derived" = "$EXPECTED_ARCHIVE_BASENAME"
-          printf 'CUMPA_RELEASE_ARCHIVE_BASENAME=%s\n' "$derived" >> "$GITHUB_ENV"
+          printf 'LOOPNOTE_RELEASE_ARCHIVE_BASENAME=%s\n' "$derived" >> "$GITHUB_ENV"
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           artifact-ids: ${{ needs.build-candidate.outputs.artifact-id }}
           merge-multiple: true
-          path: ${{ runner.temp }}/cumpa-stable-download
+          path: ${{ runner.temp }}/loopnote-stable-download
       - name: Check the independently recorded archive hash and length
         env:
           EXPECTED_ARCHIVE_SHA256: ${{ needs.build-candidate.outputs.archive-sha256 }}
@@ -177,9 +177,9 @@ jobs:
           import { createHash } from 'node:crypto';
           import { chmodSync, lstatSync, readFileSync, readdirSync } from 'node:fs';
           import { join } from 'node:path';
-          const archiveName = process.env.CUMPA_RELEASE_ARCHIVE_BASENAME;
+          const archiveName = process.env.LOOPNOTE_RELEASE_ARCHIVE_BASENAME;
           if (!/^[A-Za-z0-9][A-Za-z0-9._-]*\.tgz$/u.test(archiveName ?? '')) throw new Error('Invalid release archive basename');
-          const directory = join(process.env.RUNNER_TEMP, 'cumpa-stable-download');
+          const directory = join(process.env.RUNNER_TEMP, 'loopnote-stable-download');
           const names = ['evidence.json', archiveName].sort();
           if (JSON.stringify(readdirSync(directory).sort()) !== JSON.stringify(names)) throw new Error('Unexpected downloaded payload');
           for (const name of names) {
@@ -199,18 +199,18 @@ jobs:
           ARTIFACT_ID: ${{ needs.build-candidate.outputs.artifact-id }}
           ARTIFACT_DIGEST: ${{ needs.build-candidate.outputs.artifact-digest }}
         run: |
-          payload="$RUNNER_TEMP/cumpa-stable-download"
-          node scripts/verify-npm-release.mjs verify-candidate --archive "$payload/$CUMPA_RELEASE_ARCHIVE_BASENAME" --evidence "$payload/evidence.json" --expected-evidence-sha256 "$EXPECTED_EVIDENCE_SHA256" --artifact-id "$ARTIFACT_ID" --artifact-digest "$ARTIFACT_DIGEST"
+          payload="$RUNNER_TEMP/loopnote-stable-download"
+          node scripts/verify-npm-release.mjs verify-candidate --archive "$payload/$LOOPNOTE_RELEASE_ARCHIVE_BASENAME" --evidence "$payload/evidence.json" --expected-evidence-sha256 "$EXPECTED_EVIDENCE_SHA256" --artifact-id "$ARTIFACT_ID" --artifact-digest "$ARTIFACT_DIGEST"
       - name: Run npm publish once on the unchanged approved archive
         run: |
           node --input-type=module <<'NODE'
           import { execFileSync } from 'node:child_process';
           import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
           import { join } from 'node:path';
-          const archiveName = process.env.CUMPA_RELEASE_ARCHIVE_BASENAME;
+          const archiveName = process.env.LOOPNOTE_RELEASE_ARCHIVE_BASENAME;
           if (!/^[A-Za-z0-9][A-Za-z0-9._-]*\.tgz$/u.test(archiveName ?? '')) throw new Error('Invalid release archive basename');
-          const archive = join(process.env.RUNNER_TEMP, 'cumpa-stable-download', archiveName);
-          const root = mkdtempSync(join(process.env.RUNNER_TEMP, 'cumpa-npm-publish-'));
+          const archive = join(process.env.RUNNER_TEMP, 'loopnote-stable-download', archiveName);
+          const root = mkdtempSync(join(process.env.RUNNER_TEMP, 'loopnote-npm-publish-'));
           try {
             chmodSync(root, 0o700);
             const environment = { ...process.env };

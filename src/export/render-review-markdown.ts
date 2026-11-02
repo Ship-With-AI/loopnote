@@ -1,4 +1,5 @@
 import { controlSafeDisplay } from '../domain/path-bytes.js';
+import { RENAME_MAP } from '../domain/product-identity.js';
 import { parseCanonicalReviewExport, type ReviewExport } from './review-export.js';
 
 function fenceFor(value: string): string {
@@ -48,7 +49,7 @@ export function renderReviewMarkdown(canonicalBytes: Uint8Array): string {
   const exactPatch = document.schemaVersion === 3;
   const standalone = document.schemaVersion === 4 || document.schemaVersion === 6;
   const uncommitted = document.schemaVersion === 5;
-  const lines: string[] = ['# Cumpa Export', ''];
+  const lines: string[] = [`# ${RENAME_MAP.displayName} Export`, ''];
 
   if (exactPatch) {
     lines.push(

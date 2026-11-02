@@ -6,6 +6,7 @@ import { basename, dirname, join, relative, resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { execFileSync, spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import renameMap from './rename-map.json' with { type: 'json' };
 
 const EVIDENCE_VERSION = 1;
 const MANAGEMENT_ORIGIN = 'https://api.supabase.com';
@@ -282,11 +283,11 @@ function digestFile(path) {
 }
 
 async function verifyRuntimeArtifact(purpose) {
-  const temporary = await mkdtemp(join(tmpdir(), 'cumpa-runtime-'));
+  const temporary = await mkdtemp(join(tmpdir(), `${renameMap.slug}-runtime-`));
   const custodyDirectory = join(temporary, 'custody');
   const evidencePath = join(temporary, 'runtime-artifact-evidence.json');
   const environment = { ...process.env };
-  delete environment.CUMPA_RELEASE_SUPPORT_SERVICE_URL;
+  delete environment[`${renameMap.envPrefix}RELEASE_SUPPORT_SERVICE_URL`];
   const cleanup = () => rm(temporary, { recursive: true, force: true });
   const onInterrupt = () => { void cleanup().finally(() => process.exit(130)); };
   const onTerminate = () => { void cleanup().finally(() => process.exit(143)); };
@@ -301,7 +302,7 @@ async function verifyRuntimeArtifact(purpose) {
     ], { encoding: 'utf8', stdio: 'pipe', env: environment });
     const evidence = JSON.parse(await readFile(evidencePath, 'utf8'));
     if (
-      evidence?.kind !== 'cumpa.runtime-artifact-evidence/v1'
+      evidence?.kind !== `${renameMap.kindPrefix}.runtime-artifact-evidence/v1`
       || evidence.status !== purpose
       || evidence.purpose !== purpose
       || evidence.support?.configured !== false
@@ -317,7 +318,7 @@ async function verifyRuntimeArtifact(purpose) {
       '--evidence', evidencePath,
     ], { encoding: 'utf8', stdio: 'pipe', env: environment }));
     if (
-      result?.kind !== 'cumpa.runtime-artifact-verification/v1'
+      result?.kind !== `${renameMap.kindPrefix}.runtime-artifact-verification/v1`
       || result.status !== 'passed'
       || result.purpose !== purpose
       || result.archive?.sha256 !== expectedSha256
@@ -333,7 +334,7 @@ async function verifyRuntimeArtifact(purpose) {
 
 async function retirementReview(output) {
   if (basename(output) !== '02-15-RETIREMENT-EVIDENCE.md') fail('retirement review output basename is invalid');
-  if (process.env.CUMPA_RELEASE_SUPPORT_SERVICE_URL !== undefined) fail('retirement review forbids CUMPA_RELEASE_SUPPORT_SERVICE_URL');
+  if (process.env[`${renameMap.envPrefix}RELEASE_SUPPORT_SERVICE_URL`] !== undefined) fail(`retirement review forbids ${renameMap.envPrefix}RELEASE_SUPPORT_SERVICE_URL`);
   const root = process.cwd();
   const tracked = trackedPaths();
   const trackedCount = await scanRetirementFiles(tracked, root, (path) => ({
@@ -386,9 +387,9 @@ const FINAL_INPUTS = [
 const LOCAL_PROTECTED_INPUTS = [
   ...PROTECTED_INPUTS,
   ...RETIRED_INPUTS,
-  'CUMPA_RELEASE_SUPPORT_SERVICE_URL',
-  'CUMPA_SUPPORT_SERVICE_URL',
-  'CUMPA_DEPLOYMENT_ENVIRONMENT',
+  `${renameMap.envPrefix}RELEASE_SUPPORT_SERVICE_URL`,
+  `${renameMap.envPrefix}SUPPORT_SERVICE_URL`,
+  `${renameMap.envPrefix}DEPLOYMENT_ENVIRONMENT`,
   'GITHUB_ACTIONS',
 ];
 const LOCAL_SECURITY_COMMAND_IDS = [
@@ -440,7 +441,7 @@ async function validateReleaseApproval(release, releasePath) {
   const packageDigest = release.artifacts.package_sha256;
   if (
     approval?.version !== EVIDENCE_VERSION
-    || approval.kind !== 'cumpa.release-approval'
+    || approval.kind !== `${renameMap.kindPrefix}.release-approval`
     || approval.status !== 'approved'
     || approval.release_record_sha256 !== sha256(await readFile(releasePath, 'utf8'))
     || approval.run_id !== release.run.id
@@ -593,7 +594,7 @@ async function localPackageSecurityReview(output) {
     { id: 'database-lint-2', command: 'npx', args: ['supabase@2.114.0', 'db', 'lint', '--local'] },
     { id: 'deno', command: 'deno', args: ['test', '--allow-env', '--config', 'supabase/functions/deno.json', 'supabase/functions/tests'] },
   ];
-  const retirement = join(await mkdtemp(join(tmpdir(), 'cumpa-local-security-')), '02-15-RETIREMENT-EVIDENCE.md');
+  const retirement = join(await mkdtemp(join(tmpdir(), `${renameMap.slug}-local-security-`)), '02-15-RETIREMENT-EVIDENCE.md');
   try {
     const results = [];
     for (const { id, command, args } of commands) {
@@ -644,7 +645,7 @@ function guardTarget(inputs) {
 }
 
 function protectedInputs(environment) {
-  if (environment.GITHUB_ACTIONS !== 'true' || environment.CUMPA_DEPLOYMENT_ENVIRONMENT !== 'production') fail('hosted deployment is CI-only in protected production environment');
+  if (environment.GITHUB_ACTIONS !== 'true' || environment[`${renameMap.envPrefix}DEPLOYMENT_ENVIRONMENT`] !== 'production') fail('hosted deployment is CI-only in protected production environment');
   const values = Object.fromEntries(PROTECTED_INPUTS.map((name) => [name, environment[name]]));
   for (const [name, value] of Object.entries(values)) requireString(value, name);
   if (!MODES.has(values.SUPPORT_PROVIDER_MODE)) fail('SUPPORT_PROVIDER_MODE is invalid');
@@ -842,7 +843,7 @@ function cleanupSql(rows) {
       ? ''
       : `delete from ${table} where ${key}::text = any (array[${values.map(sqlText).join(', ')}]::text[]);`;
   }).filter(Boolean).join('\n');
-  return `do $cumpa$\nbegin\nlock table ${TABLES.map(([table]) => table).join(', ')} in access exclusive mode;\n${exactChecks}\n${deletes}\nend\n$cumpa$;`;
+  return `do $${renameMap.slug}$\nbegin\nlock table ${TABLES.map(([table]) => table).join(', ')} in access exclusive mode;\n${exactChecks}\n${deletes}\nend\n$${renameMap.slug}$;`;
 }
 
 async function exactCleanup(inputs, evidencePath, acceptancePath) {
@@ -970,7 +971,7 @@ async function writeEvidence(path, record) {
 
 async function readEvidence(path) {
   const content = await readFile(path, 'utf8');
-  const marker = content.match(/<!--\s*cumpa(?:-prelaunch)?-evidence\s+(.+?)\s*-->/su);
+  const marker = content.match(new RegExp(`<!--\\s*${renameMap.slug}(?:-prelaunch)?-evidence\\s+(.+?)\\s*-->`, 'su'));
   let record;
   try {
     record = JSON.parse(marker?.[1] ?? content);
@@ -1033,7 +1034,7 @@ async function validateAcceptanceMarker(record, deploymentPath, expectedMode) {
 async function writeAcceptanceEvidence(path, record) {
   if (evidenceContainsProtectedValue(record, '', evidencePolicy(record))) fail('evidence contains protected or raw content');
   const temporary = `${path}.tmp-${process.pid}`;
-  await writeFile(temporary, `# Phase 02 hosted acceptance evidence\n\n<!-- cumpa-evidence\n${JSON.stringify(record, null, 2)}\n-->\n`, { encoding: 'utf8', mode: 0o600 });
+  await writeFile(temporary, `# Phase 02 hosted acceptance evidence\n\n<!-- ${renameMap.slug}-evidence\n${JSON.stringify(record, null, 2)}\n-->\n`, { encoding: 'utf8', mode: 0o600 });
   await rename(temporary, path);
 }
 
@@ -1378,7 +1379,7 @@ async function recordCheckout(inputs, fixture, userId, targetInstallation) {
 async function createStripePrice(inputs, amount, currency) {
   const product = await stripeRequest(inputs, '/v1/products', {
     operation: 'product creation',
-    params: new URLSearchParams({ name: `cumpa-acceptance-${randomUUID()}` }),
+    params: new URLSearchParams({ name: `${renameMap.slug}-acceptance-${randomUUID()}` }),
   });
   const price = await stripeRequest(inputs, '/v1/prices', {
     operation: 'price creation',
@@ -1419,8 +1420,8 @@ async function completeStripeSession(inputs, sessionId, expectedAmount) {
     params: new URLSearchParams({
       type: 'card',
       'card[token]': 'tok_visa',
-      'billing_details[email]': 'cumpa-acceptance@example.com',
-      'billing_details[name]': 'Cumpa Acceptance',
+      'billing_details[email]': `${renameMap.slug}-acceptance@example.com`,
+      'billing_details[name]': `${renameMap.displayName} Acceptance`,
       'billing_details[address][line1]': '510 Townsend St',
       'billing_details[address][postal_code]': '94103',
       'billing_details[address][city]': 'San Francisco',
@@ -1768,14 +1769,14 @@ async function verifyWorkflow(path, options) {
   const deployInstall = workflow.indexOf('      - run: npm ci', workflow.indexOf('deploy-production:'));
   if (
     deployInstall < 0 || deployInstall > release || deployGuard < 0 || deploy < 0 || release < 0 || upload < 0
-    || deployGuard > deploy || !workflow.includes(guard) || /CUMPA_RELEASE_SUPPORT_SERVICE_URL:\s*\$\{\{/u.test(workflow)
+    || deployGuard > deploy || !workflow.includes(guard) || new RegExp(`${renameMap.envPrefix}RELEASE_SUPPORT_SERVICE_URL:\\s*\\$\\{\\{`, 'u').test(workflow)
   ) fail('workflow does not guard the release project ref');
   const releaseBlock = workflow.slice(release, upload);
   const producer = 'node scripts/pack-runtime.mjs --purpose deployment-check --custody-dir "$custody" --evidence "$evidence"';
   const verifier = 'node scripts/verify-production-artifacts.mjs --archive "$archive" --expected-sha256 "$expected_sha256" --evidence "$evidence"';
   if (
     !releaseBlock.includes(`origin="https://${'${SUPABASE_PROJECT_REF}'}.supabase.co"`)
-    || !releaseBlock.includes('export CUMPA_RELEASE_SUPPORT_SERVICE_URL="$origin"')
+    || !releaseBlock.includes(`export ${renameMap.envPrefix}RELEASE_SUPPORT_SERVICE_URL="$origin"`)
     || !releaseBlock.includes(producer)
     || !releaseBlock.includes('archive_basename=')
     || !releaseBlock.includes('archive="$custody/$archive_basename"')

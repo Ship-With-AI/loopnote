@@ -23,6 +23,7 @@ import type { ExactPatchExportScope } from '../contracts/draft.js';
 import { createGitRunner } from '../git/runner.js';
 import { createObjectReader } from '../git/objects.js';
 import { boundedFileBytes, digest, frame, isMissing, MAX_SIDE_BYTES, syncDirectory, writeOwned } from './snapshot-fs.js';
+import { RENAME_MAP } from '../domain/product-identity.js';
 
 
 const SNAPSHOT_VERSION = 1;
@@ -30,7 +31,7 @@ const MAX_SNAPSHOT_FILES = 10_000;
 const MAX_SNAPSHOT_BYTES = 64 * 1024 * 1024;
 const MAX_MANIFEST_BYTES = 16 * 1024 * 1024;
 const MAX_TARGET_TREE_BYTES = 64 * 1024 * 1024;
-const PATCH_KEY_DOMAIN = Buffer.from('cumpa-exact-patch-review-key-v1', 'utf8');
+const PATCH_KEY_DOMAIN = Buffer.from(`${RENAME_MAP.slug}-exact-patch-review-key-v1`, 'utf8');
 const fileIdPattern = /^file_[A-Za-z0-9_-]{43}$/u;
 const strictText = new TextDecoder('utf-8', { fatal: true });
 
@@ -499,8 +500,8 @@ export async function materializePatchSnapshot(
     throw new PatchSnapshotError('snapshot-unavailable', false);
   }
   const parent = options.parent ?? tmpdir();
-  const staging = await mkdir(parent, { recursive: true, mode: 0o700 }).then(() => join(parent, `.cumpa-patch-stage-${randomUUID()}`));
-  const accepted = join(parent, `cumpa-patch-${randomUUID()}`);
+  const staging = await mkdir(parent, { recursive: true, mode: 0o700 }).then(() => join(parent, `.${RENAME_MAP.slug}-patch-stage-${randomUUID()}`));
+  const accepted = join(parent, `${RENAME_MAP.slug}-patch-${randomUUID()}`);
   let total = 0;
   try {
     await mkdir(staging, { mode: 0o700 });

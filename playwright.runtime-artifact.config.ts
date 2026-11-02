@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
+import { RENAME_MAP } from './src/domain/product-identity.js';
 
 export const custodyGatedSpecs: string[] = [
   '**/e2e/package-assets.spec.ts',
@@ -9,7 +10,7 @@ export const custodyGatedSpecs: string[] = [
 
 export default defineConfig({
   testDir: './tests',
-  outputDir: 'node_modules/.cache/cumpa-runtime-playwright',
+  outputDir: `node_modules/.cache/${RENAME_MAP.slug}-runtime-playwright`,
   testMatch: custodyGatedSpecs,
   fullyParallel: false,
   forbidOnly: true,

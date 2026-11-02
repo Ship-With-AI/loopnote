@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import renameMap from './rename-map.json' with { type: 'json' };
 
 export const approvedDependencies = new Map([
   ['@fastify/static', '9.3.0'],
@@ -71,7 +72,7 @@ export async function verifyPrerequisites(options = {}) {
     executeFile('git', ['--version'], { stdio: 'pipe' });
   } catch (error) {
     throw new Error(
-      'Git is required but was not found. Install Git, then run Cumpa again.',
+      `Git is required but was not found. Install Git, then run ${renameMap.displayName} again.`,
       { cause: error },
     );
   }
