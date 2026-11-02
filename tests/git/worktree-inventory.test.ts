@@ -8,6 +8,9 @@ import { joinDiffStats, parseNumstat } from '../../src/git/numstat.js';
 import type { JoinedDiffStat } from '../../src/git/numstat.js';
 import { parseRawDiff } from '../../src/git/raw-diff.js';
 import { createGitFixture, type GitFixture } from '../helpers/git-fixture.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
+
+const newStateDirSegment = RENAME_MAP.repoStateDir.replace(/\/$/, '');
 
 const sharedDiffFlags = [
   '-z',
@@ -197,6 +200,28 @@ describe('staged source kind', () => {
     expect(files.some((file) => (pathText(file) ?? '').startsWith('.cumpa'))).toBe(false);
     expect(pathText(fileByPath(files, 'visible.txt'))).toBe('visible.txt');
   });
+
+  it(`excludes ${newStateDirSegment}/ paths from staged results`, async () => {
+    const fixture = await makeFixture();
+    const baseOid = mergeBaseOid(fixture);
+
+    await mkdir(join(fixture.root, newStateDirSegment, 'drafts'), { recursive: true });
+    await writeFile(join(fixture.root, newStateDirSegment, 'drafts', 'x.json'), '{}\n');
+    await fixture.write('visible-new.txt', 'visible\n');
+    fixture.git(['add', '-A']);
+
+    const files = await createWorktreeChangedFileInventory({
+      sourceKind: 'staged',
+      repositoryRoot: fixture.root,
+      mergeBaseOid: baseOid,
+      objectFormat: 'sha1',
+    });
+
+    expect(
+      files.some((file) => (pathText(file) ?? '').startsWith(newStateDirSegment)),
+    ).toBe(false);
+    expect(pathText(fileByPath(files, 'visible-new.txt'))).toBe('visible-new.txt');
+  });
 });
 
 describe('unstaged source kind', () => {
@@ -285,6 +310,26 @@ describe('unstaged source kind', () => {
 
     expect(files.some((file) => (pathText(file) ?? '').startsWith('.cumpa'))).toBe(false);
   });
+
+  it(`excludes ${newStateDirSegment}/ paths from unstaged results`, async () => {
+    const fixture = await makeFixture();
+    await mkdir(join(fixture.root, newStateDirSegment, 'drafts'), { recursive: true });
+    await writeFile(join(fixture.root, newStateDirSegment, 'drafts', 'x.json'), '{}\n');
+    fixture.git(['add', '--', `${newStateDirSegment}/drafts/x.json`]);
+    fixture.git(['commit', '-m', 'add new-dir internal file']);
+
+    await writeFile(join(fixture.root, newStateDirSegment, 'drafts', 'x.json'), '{"edited":true}\n');
+
+    const files = await createWorktreeChangedFileInventory({
+      sourceKind: 'unstaged',
+      repositoryRoot: fixture.root,
+      objectFormat: 'sha1',
+    });
+
+    expect(
+      files.some((file) => (pathText(file) ?? '').startsWith(newStateDirSegment)),
+    ).toBe(false);
+  });
 });
 
 describe('worktree source kind', () => {
@@ -368,6 +413,56 @@ describe('worktree source kind', () => {
     });
 
     expect(files.some((file) => (pathText(file) ?? '').startsWith('.cumpa'))).toBe(false);
+  });
+
+  it(`excludes untracked ${newStateDirSegment}/ paths even without a matching .gitignore rule`, async () => {
+    const fixture = await makeFixture();
+    const baseOid = mergeBaseOid(fixture);
+    await mkdir(join(fixture.root, newStateDirSegment), { recursive: true });
+    await writeFile(join(fixture.root, newStateDirSegment, 'untracked.json'), '{}\n');
+
+    const rawUntracked = fixture
+      .git(['ls-files', '--others', '--exclude-standard', '-z'])
+      .toString('latin1')
+      .split('\0')
+      .filter(Boolean);
+    expect(rawUntracked).toContain(`${newStateDirSegment}/untracked.json`);
+
+    const files = await createWorktreeChangedFileInventory({
+      sourceKind: 'worktree',
+      repositoryRoot: fixture.root,
+      mergeBaseOid: baseOid,
+      objectFormat: 'sha1',
+    });
+
+    expect(
+      files.some((file) => (pathText(file) ?? '').startsWith(newStateDirSegment)),
+    ).toBe(false);
+  });
+
+  it('excludes .cumpa/ and new-dir paths from the worktree-sourceKind tracked diff', async () => {
+    const fixture = await makeFixture();
+    const baseOid = mergeBaseOid(fixture);
+
+    await mkdir(join(fixture.root, '.cumpa', 'drafts'), { recursive: true });
+    await writeFile(join(fixture.root, '.cumpa', 'drafts', 'x.json'), '{}\n');
+    await mkdir(join(fixture.root, newStateDirSegment, 'drafts'), { recursive: true });
+    await writeFile(join(fixture.root, newStateDirSegment, 'drafts', 'x.json'), '{}\n');
+    await fixture.write('tracked-visible.txt', 'visible\n');
+    fixture.git(['add', '-A']);
+
+    const files = await createWorktreeChangedFileInventory({
+      sourceKind: 'worktree',
+      repositoryRoot: fixture.root,
+      mergeBaseOid: baseOid,
+      objectFormat: 'sha1',
+    });
+
+    expect(files.some((file) => (pathText(file) ?? '').startsWith('.cumpa'))).toBe(false);
+    expect(
+      files.some((file) => (pathText(file) ?? '').startsWith(newStateDirSegment)),
+    ).toBe(false);
+    expect(pathText(fileByPath(files, 'tracked-visible.txt'))).toBe('tracked-visible.txt');
   });
 
   it('reflects the cumulative base->worktree diff once for a staged-then-further-edited file', async () => {

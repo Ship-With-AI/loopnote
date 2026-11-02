@@ -12,6 +12,9 @@ import {
   assertSourceControlUnchanged,
   captureSourceControlSnapshot,
 } from '../helpers/source-control-snapshot.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
+
+const newStateDirSegment = RENAME_MAP.repoStateDir.replace(/\/$/, '');
 
 const fixtures: string[] = [];
 
@@ -24,7 +27,7 @@ function git(cwd: string, arguments_: readonly string[]): Buffer {
 }
 
 async function repository(): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), 'cumpa-exact-patch-'));
+  const root = await mkdtemp(join(tmpdir(), `${RENAME_MAP.slug}-exact-patch-`));
   fixtures.push(root);
   git(root, ['init', '--quiet']);
   git(root, ['config', 'user.email', 'tests@example.com']);
@@ -257,6 +260,44 @@ describe('read-only exact patch grounding', () => {
     const target = git(root, ['rev-parse', 'HEAD']).toString('ascii').trim();
     const content = gitPatch(root, base, target);
     expect(Buffer.byteLength(content, 'utf8')).toBeLessThan(MAX_INLINE_TEXT_BYTES);
+    const before = await captureSourceControlSnapshot(root);
+
+    await expect(
+      createGroundedExactPatch({ cwd: root, patchContent: content, target: { kind: 'repository' } }),
+    ).rejects.toMatchObject({ name: 'ExactPatchGroundingError' });
+
+    assertSourceControlUnchanged(before, await captureSourceControlSnapshot(root));
+  });
+
+  it('rejects a patch path segment equal to the legacy reserved ".cumpa" directory name', async () => {
+    const root = await repository();
+    git(root, ['commit', '--quiet', '--allow-empty', '-m', 'empty base']);
+    const base = git(root, ['rev-parse', 'HEAD']).toString('ascii').trim();
+    await mkdir(join(root, '.cumpa', 'exports'), { recursive: true });
+    await writeFile(join(root, '.cumpa', 'exports', 'review.json'), '{}\n');
+    git(root, ['add', '-A']);
+    git(root, ['commit', '--quiet', '-m', 'add internal export']);
+    const target = git(root, ['rev-parse', 'HEAD']).toString('ascii').trim();
+    const content = gitPatch(root, base, target);
+    const before = await captureSourceControlSnapshot(root);
+
+    await expect(
+      createGroundedExactPatch({ cwd: root, patchContent: content, target: { kind: 'repository' } }),
+    ).rejects.toMatchObject({ name: 'ExactPatchGroundingError' });
+
+    assertSourceControlUnchanged(before, await captureSourceControlSnapshot(root));
+  });
+
+  it('rejects a patch path segment equal to the new repo-local state-dir name', async () => {
+    const root = await repository();
+    git(root, ['commit', '--quiet', '--allow-empty', '-m', 'empty base']);
+    const base = git(root, ['rev-parse', 'HEAD']).toString('ascii').trim();
+    await mkdir(join(root, newStateDirSegment, 'exports'), { recursive: true });
+    await writeFile(join(root, newStateDirSegment, 'exports', 'review.json'), '{}\n');
+    git(root, ['add', '-A']);
+    git(root, ['commit', '--quiet', '-m', 'add new-dir internal export']);
+    const target = git(root, ['rev-parse', 'HEAD']).toString('ascii').trim();
+    const content = gitPatch(root, base, target);
     const before = await captureSourceControlSnapshot(root);
 
     await expect(

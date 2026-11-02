@@ -25,6 +25,9 @@ import {
   type ChangedFile,
 } from '../../src/git/inventory.js';
 import { createGitRunner, type GitRunner } from '../../src/git/runner.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
+
+const newStateDirSegment = RENAME_MAP.repoStateDir.replace(/\/$/, '');
 
 const safeGitArguments = [
   '--no-optional-locks',
@@ -65,7 +68,7 @@ interface InventoryFixtureOptions {
 async function createInventoryFixture(
   options: InventoryFixtureOptions = {},
 ): Promise<InventoryFixture> {
-  const root = await mkdtemp(join(tmpdir(), 'cumpa-inventory-'));
+  const root = await mkdtemp(join(tmpdir(), `${RENAME_MAP.slug}-inventory-`));
   const git = (arguments_: readonly string[]): Buffer =>
     execFileSync('git', [...safeGitArguments, ...arguments_], {
       cwd: root,
@@ -123,6 +126,7 @@ async function createInventoryFixture(
   ]);
 
   if (options.includeInternalPaths === true) {
+    await mkdir(join(root, newStateDirSegment));
     await Promise.all([
       rm(join(root, '.cumpa', 'deleted.txt')),
       rename(
@@ -145,9 +149,14 @@ async function createInventoryFixture(
       writeFile(join(root, '.cumpaish.txt'), 'near internal name\n'),
       writeFile(join(root, 'cumpa.txt'), 'missing dot\n'),
       mkdir(join(root, 'src', '.cumpa'), { recursive: true }),
+      writeFile(join(root, newStateDirSegment, 'added.txt'), 'added internal\n'),
+      writeFile(join(root, `${newStateDirSegment}ish.txt`), 'near internal name\n'),
+      writeFile(join(root, `${RENAME_MAP.slug}.txt`), 'missing dot\n'),
+      mkdir(join(root, 'src', newStateDirSegment), { recursive: true }),
     ]);
     await Promise.all([
       writeFile(join(root, 'src', '.cumpa', 'nested.txt'), 'nested\n'),
+      writeFile(join(root, 'src', newStateDirSegment, 'nested.txt'), 'nested\n'),
     ]);
   }
   const [composedStat, decomposedStat] = await Promise.all([
@@ -505,7 +514,10 @@ describe('native-Git changed-file inventory', () => {
     });
 
     const isInternalPath = (path: ChangedFile['oldPath']): boolean =>
-      path?.utf8 === '.cumpa' || path?.utf8?.startsWith('.cumpa/') === true;
+      path?.utf8 === '.cumpa' ||
+      path?.utf8?.startsWith('.cumpa/') === true ||
+      path?.utf8 === newStateDirSegment ||
+      path?.utf8?.startsWith(RENAME_MAP.repoStateDir) === true;
 
     expect(
       files.some(
@@ -519,6 +531,15 @@ describe('native-Git changed-file inventory', () => {
     expect(pathText(fileByPath(files, 'src/.cumpa/nested.txt'))).toBe(
       'src/.cumpa/nested.txt',
     );
+    expect(pathText(fileByPath(files, `${newStateDirSegment}ish.txt`))).toBe(
+      `${newStateDirSegment}ish.txt`,
+    );
+    expect(pathText(fileByPath(files, `${RENAME_MAP.slug}.txt`))).toBe(
+      `${RENAME_MAP.slug}.txt`,
+    );
+    expect(
+      pathText(fileByPath(files, `src/${newStateDirSegment}/nested.txt`)),
+    ).toBe(`src/${newStateDirSegment}/nested.txt`);
   });
 
   it('wires the inventory into one frozen comparison and ignores moving refs and dirty files', async () => {

@@ -10,6 +10,9 @@ import {
 } from '../../src/git/standalone-resolution.js';
 import type { GitRunner } from '../../src/git/runner.js';
 import { createGitFixture, type GitFixture } from '../helpers/git-fixture.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
+
+const newStateDirSegment = RENAME_MAP.repoStateDir.replace(/\/$/, '');
 
 const fixtures: GitFixture[] = [];
 
@@ -43,7 +46,7 @@ async function makeStandaloneFixture(): Promise<GitFixture> {
   await fixture.write('ignored.txt', 'ignored contents\n');
 
   symlinkSync(
-    join(tmpdir(), 'cumpa-standalone-escape-target.txt'),
+    join(tmpdir(), `${RENAME_MAP.slug}-standalone-escape-target.txt`),
     join(fixture.root, 'escape-link'),
   );
 
@@ -169,6 +172,26 @@ describe('resolveStandaloneArguments defense-in-depth', () => {
         throw new Error(`Unexpected git invocation in this test double: ${arguments_.join(' ')}`);
       },
     };
+    await expect(
+      resolveStandaloneArguments('/fake/repo', ['anything'], { runner: fakeRunner }),
+    ).rejects.toThrow(/\.cumpa/);
+    await expect(
+      resolveStandaloneArguments('/fake/repo', ['anything'], { runner: fakeRunner }),
+    ).rejects.toThrow(new RegExp(newStateDirSegment.replace('.', '\\.')));
+  });
+
+  it('rejects a resolved path containing the new reserved repo-local state-dir segment, via an injected runner double', async () => {
+    const fakeRunner: GitRunner = {
+      async run(arguments_) {
+        if (arguments_[0] === 'ls-files') {
+          return { stdout: Buffer.from(`${newStateDirSegment}/exports/review.json\0`), stderr: Buffer.alloc(0) };
+        }
+        throw new Error(`Unexpected git invocation in this test double: ${arguments_.join(' ')}`);
+      },
+    };
+    await expect(
+      resolveStandaloneArguments('/fake/repo', ['anything'], { runner: fakeRunner }),
+    ).rejects.toThrow(new RegExp(newStateDirSegment.replace('.', '\\.')));
     await expect(
       resolveStandaloneArguments('/fake/repo', ['anything'], { runner: fakeRunner }),
     ).rejects.toThrow(/\.cumpa/);
