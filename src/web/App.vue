@@ -169,7 +169,14 @@ const uncommittedSession = computed(() =>
 );
 const isStandaloneSession = computed(() => uncommittedSession.value?.sourceKind === 'standalone');
 const recoveryAvailable = computed(() => uncommittedSession.value?.recoveryAvailable === true);
-const uncommittedBaseLabel = 'Repository object';
+const uncommittedSourceLabel = computed(() => {
+  switch (uncommittedSession.value?.sourceKind) {
+    case 'staged': return 'Staged';
+    case 'unstaged': return 'Unstaged';
+    case 'worktree': return 'Working tree';
+    default: return '';
+  }
+});
 const singlePaneSide = computed(() =>
   selectedFile.value === undefined
     ? undefined
@@ -203,25 +210,35 @@ const emptyFilesCopy = computed(() => {
   }
   if (isRangeSession.value) {
     return {
-      heading: 'No changes match this review scope',
+      heading: 'No changes match this review scope.',
       message: rangeHasPathspecs.value
-        ? 'The pinned commits contain no changed files selected by this scope.'
-        : 'The pinned commits contain no changed files.',
+        ? 'Relaunch with a different scope or range.'
+        : 'Relaunch with a different range.',
     };
   }
   if (isUncommittedSession.value) {
-    const message = uncommittedSession.value?.sourceKind === 'staged'
-      ? 'There is nothing staged. Refresh after staging changes, or relaunch with a different source.'
-      : uncommittedSession.value?.sourceKind === 'unstaged'
-        ? 'The working tree matches the index. Refresh after editing files, or relaunch with a different source.'
-        : `The working tree matches ${uncommittedBaseLabel}. Refresh after editing files, or relaunch with a different source.`;
-    return { heading: 'No changes', message };
+    return {
+      heading: `No changes in ${uncommittedSourceLabel.value}.`,
+      message: 'Edit files, then Refresh.',
+    };
   }
   return {
-    heading: 'No PR-style changes in this pinned comparison',
-    message: 'The selected head has no changes from the displayed merge base.',
+    heading: 'No changes in this comparison.',
+    message: 'Relaunch with different Base/Head endpoints.',
   };
 });
+
+const sessionKindTitleSegment = computed(() => {
+  if (isExactPatchSession.value) return 'Exact patch';
+  if (isStandaloneSession.value) return `${uncommittedSession.value?.changedFileCount ?? 0} files`;
+  if (isUncommittedSession.value) return `${uncommittedSourceLabel.value} vs HEAD`;
+  return `${session.value?.files.length ?? 0} files`;
+});
+const documentTitle = computed(() =>
+  session.value === undefined
+    ? RENAME_MAP.displayName
+    : `${RENAME_MAP.displayName} · ${session.value.repoName ?? ''} · ${sessionKindTitleSegment.value}`,
+);
 
 const unavailableHeading = computed(() =>
   patchSnapshotUnavailable.value
@@ -293,6 +310,9 @@ watch(patchDrifted, (drifted) => {
   if (drifted && !hadPatchDrift) announce('Implemented content changed.');
   hadPatchDrift = drifted;
 });
+watch(documentTitle, (title) => {
+  document.title = title;
+}, { immediate: true });
 
 
 function announce(message: string): void {
@@ -1223,7 +1243,7 @@ onBeforeUnmount(() => {
 
   <div v-else class="session-shell">
     <div class="session-shell__content" :inert="shellModalOpen">
-    <a v-if="!isNarrow && !filesCollapsed" class="skip-link" href="#changed-files-heading">Skip to changed files</a>
+    <a v-if="!isNarrow && !filesCollapsed" class="skip-link" href="#changed-files-heading">Skip to files</a>
     <a class="skip-link" :href="`#${RENAME_MAP.cssPrefix}heading`">Skip to diff</a>
     <IdentityHeader
       ref="identityHeader"
