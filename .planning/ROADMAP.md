@@ -261,7 +261,7 @@ Plans:
   2. CLI users see `--help`, picker, and dirty-source copy that accurately describe uncommitted and standalone review; the old "staged, unstaged, and untracked bytes are ignored" wording is gone.
   3. Reviewers see browser workspace titles, labels, and empty states that fit artifact review rather than only code diffs.
 
-**Plans**: 1/5 plans executed
+**Plans**: 2/5 plans executed
 
 Plans:
 
@@ -289,7 +289,7 @@ Plans:
 - [x] 17.1-22-PLAN.md
 - [x] 17.1-23-PLAN.md — Gap closure: package.json 2.0.0, support.json copy 0o600, README upgrade notes (no .cumpa drafts carry-over)
 - [x] 18-01-PLAN.md — Copy draft (`18-COPY-DRAFT.md`) + blocking human-approval checkpoint (D-05)
-- [ ] 18-02-PLAN.md — README/PRODUCT.md/package.json apply + D-06 automated claims-check test (TDD), new `docs/usage.md`
+- [x] 18-02-PLAN.md — README/PRODUCT.md/package.json apply + D-06 automated claims-check test (TDD), new `docs/usage.md`
 - [ ] 18-03-PLAN.md — CLI copy apply: `run.ts`/`picker.ts`/`source.ts` + their unit tests
 - [ ] 18-04-PLAN.md — Web workspace copy apply + `repoName` tab-title wiring (D-08/D-09/D-10)
 - [ ] 18-05-PLAN.md — e2e/integration assertion sweep for the web copy changes
@@ -303,7 +303,7 @@ Plans:
 | 15. Standalone File Review | 8/8 | Complete    | 2026-10-31 |
 | 16. Rendered Markdown Preview | 0/6 | Planned | - |
 | 17. Agent Protocol Extension & Marketplace Skill | 5/5 | Complete   | 2026-10-31 |
-| 18. Product Repositioning Copy | 1/5 | In Progress|  |
+| 18. Product Repositioning Copy | 2/5 | In Progress|  |
 
 ## Backlog
 
