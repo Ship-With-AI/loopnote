@@ -1,8 +1,8 @@
 # Third-party notices
 
-This file preserves independently applicable third-party grants. It is not a license for Cumpa.
+This file preserves independently applicable third-party grants. It is not a license for Loopnote.
 
-The Microsoft-prefaced notice beginning below is the verbatim upstream `ThirdPartyNotices.txt` supplied with Monaco Editor 0.55.1. Its wording applies to Monaco Editor's upstream material; it is not a Cumpa application license and does not grant or restrict Cumpa rights.
+The Microsoft-prefaced notice beginning below is the verbatim upstream `ThirdPartyNotices.txt` supplied with Monaco Editor 0.55.1. Its wording applies to Monaco Editor's upstream material; it is not a Loopnote application license and does not grant or restrict Loopnote rights.
 
 THIRD-PARTY SOFTWARE NOTICES AND INFORMATION
 Do Not Translate or Localize

@@ -1,0 +1,8 @@
+{
+  "status": "waiting",
+  "type": "human-action",
+  "question": "Authorize only proposal b0cc10ef0721b782bc4b6bcaf4d1e272d34f01c7d881299362d728a32f59f951: remove backed-up artifacts 9907668126 and 9928300866 using an operator-confirmed expiring token selecting only Ship-With-AI/loopnote with Actions write. No logs, runs, refs, push or visibility action is included.",
+  "options": [],
+  "since": "2026-09-08T06:34:10.102Z",
+  "phase": "03"
+}
