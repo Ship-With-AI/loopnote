@@ -7,8 +7,8 @@ import type { GroundedExactPatch, PinnedComparison, ChangedFile, UncommittedScop
 import type { WorkingTreeDriftFlag } from '../contracts/draft.js';
 import {
   ExportReviewResultSchema,
-  AppendCumpaIgnoreResultSchema,
-  CumpaIgnoreStatusSchema,
+  AppendLoopnoteIgnoreResultSchema,
+  LoopnoteIgnoreStatusSchema,
   FileContentResponseSchema,
   FileMetadataResponseSchema,
   PatchStatusResponseSchema,
@@ -19,8 +19,8 @@ import {
   type FileMetadataResponse,
   type PatchStatusResponse,
   type SessionResponse,
-  type AppendCumpaIgnoreResult,
-  type CumpaIgnoreStatus,
+  type AppendLoopnoteIgnoreResult,
+  type LoopnoteIgnoreStatus,
   type SelectorDriftResponse,
 } from '../contracts/api.js';
 import type {
@@ -68,8 +68,8 @@ import { parseCanonicalReviewExport } from '../export/review-export.js';
 import { renderReviewMarkdown } from '../export/render-review-markdown.js';
 import { getObservedNativeExchangeCapability } from './native-exchange-capability.js';
 import { assertManagedExportsRoot, ensureManagedExportsRoot, publishReviewExport } from './export-store.js';
-import { inspectCumpaIgnore } from '../git/ignore-status.js';
-import { appendCumpaIgnoreRule } from './gitignore-capability.js';
+import { inspectLoopnoteIgnore } from '../git/ignore-status.js';
+import { appendLoopnoteIgnoreRule } from './gitignore-capability.js';
 import { PatchSnapshot } from './patch-snapshot.js';
 import { type WorktreeSnapshot } from './worktree-snapshot.js';
 
@@ -220,8 +220,8 @@ export type CapabilityRegistry = Readonly<{
   readonly revealDraftFile: () => Promise<void>;
   readonly revealExportDirectory?: () => Promise<void>;
   readonly exportReview?: (input: ExportReviewRequest) => Promise<ExportReviewResult>;
-  readonly inspectCumpaIgnore: () => Promise<CumpaIgnoreStatus>;
-  readonly appendCumpaIgnoreRule: () => Promise<AppendCumpaIgnoreResult>;
+  readonly inspectLoopnoteIgnore: () => Promise<LoopnoteIgnoreStatus>;
+  readonly appendLoopnoteIgnoreRule: () => Promise<AppendLoopnoteIgnoreResult>;
   readonly support?: SupportCapability;
 }>;
 
@@ -585,17 +585,17 @@ export function createCapabilityRegistry(
       await assertManagedExportsRoot(managedRoot);
       await options.revealDraftFile(exportDirectory);
     },
-    async inspectCumpaIgnore() {
-      const status = await inspectCumpaIgnore({
+    async inspectLoopnoteIgnore() {
+      const status = await inspectLoopnoteIgnore({
         repositoryRoot: comparison.repositoryRoot,
       });
-      return CumpaIgnoreStatusSchema.parse({
+      return LoopnoteIgnoreStatusSchema.parse({
         kind: status.kind === 'not-ignored' ? 'notIgnored' : status.kind,
       });
     },
-    async appendCumpaIgnoreRule() {
-      return AppendCumpaIgnoreResultSchema.parse(
-        await appendCumpaIgnoreRule({
+    async appendLoopnoteIgnoreRule() {
+      return AppendLoopnoteIgnoreResultSchema.parse(
+        await appendLoopnoteIgnoreRule({
           repositoryRoot: comparison.repositoryRoot,
         }),
       );
@@ -981,11 +981,11 @@ export async function createExactPatchCapabilityRegistry(
         files: published.receipt.files,
       });
     },
-    async inspectCumpaIgnore() {
-      return CumpaIgnoreStatusSchema.parse({ kind: 'unavailable' });
+    async inspectLoopnoteIgnore() {
+      return LoopnoteIgnoreStatusSchema.parse({ kind: 'unavailable' });
     },
-    async appendCumpaIgnoreRule() {
-      return AppendCumpaIgnoreResultSchema.parse({ kind: 'unconfirmed' });
+    async appendLoopnoteIgnoreRule() {
+      return AppendLoopnoteIgnoreResultSchema.parse({ kind: 'unconfirmed' });
     },
   });
 }
@@ -1338,11 +1338,11 @@ export async function createUncommittedCapabilityRegistry(
       if (options.revealDraftFile === undefined) throw new Error('Draft reveal adapter is unavailable.');
       await options.revealDraftFile(draftStore.canonicalPath);
     },
-    async inspectCumpaIgnore() {
-      return CumpaIgnoreStatusSchema.parse({ kind: 'unavailable' });
+    async inspectLoopnoteIgnore() {
+      return LoopnoteIgnoreStatusSchema.parse({ kind: 'unavailable' });
     },
-    async appendCumpaIgnoreRule() {
-      return AppendCumpaIgnoreResultSchema.parse({ kind: 'unconfirmed' });
+    async appendLoopnoteIgnoreRule() {
+      return AppendLoopnoteIgnoreResultSchema.parse({ kind: 'unconfirmed' });
     },
   });
 }
@@ -1755,11 +1755,11 @@ export async function createStandaloneCapabilityRegistry(
         files: published.receipt.files,
       });
     },
-    async inspectCumpaIgnore() {
-      return CumpaIgnoreStatusSchema.parse({ kind: 'unavailable' });
+    async inspectLoopnoteIgnore() {
+      return LoopnoteIgnoreStatusSchema.parse({ kind: 'unavailable' });
     },
-    async appendCumpaIgnoreRule() {
-      return AppendCumpaIgnoreResultSchema.parse({ kind: 'unconfirmed' });
+    async appendLoopnoteIgnoreRule() {
+      return AppendLoopnoteIgnoreResultSchema.parse({ kind: 'unconfirmed' });
     },
   });
 }

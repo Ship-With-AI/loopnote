@@ -2,8 +2,8 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
 import {
-  AppendCumpaIgnoreResultSchema,
-  CumpaIgnoreStatusSchema,
+  AppendLoopnoteIgnoreResultSchema,
+  LoopnoteIgnoreStatusSchema,
   DraftLoadResponseSchema,
   DraftMutationRequestSchema,
   DraftMutationResultSchema,
@@ -500,8 +500,8 @@ export function registerSessionRoutes(app: FastifyInstance, capabilities: Capabi
       ) {
         return unavailable(reply, 400);
       }
-      return CumpaIgnoreStatusSchema.parse(
-        await capabilities.inspectCumpaIgnore(),
+      return LoopnoteIgnoreStatusSchema.parse(
+        await capabilities.inspectLoopnoteIgnore(),
       );
     },
   );
@@ -519,8 +519,8 @@ export function registerSessionRoutes(app: FastifyInstance, capabilities: Capabi
         return unavailable(reply, 400);
       }
       return reply.code(200).send(
-        AppendCumpaIgnoreResultSchema.parse(
-          await capabilities.appendCumpaIgnoreRule(),
+        AppendLoopnoteIgnoreResultSchema.parse(
+          await capabilities.appendLoopnoteIgnoreRule(),
         ),
       );
     },
