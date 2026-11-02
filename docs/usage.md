@@ -18,7 +18,7 @@ See the [README](../README.md) for install and a quick start. This file is the f
 loopnote --staged
 loopnote --unstaged
 loopnote --worktree
-loopnote --base release/2.0
+loopnote --staged --base release/2.0
 loopnote src/example.ts docs/*.md
 ```
 
