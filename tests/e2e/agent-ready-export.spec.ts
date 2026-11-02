@@ -173,6 +173,11 @@ function startAttachedCli(
     },
     stdio: ['pipe', stdoutDescriptor, stderrDescriptor],
   });
+  // A rejecting CLI may exit before consuming an oversized request; the resulting EPIPE on our
+  // side of stdin is expected and must not surface as an unhandled error.
+  child.stdin!.on('error', (error: NodeJS.ErrnoException) => {
+    if (error.code !== 'EPIPE') throw error;
+  });
   child.stdin!.end(JSON.stringify(request));
   return {
     child,
@@ -226,7 +231,14 @@ async function waitForAttachedRejectionWithoutLoopbackUrl(running: RunningAttach
       );
     }
     if (running.child.exitCode !== null || running.child.signalCode !== null) {
-      return stderr;
+      // Re-read after observing exit: the read above may predate the child's final stderr write.
+      const finalStderr = readFileSync(running.stderrPath, 'utf8');
+      if (/http:\/\/127\.0\.0\.1:\d+\/#token=[A-Za-z0-9_-]{43,}/.test(finalStderr)) {
+        throw new Error(
+          `[behavioral] attached CLI printed a loopback URL when it should have been rejected before launch:\n${finalStderr}`,
+        );
+      }
+      return finalStderr;
     }
     const { promise, resolve } = Promise.withResolvers<void>();
     setTimeout(resolve, 25);
