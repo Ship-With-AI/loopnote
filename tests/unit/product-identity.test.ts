@@ -62,7 +62,7 @@ describe('deriveProductIdentity', () => {
   });
 
   test('rejects a name that slugifies to an empty string', () => {
-    expect(() => deriveProductIdentity('   ...---   ')).toThrow(/empty slug/i);
+    expect(() => deriveProductIdentity('   !!!___   ')).toThrow(/empty slug/i);
   });
 
   test('rejects a slug long enough to exceed npm\'s 214-character unscoped-name budget', () => {

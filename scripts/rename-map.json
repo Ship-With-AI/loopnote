@@ -1,0 +1,13 @@
+{
+  "displayName": "Loopnote",
+  "slug": "loopnote",
+  "npmPackage": "@shipwithai/loopnote",
+  "binCommand": "loopnote",
+  "repoStateDir": ".loopnote/",
+  "xdgStateDirLower": "loopnote",
+  "xdgStateDirTitleCase": "Loopnote",
+  "kindPrefix": "loopnote",
+  "envPrefix": "LOOPNOTE_",
+  "cssPrefix": "loopnote-",
+  "tsIdentifierPrefix": "Loopnote"
+}
