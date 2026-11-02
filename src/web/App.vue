@@ -238,8 +238,12 @@ const sessionKindTitleSegment = computed(() => {
   if (isExactPatchSession.value) return 'Exact patch';
   if (isStandaloneSession.value) return `${uncommittedSession.value?.changedFileCount ?? 0} files`;
   if (isUncommittedSession.value) {
+    // Staged/Working tree always carry the resolved base commit (the same oid the identity header
+    // shows). Unstaged has no base: it compares the index with the working tree, never HEAD.
     const baseOid = uncommittedSession.value?.baseCommitOid;
-    return `${uncommittedSourceLabel.value} vs ${baseOid === undefined ? 'HEAD' : controlSafeDisplay(baseOid.slice(0, 7))}`;
+    return baseOid === undefined
+      ? uncommittedSourceLabel.value
+      : `${uncommittedSourceLabel.value} vs ${controlSafeDisplay(baseOid.slice(0, 7))}`;
   }
   return `${session.value?.files.length ?? 0} files`;
 });
