@@ -4,6 +4,8 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
+
 export type GeneratedExportMode = 'unsupported' | 'observed';
 
 type ExportPair = Readonly<{ readonly json: Buffer; readonly markdown: Buffer }>;
@@ -37,7 +39,7 @@ export async function runGeneratedExport(
   pair: ExportPair,
   mode: GeneratedExportMode,
 ): Promise<GeneratedExportResult> {
-  const temporaryRoot = await mkdtemp(join(tmpdir(), 'cumpa-export-fault-runner-'));
+  const temporaryRoot = await mkdtemp(join(tmpdir(), `${RENAME_MAP.slug}-export-fault-runner-`));
   const inputPath = join(temporaryRoot, 'input.json');
   const outputPath = join(temporaryRoot, 'output.json');
   const runnerPath = join(temporaryRoot, 'publish.mjs');
@@ -77,7 +79,7 @@ export async function runGeneratedExport(
 }
 
 export async function runGeneratedRecovery(repositoryRoot: string): Promise<ExportPair | undefined> {
-  const temporaryRoot = await mkdtemp(join(tmpdir(), 'cumpa-export-recovery-'));
+  const temporaryRoot = await mkdtemp(join(tmpdir(), `${RENAME_MAP.slug}-export-recovery-`));
   const inputPath = join(temporaryRoot, 'input.json');
   const outputPath = join(temporaryRoot, 'output.json');
   const runnerPath = join(temporaryRoot, 'recover.mjs');
@@ -106,7 +108,7 @@ export async function sampleGeneratedStablePair(
   stablePath: string,
   observations: number,
 ): Promise<readonly ExportPair[]> {
-  const temporaryRoot = await mkdtemp(join(tmpdir(), 'cumpa-export-reader-'));
+  const temporaryRoot = await mkdtemp(join(tmpdir(), `${RENAME_MAP.slug}-export-reader-`));
   const outputPath = join(temporaryRoot, 'observations.json');
   const runnerPath = join(temporaryRoot, 'reader.mjs');
   try {
@@ -134,7 +136,7 @@ export async function sampleGeneratedStablePair(
 }
 
 export async function runGeneratedIgnoreAppend(repositoryRoot: string): Promise<Readonly<{ readonly kind: string }>> {
-  const temporaryRoot = await mkdtemp(join(tmpdir(), 'cumpa-export-ignore-'));
+  const temporaryRoot = await mkdtemp(join(tmpdir(), `${RENAME_MAP.slug}-export-ignore-`));
   const inputPath = join(temporaryRoot, 'input.json');
   const outputPath = join(temporaryRoot, 'output.json');
   const runnerPath = join(temporaryRoot, 'ignore.mjs');

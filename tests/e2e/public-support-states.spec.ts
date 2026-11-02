@@ -28,7 +28,7 @@ import { publishScenarioRecord } from '../helpers/runtime-artifact.js';
 import { assertSourceControlUnchanged, captureSourceControlSnapshot } from '../helpers/source-control-snapshot.js';
 
 test.setTimeout(17 * 60_000);
-test.use({ headless: process.env.CUMPA_SUPPORT_RESTORE_HEADED !== '1' });
+test.use({ headless: process.env[`${RENAME_MAP.envPrefix}SUPPORT_RESTORE_HEADED`] !== '1' });
 test.describe.configure({ mode: 'serial' });
 
 type SupportStateWindow = 'pre-restore' | 'post-restore' | undefined;
@@ -94,9 +94,9 @@ function startCli(fixture: DirtyGitFixture): RunningCli {
     env: {
       ...acceptance.env,
       PATH: `${fakeBinRoot}:${acceptance.env.PATH ?? ''}`,
-      CUMPA_BROWSER_OPEN_MARKER: markerPath,
+      [`${RENAME_MAP.envPrefix}BROWSER_OPEN_MARKER`]: markerPath,
       BROWSER: join(fakeBinRoot, 'open'),
-      CUMPA_LAUNCH_OPTIONS: JSON.stringify({
+      [`${RENAME_MAP.envPrefix}LAUNCH_OPTIONS`]: JSON.stringify({
         cwd: fixture.nestedCwd,
         base: { label: fixture.baseRef.slice('refs/heads/'.length), revision: fixture.baseRef },
         head: { label: fixture.headRef.slice('refs/heads/'.length), revision: fixture.headRef },
@@ -118,7 +118,7 @@ function startAttachedCli(fixture: DirtyGitFixture): RunningAttachedCli {
     env: {
       ...acceptance.env,
       PATH: `${fakeBinRoot}:${acceptance.env.PATH ?? ''}`,
-      CUMPA_BROWSER_OPEN_MARKER: markerPath,
+      [`${RENAME_MAP.envPrefix}BROWSER_OPEN_MARKER`]: markerPath,
       BROWSER: join(fakeBinRoot, 'open'),
     },
     stdio: ['pipe', stdoutDescriptor, stderrDescriptor],
@@ -326,7 +326,7 @@ test.beforeAll(() => {
   writeFileSync(opener, [
     '#!/usr/bin/env node',
     "const { appendFileSync } = require('node:fs');",
-    "if (process.env.CUMPA_BROWSER_OPEN_MARKER) appendFileSync(process.env.CUMPA_BROWSER_OPEN_MARKER, `${JSON.stringify(process.argv.slice(2))}\\n`);",
+    `if (process.env.${RENAME_MAP.envPrefix}BROWSER_OPEN_MARKER) appendFileSync(process.env.${RENAME_MAP.envPrefix}BROWSER_OPEN_MARKER, \`\${JSON.stringify(process.argv.slice(2))}\\n\`);`,
     '',
   ].join('\n'));
   chmodSync(opener, 0o755);
@@ -417,7 +417,7 @@ test('records verified support with its own unrestricted review, export, and Fin
         blockedReason = deriveVerifiedBlockedReason(true, true);
         return;
       }
-      if (restoring && process.env.CUMPA_SUPPORT_RESTORE_HEADED !== '1') {
+      if (restoring && process.env[`${RENAME_MAP.envPrefix}SUPPORT_RESTORE_HEADED`] !== '1') {
         blockedReason = deriveVerifiedBlockedReason(false, true);
         return;
       }

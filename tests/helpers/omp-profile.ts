@@ -336,7 +336,7 @@ export function assertRealOmpProfileUnchanged(before: RealOmpProfileDigest): voi
  * configuration into the owned profile; it never mutates the source profile.
  */
 export function provisionApprovedOmpModelAccess(profile: IsolatedOmpProfile): void {
-  if (process.env.CUMPA_OMP_PROFILE_AUTH_READY !== '1') fail('operator authorization flag is required before copying provider credentials');
+  if (process.env[`${RENAME_MAP.envPrefix}OMP_PROFILE_AUTH_READY`] !== '1') fail('operator authorization flag is required before copying provider credentials');
   const source = join(homedir(), '.omp', 'agent');
   const destination = profile.agentDir;
   mkdirSync(destination, { recursive: true, mode: 0o700 });

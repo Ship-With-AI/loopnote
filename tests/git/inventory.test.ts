@@ -79,7 +79,7 @@ async function createInventoryFixture(
     });
 
   git(['init', '--initial-branch=main']);
-  git(['config', '--local', 'user.name', 'Cumpa Inventory Fixture']);
+  git(['config', '--local', 'user.name', `${RENAME_MAP.displayName} Inventory Fixture`]);
   git(['config', '--local', 'user.email', 'inventory@test.invalid']);
   git(['config', '--local', 'commit.gpgSign', 'false']);
 
@@ -429,9 +429,9 @@ describe('native-Git changed-file inventory', () => {
       cwd: repository.root,
       baseRevision: repository.baseOid,
       headRevision: repository.headOid,
-      pathspecs: [':(attr:cumpa-scope)'],
+      pathspecs: [`:(attr:${RENAME_MAP.slug}-scope)`],
     });
-    expect(accepted.range?.pathspecs).toEqual([':(attr:cumpa-scope)']);
+    expect(accepted.range?.pathspecs).toEqual([`:(attr:${RENAME_MAP.slug}-scope)`]);
 
     const error = await (async () => {
       try {

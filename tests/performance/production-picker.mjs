@@ -36,7 +36,7 @@ const fixtureEnv = {
   GIT_TERMINAL_PROMPT: '0',
 };
 const root = resolve(import.meta.dirname, '../..');
-const executablePath = resolve(root, 'dist/bin/cumpa.mjs');
+const executablePath = resolve(root, `dist/bin/${renameMap.binCommand}.mjs`);
 
 function appendTail(previous, value, limit = OUTPUT_LIMIT) {
   const combined = previous + value;

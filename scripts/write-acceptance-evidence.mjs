@@ -127,7 +127,7 @@ function limitationText(paths, restoreFinding) {
     'One macOS host platform and one browser were exercised; no operating-system or browser compatibility matrix is claimed.',
     'OMP is the only agent runtime exercised; Claude Code, Codex, and Pi remain unexercised and the Phase 6 four-agent waiver remains intact.',
     'The Phase 4 and Phase 5 local-archive acceptance record is separate and unchanged.',
-    'The local-archive path requires operator-held custody inputs and the protected CUMPA_RELEASE_SUPPORT_SERVICE_URL; its full execution was not available.',
+    `The local-archive path requires operator-held custody inputs and the protected ${renameMap.envPrefix}RELEASE_SUPPORT_SERVICE_URL; its full execution was not available.`,
   ];
   if (paths.some(sharedIdentity)) limitations.push('One shared voluntary-support identity was used across all three installation paths; three distinct identities would have required three protected sign-ins. This operator-confirmed narrowing left npm cache, npm configuration, install prefix, browser profile state, checkout separation, and sanitized PATH isolated per path.');
   if (paths.some((path) => path.providerAuthenticationReused)) limitations.push('The isolated OMP profile reused a temporary read-only copy of the operator provider credential and was not independently authenticated.');

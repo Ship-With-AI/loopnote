@@ -122,7 +122,7 @@ test('isolated OMP marketplace skill supervises the exact public CLI through Fin
   const beforeOmp = captureRealOmpProfileDigest();
   const beforeSource = await captureSourceControlSnapshot(projectRoot);
   const isolationBlocked = !canUseOmpIsolation(capability);
-  if (isolationBlocked || process.env.CUMPA_OMP_PROFILE_AUTH_READY !== '1') {
+  if (isolationBlocked || process.env[`${RENAME_MAP.envPrefix}OMP_PROFILE_AUTH_READY`] !== '1') {
     const reason = isolationBlocked ? 'omp-isolation-unavailable' : 'omp-authentication-unavailable';
     assertRealOmpProfileUnchanged(beforeOmp);
     await assertSourceControlUnchanged(beforeSource, await captureSourceControlSnapshot(projectRoot));
@@ -172,8 +172,8 @@ test('isolated OMP marketplace skill supervises the exact public CLI through Fin
       BROWSER: opener,
       PLAYWRIGHT_BROWSERS_PATH: process.env.PLAYWRIGHT_BROWSERS_PATH ?? join(homedir(), 'Library', 'Caches', 'ms-playwright'),
       [`${RENAME_MAP.envPrefix}MARKETPLACE_URL_MARKER`]: marker,
-      CUMPA_AGENT_READY_EVIDENCE_REPORT: bridge,
-      CUMPA_AGENT_READY_EVIDENCE_RUN_ID: randomUUID(),
+      [`${RENAME_MAP.envPrefix}AGENT_READY_EVIDENCE_REPORT`]: bridge,
+      [`${RENAME_MAP.envPrefix}AGENT_READY_EVIDENCE_RUN_ID`]: randomUUID(),
       [`${RENAME_MAP.envPrefix}ACCEPTANCE_SUPPORT_HOME`]: supportHome.home,
       [`${RENAME_MAP.envPrefix}SUPPORT_STATE_WINDOW`]: window,
     };

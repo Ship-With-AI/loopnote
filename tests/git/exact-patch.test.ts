@@ -31,7 +31,7 @@ async function repository(): Promise<string> {
   fixtures.push(root);
   git(root, ['init', '--quiet']);
   git(root, ['config', 'user.email', 'tests@example.com']);
-  git(root, ['config', 'user.name', 'Cumpa tests']);
+  git(root, ['config', 'user.name', `${RENAME_MAP.displayName} tests`]);
   return root;
 }
 

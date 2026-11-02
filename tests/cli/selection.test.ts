@@ -754,7 +754,7 @@ describe('exact patch CLI dispatch', () => {
       close: async () => undefined,
     } as unknown as SessionApp;
 
-    vi.stubEnv('CUMPA_SUPPORT_SERVICE_URL', '');
+    vi.stubEnv(`${RENAME_MAP.envPrefix}SUPPORT_SERVICE_URL`, '');
 
     const running = runOrdinaryAction(
       { cwd: '/repo' },

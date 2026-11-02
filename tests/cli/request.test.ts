@@ -298,7 +298,7 @@ describe('ordinary action request ownership', () => {
       }),
     } as unknown as SessionApp;
 
-    vi.stubEnv('CUMPA_SUPPORT_SERVICE_URL', '');
+    vi.stubEnv(`${RENAME_MAP.envPrefix}SUPPORT_SERVICE_URL`, '');
 
     const running = runOrdinaryAction(
       { cwd: '/repo' },
@@ -476,7 +476,7 @@ describe('ordinary action request ownership', () => {
         events.push('shutdown');
       }),
     } as unknown as SessionApp;
-    vi.stubEnv('CUMPA_SUPPORT_SERVICE_URL', 'http://support.example.test');
+    vi.stubEnv(`${RENAME_MAP.envPrefix}SUPPORT_SERVICE_URL`, 'http://support.example.test');
 
     const running = runOrdinaryAction(
       { cwd: '/repo' },
