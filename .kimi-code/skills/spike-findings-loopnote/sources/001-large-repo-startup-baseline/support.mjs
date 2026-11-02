@@ -53,7 +53,7 @@ export async function createLargeRepository({
   worktreeCount,
   packRefs = false,
 }) {
-  const tempRoot = await mkdtemp(join(tmpdir(), 'cumpa-startup-'));
+  const tempRoot = await mkdtemp(join(tmpdir(), 'loopnote-startup-'));
   const repository = join(tempRoot, 'repo');
   await mkdir(repository);
   await run('git', ['init', '-q', '-b', 'main'], { cwd: repository });

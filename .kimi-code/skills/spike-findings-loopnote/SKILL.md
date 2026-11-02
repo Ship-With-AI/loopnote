@@ -1,12 +1,12 @@
 ---
-name: spike-findings-cumpa
-description: Implementation blueprint from spike experiments. Requirements, proven patterns, and verified knowledge for building Cumpa. Auto-loaded during implementation work.
+name: spike-findings-loopnote
+description: Implementation blueprint from spike experiments. Requirements, proven patterns, and verified knowledge for building Loopnote. Auto-loaded during implementation work.
 ---
 
 <context>
-## Project: Cumpa
+## Project: Loopnote
 
-Cumpa needs a source picker that remains responsive in repositories with 10,000 local branches by exposing the current branch and registered worktrees before searchable branch discovery.
+Loopnote needs a source picker that remains responsive in repositories with 10,000 local branches by exposing the current branch and registered worktrees before searchable branch discovery.
 
 Spike sessions wrapped: 2026-07-30
 </context>

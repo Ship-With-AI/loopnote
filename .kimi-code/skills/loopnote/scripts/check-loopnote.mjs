@@ -3,7 +3,7 @@ import { spawnSync } from 'node:child_process';
 let acceptedVersion;
 
 try {
-  const result = spawnSync('cumpa', ['--version'], {
+  const result = spawnSync('loopnote', ['--version'], {
     encoding: 'utf8',
     shell: false,
     timeout: 10_000,
@@ -24,7 +24,7 @@ try {
 
 if (acceptedVersion === undefined) {
   process.stderr.write(
-    'npm install --global @shipwithai/cumpa@1.5.0\n' +
+    'npm install --global @shipwithai/loopnote@1.5.0\n' +
       'Requires Node.js 24+ and Git 2.43.0+.\n',
   );
   process.exitCode = 1;

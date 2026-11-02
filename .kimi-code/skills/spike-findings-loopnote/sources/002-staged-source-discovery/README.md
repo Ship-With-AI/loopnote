@@ -2,7 +2,7 @@
 spike: 002
 name: staged-source-discovery
 type: comparison
-validates: "Given the same repository, when eager discovery is cumpad with current-branch/worktree-first discovery, then both latency budgets hold without serial per-branch Git calls."
+validates: "Given the same repository, when eager discovery is compared with current-branch/worktree-first discovery, then both latency budgets hold without serial per-branch Git calls."
 verdict: PARTIAL
 related: [001]
 tags: [cli, git, performance, search]
@@ -53,7 +53,7 @@ The default creates 10,000 packed branch refs and four worktrees. The child proc
 3. Removing `%(refname:short)` and `%(objectname:short)` did not remove that loose-ref cost.
 4. A filtered `git branch --list --ignore-case` call preserves substring name search. Matching full OIDs are then abbreviated by one `git log --no-walk --stdin` call.
 5. Packed refs made the same 10,000-branch query fast. A broad query returning 9,999 branches and a 32-worktree initial set were tested as edge cases.
-6. `git pack-refs` fixture setup only. Cumpa must not mutate user's repository obtain results.
+6. `git pack-refs` fixture setup only. Loopnote must not mutate user's repository obtain results.
 
 ## Results
 
