@@ -27,9 +27,9 @@ const emit = defineEmits<{
     :keep-mounted="true"
     :restore-focus="restoreFocus"
     initial-focus-selector="#file-tree-filter"
-    title="Changed files"
+    title="Files"
     close-label="Close"
-    close-aria-label="Close changed files"
+    close-aria-label="Close files"
     @close="emit('close')"
   >
     <div id="changed-files-dialog-tree" class="changed-files-dialog__results"></div>

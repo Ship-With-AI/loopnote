@@ -71,8 +71,8 @@ const isMarkdownFile = computed(() => {
 const filesHostVisible = computed(() => !props.filesDrawer && !props.filesCollapsed);
 const filesToggleCopy = computed(() => props.filesDrawer ? 'Files' : props.filesCollapsed ? 'Show files' : 'Hide files');
 const filesToggleLabel = computed(() => props.filesDrawer
-  ? 'Open changed files'
-  : props.filesCollapsed ? 'Show changed files sidebar' : 'Hide changed files sidebar');
+  ? 'Open files'
+  : props.filesCollapsed ? 'Show files sidebar' : 'Hide files sidebar');
 
 function focusFilesToggle(): void {
   filesToggle.value?.focus();

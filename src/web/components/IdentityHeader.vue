@@ -158,7 +158,7 @@ defineExpose({ focusSupport });
       >
         <span>Dirty bytes ignored</span>
         <span class="visually-hidden">
-          Committed HEAD reviewed; staged, unstaged, and untracked bytes ignored.
+          Committed HEAD reviewed; uncommitted changes aren't included.
         </span>
       </span>
       <span v-if="attachedFact !== ''" class="attached-fact">{{ attachedFact }}</span>

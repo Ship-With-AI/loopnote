@@ -152,13 +152,12 @@ watch(
 </script>
 
 <template>
-  <nav class="file-tree-pane" aria-label="Changed files">
+  <nav class="file-tree-pane" aria-label="Files">
     <div class="file-tree-pane__top">
       <h2 id="changed-files-heading" tabindex="-1">
         <span aria-hidden="true">Files</span>
-        <span class="visually-hidden">Changed files ({{ files.length }})</span>
+        <span class="visually-hidden">Files ({{ files.length }})</span>
         <span class="file-tree-pane__count" aria-hidden="true">{{ files.length }}</span>
-        <span class="file-tree-pane__eyebrow" aria-hidden="true">Changed</span>
       </h2>
       <div class="file-tree-pane__filter">
         <span class="file-tree-pane__filter-glyph" aria-hidden="true">⌕</span>
@@ -188,7 +187,7 @@ watch(
         ref="treeElement"
         class="file-tree"
         role="tree"
-        aria-label="Changed files"
+        aria-label="Files"
         aria-labelledby="changed-files-heading"
         @keydown="handleKeydown"
       >
@@ -223,7 +222,7 @@ watch(
       </ul>
       <section v-if="model.visibleRows.length === 0" class="tree-empty" aria-labelledby="tree-empty-heading">
         <h3 id="tree-empty-heading">No matching files</h3>
-        <p>Clear the filter to show all changed files.</p>
+        <p>Clear the filter to show all files.</p>
         <button type="button" class="ui-button" @click="clearQuery">Clear filter</button>
       </section>
       <p class="tree-hint">↑↓ move · → open · ← close · Home/End jump · Enter/Space select</p>
