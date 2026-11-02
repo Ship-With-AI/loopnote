@@ -999,7 +999,7 @@ function validateObservations(observations) {
     if (!entry || entry.id !== id || entry.status !== 'passed' || Object.keys(entry).length !== 2) fail('browser matrix is incomplete');
   }
   const completion = observations.completion;
-  if (!completion || completion.status !== 200 || completion.content_type !== 'text/plain' || completion.body !== 'Support flow complete. You can return to Cumpa.' || Object.keys(completion).length !== 3) fail('browser completion signature is invalid');
+  if (!completion || completion.status !== 200 || completion.content_type !== 'text/plain' || completion.body !== 'Support flow complete. You can return to Loopnote.' || Object.keys(completion).length !== 3) fail('browser completion signature is invalid');
   if (observations.review_unrestricted !== true) fail('browser review availability is incomplete');
 }
 
