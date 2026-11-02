@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, test } from 'vitest';
 
 import { comparisonKey, rangeReviewKey, uncommittedReviewKey } from '../../src/domain/comparison-key.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 import { createDraftLoader, draftPaths } from '../../src/server/draft-loader.js';
 import { findUncommittedDraftCandidate } from '../../src/server/draft-store.js';
 import type { DraftIssue } from '../../src/server/draft-loader.js';
@@ -33,10 +34,10 @@ function rangeComparison(pathspecs: readonly string[]) {
 const roots: string[] = [];
 
 async function fixture(bytes?: Buffer): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), 'cumpa-draft-load-'));
+  const root = await mkdtemp(join(tmpdir(), `${RENAME_MAP.slug}-draft-load-`));
   roots.push(root);
   if (bytes !== undefined) {
-    const directory = join(root, '.cumpa', 'drafts');
+    const directory = join(root, RENAME_MAP.repoStateDir.replace(/\/$/, ''), 'drafts');
     await mkdir(directory, { recursive: true });
     await writeFile(join(directory, `${comparisonKey(comparison.baseCommitOid, comparison.headCommitOid)}.json`), bytes);
   }
@@ -45,7 +46,7 @@ async function fixture(bytes?: Buffer): Promise<string> {
 
 async function rangeFixture(scope: { readonly range: { readonly reviewKey: string } }, bytes: Buffer): Promise<string> {
   const root = await fixture();
-  const directory = join(root, '.cumpa', 'drafts');
+  const directory = join(root, RENAME_MAP.repoStateDir.replace(/\/$/, ''), 'drafts');
   await mkdir(directory, { recursive: true });
   await writeFile(join(directory, `${scope.range.reviewKey}.json`), bytes);
   return root;
@@ -72,7 +73,7 @@ function uncommittedComparison(overrides: Readonly<{
 
 async function uncommittedFixture(scope: { readonly reviewKey: string }, bytes: Buffer): Promise<string> {
   const root = await fixture();
-  const directory = join(root, '.cumpa', 'drafts');
+  const directory = join(root, RENAME_MAP.repoStateDir.replace(/\/$/, ''), 'drafts');
   await mkdir(directory, { recursive: true });
   await writeFile(join(directory, `${scope.reviewKey}.json`), bytes);
   return root;
@@ -102,7 +103,7 @@ describe('raw draft load classification', () => {
     const missing = await fixture();
     await expect(createDraftLoader({ repositoryRoot: missing, comparison }).load()).resolves.toMatchObject({
       kind: 'missing',
-      path: '.cumpa/drafts/' + comparisonKey(comparison.baseCommitOid, comparison.headCommitOid) + '.json',
+      path: `${RENAME_MAP.repoStateDir}drafts/` + comparisonKey(comparison.baseCommitOid, comparison.headCommitOid) + '.json',
     });
 
     const bytes = Buffer.from(`{\n  "comments": [], "summary": "", "revision": 0,\n  "comparison": ${JSON.stringify(comparison)}, "schemaVersion": 1\n}\n`, 'utf8');
@@ -126,7 +127,7 @@ describe('raw draft load classification', () => {
 
     await expect(createDraftLoader({ repositoryRoot: root, comparison }).load()).resolves.toMatchObject({
       kind: 'missing',
-      path: `.cumpa/drafts/${comparisonKey(comparison.baseCommitOid, comparison.headCommitOid)}.json`,
+      path: `${RENAME_MAP.repoStateDir}drafts/${comparisonKey(comparison.baseCommitOid, comparison.headCommitOid)}.json`,
     });
   });
 
@@ -137,7 +138,7 @@ describe('raw draft load classification', () => {
 
     expect(draftPaths('/repository', first)).toMatchObject({
       key: first.range.reviewKey,
-      relativePath: `.cumpa/drafts/${first.range.reviewKey}.json`,
+      relativePath: `${RENAME_MAP.repoStateDir}drafts/${first.range.reviewKey}.json`,
     });
     expect(draftPaths('/repository', first)).not.toEqual(draftPaths('/repository', reordered));
     expect(draftPaths('/repository', first)).toEqual(draftPaths('/repository', same));
@@ -257,7 +258,7 @@ describe('uncommitted comparison provenance', () => {
 describe('findUncommittedDraftCandidate', () => {
   test('finds only the draft matching sourceKind and baseCommitOid via a bounded scan', async () => {
     const root = await fixture();
-    const directory = join(root, '.cumpa', 'drafts');
+    const directory = join(root, RENAME_MAP.repoStateDir.replace(/\/$/, ''), 'drafts');
     await mkdir(directory, { recursive: true });
     const baseCommitOid = '8'.repeat(40);
 

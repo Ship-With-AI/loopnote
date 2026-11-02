@@ -15,6 +15,7 @@ import {
   type SessionResponse,
 } from '../../src/contracts/api.js';
 import { createSelectorDriftState } from '../../src/web/model/selector-drift-state.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 
 const repositoryRoot = resolve(import.meta.dirname, '../..');
 const token = 't'.repeat(43);
@@ -128,7 +129,7 @@ function exactPatchContent() {
 function resumedDraft(): DraftLoadResponse {
   return DraftLoadResponseSchema.parse({
     kind: 'current',
-    path: '.cumpa/drafts/active-review.json',
+    path: `${RENAME_MAP.repoStateDir}drafts/active-review.json`,
     draft: {
       schemaVersion: 1,
       comparison: {
@@ -236,7 +237,7 @@ test.beforeEach(() => {
   session = pinnedSession();
   draftResponse = DraftLoadResponseSchema.parse({
     kind: 'missing',
-    path: '.cumpa/drafts/active-review.json',
+    path: `${RENAME_MAP.repoStateDir}drafts/active-review.json`,
   });
   driftResponse = unchanged();
   patchStatusResponse = PatchStatusResponseSchema.parse({

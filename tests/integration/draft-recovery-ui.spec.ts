@@ -14,15 +14,16 @@ import {
 import { createServer, type ViteDevServer } from 'vite';
 import { canonicalRoot } from '../helpers/canonical-root.js';
 import { resolveToken, toCssRgb } from '../../src/web/theme/token-contract.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 
 const repositoryRoot = resolve(import.meta.dirname, '../..');
 const canonicalTokens = canonicalRoot(repositoryRoot);
 const toRootRgb = (token: string): string => toCssRgb(canonicalTokens, token);
 const token = 't'.repeat(43);
-const safeDraftPath = '.cumpa/drafts/active-review.json';
-const safeBackupPath = '.cumpa/drafts/active-review.corrupt-backup.json';
+const safeDraftPath = `${RENAME_MAP.repoStateDir}drafts/active-review.json`;
+const safeBackupPath = `${RENAME_MAP.repoStateDir}drafts/active-review.corrupt-backup.json`;
 const fingerprint = 'a'.repeat(64);
-const absolutePath = '/private/repositories/review/.cumpa/drafts/active-review.json';
+const absolutePath = `/private/repositories/review/${RENAME_MAP.repoStateDir}drafts/active-review.json`;
 
 let server: ViteDevServer | undefined;
 let origin = '';

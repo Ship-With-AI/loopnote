@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { ReviewExportV1Schema } from '../../src/contracts/draft.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 import { canonicalizeReviewExport, parseCanonicalReviewExport } from '../../src/export/review-export.js';
 import { renderReviewMarkdown } from '../../src/export/render-review-markdown.js';
 import { runGeneratedExport, runGeneratedIgnoreAppend, runGeneratedRecovery, sampleGeneratedStablePair } from '../helpers/export-fault-runner.js';
@@ -45,7 +46,7 @@ describe('agent-ready export source-control safety evidence', () => {
 
     for (const fixture of matrix) {
       const before = await captureSourceControlSnapshot(fixture.root);
-      await fixture.write('.cumpa/exports/evidence.txt', 'generated export evidence\n');
+      await fixture.write(`${RENAME_MAP.repoStateDir}exports/evidence.txt`, 'generated export evidence\n');
       await expect(
         assertSourceControlUnchanged(before, await captureSourceControlSnapshot(fixture.root)),
       ).resolves.toBeUndefined();
@@ -112,7 +113,7 @@ describe('agent-ready export source-control safety evidence', () => {
 function candidatePair(marker: string): Readonly<{ readonly json: Buffer; readonly markdown: Buffer }> {
   const json = Buffer.from(canonicalizeReviewExport(ReviewExportV1Schema.parse({
     schemaVersion: 1,
-    kind: 'cumpa/export',
+    kind: `${RENAME_MAP.kindPrefix}/export`,
     exportedAt: '2026-07-23T00:00:00.000Z',
     acceptedDraftRevision: 1,
     comparison: {
@@ -143,7 +144,7 @@ describe('generated publication and recovery safety evidence', () => {
     const newPair = candidatePair('new rejected generation');
 
     await expect(runGeneratedExport(fixture.root, oldPair, 'unsupported')).resolves.toMatchObject({ kind: 'exported' });
-    const stable = join(fixture.root, '.cumpa', 'exports', `${'1'.repeat(40)}..${'2'.repeat(40)}`);
+    const stable = join(fixture.root, RENAME_MAP.repoStateDir.replace(/\/$/, ''), 'exports', `${'1'.repeat(40)}..${'2'.repeat(40)}`);
     const [oldJson, oldMarkdown] = await Promise.all([readFile(join(stable, 'review.json')), readFile(join(stable, 'review.md'))]);
     const stableStat = await lstat(stable);
 
@@ -171,7 +172,7 @@ describe('generated publication and recovery safety evidence', () => {
   test('leaves failed first export absent and preserves ambiguous candidate remnants on child-process restart', async () => {
     const fixture = await createDirtyGitFixture();
     fixtures.push(fixture);
-    const stable = join(fixture.root, '.cumpa', 'exports', `${'1'.repeat(40)}..${'2'.repeat(40)}`);
+    const stable = join(fixture.root, RENAME_MAP.repoStateDir.replace(/\/$/, ''), 'exports', `${'1'.repeat(40)}..${'2'.repeat(40)}`);
     const invalid = Object.freeze({ json: Buffer.from('{invalid'), markdown: Buffer.from('not derived\n') });
 
     await expect(runGeneratedExport(fixture.root, invalid, 'unsupported')).resolves.toEqual({ kind: 'publicationFailed' });
@@ -184,25 +185,26 @@ describe('generated publication and recovery safety evidence', () => {
     await expect(readFile(join(remnant, 'preserve-me'), 'utf8')).resolves.toBe('ambiguous restart evidence\n');
   }, 30_000);
 
-  test.each(['.cumpa', 'exports'] as const)(
+  test.each([RENAME_MAP.repoStateDir.replace(/\/$/, ''), 'exports'] as const)(
     'generated publisher and recovery reject externally directed %s parent symlink',
     async (managedParent) => {
+      const stateDirSegment = RENAME_MAP.repoStateDir.replace(/\/$/, '');
       const fixture = await createDirtyGitFixture();
       fixtures.push(fixture);
-      const outside = await mkdtemp(join(tmpdir(), 'cumpa-export-outside-'));
+      const outside = await mkdtemp(join(tmpdir(), `${RENAME_MAP.slug}-export-outside-`));
       outsideRoots.push(outside);
       const stableName = `${'1'.repeat(40)}..${'2'.repeat(40)}`;
       const oldPair = candidatePair(`outside ${managedParent}`);
-      const outsideExportsRoot = managedParent === '.cumpa' ? join(outside, 'exports') : outside;
+      const outsideExportsRoot = managedParent === stateDirSegment ? join(outside, 'exports') : outside;
       const outsideStable = join(outsideExportsRoot, stableName);
       await mkdir(outsideStable, { recursive: true });
       await writeFile(join(outsideStable, 'review.json'), oldPair.json);
       await writeFile(join(outsideStable, 'review.md'), oldPair.markdown);
-      if (managedParent === '.cumpa') {
-        await symlink(outside, join(fixture.root, '.cumpa'), 'dir');
+      if (managedParent === stateDirSegment) {
+        await symlink(outside, join(fixture.root, stateDirSegment), 'dir');
       } else {
-        await mkdir(join(fixture.root, '.cumpa'));
-        await symlink(outside, join(fixture.root, '.cumpa', 'exports'), 'dir');
+        await mkdir(join(fixture.root, stateDirSegment));
+        await symlink(outside, join(fixture.root, stateDirSegment, 'exports'), 'dir');
       }
 
       await expect(runGeneratedExport(fixture.root, candidatePair('new'), 'unsupported')).resolves.toEqual({

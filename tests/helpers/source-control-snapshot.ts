@@ -3,6 +3,8 @@ import { execFileSync } from 'node:child_process';
 import { lstat, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
+
 const gitEnvironment = {
   ...process.env,
   GIT_CONFIG_NOSYSTEM: '1',
@@ -25,7 +27,7 @@ const safeGitArguments = [
   'protocol.file.allow=never',
 ] as const;
 
-export const approvedGitignoreAppend = Buffer.from('/.cumpa/\n', 'ascii');
+export const approvedGitignoreAppend = Buffer.from(`/${RENAME_MAP.repoStateDir}\n`, 'ascii');
 
 type TrackedEntry = Readonly<{ readonly path: string; readonly mode: number; readonly bytes: Buffer }>;
 type UntrackedEntry = Readonly<{ readonly path: string; readonly bytes: Buffer }>;
@@ -86,7 +88,8 @@ function equalBytes(left: Buffer, right: Buffer): boolean {
 }
 
 function withoutExports<T extends { readonly path: string }>(entries_: readonly T[]): readonly T[] {
-  return entries_.filter((entry) => entry.path !== '.cumpa' && !entry.path.startsWith('.cumpa/'));
+  const stateDirSegment = RENAME_MAP.repoStateDir.replace(/\/$/, '');
+  return entries_.filter((entry) => entry.path !== stateDirSegment && !entry.path.startsWith(RENAME_MAP.repoStateDir));
 }
 
 function replacePermittedGitignore(

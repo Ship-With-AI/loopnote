@@ -4,6 +4,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { expect, test, type Page } from '@playwright/test';
 import { createServer, type ViteDevServer } from 'vite';
 import { canonicalRoot } from '../helpers/canonical-root.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 import { resolveToken, toCssRgb } from '../../src/web/theme/token-contract.js';
 
 const repositoryRoot = resolve(import.meta.dirname, '../..');
@@ -12,7 +13,7 @@ const toRootRgb = (token: string): string => toCssRgb(canonicalTokens, token);
 const token = 't'.repeat(43);
 const baseOid = 'a'.repeat(40);
 const headOid = 'b'.repeat(40);
-const exportDirectory = `.cumpa/exports/${baseOid}..${headOid}`;
+const exportDirectory = `${RENAME_MAP.repoStateDir}exports/${baseOid}..${headOid}`;
 
 let server: ViteDevServer | undefined;
 let origin = '';
@@ -99,7 +100,7 @@ async function startAppServer(): Promise<string> {
         viteServer.middlewares.use('/api/session', (_request, response) => json(response, session));
         viteServer.middlewares.use('/api/draft', (_request, response) => json(response, {
           kind: 'current',
-          path: '.cumpa/drafts/export-receipt.json',
+          path: `${RENAME_MAP.repoStateDir}drafts/export-receipt.json`,
           draft: {
             schemaVersion: 1,
             comparison: { baseCommitOid: baseOid, headCommitOid: headOid, mergeBaseOid: 'c'.repeat(40) },

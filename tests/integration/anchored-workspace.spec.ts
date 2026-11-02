@@ -15,6 +15,7 @@ import {
   type SessionResponse,
 } from '../../src/contracts/api.js';
 import { createServer, type ViteDevServer } from 'vite';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 import { canonicalRoot } from '../helpers/canonical-root.js';
 import { toCssRgb } from '../../src/web/theme/token-contract.js';
 
@@ -142,7 +143,7 @@ function draftView(comments: readonly WorkspaceComment[]) {
 function draftLoad(comments: readonly WorkspaceComment[]) {
   return DraftLoadResponseSchema.parse({
     kind: 'current',
-    path: '.cumpa/drafts/anchored-workspace.json',
+    path: `${RENAME_MAP.repoStateDir}drafts/anchored-workspace.json`,
     draft: draftView(comments),
   });
 }

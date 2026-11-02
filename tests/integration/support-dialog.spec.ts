@@ -5,6 +5,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { createServer, type ViteDevServer } from 'vite';
 
 import { DraftLoadResponseSchema, SessionResponseSchema } from '../../src/contracts/api.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 
 const repositoryRoot = resolve(import.meta.dirname, '../..');
 const token = 't'.repeat(43);
@@ -35,7 +36,7 @@ async function startServer(): Promise<string> {
           files: [],
           ...(supportEnabled ? { support: { enabled: true } } : {}),
         })));
-        vite.middlewares.use('/api/draft', (_request, response) => json(response, DraftLoadResponseSchema.parse({ kind: 'missing', path: '.cumpa/drafts/review.json' })));
+        vite.middlewares.use('/api/draft', (_request, response) => json(response, DraftLoadResponseSchema.parse({ kind: 'missing', path: `${RENAME_MAP.repoStateDir}drafts/review.json` })));
         vite.middlewares.use('/api/selector-drift', (_request, response) => json(response, { base: { kind: 'unchanged', role: 'base' }, head: { kind: 'unchanged', role: 'head' } }));
         vite.middlewares.use('/api/support/status', (_request, response) => json(response, { status: support }));
         vite.middlewares.use('/api/support/refresh', (_request, response) => { refreshes += 1; json(response, { status: support }); });
