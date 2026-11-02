@@ -1,9 +1,11 @@
 import { createHash } from 'node:crypto';
 
-const DOMAIN = Buffer.from('cumpa-comparison-key-v1', 'utf8');
-const RANGE_DOMAIN = Buffer.from('cumpa-range-review-key-v1', 'utf8');
-const UNCOMMITTED_DOMAIN = Buffer.from('cumpa-uncommitted-review-key-v1', 'utf8');
-const STANDALONE_DOMAIN = Buffer.from('cumpa-standalone-review-key-v1', 'utf8');
+import { RENAME_MAP } from './product-identity.js';
+
+const DOMAIN = Buffer.from(`${RENAME_MAP.slug}-comparison-key-v1`, 'utf8');
+const RANGE_DOMAIN = Buffer.from(`${RENAME_MAP.slug}-range-review-key-v1`, 'utf8');
+const UNCOMMITTED_DOMAIN = Buffer.from(`${RENAME_MAP.slug}-uncommitted-review-key-v1`, 'utf8');
+const STANDALONE_DOMAIN = Buffer.from(`${RENAME_MAP.slug}-standalone-review-key-v1`, 'utf8');
 const encoder = new TextEncoder();
 
 function frame(value: string): Buffer {

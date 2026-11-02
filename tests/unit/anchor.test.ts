@@ -136,7 +136,7 @@ describe('range-aware durable anchors (A-01)', () => {
 
     expect(anchor.endLine).toBeUndefined();
     expect(anchor.contextHash.value).toBe(
-      '23c54f8ce14e00f3cd68a697a3ff909a4cc33b5998cc4325b07595fdfef71e6b',
+      '6b6737df1bd5c8bc1776da0c6cacd8dbb16aaf95a05f090b9cc1c4b7ba1994ef',
     );
   });
 
