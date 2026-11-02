@@ -399,7 +399,7 @@ test('generated range request preserves the server-scoped pinned review', async 
     expect(session.files[0]?.newPath?.display ?? session.files[0]?.oldPath?.display).toBe('committed.txt');
 
     await page.goto(url, { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('tree', { name: 'Changed files' })).toContainText('committed.txt');
+    await expect(page.getByRole('tree', { name: 'Files' })).toContainText('committed.txt');
     await expect(page.getByRole('tree')).not.toContainText('at-limit.txt');
     await expect(page.getByRole('tree')).not.toContainText('over-limit.txt');
 
@@ -488,8 +488,8 @@ test('range empty state exposes all changed paths without changing interactive c
   try {
     const url = await waitForLoopbackUrl(running);
     await page.goto(url, { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('heading', { name: 'No changes match this review scope' })).toBeVisible();
-    await expect(page.getByText('The pinned commits contain no changed files.')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'No changes match this review scope.' })).toBeVisible();
+    await expect(page.getByText('Relaunch with a different range.')).toBeVisible();
   } finally {
     await stopGeneratedCli(running);
     await context.close();
@@ -784,10 +784,10 @@ test('complete packaged Phase 1 ordering matrix', async ({ browser }, testInfo) 
           `BASE${matrixCase.selections.base.label} · ${expectedBase.slice(0, 7)}→HEAD${matrixCase.selections.head.label} · ${expectedHead.slice(0, 7)}`,
         );
         await expect(
-          page.getByRole('heading', { name: 'Changed files (3)' }),
+          page.getByRole('heading', { name: 'Files (3)' }),
         ).toBeVisible();
         await expect(
-          page.getByRole('tree', { name: 'Changed files' }),
+          page.getByRole('tree', { name: 'Files' }),
         ).toBeVisible();
 
         const firstFile = session.files[0]!;
@@ -894,7 +894,7 @@ test('identity session and empty states', async ({ browser, context, page }, tes
     await expect(securityPage.locator('.state-card')).toHaveCSS('border-color', toRootRgb('--border-default'));
     await expect(securityPage.locator('body')).not.toContainText(new URL(url).hash);
     await expect(securityPage.getByRole('button', { name: /retry/i })).toHaveCount(0);
-    await expect(securityPage.getByRole('navigation', { name: 'Changed files' })).toHaveCount(0);
+    await expect(securityPage.getByRole('navigation', { name: 'Files' })).toHaveCount(0);
 
     const errorPage = await context.newPage();
     await errorPage.route('**/api/session', async (route) => {
@@ -916,7 +916,7 @@ test('identity session and empty states', async ({ browser, context, page }, tes
     );
     await expect(errorPage.locator('body')).not.toContainText(repository.root);
     await expect(errorPage.getByRole('button', { name: /retry/i })).toHaveCount(0);
-    await expect(errorPage.getByRole('navigation', { name: 'Changed files' })).toHaveCount(0);
+    await expect(errorPage.getByRole('navigation', { name: 'Files' })).toHaveCount(0);
 
     const stoppedPage = await context.newPage();
     await stoppedPage.route('**/api/session', async (route) => {
@@ -930,7 +930,7 @@ test('identity session and empty states', async ({ browser, context, page }, tes
       `This pinned session has stopped. Relaunch ${RENAME_MAP.displayName} from the terminal to continue.`,
     );
     await expect(stoppedPage.getByRole('button', { name: /retry/i })).toHaveCount(0);
-    await expect(stoppedPage.getByRole('navigation', { name: 'Changed files' })).toHaveCount(0);
+    await expect(stoppedPage.getByRole('navigation', { name: 'Files' })).toHaveCount(0);
   } finally {
     await stopGeneratedCli(running);
     await repository.cleanup();
@@ -973,7 +973,7 @@ test('identity session and empty states', async ({ browser, context, page }, tes
     await expect(dirtyBadge).toBeVisible();
     await expect(
       dirtyBadge.locator('..').getByText(
-        'Committed HEAD reviewed; staged, unstaged, and untracked bytes ignored.',
+        'Committed HEAD reviewed; uncommitted changes aren\'t included.',
         { exact: true },
       ),
     ).toBeAttached();
@@ -992,11 +992,11 @@ test('identity session and empty states', async ({ browser, context, page }, tes
       /BASEBase fixture · [0-9a-f]{7}→HEADHead fixture · [0-9a-f]{7}/,
     );
     await expect(
-      emptyPage.getByRole('heading', { level: 2, name: 'No PR-style changes in this pinned comparison' }),
+      emptyPage.getByRole('heading', { level: 2, name: 'No changes in this comparison.' }),
     ).toBeVisible();
-    await expect(emptyPage.getByText('0 changed files', { exact: true })).toHaveCount(0);
+    await expect(emptyPage.getByText('0 files', { exact: true })).toHaveCount(0);
     await expect(
-      emptyPage.getByText('The selected head has no changes from the displayed merge base.', { exact: true }),
+      emptyPage.getByText('Relaunch with different Base/Head endpoints.', { exact: true }),
     ).toBeVisible();
     await expect(emptyPage.getByRole('alert')).toHaveCount(0);
     await expect(emptyPage.getByText('Opening pinned comparison…')).toHaveCount(0);

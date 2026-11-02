@@ -503,13 +503,13 @@ async function expectPhase08ReflowAtWidth(page: Page, width: Phase08Width): Prom
 
 async function expectTreeInteriorAtWidth(page: Page, width: number): Promise<void> {
   await page.setViewportSize({ width, height: 640 });
-  const filesButton = page.getByRole('button', { name: width <= 760 ? 'Open changed files' : 'Hide changed files sidebar', exact: true });
+  const filesButton = page.getByRole('button', { name: width <= 760 ? 'Open files' : 'Hide files sidebar', exact: true });
   if (width <= 760) {
     await filesButton.click();
   }
 
   const filesPane = width <= 760
-    ? page.getByRole('dialog', { name: 'Changed files', exact: true }).locator('.changed-files-dialog__results')
+    ? page.getByRole('dialog', { name: 'Files', exact: true }).locator('.changed-files-dialog__results')
     : page.locator('.changed-files-sidebar');
   const selected = filesPane.locator('.tree-row--selected');
   const lineCounts = selected.locator('.line-counts');
@@ -543,7 +543,7 @@ async function expectTreeInteriorAtWidth(page: Page, width: number): Promise<voi
 
 async function expectNonColorStateCues(page: Page): Promise<void> {
   const selected = page.locator('.tree-row--selected').first();
-  const filesPane = page.getByRole('dialog', { name: 'Changed files', exact: true }).locator('.changed-files-dialog__results');
+  const filesPane = page.getByRole('dialog', { name: 'Files', exact: true }).locator('.changed-files-dialog__results');
   const baseBar = page.locator('.monaco-editor .monaco-diff-change-bar--base').first();
   const headBar = page.locator('.monaco-editor .monaco-diff-change-bar--head').first();
   const baseSign = page.locator('.monaco-editor .monaco-diff-change-sign--base').first();
@@ -999,11 +999,11 @@ test('responsive keyboard and accessibility contract', async ({
         await expect.poll(() => new URL(page.url()).hash).toBe(`#${destination}`);
       }
 
-      const files = page.getByRole('button', { name: 'Open changed files', exact: true });
+      const files = page.getByRole('button', { name: 'Open files', exact: true });
       await files.focus();
       await expectFocusIndicatorUnclipped(files);
       await page.keyboard.press('Enter');
-      const changedFiles = page.getByRole('dialog', { name: 'Changed files', exact: true });
+      const changedFiles = page.getByRole('dialog', { name: 'Files', exact: true });
       const filter = changedFiles.getByRole('searchbox', { name: 'Filter files', exact: true });
       await expect(changedFiles).toBeVisible();
       await expect(filter).toBeFocused();
@@ -1060,10 +1060,10 @@ test('responsive keyboard and accessibility contract', async ({
         await expectPhase08ReflowAtWidth(page, width);
       }
 
-      const files = page.getByRole('button', { name: 'Open changed files', exact: true });
+      const files = page.getByRole('button', { name: 'Open files', exact: true });
       await files.focus();
       await page.keyboard.press('Enter');
-      const changedFiles = page.getByRole('dialog', { name: 'Changed files', exact: true });
+      const changedFiles = page.getByRole('dialog', { name: 'Files', exact: true });
       const movedFile = changedFiles.locator('.file-tree .file-row').nth(1);
       await movedFile.click();
       const movedPath = page.locator(`#${RENAME_MAP.cssPrefix}heading .path-display`);
@@ -1084,7 +1084,7 @@ test('responsive keyboard and accessibility contract', async ({
       const filter = changedFiles.getByRole('searchbox', { name: 'Filter files', exact: true });
       await expect(changedFiles).toBeVisible();
       await expect(filter).toBeFocused();
-      await expect(page.getByRole('navigation', { name: 'Changed files', exact: true })).toHaveCount(1);
+      await expect(page.getByRole('navigation', { name: 'Files', exact: true })).toHaveCount(1);
       await expect(page.locator('.review-shell')).toHaveAttribute('inert', '');
       expect(await page.locator('.review-main').evaluate((main) => (
         [...main.querySelectorAll('input, textarea, select')]
@@ -1102,33 +1102,33 @@ test('responsive keyboard and accessibility contract', async ({
       await expectTreeInteriorAtWidth(page, phase08Widths[0]);
       await expectTreeInteriorAtWidth(page, phase08Widths[1]);
       await expectTreeInteriorAtWidth(page, 420);
-      await page.getByRole('button', { name: 'Close changed files', exact: true }).click();
+      await page.getByRole('button', { name: 'Close files', exact: true }).click();
     });
 
     await test.step('achromatopsia preserves real non-color diff and focus cues', async () => {
       const cdp = await page.context().newCDPSession(page);
-      const files = page.getByRole('button', { name: 'Open changed files', exact: true });
-      const changedFiles = page.getByRole('dialog', { name: 'Changed files', exact: true });
+      const files = page.getByRole('button', { name: 'Open files', exact: true });
+      const changedFiles = page.getByRole('dialog', { name: 'Files', exact: true });
       await cdp.send('Emulation.setEmulatedVisionDeficiency', { type: 'achromatopsia' });
       await files.focus();
       await page.keyboard.press('Enter');
       try {
         await expect(changedFiles.getByRole('searchbox', { name: 'Filter files', exact: true })).toBeFocused();
-        await page.getByRole('button', { name: 'Close changed files', exact: true }).click();
+        await page.getByRole('button', { name: 'Close files', exact: true }).click();
       } finally {
         await cdp.detach();
       }
     });
-    await test.step('forced colors preserve changed files dialog focus', async () => {
+    await test.step('forced colors preserve files dialog focus', async () => {
       await page.emulateMedia({ forcedColors: 'active' });
-      const files = page.getByRole('button', { name: 'Open changed files', exact: true });
-      const changedFiles = page.getByRole('dialog', { name: 'Changed files', exact: true });
+      const files = page.getByRole('button', { name: 'Open files', exact: true });
+      const changedFiles = page.getByRole('dialog', { name: 'Files', exact: true });
       await files.focus();
       await page.keyboard.press('Enter');
       try {
         await expect(changedFiles).toBeVisible();
         await expect(changedFiles.getByRole('searchbox', { name: 'Filter files', exact: true })).toBeFocused();
-        await page.getByRole('button', { name: 'Close changed files', exact: true }).click();
+        await page.getByRole('button', { name: 'Close files', exact: true }).click();
         await expect(files).toBeFocused();
       } finally {
         await page.emulateMedia({ forcedColors: 'none' });
@@ -1147,7 +1147,7 @@ test('responsive keyboard and accessibility contract', async ({
       const overlayShadow = await rootShadow(headerFacts);
       const assertFilesCollapse = async (width: number): Promise<void> => {
         await page.setViewportSize({ width, height: 560 });
-        const filesButton = page.getByRole('button', { name: 'Hide changed files sidebar', exact: true });
+        const filesButton = page.getByRole('button', { name: 'Hide files sidebar', exact: true });
         await expect(filesButton).toHaveAttribute('aria-controls', 'changed-files');
         await expect(filesButton).toHaveAttribute('aria-expanded', 'true');
         const before = await reviewShell.evaluate((shell) => {
@@ -1163,7 +1163,7 @@ test('responsive keyboard and accessibility contract', async ({
         expect(before.files.x + before.files.width).toBeCloseTo(before.main.x, 3);
 
         await filesButton.click();
-        const showFilesButton = page.getByRole('button', { name: 'Show changed files sidebar', exact: true });
+        const showFilesButton = page.getByRole('button', { name: 'Show files sidebar', exact: true });
         await expect(showFilesButton).not.toHaveAttribute('aria-controls');
         await expect(page.locator('#changed-files')).not.toBeVisible();
         const collapsed = await reviewShell.evaluate((shell) => {
@@ -1228,7 +1228,7 @@ test('responsive keyboard and accessibility contract', async ({
       await assertNoPageOverflow(page);
 
       await page.setViewportSize({ width: 1050, height: 560 });
-      await expect(page.getByRole('button', { name: 'Hide changed files sidebar', exact: true })).toHaveAttribute('aria-expanded', 'true');
+      await expect(page.getByRole('button', { name: 'Hide files sidebar', exact: true })).toHaveAttribute('aria-expanded', 'true');
       await expect(sessionHeader).toHaveCSS('flex-wrap', 'wrap');
       await expect(headerFacts).toHaveCSS('flex-wrap', 'wrap');
       const desktopColumns = await reviewShell.evaluate((shell) => {
@@ -1251,7 +1251,7 @@ test('responsive keyboard and accessibility contract', async ({
       await assertNoPageOverflow(page);
 
       await page.setViewportSize({ width: 761, height: 560 });
-      await expect(page.getByRole('button', { name: 'Hide changed files sidebar', exact: true })).toHaveAttribute('aria-expanded', 'true');
+      await expect(page.getByRole('button', { name: 'Hide files sidebar', exact: true })).toHaveAttribute('aria-expanded', 'true');
       await expect(sessionHeader).toHaveCSS('flex-wrap', 'wrap');
       await expect(headerFacts).toHaveCSS('flex-wrap', 'wrap');
       const wrappedHeaderGeometry = await sessionHeader.evaluate((header) => {
@@ -1322,8 +1322,8 @@ test('responsive keyboard and accessibility contract', async ({
       await assertNoPageOverflow(page);
 
       await page.setViewportSize({ width: 760, height: 560 });
-      const filesButton = page.getByRole('button', { name: 'Open changed files', exact: true });
-      const changedFiles = page.getByRole('dialog', { name: 'Changed files', exact: true });
+      const filesButton = page.getByRole('button', { name: 'Open files', exact: true });
+      const changedFiles = page.getByRole('dialog', { name: 'Files', exact: true });
       await expect(filesButton).toBeVisible();
       await expect(filesButton).not.toHaveAttribute('aria-controls');
       await expect(filesButton).not.toHaveAttribute('aria-expanded');
@@ -1333,7 +1333,7 @@ test('responsive keyboard and accessibility contract', async ({
       await expect(changedFiles).toBeVisible();
       await expect(changedFiles).toHaveCSS('box-shadow', overlayShadow);
       await assertNoPageOverflow(page);
-      await expect(page.getByRole('button', { name: 'Close changed files', exact: true })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Close files', exact: true })).toBeVisible();
       await page.keyboard.press('Escape');
       await expect(changedFiles).toHaveCount(0);
       await expect(filesButton).toBeFocused();
@@ -1358,10 +1358,10 @@ test('responsive keyboard and accessibility contract', async ({
 
     await test.step('compact viewport preserves accessible review controls', async () => {
       await page.setViewportSize({ width: 320, height: 640 });
-      await expect(page.getByRole('button', { name: 'Open changed files', exact: true })).toBeVisible();
-      await page.getByRole('button', { name: 'Open changed files', exact: true }).click();
-      await expect(page.getByRole('tree', { name: /Changed files/ })).toBeVisible();
-      await page.getByRole('button', { name: 'Close changed files' }).click();
+      await expect(page.getByRole('button', { name: 'Open files', exact: true })).toBeVisible();
+      await page.getByRole('button', { name: 'Open files', exact: true }).click();
+      await expect(page.getByRole('tree', { name: /Files/ })).toBeVisible();
+      await page.getByRole('button', { name: 'Close files' }).click();
     });
 
     if (process.env[`${RENAME_MAP.envPrefix}TRUE_ZOOM`] === '1') {

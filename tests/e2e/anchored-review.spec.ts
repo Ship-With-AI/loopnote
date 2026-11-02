@@ -337,7 +337,7 @@ test('packaged anchored gap closure recovers a non-line-1 exact anchor', async (
   }
 });
 
-test('packaged changed files dialog returns to the diff heading', async ({ browser, page }, testInfo) => {
+test('packaged files dialog returns to the diff heading', async ({ browser, page }, testInfo) => {
   assertChromium(browser, testInfo);
   const fixture = await createGitFixture({ anchoredReview: true });
   const initial = startGeneratedCli(fixture);
@@ -349,10 +349,10 @@ test('packaged changed files dialog returns to the diff heading', async ({ brows
     await expect(page.getByRole('heading', { level: 1, name: 'src/changed.ts' })).toBeVisible();
 
     await page.setViewportSize({ width: 760, height: 900 });
-    const filesToggle = page.getByRole('button', { name: 'Open changed files', exact: true });
+    const filesToggle = page.getByRole('button', { name: 'Open files', exact: true });
     await filesToggle.click();
-    await expect(page.getByRole('dialog', { name: 'Changed files', exact: true })).toBeVisible();
-    await page.getByRole('button', { name: 'Close changed files' }).click();
+    await expect(page.getByRole('dialog', { name: 'Files', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Close files' }).click();
     await expect(filesToggle).toBeFocused();
     await expect(page.locator('.changed-files-sidebar')).not.toBeVisible();
 

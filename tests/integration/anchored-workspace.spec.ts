@@ -574,7 +574,7 @@ test('Phase 07 header and control states', async ({ page }) => {
         .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth))
         .toBe(true);
     }
-    await expect(page.getByRole('button', { name: 'Open changed files', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Open files', exact: true })).toBeVisible();
   } finally {
     resetAsyncSettlementFixture();
   }
@@ -916,18 +916,18 @@ test('anchored gap closure', async ({ page }) => {
   await page.setViewportSize({ width: 1200, height: 900 });
 
   await page.setViewportSize({ width: 760, height: 900 });
-  const filesToggle = page.getByRole('button', { name: 'Open changed files', exact: true });
-  const changedFiles = page.getByRole('dialog', { name: 'Changed files', exact: true });
+  const filesToggle = page.getByRole('button', { name: 'Open files', exact: true });
+  const changedFiles = page.getByRole('dialog', { name: 'Files', exact: true });
   await filesToggle.click();
   await expect(changedFiles).toBeVisible();
   await expect(changedFiles.getByRole('searchbox', { name: 'Filter files', exact: true })).toBeFocused();
-  await page.getByRole('button', { name: 'Close changed files' }).click();
+  await page.getByRole('button', { name: 'Close files' }).click();
   await expect(filesToggle).toBeFocused();
   await expect(page.locator('.changed-files-sidebar')).not.toBeVisible();
   await filesToggle.click();
   await expect(changedFiles).toBeVisible();
   await page.setViewportSize({ width: 1440, height: 900 });
-  const desktopFilesToggle = page.getByRole('button', { name: 'Hide changed files sidebar', exact: true });
+  const desktopFilesToggle = page.getByRole('button', { name: 'Hide files sidebar', exact: true });
   await expect(changedFiles).toHaveCount(0);
   await expect(desktopFilesToggle).toBeFocused();
   await page.setViewportSize({ width: 1440, height: 900 });

@@ -387,9 +387,9 @@ test('packaged file tree preserves opaque selection and keyboard semantics', asy
     await page.goto(await waitForLoopbackUrl(running));
     await expect.poll(() => browserErrors).toEqual([]);
 
-    const navigation = page.getByRole('navigation', { name: 'Changed files' });
-    const tree = navigation.getByRole('tree', { name: 'Changed files' });
-    await expect(navigation.getByRole('heading', { name: /^Changed files \(\d+\)$/ })).toBeVisible();
+    const navigation = page.getByRole('navigation', { name: 'Files' });
+    const tree = navigation.getByRole('tree', { name: 'Files' });
+    await expect(navigation.getByRole('heading', { name: /^Files \(\d+\)$/ })).toBeVisible();
     await expect(tree).toBeVisible();
 
     const selectedLeaf = tree.locator('[role="treeitem"][aria-selected="true"]');
@@ -529,8 +529,8 @@ test('packaged file tree filters and recovers without changing the open file', a
     await page.goto(await waitForLoopbackUrl(running));
     await expect.poll(() => browserErrors).toEqual([]);
 
-    const navigation = page.getByRole('navigation', { name: 'Changed files' });
-    const tree = navigation.getByRole('tree', { name: 'Changed files' });
+    const navigation = page.getByRole('navigation', { name: 'Files' });
+    const tree = navigation.getByRole('tree', { name: 'Files' });
     const filter = navigation.getByRole('searchbox', { name: 'Filter files' });
     const treeitems = tree.locator('[role="treeitem"]');
     const tabbableTreeitems = tree.locator('[role="treeitem"][tabindex="0"]');
@@ -594,7 +594,7 @@ test('packaged file tree filters and recovers without changing the open file', a
     await expect(tabbableTreeitems).toHaveCount(0);
     await expect(navigation.getByRole('heading', { name: 'No matching files' })).toBeVisible();
     await expect(
-      navigation.getByText('Clear the filter to show all changed files.', { exact: true }),
+      navigation.getByText('Clear the filter to show all files.', { exact: true }),
     ).toBeVisible();
     await expect(navigation.getByRole('button', { name: 'Clear filter' })).toBeVisible();
     await expect(tree).toBeAttached();
@@ -648,8 +648,8 @@ test('component tree replacement preserves opaque state without selecting again'
     mountFileTreeHarness();
   });
 
-  const navigation = page.getByRole('navigation', { name: 'Changed files' });
-  const tree = navigation.getByRole('tree', { name: 'Changed files' });
+  const navigation = page.getByRole('navigation', { name: 'Files' });
+  const tree = navigation.getByRole('tree', { name: 'Files' });
   const filter = navigation.getByRole('searchbox', { name: 'Filter files' });
   const bravo = tree.getByRole('treeitem', { name: /bravo\.ts/i });
   const collapsed = tree.getByRole('treeitem', { name: /collapsed\/.*1 changed file/i });
