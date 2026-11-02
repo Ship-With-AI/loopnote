@@ -100,7 +100,7 @@ test('keeps anonymous review support-free when the session omits the capability'
 
   await page.goto(`${origin}#token=${token}`);
 
-  await expect(page.getByText('No PR-style changes in this pinned comparison')).toBeVisible();
+  await expect(page.getByText('No changes in this comparison.')).toBeVisible();
   await expect(page.getByRole('button', { name: `Support ${RENAME_MAP.displayName}`, exact: true })).toHaveCount(0);
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect.poll(() => refreshes).toBe(0);
@@ -112,7 +112,7 @@ test('offers optional support without gating the review, preserving dialog acces
   await expect(page.getByRole('button', { name: `Support ${RENAME_MAP.displayName} — $49.99` })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Restore support' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Not now' })).toBeVisible();
-  await expect(page.getByText('No PR-style changes in this pinned comparison')).toBeVisible();
+  await expect(page.getByText('No changes in this comparison.')).toBeVisible();
   await expect(page.getByLabel('Email')).toHaveCount(0);
   await expect(page.getByRole('button', { name: /recovery email/i })).toHaveCount(0);
   await page.keyboard.press('Shift+Tab');
@@ -124,7 +124,7 @@ test('offers optional support without gating the review, preserving dialog acces
   await expect(page.getByRole('button', { name: `Support ${RENAME_MAP.displayName}`, exact: true })).toBeFocused();
   await page.getByRole('button', { name: `Support ${RENAME_MAP.displayName}`, exact: true }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
-  await expect(page.getByText('No PR-style changes in this pinned comparison')).toBeVisible();
+  await expect(page.getByText('No changes in this comparison.')).toBeVisible();
 });
 
 test('hands Support and Restore to hosted tabs, allows cancellation, and keeps unavailable actions local', async ({ page }) => {
@@ -132,7 +132,7 @@ test('hands Support and Restore to hosted tabs, allows cancellation, and keeps u
   await startHostedAction(page, 'Support Loopnote — $49.99');
   await page.getByRole('button', { name: 'Keep reviewing' }).click();
   await expect(page.getByRole('dialog')).toBeHidden();
-  await expect(page.getByText('No PR-style changes in this pinned comparison')).toBeVisible();
+  await expect(page.getByText('No changes in this comparison.')).toBeVisible();
   const restorePage = await page.context().newPage();
   await openReview(restorePage);
   await startHostedAction(restorePage, 'Restore support');

@@ -293,7 +293,7 @@ test('corrupt drafts remain read only until the fingerprint-bound recovery respo
   await expect(page.locator('.draft-recovery__receipt-status .ui-icon')).toHaveCount(1);
   await expect(page.getByRole('heading', { name: 'Comments' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Open new draft' }).click();
-  await expect(page.getByRole('heading', { name: 'No PR-style changes in this pinned comparison' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'No changes in this comparison.' })).toBeVisible();
 });
 
 test('schema-invalid drafts remain read only while exposing only bounded validation details', async ({ page }) => {
