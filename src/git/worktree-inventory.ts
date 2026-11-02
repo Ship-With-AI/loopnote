@@ -9,7 +9,7 @@ import type { Availability, AvailabilityInput } from './availability.js';
 import { MAX_INLINE_TEXT_BYTES, classifyAvailability } from './availability.js';
 import {
   inventoryPaths,
-  isCumpaInternalPath,
+  isLoopnoteInternalPath,
   opaqueFileId,
   validateObjectFormat,
 } from './inventory.js';
@@ -78,12 +78,12 @@ type AvailabilityClassificationInput = AvailabilityInput & {
   readonly newPath?: ExactPath;
 };
 
-function filterCumpaInternal(
+function filterLoopnoteInternal(
   joined: readonly JoinedDiffStat[],
 ): readonly JoinedDiffStat[] {
   return joined.filter(({ diff }) => {
     const { oldPath, newPath } = inventoryPaths(diff);
-    return !isCumpaInternalPath(oldPath) && !isCumpaInternalPath(newPath);
+    return !isLoopnoteInternalPath(oldPath) && !isLoopnoteInternalPath(newPath);
   });
 }
 
@@ -455,7 +455,7 @@ export async function createWorktreeChangedFileInventory(
       parseRawDiff(rawResult.stdout),
       parseNumstat(numstatResult.stdout),
     );
-    const reviewable = filterCumpaInternal(joined);
+    const reviewable = filterLoopnoteInternal(joined);
     const files = await Promise.all(
       reviewable.map(({ diff, stats }) =>
         buildChangedFile(diff, stats, options.objectFormat, namespace, (file) =>
@@ -488,7 +488,7 @@ export async function createWorktreeChangedFileInventory(
       parseRawDiff(rawResult.stdout),
       parseNumstat(numstatResult.stdout),
     );
-    const reviewable = filterCumpaInternal(joined);
+    const reviewable = filterLoopnoteInternal(joined);
     const files = await Promise.all(
       reviewable.map(({ diff, stats }) =>
         buildChangedFile(diff, stats, options.objectFormat, namespace, (file) =>
@@ -544,7 +544,7 @@ export async function createWorktreeChangedFileInventory(
       parseRawDiff(rawResult.stdout),
       parseNumstat(numstatResult.stdout),
     );
-    const reviewable = filterCumpaInternal(joined);
+    const reviewable = filterLoopnoteInternal(joined);
     const trackedFiles = await Promise.all(
       reviewable.map(({ diff, stats }) =>
         buildChangedFile(diff, stats, options.objectFormat, namespace, (file) =>
@@ -561,7 +561,7 @@ export async function createWorktreeChangedFileInventory(
 
     const untrackedPaths = parseNulDelimitedUntrackedPaths(
       untrackedResult.stdout,
-    ).filter((path) => !isCumpaInternalPath(path));
+    ).filter((path) => !isLoopnoteInternalPath(path));
     const untrackedFiles = await Promise.all(
       untrackedPaths.map((path) =>
         buildUntrackedChangedFile(

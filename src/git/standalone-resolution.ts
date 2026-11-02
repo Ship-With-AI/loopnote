@@ -3,11 +3,14 @@ import { randomBytes } from 'node:crypto';
 import type { ChangedFile } from '../contracts/comparison.js';
 import { createExactPath, decodeBase64url } from '../domain/path-bytes.js';
 import type { ExactPath } from '../domain/path-bytes.js';
+import { RENAME_MAP } from '../domain/product-identity.js';
 import { createObjectReader } from './objects.js';
 import type { ObjectReader } from './objects.js';
 import { createGitRunner, GitRunnerError } from './runner.js';
 import type { GitRunner } from './runner.js';
 import { buildUntrackedChangedFile } from './worktree-inventory.js';
+
+const newStateDirSegment = RENAME_MAP.repoStateDir.replace(/\/$/, '');
 
 export type StandaloneResolutionErrorKind = 'path-outside-repository' | 'pathspec-ignored' | 'pathspec-no-match';
 
@@ -142,9 +145,9 @@ function rejectReservedSegments(path: ExactPath): void {
     .toString('latin1')
     .split('/');
   for (const segment of segments) {
-    if (segment === '.git' || segment === '.cumpa') {
+    if (segment === '.git' || segment === '.cumpa' || segment === newStateDirSegment) {
       throw new Error(
-        `Resolved path "${path.display}" contains a reserved ".git"/".cumpa" segment and was rejected.`,
+        `Resolved path "${path.display}" contains a reserved ".git"/".cumpa"/"${newStateDirSegment}" segment and was rejected.`,
       );
     }
   }

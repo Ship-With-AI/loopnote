@@ -4,6 +4,7 @@ import { inflateSync } from 'node:zlib';
 import { lstat, readFile, readlink } from 'node:fs/promises';
 
 import { createExactPath, type ExactPath } from '../domain/path-bytes.js';
+import { RENAME_MAP } from '../domain/product-identity.js';
 import type {
   Availability,
   ChangedFile,
@@ -15,6 +16,8 @@ import { MAX_INLINE_TEXT_BYTES } from './availability.js';
 import { createObjectReader } from './objects.js';
 import { discoverGitRepository } from './repository.js';
 import { createGitRunner, type GitRunner } from './runner.js';
+
+const newStateDirSegment = RENAME_MAP.repoStateDir.replace(/\/$/, '');
 
 const modePattern = /^[0-7]{6}$/;
 const oidPattern = /^[0-9a-f]+$/;
@@ -125,7 +128,7 @@ function exactPath(value: string, prefix: 'a/' | 'b/' | undefined): ParsedPath |
   const path = prefix !== undefined && bytes.subarray(0, 2).equals(Buffer.from(prefix, 'ascii')) ? bytes.subarray(2) : bytes;
   if (path.length === 0 || path[0] === 47 || path[0] === 92 || path.includes(0)) fail();
   for (const part of path.toString('latin1').split('/')) {
-    if (part === '' || part === '.' || part === '..' || part === '.git' || part === '.cumpa') fail();
+    if (part === '' || part === '.' || part === '..' || part === '.git' || part === '.cumpa' || part === newStateDirSegment) fail();
   }
   return Object.freeze({ bytes: Buffer.from(path), path: createExactPath(path) });
 }

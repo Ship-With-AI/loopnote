@@ -7,6 +7,7 @@ import type {
 } from '../contracts/comparison.js';
 import type { ExactPath } from '../domain/path-bytes.js';
 import { decodeBase64url } from '../domain/path-bytes.js';
+import { RENAME_MAP } from '../domain/product-identity.js';
 import { classifyAvailability } from './availability.js';
 import { createObjectReader } from './objects.js';
 import type { ObjectReader } from './objects.js';
@@ -70,19 +71,29 @@ const sharedDiffOptions = [
 
 const cumpaPath = Buffer.from('.cumpa', 'ascii');
 const cumpaPathPrefix = Buffer.from('.cumpa/', 'ascii');
+const newStateDirPath = Buffer.from(RENAME_MAP.repoStateDir.replace(/\/$/, ''), 'ascii');
+const newStateDirPathPrefix = Buffer.from(RENAME_MAP.repoStateDir, 'ascii');
 
-export function isCumpaInternalPath(path: ExactPath | undefined): boolean {
+export function isLoopnoteInternalPath(path: ExactPath | undefined): boolean {
   if (path === undefined) {
     return false;
   }
 
   const bytes = decodeBase64url(path.bytesBase64url);
   if (bytes.byteLength === cumpaPath.byteLength) {
-    return bytes.every((byte, index) => byte === cumpaPath[index]);
-  }
-  return (
+    if (bytes.every((byte, index) => byte === cumpaPath[index])) return true;
+  } else if (
     bytes.byteLength >= cumpaPathPrefix.byteLength &&
     cumpaPathPrefix.every((byte, index) => byte === bytes[index])
+  ) {
+    return true;
+  }
+  if (bytes.byteLength === newStateDirPath.byteLength) {
+    return bytes.every((byte, index) => byte === newStateDirPath[index]);
+  }
+  return (
+    bytes.byteLength >= newStateDirPathPrefix.byteLength &&
+    newStateDirPathPrefix.every((byte, index) => byte === bytes[index])
   );
 }
 
@@ -179,7 +190,7 @@ export async function createChangedFileInventory(
   );
   const reviewable = joined.filter(({ diff }) => {
     const { oldPath, newPath } = inventoryPaths(diff);
-    return !isCumpaInternalPath(oldPath) && !isCumpaInternalPath(newPath);
+    return !isLoopnoteInternalPath(oldPath) && !isLoopnoteInternalPath(newPath);
   });
   const namespace = options.fileIdNamespace ?? processFileIdNamespace;
   if (namespace.byteLength === 0) {
