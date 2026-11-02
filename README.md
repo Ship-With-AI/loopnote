@@ -1,18 +1,10 @@
-# Cumpà
+# Loopnote
 
-Cumpà gives committed local Git comparisons a pull-request-style review workspace without publishing a branch or worktree. Choose local branches or registered worktrees, leave durable feedback, and export it for an agent or teammate to use.
+Loopnote gives committed local Git comparisons a pull-request-style review workspace without publishing a branch or worktree. Choose local branches or registered worktrees, leave durable feedback, and export it for an agent or teammate to use.
 
-Published as **`@shipwithai/cumpa`**; command **`cumpa`**.
+Published as **`@shipwithai/loopnote`**; command **`loopnote`**.
 
-Stable `1.5.0` is published on npm. Its registry bytes, provenance attestation, and global, `npx`, and marketplace installation paths were verified during release acceptance. Source and the sole support channel are the public [Ship-With-AI/cumpa](https://github.com/Ship-With-AI/cumpa) repository and its [Issues tracker](https://github.com/Ship-With-AI/cumpa/issues).
-
-## The name
-
-`cumpà` is how Naples says *friend*, *mate*, *comrade*: the person you trust enough to tell the truth to, which is what a code review is for.
-
-Standard Italian writes the same word as **compare** — and English borrowed that exact spelling for the verb **to compare**. One Neapolitan word therefore carries both halves of the tool: the friend who reviews your work, and the comparison they are looking at.
-
-Prose spells it **Cumpà**, with the stress on the final *a*. Anything you type stays ASCII: the package is `@shipwithai/cumpa`, the command is `cumpa`, and repository-local state lives in `.cumpa/`.
+Stable `1.5.0` is published on npm. Its registry bytes, provenance attestation, and global, `npx`, and marketplace installation paths were verified during release acceptance. Source and the sole support channel are the public [Ship-With-AI/loopnote](https://github.com/Ship-With-AI/loopnote) repository and its [Issues tracker](https://github.com/Ship-With-AI/loopnote/issues).
 
 ## Prerequisites
 
@@ -26,27 +18,27 @@ You need:
 
 ## Install
 
-Cumpà is two independently installed, independently MIT-licensed pieces:
+Loopnote is two independently installed, independently MIT-licensed pieces:
 
 | Piece | What it is | Where it comes from |
 | --- | --- | --- |
-| `cumpa` CLI | The review application: Git grounding, diff, browser workspace, persistence, export | npm package `@shipwithai/cumpa` |
-| Cumpà skill | The recommended entry point, driving the CLI from your coding agent | `ship-with-ai` collection in [Ship-With-AI/skills](https://github.com/Ship-With-AI/skills) |
+| `loopnote` CLI | The review application: Git grounding, diff, browser workspace, persistence, export | npm package `@shipwithai/loopnote` |
+| Loopnote skill | The recommended entry point, driving the CLI from your coding agent | `ship-with-ai` collection in [Ship-With-AI/skills](https://github.com/Ship-With-AI/skills) |
 
-**Installing the skill is the recommended way to get Cumpà into your workflow.** Your agent then resolves the ordered base and head, launches the CLI in its native agent protocol, supervises the session while you review, and reports the canonical result — no hand-built request JSON and no manual process supervision.
+**Installing the skill is the recommended way to get Loopnote into your workflow.** Your agent then resolves the ordered base and head, launches the CLI in its native agent protocol, supervises the session while you review, and reports the canonical result — no hand-built request JSON and no manual process supervision.
 
 The skill does not install the application. It never installs, upgrades, `npx`-substitutes, or builds the CLI: it runs a compatibility check first and stops with the exact install command when no compatible CLI is present. Install the CLI once, then install the skill.
 
 ### 1. Install the CLI
 
 ```sh
-npm install --global @shipwithai/cumpa
+npm install --global @shipwithai/loopnote
 ```
 
 Confirm the command is on your `PATH`:
 
 ```sh
-cumpa --version
+loopnote --version
 ```
 
 The skill accepts stable versions in `>=1.5.0 <2.0.0` and rejects prereleases. Only `1.5.0` has independent release verification; acceptance of later stable 1.x versions is a compatibility policy, not a test claim.
@@ -60,7 +52,7 @@ The skill accepts stable versions in `>=1.5.0 <2.0.0` and rejects prereleases. O
 /plugin install ship-with-ai@ship-with-ai-skills
 ```
 
-Invoke `/ship-with-ai:cumpa`. A selectively installed standalone copy in `.claude/skills/cumpa` is invoked as `/cumpa`.
+Invoke `/ship-with-ai:loopnote`. A selectively installed standalone copy in `.claude/skills/loopnote` is invoked as `/loopnote`.
 
 **OMP** — native collection:
 
@@ -69,58 +61,58 @@ omp plugin marketplace add Ship-With-AI/skills
 omp plugin install --scope project ship-with-ai@ship-with-ai-skills
 ```
 
-Invoke `/skill:cumpa`.
+Invoke `/skill:loopnote`.
 
-**Codex** — selective placement into the project's `.agents/skills/cumpa`:
-
-```sh
-npx skills add Ship-With-AI/skills --skill cumpa -a codex
-```
-
-Invoke `$cumpa`, or select Cumpà from `/skills`.
-
-**Pi** — selective placement into the project's `.pi/skills/cumpa`:
+**Codex** — selective placement into the project's `.agents/skills/loopnote`:
 
 ```sh
-npx skills add Ship-With-AI/skills --skill cumpa -a pi
+npx skills add Ship-With-AI/skills --skill loopnote -a codex
 ```
 
-Invoke `/skill:cumpa` in a trusted project with skill commands enabled.
+Invoke `$loopnote`, or select Loopnote from `/skills`.
+
+**Pi** — selective placement into the project's `.pi/skills/loopnote`:
+
+```sh
+npx skills add Ship-With-AI/skills --skill loopnote -a pi
+```
+
+Invoke `/skill:loopnote` in a trusted project with skill commands enabled.
 
 Of these four routes, only the OMP marketplace installation was exercised during release acceptance. The Claude Code, Codex, and Pi routes follow the collection's documented installation conventions and remain unexercised.
 
 ### 3. Ask your agent for a review
 
-From the repository you want to review, ask for the comparison in plain language — for example, “review my feature branch against `main` with Cumpà”. The skill resolves full pinned commit OIDs, sends the merge base as the base, launches the CLI, gives you the loopback URL, and waits. Review in the browser as described below, then press **Finish**; the agent reads the canonical result and reports the summary and open comments without editing your code.
+From the repository you want to review, ask for the comparison in plain language — for example, “review my feature branch against `main` with Loopnote”. The skill resolves full pinned commit OIDs, sends the merge base as the base, launches the CLI, gives you the loopback URL, and waits. Review in the browser as described below, then press **Finish**; the agent reads the canonical result and reports the summary and open comments without editing your code.
 
 ### Use the CLI without a skill
 
 The CLI is fully usable on its own. Install it globally as above, or run it in the repository you want to review:
 
 ```sh
-npx --yes @shipwithai/cumpa
+npx --yes @shipwithai/loopnote
 ```
 
-Neither path requires a Cumpà source checkout or local build. Launching `cumpa` with an interactive terminal starts the picker described next; piping a request into it uses the agent protocol documented in [Review changes from a coding agent](#review-changes-from-a-coding-agent).
+Neither path requires a Loopnote source checkout or local build. Launching `loopnote` with an interactive terminal starts the picker described next; piping a request into it uses the agent protocol documented in [Review changes from a coding agent](#review-changes-from-a-coding-agent).
 
 ## Start a review
 
-This is the interactive terminal route. If you use the Cumpà skill, your agent performs this launch for you with pinned OIDs and hands you the review URL; skip to [Review in the browser](#review-in-the-browser).
+This is the interactive terminal route. If you use the Loopnote skill, your agent performs this launch for you with pinned OIDs and hands you the review URL; skip to [Review in the browser](#review-in-the-browser).
 
-Change to the Git worktree whose local branches or registered worktrees you want to cumpa, then run:
+Change to the Git worktree whose local branches or registered worktrees you want to loopnote, then run:
 
 ```sh
 cd /path/to/repository-to-review
-cumpa
+loopnote
 ```
 
-Cumpà first asks you to choose the **base**, then the **head**, using searchable lists of local branches and registered worktrees. The base is the reference point; the selected head is the committed state under review.
+Loopnote first asks you to choose the **base**, then the **head**, using searchable lists of local branches and registered worktrees. The base is the reference point; the selected head is the committed state under review.
 
-The comparison is a diff from the selected base and head’s merge base to the selected head. If a selected worktree is dirty, Cumpà uses its committed HEAD only; uncommitted worktree bytes are not reviewed.
+The comparison is a diff from the selected base and head’s merge base to the selected head. If a selected worktree is dirty, Loopnote uses its committed HEAD only; uncommitted worktree bytes are not reviewed.
 
 Before launch, the confirmation screen shows the full base, head, and merge base OIDs. Confirm only after checking them: the session is pinned to those commits and does not follow later ref movement.
 
-Cumpà listens only on an ephemeral `127.0.0.1` loopback port. It prints the review URL before attempting to open your default browser. If no browser opens, use the printed URL directly.
+Loopnote listens only on an ephemeral `127.0.0.1` loopback port. It prints the review URL before attempting to open your default browser. If no browser opens, use the printed URL directly.
 
 ## Review in the browser
 
@@ -135,10 +127,10 @@ Saved comments and the saved summary are repository-local, versioned JSON state.
 
 ### Draft location
 
-Cumpà stores a draft at:
+Loopnote stores a draft at:
 
 ```text
-.cumpa/drafts/<comparison-key>.json
+.loopnote/drafts/<comparison-key>.json
 ```
 
 `<comparison-key>` is a 64-hex SHA-256 hash derived from the ordered, pinned base and head commit OIDs. It is an application-generated draft identity, not a filename you choose or a literal base/head path.
@@ -148,17 +140,17 @@ Cumpà stores a draft at:
 Export creates this pair together from the accepted draft revision:
 
 ```text
-.cumpa/exports/<baseOid>..<headOid>/review.json
-.cumpa/exports/<baseOid>..<headOid>/review.md
+.loopnote/exports/<baseOid>..<headOid>/review.json
+.loopnote/exports/<baseOid>..<headOid>/review.md
 ```
 
 `review.json` is the canonical export; `review.md` is derived from it. Export does not apply, stage, commit, or push changes.
 
-After a successful export, the receipt offers **Reveal export directory**. The export area also shows `.gitignore` status and offers an optional flow to append the Cumpà ignore rule. Ignore status is not a prerequisite for reviewing or exporting.
+After a successful export, the receipt offers **Reveal export directory**. The export area also shows `.gitignore` status and offers an optional flow to append the Loopnote ignore rule. Ignore status is not a prerequisite for reviewing or exporting.
 
-## Stop Cumpà
+## Stop Loopnote
 
-Return to the terminal where you launched `cumpa` and press `Ctrl+C`. This stops the local loopback server.
+Return to the terminal where you launched `loopnote` and press `Ctrl+C`. This stops the local loopback server.
 
 ## Keyboard shortcuts
 
@@ -179,9 +171,9 @@ Visible controls remain available for every action. These shortcuts are addition
 
 ## Review changes from a coding agent
 
-**The Cumpà skill is the recommended way to use this protocol**; it builds the request, supervises the process, and consumes the canonical result for you. See [Install](#install). Use the raw commands below when you are scripting the protocol yourself or building another integration.
+**The Loopnote skill is the recommended way to use this protocol**; it builds the request, supervises the process, and consumes the canonical result for you. See [Install](#install). Use the raw commands below when you are scripting the protocol yourself or building another integration.
 
-Run these commands from the repository being reviewed. Redirect `stdout` to the review JSON file your agent will consume; Cumpà sends the browser URL and diagnostics to `stderr`.
+Run these commands from the repository being reviewed. Redirect `stdout` to the review JSON file your agent will consume; Loopnote sends the browser URL and diagnostics to `stderr`.
 
 ### Review a revision range
 
@@ -190,7 +182,7 @@ Provide full, pinned commit OIDs with the base before the head. This example lim
 ```sh
 node --input-type=module -e '
 const request = {
-  kind: "cumpa.review-request",
+  kind: "loopnote.review-request",
   schemaVersion: 1,
   mode: "revisions",
   revisions: {
@@ -200,7 +192,7 @@ const request = {
   },
 };
 process.stdout.write(JSON.stringify(request));
-' | cumpa > agent-review.json
+' | loopnote > agent-review.json
 ```
 
 Replace those OIDs with real full object IDs from the repository. Explicit range mode requires the base to be an ancestor of the head, resolves both revisions to full object IDs, and freezes those resolved IDs for the session. It does not use the interactive picker’s merge-base selection or follow moving references.
@@ -214,7 +206,7 @@ node --input-type=module -e '
 import { readFileSync } from "node:fs";
 
 const request = {
-  kind: "cumpa.review-request",
+  kind: "loopnote.review-request",
   schemaVersion: 1,
   mode: "patch",
   patch: {
@@ -223,27 +215,27 @@ const request = {
   },
 };
 process.stdout.write(JSON.stringify(request));
-' | cumpa > agent-review.json
+' | loopnote > agent-review.json
 ```
 
-Choose `repository` to ground the patch against the current committed `HEAD` tree, or `worktree` to ground it against current on-disk entries. The patch’s preimages and modes must exactly match that target before Cumpà freezes the grounded bytes. Cumpà never applies, stages, commits, or pushes the patch.
+Choose `repository` to ground the patch against the current committed `HEAD` tree, or `worktree` to ground it against current on-disk entries. The patch’s preimages and modes must exactly match that target before Loopnote freezes the grounded bytes. Loopnote never applies, stages, commits, or pushes the patch.
 
 ### Finish and receive canonical JSON
 
-When stdin is a TTY, `cumpa` runs the existing interactive picker. A pipe or redirected stdin selects this agent-request protocol instead: the browser opens and the process stays attached. The URL, fallback text, and safe diagnostics go to `stderr`; `stdout` stays empty while the review is open.
+When stdin is a TTY, `loopnote` runs the existing interactive picker. A pipe or redirected stdin selects this agent-request protocol instead: the browser opens and the process stays attached. The URL, fallback text, and safe diagnostics go to `stderr`; `stdout` stays empty while the review is open.
 
-In the browser, save the feedback and choose **Finish**. Once Finish successfully settles the accepted saved revision, Cumpà writes exactly one canonical review JSON document to `stdout`, waits for the Finish response to settle, closes the local server, and exits `0`. Revision conflicts and failed Finish attempts leave canonical `stdout` empty. Validation, grounding, or delivery failures also leave it empty and exit `1`. Pressing `Ctrl+C` before delivery cancels without partial JSON and exits `130`.
+In the browser, save the feedback and choose **Finish**. Once Finish successfully settles the accepted saved revision, Loopnote writes exactly one canonical review JSON document to `stdout`, waits for the Finish response to settle, closes the local server, and exits `0`. Revision conflicts and failed Finish attempts leave canonical `stdout` empty. Validation, grounding, or delivery failures also leave it empty and exit `1`. Pressing `Ctrl+C` before delivery cancels without partial JSON and exits `130`.
 
 Treat a zero exit plus parseable captured `stdout` as the agent handoff contract.
 
 ### Request reference
 
-Both v1 requests are strict JSON objects with `kind` set to `cumpa.review-request` and `schemaVersion` set to `1`.
+Both v1 requests are strict JSON objects with `kind` set to `loopnote.review-request` and `schemaVersion` set to `1`.
 
 <!-- agent-request-example:revisions -->
 ```json
 {
-  "kind": "cumpa.review-request",
+  "kind": "loopnote.review-request",
   "schemaVersion": 1,
   "mode": "revisions",
   "revisions": {
@@ -259,7 +251,7 @@ Both v1 requests are strict JSON objects with `kind` set to `cumpa.review-reques
 <!-- agent-request-example:patch -->
 ```json
 {
-  "kind": "cumpa.review-request",
+  "kind": "loopnote.review-request",
   "schemaVersion": 1,
   "mode": "patch",
   "patch": {
@@ -281,20 +273,20 @@ For exact-patch reviews, the frozen source snapshot is private to the session. I
 
 ## v1 file limits
 
-Cumpà reviews regular UTF-8 text files only. Each inspected blob side must be at most 1,048,576 bytes (1 MiB).
+Loopnote reviews regular UTF-8 text files only. Each inspected blob side must be at most 1,048,576 bytes (1 MiB).
 
-Binary, non-UTF-8, oversized, symlink, submodule, and unsupported mode/type entries stay visible but are not reviewable. Missing-object cases (missing objects) are separately unavailable rather than unsupported file kinds. Cumpà does not separately detect arbitrary generated source files. Its own `.cumpa/` internal output is always excluded from the review inventory.
+Binary, non-UTF-8, oversized, symlink, submodule, and unsupported mode/type entries stay visible but are not reviewable. Missing-object cases (missing objects) are separately unavailable rather than unsupported file kinds. Loopnote does not separately detect arbitrary generated source files. Its own `.loopnote/` internal output is always excluded from the review inventory.
 
 ## License and independent notices
 
-Cumpà is open source under the [MIT License](LICENSE). You may use, copy, modify, distribute, sublicense, and sell copies, including in commercial products, provided you retain the required copyright and permission notices. The software is provided without warranty.
+Loopnote is open source under the [MIT License](LICENSE). You may use, copy, modify, distribute, sublicense, and sell copies, including in commercial products, provided you retain the required copyright and permission notices. The software is provided without warranty.
 
 Required independent grants and attributions remain in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The application and the separately distributed marketplace skill use MIT; third-party components retain their own licenses and notices.
 
 ## Voluntary support
 
-Support is optional and feature-neutral: review and export do not require payment. Supporting Cumpà does not purchase extra review capabilities or a service, maintenance, update or support commitment.
+Support is optional and feature-neutral: review and export do not require payment. Supporting Loopnote does not purchase extra review capabilities or a service, maintenance, update or support commitment.
 
 ## Problems and questions
 
-Report problems and ask questions in [Cumpà Issues](https://github.com/Ship-With-AI/cumpa/issues), for both the CLI and the skill.
+Report problems and ask questions in [Loopnote Issues](https://github.com/Ship-With-AI/loopnote/issues), for both the CLI and the skill.

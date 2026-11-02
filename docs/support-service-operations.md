@@ -1,8 +1,8 @@
-# Cumpà hosted support operations
+# Loopnote hosted support operations
 
 ## Production boundary
 
-Cumpà has one hosted Supabase production project. Ordinary local development has no hosted-support dependency and never receives deployment or provider credentials. A protected `main` push automatically runs `.github/workflows/deploy-supabase-production.yml`; there is no manual deployment path.
+Loopnote has one hosted Supabase production project. Ordinary local development has no hosted-support dependency and never receives deployment or provider credentials. A protected `main` push automatically runs `.github/workflows/deploy-supabase-production.yml`; there is no manual deployment path.
 
 The credential-free `repository-gates` job runs before the serialized `deploy-production` job enters GitHub's protected `production` environment. Only the protected job receives the project ref, deployment credentials, and provider inputs.
 
@@ -14,11 +14,11 @@ The sole browser-facing origin is `https://<project-ref>.supabase.co`. The prote
 
 Packages and redacted evidence retain the canonical-origin-only boundary: no bare project ref, another Supabase host, credentials, OAuth secrets, personal data, unapproved provider identifiers or provider secrets.
 
-The operator accepted six exact non-secret configuration identifier fingerprints for the reviewed Cumpà CI exposure on 2026-09-08, recorded in `.planning/phases/03-distribution-contract-legal-boundary/03-PUBLICATION-REVIEW.md` under PUB-01. That CI-only disposition covers the reviewed Supabase project ref, GitHub OAuth client ID and historical Stripe price/webhook endpoint IDs. It does not permit secret keys, personal data, new identifier values or additional package contents; keep the raw values out of review records.
+The operator accepted six exact non-secret configuration identifier fingerprints for the reviewed Loopnote CI exposure on 2026-09-08, recorded in `.planning/phases/03-distribution-contract-legal-boundary/03-PUBLICATION-REVIEW.md` under PUB-01. That CI-only disposition covers the reviewed Supabase project ref, GitHub OAuth client ID and historical Stripe price/webhook endpoint IDs. It does not permit secret keys, personal data, new identifier values or additional package contents; keep the raw values out of review records.
 
 ## Support Checkout discount and coupon policy
 
-The support Checkout Session is created against one configured Stripe Price (`STRIPE_PRICE_ID`, USD $49.99 / 4999 minor units) and now sets `allow_promotion_codes: true`, so the hosted Checkout page shows a promotion-code entry field. The app never accepts a promotion code from the browser or the local Cumpà client itself; only Dashboard-scoped codes entered on Stripe's own hosted page can apply.
+The support Checkout Session is created against one configured Stripe Price (`STRIPE_PRICE_ID`, USD $49.99 / 4999 minor units) and now sets `allow_promotion_codes: true`, so the hosted Checkout page shows a promotion-code entry field. The app never accepts a promotion code from the browser or the local Loopnote client itself; only Dashboard-scoped codes entered on Stripe's own hosted page can apply.
 
 To create a usable code, in the Stripe Dashboard: create a Coupon (Product catalog → Coupons → New) scoped to whatever percentage- or amount-off is desired, then create a Promotion code bound to that coupon (from the coupon's detail page, or Payments → Promotion codes → New). Only a promotion code created this way is redeemable; there is no other issuance path.
 
@@ -43,12 +43,12 @@ The production scanner never builds or packs, and has no default input:
 
 ```sh
 node scripts/verify-production-artifacts.mjs \
-  --archive "$CUMPA_RUNTIME_CUSTODY_DIR/$CUMPA_RUNTIME_ARCHIVE_BASENAME" \
-  --expected-sha256 "$CUMPA_RUNTIME_ARCHIVE_SHA256" \
-  --evidence "$CUMPA_RUNTIME_EVIDENCE"
+  --archive "$LOOPNOTE_RUNTIME_CUSTODY_DIR/$LOOPNOTE_RUNTIME_ARCHIVE_BASENAME" \
+  --expected-sha256 "$LOOPNOTE_RUNTIME_ARCHIVE_SHA256" \
+  --evidence "$LOOPNOTE_RUNTIME_EVIDENCE"
 ```
 
-Use absolute archive/evidence paths. For configured artifacts, provide the canonical origin only through `CUMPA_RELEASE_SUPPORT_SERVICE_URL`; for unconfigured artifacts, leave it unset. The scanner verifies independent archive hashes, legal/runtime inventories, recursive browser assets, native-target facts, and exactly one generated launcher assignment. It emits bounded JSON without origin cleartext or private paths. These checks apply to hash-bound trusted local producer output, not arbitrary hostile tar input.
+Use absolute archive/evidence paths. For configured artifacts, provide the canonical origin only through `LOOPNOTE_RELEASE_SUPPORT_SERVICE_URL`; for unconfigured artifacts, leave it unset. The scanner verifies independent archive hashes, legal/runtime inventories, recursive browser assets, native-target facts, and exactly one generated launcher assignment. It emits bounded JSON without origin cleartext or private paths. These checks apply to hash-bound trusted local producer output, not arbitrary hostile tar input.
 
 The production workflow creates one disposable `deployment-check` archive and passes that same environment origin to the verifier. Only redacted Supabase deployment evidence is uploaded; runtime bytes and runtime evidence remain temporary.
 
@@ -63,6 +63,6 @@ node scripts/verify-supabase-support.mjs --final-review \
   --output .planning/phases/02-move-the-implementation-to-supabase/02-17-FINAL-EVIDENCE.md
 ```
 
-`--check-final` takes the final evidence path plus the same six named inputs and only recomputes bindings. The release input must have a separate immutable `cumpa.release-approval` record bound to its unchanged bytes, GitHub run ID, and package digest.
+`--check-final` takes the final evidence path plus the same six named inputs and only recomputes bindings. The release input must have a separate immutable `loopnote.release-approval` record bound to its unchanged bytes, GitHub run ID, and package digest.
 
 Detached evidence validation uses explicit deployment inputs, not a receipt discovered in a particular planning directory. Supply `--deployment PATH` with `--check-promotion-evidence`, and with `--check-run-evidence` whenever `--acceptance PATH` is supplied. `--final-review` and `--check-final` use their existing `--test-deployment PATH` for the complete acceptance/promotion chain. Missing inputs and mismatched lineage still fail closed.
