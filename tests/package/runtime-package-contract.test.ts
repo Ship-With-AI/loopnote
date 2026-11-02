@@ -14,11 +14,12 @@ import {
   verifyPrerequisites,
 } from '../../scripts/verify-prerequisites.mjs';
 import { archiveBasename, version } from '../../scripts/release-identity.mjs';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 
 
 const projectRoot = resolve(import.meta.dirname, '../..');
 const packageManifestPath = join(projectRoot, 'package.json');
-const packagedCli = join(projectRoot, 'dist', 'bin', 'cumpa.mjs');
+const packagedCli = join(projectRoot, 'dist', 'bin', `${RENAME_MAP.binCommand}.mjs`);
 
 async function readManifest(): Promise<Record<string, unknown>> {
   return JSON.parse(await readFile(packageManifestPath, 'utf8')) as Record<string, unknown>;
@@ -56,7 +57,7 @@ async function runVersion(
   // The open pipe has no completion event; this timeout proves --version never waits for stdin.
   const timer = setTimeout(() => {
     child.kill();
-    reject(new Error('cumpa --version waited for ordinary action input'));
+    reject(new Error(`${RENAME_MAP.binCommand} --version waited for ordinary action input`));
   }, 1_000);
   child.stdout.setEncoding('utf8');
   child.stderr.setEncoding('utf8');
@@ -79,7 +80,7 @@ async function runVersion(
 
 describe('runtime package contract', () => {
   test('version reads the installed manifest and exits before ordinary action side effects', async () => {
-    const directory = await mkdtemp(join(tmpdir(), 'cumpa-version-'));
+    const directory = await mkdtemp(join(tmpdir(), `${RENAME_MAP.slug}-version-`));
     const commands = join(directory, 'commands');
     const gitSentinel = join(directory, 'git-used');
     const browserSentinel = join(directory, 'browser-used');
@@ -91,7 +92,7 @@ describe('runtime package contract', () => {
       await writeFile(join(directory, 'commands-placeholder'), '', 'utf8');
       await writeFile(
         serverHook,
-        `const fs = require('node:fs');\nconst net = require('node:net');\nconst listen = net.Server.prototype.listen;\nnet.Server.prototype.listen = function (...arguments_) {\n  fs.writeFileSync(process.env.CUMPA_SERVER_SENTINEL, 'used');\n  return Reflect.apply(listen, this, arguments_);\n};\n`,
+        `const fs = require('node:fs');\nconst net = require('node:net');\nconst listen = net.Server.prototype.listen;\nnet.Server.prototype.listen = function (...arguments_) {\n  fs.writeFileSync(process.env.${RENAME_MAP.envPrefix}SERVER_SENTINEL, 'used');\n  return Reflect.apply(listen, this, arguments_);\n};\n`,
         'utf8',
       );
       await writeSentinelCommand(commands, 'git', gitSentinel);
@@ -100,7 +101,7 @@ describe('runtime package contract', () => {
       const result = await runVersion(directory, {
         ...process.env,
         BROWSER: 'open',
-        CUMPA_SERVER_SENTINEL: serverSentinel,
+        [`${RENAME_MAP.envPrefix}SERVER_SENTINEL`]: serverSentinel,
         NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ''} --require=${serverHook}`,
         PATH: `${commands}${delimiter}${process.env.PATH ?? ''}`,
       });
@@ -118,12 +119,12 @@ describe('runtime package contract', () => {
     const manifest = await readManifest();
 
     expect(manifest).toMatchObject({
-      bin: { cumpa: 'dist/bin/cumpa.mjs' },
+      bin: { [RENAME_MAP.binCommand]: `dist/bin/${RENAME_MAP.binCommand}.mjs` },
       engines: { node: '>=24' },
-      name: '@shipwithai/cumpa',
+      name: RENAME_MAP.npmPackage,
       version,
     });
-    expect(archiveBasename).toBe(`shipwithai-cumpa-${version}.tgz`);
+    expect(archiveBasename).toBe(`shipwithai-${RENAME_MAP.slug}-${version}.tgz`);
     expect(manifest).not.toHaveProperty('private');
     expect(manifest.files).toEqual([
       'dist/',
@@ -135,19 +136,19 @@ describe('runtime package contract', () => {
 
   // These temp-manifest vectors stay independent: the latter rejects the package name, not its version.
   test('accepts a controlled valid manifest version and rejects malformed metadata', async () => {
-    const directory = await mkdtemp(join(tmpdir(), 'cumpa-manifest-'));
+    const directory = await mkdtemp(join(tmpdir(), `${RENAME_MAP.slug}-manifest-`));
     const manifestPath = join(directory, 'package.json');
 
     try {
       await writeFile(
         manifestPath,
-        JSON.stringify({ name: '@shipwithai/cumpa', version: '1.5.1-beta.1' }),
+        JSON.stringify({ name: RENAME_MAP.npmPackage, version: '1.5.1-beta.1' }),
         'utf8',
       );
       await expect(readPackageVersionFromManifest(pathToFileURL(manifestPath))).resolves.toBe('1.5.1-beta.1');
-      await writeFile(manifestPath, JSON.stringify({ name: 'cumpa', version: '1.5.1' }), 'utf8');
+      await writeFile(manifestPath, JSON.stringify({ name: RENAME_MAP.slug, version: '1.5.1' }), 'utf8');
       await expect(readPackageVersionFromManifest(pathToFileURL(manifestPath))).rejects.toThrow('Package manifest name');
-      await writeFile(manifestPath, JSON.stringify({ name: '@shipwithai/cumpa', version: '' }), 'utf8');
+      await writeFile(manifestPath, JSON.stringify({ name: RENAME_MAP.npmPackage, version: '' }), 'utf8');
       await expect(readPackageVersionFromManifest(pathToFileURL(manifestPath))).rejects.toThrow('Package manifest version');
     } finally {
       await rm(directory, { force: true, recursive: true });
@@ -186,7 +187,7 @@ describe('runtime package contract', () => {
       executeFile: () => {
         throw new Error('missing git');
       },
-    })).rejects.toThrow('Git is required but was not found. Install Git, then run Cumpa again.');
+    })).rejects.toThrow(`Git is required but was not found. Install Git, then run ${RENAME_MAP.displayName} again.`);
     await expect(verifyPrerequisites()).resolves.toBe(18);
   });
 });

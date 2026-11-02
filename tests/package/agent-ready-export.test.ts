@@ -7,6 +7,7 @@ import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { expect, test } from 'vitest';
 import { z } from 'zod';
 import { bootstrapVersion, version as stableVersion } from '../../scripts/release-identity.mjs';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 
 import { readRuntimeArtifact, rehashRuntimeArtifact } from '../helpers/runtime-artifact.js';
 import { assertSourceControlUnchanged, captureSourceControlSnapshot } from '../helpers/source-control-snapshot.js';
@@ -32,7 +33,7 @@ function profileIdentity(profile: 'bootstrap' | undefined) {
 
 function packageSchema(version: string) {
   return z.strictObject({
-    name: z.literal('@shipwithai/cumpa'),
+    name: z.literal(RENAME_MAP.npmPackage),
     version: z.literal(version),
     runtimeDependencies: z.record(z.string(), z.string()),
   });
@@ -40,8 +41,8 @@ function packageSchema(version: string) {
 
 function installSchema(version: string) {
   return z.strictObject({
-    packageLabel: z.literal(`@shipwithai/cumpa@${version}`),
-    binLabel: z.literal('cumpa'),
+    packageLabel: z.literal(`${RENAME_MAP.npmPackage}@${version}`),
+    binLabel: z.literal(RENAME_MAP.binCommand),
     manifestSha256: hash,
     dependencyCount: z.number().int().positive(),
     dependencyInventorySha256: hash,
@@ -51,7 +52,7 @@ function installSchema(version: string) {
 function scannerSchema(profile: SelectedProfile) {
   const identity = profileIdentity(profile === 'bootstrap' ? 'bootstrap' : undefined);
   return z.strictObject({
-    kind: z.literal('cumpa.runtime-artifact-verification/v1'),
+    kind: z.literal(`${RENAME_MAP.kindPrefix}.runtime-artifact-verification/v1`),
     status: z.literal('passed'),
     purpose: z.literal(identity.purpose),
     ...(profile === 'bootstrap' ? { profile: z.literal('bootstrap') } : {}),
@@ -95,7 +96,7 @@ function parseScenarios(
   const identity = profileIdentity(selectedBootstrapProfile);
   const native = hasObservedNativeReExport(process.platform, process.arch);
   const common = {
-    kind: z.literal('cumpa.runtime-artifact-scenario/v1'),
+    kind: z.literal(`${RENAME_MAP.kindPrefix}.runtime-artifact-scenario/v1`),
     status: z.literal('passed'),
     runId: z.literal(runId),
     profile: z.literal(identity.profile),
@@ -136,13 +137,13 @@ function parseScenarios(
 }
 
 test('accepts one supplied candidate through isolated installed browser and Finish workflows', { timeout: 600_000 }, async () => {
-  const origin = process.env.CUMPA_RELEASE_SUPPORT_SERVICE_URL;
-  if (!origin) throw new Error('CUMPA_RELEASE_SUPPORT_SERVICE_URL is required for candidate acceptance');
-  const reportPath = process.env.CUMPA_RUNTIME_ACCEPTANCE_REPORT;
+  const origin = process.env[`${RENAME_MAP.envPrefix}RELEASE_SUPPORT_SERVICE_URL`];
+  if (!origin) throw new Error(`${RENAME_MAP.envPrefix}RELEASE_SUPPORT_SERVICE_URL is required for candidate acceptance`);
+  const reportPath = process.env[`${RENAME_MAP.envPrefix}RUNTIME_ACCEPTANCE_REPORT`];
   if (!reportPath || !isAbsolute(reportPath) || existsSync(reportPath)) throw new Error('A new absolute acceptance report path is required');
   if (!lstatSync(dirname(reportPath)).isDirectory()) throw new Error('Acceptance report parent must be a directory');
-  const requestedProfile = process.env.CUMPA_RUNTIME_PROFILE;
-  if (requestedProfile !== undefined && requestedProfile !== 'bootstrap') throw new Error('CUMPA_RUNTIME_PROFILE must be bootstrap when set');
+  const requestedProfile = process.env[`${RENAME_MAP.envPrefix}RUNTIME_PROFILE`];
+  if (requestedProfile !== undefined && requestedProfile !== 'bootstrap') throw new Error(`${RENAME_MAP.envPrefix}RUNTIME_PROFILE must be bootstrap when set`);
   const selected = profileIdentity(requestedProfile);
   const artifact = readRuntimeArtifact();
   const archive = archiveSchema.parse(artifact.archive);
@@ -153,7 +154,7 @@ test('accepts one supplied candidate through isolated installed browser and Fini
     || (selected.profile === 'bootstrap' && artifact.evidence.status !== 'bootstrap')
     || (selected.profile === 'stable' && !['candidate', 'verified', 'accepted-local'].includes(artifact.evidence.status))
   ) throw new Error('Runtime profile evidence is not eligible for acceptance');
-  if (resolve(reportPath) === artifact.archivePath || resolve(reportPath) === resolve(process.env.CUMPA_RUNTIME_EVIDENCE!)) throw new Error('Acceptance report must not overwrite archive or evidence');
+  if (resolve(reportPath) === artifact.archivePath || resolve(reportPath) === resolve(process.env[`${RENAME_MAP.envPrefix}RUNTIME_EVIDENCE`]!)) throw new Error('Acceptance report must not overwrite archive or evidence');
   if (realpathSync(dirname(reportPath)) === realpathSync(dirname(artifact.archivePath))) throw new Error('Acceptance reports must remain outside archive custody');
 
   const before = await captureSourceControlSnapshot(projectRoot);
@@ -161,24 +162,24 @@ test('accepts one supplied candidate through isolated installed browser and Fini
     join(projectRoot, 'scripts/verify-production-artifacts.mjs'),
     '--archive', artifact.archivePath,
     '--expected-sha256', archive.sha256,
-    '--evidence', process.env.CUMPA_RUNTIME_EVIDENCE!,
+    '--evidence', process.env[`${RENAME_MAP.envPrefix}RUNTIME_EVIDENCE`]!,
     ...(selected.profile === 'bootstrap' ? ['--profile', 'bootstrap'] : []),
-  ], { ...driverEnvironment(), CUMPA_RELEASE_SUPPORT_SERVICE_URL: origin }, origin)));
+  ], { ...driverEnvironment(), [`${RENAME_MAP.envPrefix}RELEASE_SUPPORT_SERVICE_URL`]: origin }, origin)));
   expect(scanner.archive).toEqual(archive);
   expect(scanner.package).toEqual(packageIdentity);
   expect(scanner.support.originSha256).toBe(createHash('sha256').update(origin).digest('hex'));
   expect([...scanner.web.workerRoles].sort()).toEqual(['css', 'editor', 'html', 'json', 'ts']);
   rehashRuntimeArtifact(artifact);
 
-  const directory = mkdtempSync(join(tmpdir(), 'cumpa-runtime-acceptance-'));
+  const directory = mkdtempSync(join(tmpdir(), `${RENAME_MAP.slug}-runtime-acceptance-`));
   const bridge = join(directory, 'scenario');
   const runId = randomUUID();
   try {
     const childEnvironment = driverEnvironment();
-    for (const key of ['CUMPA_RUNTIME_CUSTODY_DIR', 'CUMPA_RUNTIME_ARCHIVE_BASENAME', 'CUMPA_RUNTIME_ARCHIVE_SHA256', 'CUMPA_RUNTIME_EVIDENCE']) childEnvironment[key] = process.env[key];
-    if (selected.profile === 'bootstrap') childEnvironment.CUMPA_RUNTIME_PROFILE = 'bootstrap';
-    childEnvironment.CUMPA_AGENT_READY_EVIDENCE_REPORT = bridge;
-    childEnvironment.CUMPA_AGENT_READY_EVIDENCE_RUN_ID = runId;
+    for (const key of [`${RENAME_MAP.envPrefix}RUNTIME_CUSTODY_DIR`, `${RENAME_MAP.envPrefix}RUNTIME_ARCHIVE_BASENAME`, `${RENAME_MAP.envPrefix}RUNTIME_ARCHIVE_SHA256`, `${RENAME_MAP.envPrefix}RUNTIME_EVIDENCE`]) childEnvironment[key] = process.env[key];
+    if (selected.profile === 'bootstrap') childEnvironment[`${RENAME_MAP.envPrefix}RUNTIME_PROFILE`] = 'bootstrap';
+    childEnvironment[`${RENAME_MAP.envPrefix}AGENT_READY_EVIDENCE_REPORT`] = bridge;
+    childEnvironment[`${RENAME_MAP.envPrefix}AGENT_READY_EVIDENCE_RUN_ID`] = runId;
     runChild(process.execPath, [join(projectRoot, 'node_modules/@playwright/test/cli.js'), 'test', '--config', 'playwright.runtime-artifact.config.ts', 'tests/e2e/package-assets.spec.ts', 'tests/e2e/agent-ready-export.spec.ts'], childEnvironment, origin);
     const { assets, review } = parseScenarios(
       runId,
@@ -197,7 +198,7 @@ test('accepts one supplied candidate through isolated installed browser and Fini
     await assertSourceControlUnchanged(before, await captureSourceControlSnapshot(projectRoot));
     rmSync(directory, { recursive: true, force: true });
     const result = {
-      kind: 'cumpa.runtime-artifact-acceptance/v1',
+      kind: `${RENAME_MAP.kindPrefix}.runtime-artifact-acceptance/v1`,
       status: 'passed',
       profile: selected.profile,
       purpose: selected.purpose,
@@ -216,7 +217,7 @@ test('accepts one supplied candidate through isolated installed browser and Fini
       limitations: ['Local installed archive only; no registry, publication, provenance or public-source alignment claim.', 'Native re-export observation is limited to the actual target; other targets retain reExportUnsupported.', 'Dependency resolution is observed at installation time; transitive dependencies are not inside the tarball.', 'Static disclosure scanning is bounded and assumes trusted local producer output.'],
     };
     const serialized = `${JSON.stringify(result, null, 2)}\n`;
-    for (const privateValue of [origin, artifact.archivePath, directory, projectRoot, process.env.CUMPA_RUNTIME_CUSTODY_DIR!, process.env.CUMPA_RUNTIME_EVIDENCE!]) {
+    for (const privateValue of [origin, artifact.archivePath, directory, projectRoot, process.env[`${RENAME_MAP.envPrefix}RUNTIME_CUSTODY_DIR`]!, process.env[`${RENAME_MAP.envPrefix}RUNTIME_EVIDENCE`]!]) {
       if (serialized.includes(privateValue)) throw new Error('Acceptance report contains a private value');
     }
     const temporary = join(dirname(reportPath), `.acceptance-${randomUUID()}.tmp`);
@@ -238,24 +239,24 @@ test.for(['stable', 'bootstrap'] as const)('enforces trusted %s scenario identit
   const digest = 'a'.repeat(64);
   const expected = {
     archive: {
-      basename: `shipwithai-cumpa-${version}.tgz`,
+      basename: `shipwithai-${RENAME_MAP.slug}-${version}.tgz`,
       byteLength: 1,
       sha256: digest,
       npmShasumSha1: 'b'.repeat(40),
       npmIntegritySha512: `sha512-${createHash('sha512').update('fixture').digest('base64')}`,
     },
-    package: { name: '@shipwithai/cumpa' as const, version, runtimeDependencies: { zod: '4.4.3' } },
+    package: { name: RENAME_MAP.npmPackage, version, runtimeDependencies: { zod: '4.4.3' } },
     manifestSha256: digest,
   };
   const native = hasObservedNativeReExport(process.platform, process.arch);
   const common = {
-    kind: 'cumpa.runtime-artifact-scenario/v1',
+    kind: `${RENAME_MAP.kindPrefix}.runtime-artifact-scenario/v1`,
     status: 'passed',
     runId: 'current-run',
     profile,
     archive: expected.archive,
     package: expected.package,
-    install: { packageLabel: `@shipwithai/cumpa@${version}`, binLabel: 'cumpa', manifestSha256: digest, dependencyCount: 1, dependencyInventorySha256: digest },
+    install: { packageLabel: `${RENAME_MAP.npmPackage}@${version}`, binLabel: RENAME_MAP.binCommand, manifestSha256: digest, dependencyCount: 1, dependencyInventorySha256: digest },
     target: { platform: process.platform, arch: process.arch },
     cleanup: { complete: true },
   };

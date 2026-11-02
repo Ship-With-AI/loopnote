@@ -9,6 +9,7 @@ import { promisify } from 'node:util';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import * as verifier from '../../scripts/verify-npm-release.mjs';
 import { archiveBasename, packageLabel, packumentUrl, provenanceSubject, registryTarballUrl, version } from '../../scripts/release-identity.mjs';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = join(dirname(fileURLToPath(import.meta.url)), '../..');
@@ -44,9 +45,9 @@ let fixture: Fixture;
 
 function currentCi(overrides: NodeJS.ProcessEnv = {}): NodeJS.ProcessEnv {
   return {
-    GITHUB_REPOSITORY: 'Ship-With-AI/cumpa',
+    GITHUB_REPOSITORY: `Ship-With-AI/${RENAME_MAP.slug}`,
     GITHUB_REPOSITORY_ID: '1327753770',
-    GITHUB_WORKFLOW_REF: 'Ship-With-AI/cumpa/.github/workflows/publish-npm.yml@refs/heads/main',
+    GITHUB_WORKFLOW_REF: `Ship-With-AI/${RENAME_MAP.slug}/.github/workflows/publish-npm.yml@refs/heads/main`,
     GITHUB_SHA: 'a'.repeat(40),
     GITHUB_RUN_ID: '123456789',
     GITHUB_RUN_ATTEMPT: '1',
@@ -70,13 +71,13 @@ function archiveIdentity(bytes: Buffer): Archive {
 function candidateReports(archive: Archive): Pick<Fixture, 'producer' | 'scanner' | 'acceptance'> {
   const hash = 'b'.repeat(64);
   const runtimeDependencies = { '@fastify/static': '8.3.0', fastify: '5.5.0', zod: '4.4.3' };
-  const packageIdentity = { name: '@shipwithai/cumpa', version, runtimeDependencies };
-  const distFiles = ['dist/bin/cumpa.mjs', 'dist/native/directory_exchange.node', 'dist/web/index.html'].map((path) => ({ path, mode: path.endsWith('.mjs') ? 0o755 : 0o644, byteLength: 1, sha256: hash }));
+  const packageIdentity = { name: RENAME_MAP.npmPackage, version, runtimeDependencies };
+  const distFiles = [`dist/bin/${RENAME_MAP.binCommand}.mjs`, 'dist/native/directory_exchange.node', 'dist/web/index.html'].map((path) => ({ path, mode: path.endsWith('.mjs') ? 0o755 : 0o644, byteLength: 1, sha256: hash }));
   const distSha256 = sha256(JSON.stringify(distFiles));
   const files = [...distFiles.map(({ path, mode, byteLength }) => ({ path, mode, size: byteLength })), ...['package.json', 'README.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md'].map((path) => ({ path, mode: 0o644, size: 1 }))];
   const producer = {
-    kind: 'cumpa.runtime-artifact-evidence/v1', status: 'candidate', purpose: 'candidate', package: packageIdentity, archive: { ...archive, files },
-    source: { repository: 'git+https://github.com/Ship-With-AI/cumpa.git', head: 'a'.repeat(40), tree: 'c'.repeat(40), clean: true, trackedDiffSha256: sha256(JSON.stringify(['', ''])), packageJsonSha256: hash, inputsSha256: hash, packageLockSha256: hash },
+    kind: `${RENAME_MAP.kindPrefix}.runtime-artifact-evidence/v1`, status: 'candidate', purpose: 'candidate', package: packageIdentity, archive: { ...archive, files },
+    source: { repository: `git+https://github.com/Ship-With-AI/${RENAME_MAP.slug}.git`, head: 'a'.repeat(40), tree: 'c'.repeat(40), clean: true, trackedDiffSha256: sha256(JSON.stringify(['', ''])), packageJsonSha256: hash, inputsSha256: hash, packageLockSha256: hash },
     build: { configured: true, platform: 'darwin', arch: 'arm64', node: 'v24.15.0', npm: '11.19.1', git: 'git version 2.50.1', os: 'fixture', napi: '10', compiler: { command: '/usr/bin/c++', version: 'Apple clang fixture', target: 'arm64-darwin' } },
     contents: { dist: { sha256: distSha256, files: distFiles } },
     legal: { LICENSE: 'c947d781600d41cdeac710b2c81f5cd04ed88bad83dcc2277cffb30768490c7d', 'THIRD_PARTY_NOTICES.md': '44ac7b248ca311016ec0e10cd2446dd5d34df53a666af3dc5f74da18ed3e9ced' },
@@ -84,7 +85,7 @@ function candidateReports(archive: Archive): Pick<Fixture, 'producer' | 'scanner
     support: { configured: true, originSha256: '89485617b2d50d4778542ebedc3817a3e3fcddb6520a4a9c3a66e37c3a9c6cdf' },
   };
   const scanner = {
-    kind: 'cumpa.runtime-artifact-verification/v1', status: 'passed', purpose: 'candidate', archive, package: packageIdentity,
+    kind: `${RENAME_MAP.kindPrefix}.runtime-artifact-verification/v1`, status: 'passed', purpose: 'candidate', archive, package: packageIdentity,
     inventory: { sha256: distSha256, count: files.length, bytes: files.length }, legal: { README: hash, LICENSE: producer.legal.LICENSE, THIRD_PARTY_NOTICES: producer.legal['THIRD_PARTY_NOTICES.md'] },
     web: { entry: 'dist/web/index.html', reachableFiles: 1, workerRoles: ['css', 'editor', 'html', 'json', 'ts'], codicon: true },
     native: { target: 'arm64-darwin', binary: true, fallback: 'reExportUnsupported' },
@@ -93,8 +94,8 @@ function candidateReports(archive: Archive): Pick<Fixture, 'producer' | 'scanner
     limitations: ['Bounded source disclosure scan.'],
   };
   const acceptance = {
-    kind: 'cumpa.runtime-artifact-acceptance/v1', status: 'passed', profile: 'stable', purpose: 'candidate', archive, package: packageIdentity,
-    install: { packageLabel, binLabel: 'cumpa', manifestSha256: hash, dependencyCount: 3, dependencyInventorySha256: hash },
+    kind: `${RENAME_MAP.kindPrefix}.runtime-artifact-acceptance/v1`, status: 'passed', profile: 'stable', purpose: 'candidate', archive, package: packageIdentity,
+    install: { packageLabel, binLabel: RENAME_MAP.binCommand, manifestSha256: hash, dependencyCount: 3, dependencyInventorySha256: hash },
     scanner, browser: { assets: true, workers: true, codicon: true }, review: { relaunch: true, canonicalV2: true, isolatedDrafts: true, reExport: 'exported' },
     support: { unavailable: true, dismissed: true, unrestricted: true, configured: true, originSha256: producer.support.originSha256 },
     exactPatch: { canonicalV3: true, grounded: true }, native: { observedReExport: true, fallback: 'reExportUnsupported', target: { platform: 'darwin', arch: 'arm64' } },
@@ -111,13 +112,13 @@ function provenanceStatement() {
     predicate: {
       buildDefinition: {
         buildType: 'https://slsa-framework.github.io/github-actions-buildtypes/workflow/v1',
-        externalParameters: { workflow: { repository: 'https://github.com/Ship-With-AI/cumpa', path: '.github/workflows/publish-npm.yml', ref: 'refs/heads/main' } },
+        externalParameters: { workflow: { repository: `https://github.com/Ship-With-AI/${RENAME_MAP.slug}`, path: '.github/workflows/publish-npm.yml', ref: 'refs/heads/main' } },
         internalParameters: { github: { event_name: 'workflow_dispatch', repository_id: '1327753770', repository_owner_id: '224984099' } },
-        resolvedDependencies: [{ uri: 'git+https://github.com/Ship-With-AI/cumpa@refs/heads/main', digest: { gitCommit: 'a'.repeat(40) } }],
+        resolvedDependencies: [{ uri: `git+https://github.com/Ship-With-AI/${RENAME_MAP.slug}@refs/heads/main`, digest: { gitCommit: 'a'.repeat(40) } }],
       },
       runDetails: {
         builder: { id: 'https://github.com/actions/runner/github-hosted' },
-        metadata: { invocationId: 'https://github.com/Ship-With-AI/cumpa/actions/runs/123456789/attempts/1' },
+        metadata: { invocationId: `https://github.com/Ship-With-AI/${RENAME_MAP.slug}/actions/runs/123456789/attempts/1` },
       },
     },
   };
@@ -128,8 +129,8 @@ function verifiedAudit(statement = provenanceStatement()) {
   return {
     invalid: [], missing: [],
     verified: [{
-      name: '@shipwithai/cumpa', version, location: 'node_modules/@shipwithai/cumpa', registry: 'https://registry.npmjs.org/',
-      attestations: { url: `https://registry.npmjs.org/-/npm/v1/attestations/@shipwithai%2fcumpa@${version}` },
+      name: RENAME_MAP.npmPackage, version, location: `node_modules/${RENAME_MAP.npmPackage}`, registry: 'https://registry.npmjs.org/',
+      attestations: { url: `https://registry.npmjs.org/-/npm/v1/attestations/@shipwithai%2f${RENAME_MAP.slug}@${version}` },
       attestationBundles: [statement, { ...statement, predicateType: 'https://docs.npmjs.com/attestations/publish/v0.1' }].map((value) => ({
         predicateType: value.predicateType,
         bundle: { dsseEnvelope: { payloadType: 'application/vnd.in-toto+json', payload: Buffer.from(JSON.stringify(value)).toString('base64'), signatures: [{ keyid: '', sig: 'fixture-only' }] } },
@@ -166,17 +167,17 @@ if (args.includes('install')) {
   writeFileSync(join(cache, 'consumer-used'), 'fixture');
   const global = args.includes('--global') || args.includes('-g');
   const prefix = option('prefix');
-  const target = global ? join(prefix, 'lib/node_modules/@shipwithai/cumpa') : join(process.cwd(), 'node_modules/@shipwithai/cumpa');
+  const target = global ? join(prefix, 'lib/node_modules/@shipwithai/${RENAME_MAP.slug}') : join(process.cwd(), 'node_modules/@shipwithai/${RENAME_MAP.slug}');
   if (${JSON.stringify(mode)} !== 'missing-installed-target' || global) {
     mkdirSync(target, { recursive: true });
-    writeFileSync(join(target, 'package.json'), JSON.stringify({ name: '@shipwithai/cumpa', version: ${JSON.stringify(version)}, bin: { cumpa: 'dist/bin/cumpa.mjs' } }));
+    writeFileSync(join(target, 'package.json'), JSON.stringify({ name: '@shipwithai/${RENAME_MAP.slug}', version: ${JSON.stringify(version)}, bin: { ${RENAME_MAP.binCommand}: 'dist/bin/${RENAME_MAP.binCommand}.mjs' } }));
   }
   if (global) {
     mkdirSync(join(prefix, 'bin'), { recursive: true });
-    writeFileSync(join(prefix, 'bin/cumpa'), '#!${process.execPath}\\nconsole.log(${JSON.stringify(version)});\\n'); chmodSync(join(prefix, 'bin/cumpa'), 0o755);
+    writeFileSync(join(prefix, 'bin/${RENAME_MAP.binCommand}'), '#!${process.execPath}\\nconsole.log(${JSON.stringify(version)});\\n'); chmodSync(join(prefix, 'bin/${RENAME_MAP.binCommand}'), 0o755);
   } else {
     const root = JSON.parse(readFileSync('package.json', 'utf8'));
-    writeFileSync('package-lock.json', JSON.stringify({ name: root.name, lockfileVersion: 3, packages: { '': root, 'node_modules/@shipwithai/cumpa': { name: '@shipwithai/cumpa', version: ${JSON.stringify(version)}, integrity: ${JSON.stringify(fixture.archive.npmIntegritySha512)}, resolved: ${JSON.stringify(registryTarballUrl)} } } }));
+    writeFileSync('package-lock.json', JSON.stringify({ name: root.name, lockfileVersion: 3, packages: { '': root, 'node_modules/@shipwithai/${RENAME_MAP.slug}': { name: '@shipwithai/${RENAME_MAP.slug}', version: ${JSON.stringify(version)}, integrity: ${JSON.stringify(fixture.archive.npmIntegritySha512)}, resolved: ${JSON.stringify(registryTarballUrl)} } } }));
   }
   console.log('{}'); process.exit(0);
 }
@@ -197,7 +198,7 @@ process.exit(46);
     if (url.origin !== 'https://registry.npmjs.org') throw new Error('Unexpected registry fixture request');
     if (url.pathname.endsWith('.tgz')) return new Response(mode === 'wrong-download' ? 'wrong bytes' : await readFile(fixture.archivePath, 'utf8'));
     return Response.json({
-      name: '@shipwithai/cumpa', version,
+      name: RENAME_MAP.npmPackage, version,
       dist: { tarball: registryTarballUrl, shasum: fixture.archive.npmShasumSha1, integrity: fixture.archive.npmIntegritySha512 },
     });
   });
@@ -240,7 +241,7 @@ async function seal(environment: NodeJS.ProcessEnv = {}): Promise<Record<string,
 }
 
 beforeEach(async () => {
-  const root = await mkdtemp(join(tmpdir(), 'cumpa-npm-release-verifier-'));
+  const root = await mkdtemp(join(tmpdir(), `${RENAME_MAP.slug}-npm-release-verifier-`));
   const bytes = Buffer.from('fresh same-run candidate archive bytes');
   const archive = archiveIdentity(bytes);
   const archivePath = join(root, archive.basename);
@@ -272,12 +273,12 @@ describe('npm release verifier', () => {
     producerCore.status = 'candidate';
     expect(sha256(JSON.stringify(producerCore))).toBe(sha256(JSON.stringify(fixture.producer)));
 
-    expect(result).toMatchObject({ kind: 'cumpa.runtime-artifact-evidence/v1', status: 'verified', purpose: 'candidate' });
+    expect(result).toMatchObject({ kind: `${RENAME_MAP.kindPrefix}.runtime-artifact-evidence/v1`, status: 'verified', purpose: 'candidate' });
     expect(sealed).toMatchObject({
-      kind: 'cumpa.runtime-artifact-evidence/v1', status: 'verified', purpose: 'candidate', archive: fixture.archive,
+      kind: `${RENAME_MAP.kindPrefix}.runtime-artifact-evidence/v1`, status: 'verified', purpose: 'candidate', archive: fixture.archive,
       ci: {
-        repository: 'Ship-With-AI/cumpa', repositoryId: '1327753770', workflowPath: '.github/workflows/publish-npm.yml',
-        workflowRef: 'Ship-With-AI/cumpa/.github/workflows/publish-npm.yml@refs/heads/main', ref: 'refs/heads/main',
+        repository: `Ship-With-AI/${RENAME_MAP.slug}`, repositoryId: '1327753770', workflowPath: '.github/workflows/publish-npm.yml',
+        workflowRef: `Ship-With-AI/${RENAME_MAP.slug}/.github/workflows/publish-npm.yml@refs/heads/main`, ref: 'refs/heads/main',
         sourceSha: 'a'.repeat(40), runId: '123456789', runAttempt: '1', runnerEnvironment: 'github-hosted', producerPlatform: 'darwin', producerArch: 'arm64',
       },
       scanner: { kind: fixture.scanner.kind, status: 'passed', sha256: sha256(await readFile(fixture.scannerPath)) },
@@ -291,7 +292,7 @@ describe('npm release verifier', () => {
   const ciMismatches: readonly [string, NodeJS.ProcessEnv][] = [
     ['repository', { GITHUB_REPOSITORY: 'other/repository' }],
     ['repository ID', { GITHUB_REPOSITORY_ID: '1' }],
-    ['workflow', { GITHUB_WORKFLOW_REF: 'Ship-With-AI/cumpa/.github/workflows/other.yml@refs/heads/main' }],
+    ['workflow', { GITHUB_WORKFLOW_REF: `Ship-With-AI/${RENAME_MAP.slug}/.github/workflows/other.yml@refs/heads/main` }],
     ['source SHA', { GITHUB_SHA: 'd'.repeat(40) }],
     ['run ID', { GITHUB_RUN_ID: 'invalid' }],
     ['run attempt', { GITHUB_RUN_ATTEMPT: '0' }],
@@ -311,7 +312,7 @@ describe('npm release verifier', () => {
     expect(mismatchedVersion).not.toBe(version);
     const substitutions: Array<[string, (reports: Pick<Fixture, 'producer' | 'scanner' | 'acceptance'>) => void]> = [
       ['scanner archive', ({ scanner }) => { (scanner.archive as Record<string, unknown>).sha256 = 'd'.repeat(64); }],
-      ['producer archive basename', ({ producer }) => { (producer.archive as Record<string, unknown>).basename = `shipwithai-cumpa-${mismatchedVersion}.tgz`; }],
+      ['producer archive basename', ({ producer }) => { (producer.archive as Record<string, unknown>).basename = `shipwithai-${RENAME_MAP.slug}-${mismatchedVersion}.tgz`; }],
       ['acceptance package', ({ acceptance }) => { ((acceptance.package as Record<string, unknown>).version) = mismatchedVersion; }],
       ['accepted-local fallback authority', ({ producer }) => { producer.status = 'accepted-local'; }],
       ['missing native re-export', ({ acceptance }) => { ((acceptance.native as Record<string, unknown>).observedReExport) = false; }],
@@ -346,7 +347,7 @@ describe('npm release verifier', () => {
       '--artifact-id', '12345', '--artifact-digest', `sha256:${'c'.repeat(64)}`,
     ];
     const accepted = JSON.parse((await invoke('verify-candidate', valid, currentCi({ RUNNER_OS: 'Linux', RUNNER_ARCH: 'X64' }))).stdout) as Record<string, unknown>;
-    expect(accepted).toMatchObject({ kind: 'cumpa.ci-candidate-prepublish/v1', status: 'passed', archive: fixture.archive });
+    expect(accepted).toMatchObject({ kind: `${RENAME_MAP.kindPrefix}.ci-candidate-prepublish/v1`, status: 'passed', archive: fixture.archive });
 
     for (const environment of [
       { GITHUB_SHA: 'd'.repeat(40) }, { GITHUB_RUN_ID: '987654321' }, { GITHUB_RUN_ATTEMPT: '2' },
@@ -392,7 +393,7 @@ describe('npm release verifier', () => {
       (value) => { value.predicate.buildDefinition.internalParameters.github.event_name = 'push'; },
       (value) => { value.predicate.buildDefinition.internalParameters.github.repository_owner_id = '1'; },
       (value) => { value.predicate.runDetails.builder.id = 'https://github.com/actions/runner/self-hosted'; },
-      (value) => { value.predicate.runDetails.metadata.invocationId = 'https://github.com/Ship-With-AI/cumpa/actions/runs/123456789/attempts/2'; },
+      (value) => { value.predicate.runDetails.metadata.invocationId = `https://github.com/Ship-With-AI/${RENAME_MAP.slug}/actions/runs/123456789/attempts/2`; },
     ];
     for (const mutate of changes) {
       const statement = provenanceStatement();
@@ -401,7 +402,7 @@ describe('npm release verifier', () => {
     }
     for (const audit of [
       { invalid: [], missing: [], verified: [] },
-      { ...verifiedAudit(), invalid: [{ name: '@shipwithai/cumpa', code: 'EATTESTATIONVERIFY' }] },
+      { ...verifiedAudit(), invalid: [{ name: RENAME_MAP.npmPackage, code: 'EATTESTATIONVERIFY' }] },
       { ...verifiedAudit(), verified: [...verifiedAudit().verified, ...verifiedAudit().verified] },
     ]) await expect(Promise.resolve().then(() => inspect({ evidence, audit }))).rejects.toThrow();
   });
@@ -418,7 +419,7 @@ describe('npm release verifier', () => {
       outputPath: join(fixture.root, 'public-verification.json'),
     });
     if (mode === 'passed') {
-      expect(await operation).toMatchObject({ kind: 'cumpa.npm-release-verification/v1', status: 'passed' });
+      expect(await operation).toMatchObject({ kind: `${RENAME_MAP.kindPrefix}.npm-release-verification/v1`, status: 'passed' });
       const report = await readFile(join(fixture.root, 'public-verification.json'), 'utf8');
       expect(report).not.toContain(fixture.root);
       expect(report).not.toContain('fixture-credential-must-not-reach-consumers');
@@ -437,7 +438,8 @@ describe('npm release verifier', () => {
     await Promise.all([
       writeFile(standalone, await readFile(verifierPath)),
       writeFile(join(scripts, 'release-identity.mjs'), await readFile(join(projectRoot, 'scripts', 'release-identity.mjs'))),
-      writeJson(join(fixture.root, 'package.json'), { name: '@shipwithai/cumpa', version }),
+      writeFile(join(scripts, 'rename-map.json'), await readFile(join(projectRoot, 'scripts', 'rename-map.json'))),
+      writeJson(join(fixture.root, 'package.json'), { name: RENAME_MAP.npmPackage, version }),
     ]);
     await symlink(standalone, launcher);
     const result = await execFileAsync(process.execPath, [
@@ -454,7 +456,7 @@ describe('npm release verifier', () => {
     const failure = await commandFailure('seal-candidate', [
       '--archive', fixture.archivePath, '--producer-evidence', fixture.producerPath, '--scanner-report', fixture.scannerPath,
       '--acceptance-report', fixture.acceptancePath, '--output', fixture.sealedPath,
-    ], currentCi({ GITHUB_REPOSITORY: 'other/repository', CUMPA_RELEASE_SUPPORT_SERVICE_URL: privateOrigin, NODE_AUTH_TOKEN: 'secret-token' }));
+    ], currentCi({ GITHUB_REPOSITORY: 'other/repository', [`${RENAME_MAP.envPrefix}RELEASE_SUPPORT_SERVICE_URL`]: privateOrigin, NODE_AUTH_TOKEN: 'secret-token' }));
     for (const privateValue of [fixture.root, privateOrigin, 'secret-token']) expect(failure).not.toContain(privateValue);
     expect(failure).toMatch(/failed|invalid|candidate/i);
   });

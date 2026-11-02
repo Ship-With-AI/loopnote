@@ -6,6 +6,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { bootstrapVersion, version } from '../../scripts/release-identity.mjs';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 
 import { readRuntimeArtifact } from '../helpers/runtime-artifact.js';
 
@@ -52,8 +53,8 @@ async function produce(purpose: 'bootstrap' | 'candidate' | 'development-check',
   const custody = join(temporaryRoot, `custody-${purpose}-${configured ? 'configured' : 'absent'}-${Math.random()}`);
   const evidencePath = join(temporaryRoot, `${purpose}-${configured ? 'configured' : 'absent'}-${Math.random()}.json`);
   const environment = { ...process.env };
-  if (configured) environment.CUMPA_RELEASE_SUPPORT_SERVICE_URL = origin;
-  else delete environment.CUMPA_RELEASE_SUPPORT_SERVICE_URL;
+  if (configured) environment[`${RENAME_MAP.envPrefix}RELEASE_SUPPORT_SERVICE_URL`] = origin;
+  else delete environment[`${RENAME_MAP.envPrefix}RELEASE_SUPPORT_SERVICE_URL`];
   await execute(producer, ['--purpose', purpose, '--custody-dir', custody, '--evidence', evidencePath], environment);
   const evidence = JSON.parse(await readFile(evidencePath, 'utf8')) as Evidence;
   return { custody, evidencePath, evidence, archive: join(custody, evidence.archive.basename) };
@@ -106,7 +107,7 @@ async function reboundedModifiedArchive(produced: Produced): Promise<{ readonly 
   const archive = join(custody, produced.evidence.archive.basename);
   try {
     await execFileAsync('tar', ['-xzf', produced.archive, '-C', staging]);
-    const launcher = join(staging, 'package', 'dist', 'bin', 'cumpa.mjs');
+    const launcher = join(staging, 'package', 'dist', 'bin', `${RENAME_MAP.binCommand}.mjs`);
     const bytes = await readFile(launcher);
     bytes[0] ^= 1;
     await writeFile(launcher, bytes);
@@ -131,14 +132,14 @@ async function reboundEvidence(produced: Produced, mutate: (evidence: Evidence) 
 }
 
 beforeAll(async () => {
-  temporaryRoot = await mkdtemp(join(tmpdir(), 'cumpa-runtime-artifact-verifier-'));
+  temporaryRoot = await mkdtemp(join(tmpdir(), `${RENAME_MAP.slug}-runtime-artifact-verifier-`));
   await symlink(join(projectRoot, 'node_modules'), join(temporaryRoot, 'node_modules'), 'dir');
   root = join(temporaryRoot, 'source');
   await mkdir(join(root, 'scripts'), { recursive: true });
   await mkdir(join(root, 'src/native'), { recursive: true });
   producer = join(root, 'scripts/pack-runtime.mjs');
   verifier = join(root, 'scripts/verify-production-artifacts.mjs');
-  for (const path of ['scripts/pack-runtime.mjs', 'scripts/release-identity.mjs', 'scripts/verify-production-artifacts.mjs', 'src/native/directory-exchange.cc', 'package-lock.json', 'README.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md']) {
+  for (const path of ['scripts/pack-runtime.mjs', 'scripts/release-identity.mjs', 'scripts/rename-map.json', 'scripts/verify-production-artifacts.mjs', 'src/native/directory-exchange.cc', 'package-lock.json', 'README.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md']) {
     await writeFile(join(root, path), await readFile(join(projectRoot, path)));
   }
   const manifest = JSON.parse(await readFile(join(projectRoot, 'package.json'), 'utf8'));
@@ -147,10 +148,10 @@ beforeAll(async () => {
   await writeFile(join(root, 'scripts/build-fixture.mjs'), `
 import { chmodSync, mkdirSync, writeFileSync } from 'node:fs';
 for (const path of ['dist/bin', 'dist/web/assets', 'dist/native']) mkdirSync(path, { recursive: true });
-const origin = process.env.CUMPA_RELEASE_SUPPORT_SERVICE_URL;
-const launcher = '#!/usr/bin/env node\\n' + (origin ? "if (process.env.CUMPA_SUPPORT_SERVICE_URL === undefined) process.env.CUMPA_SUPPORT_SERVICE_URL = '" + origin + "';\\n" : '');
-writeFileSync('dist/bin/cumpa.mjs', launcher);
-chmodSync('dist/bin/cumpa.mjs', 0o755);
+const origin = process.env.${RENAME_MAP.envPrefix}RELEASE_SUPPORT_SERVICE_URL;
+const launcher = '#!/usr/bin/env node\\n' + (origin ? "if (process.env.${RENAME_MAP.envPrefix}SUPPORT_SERVICE_URL === undefined) process.env.${RENAME_MAP.envPrefix}SUPPORT_SERVICE_URL = '" + origin + "';\\n" : '');
+writeFileSync('dist/bin/${RENAME_MAP.binCommand}.mjs', launcher);
+chmodSync('dist/bin/${RENAME_MAP.binCommand}.mjs', 0o755);
 writeFileSync('dist/web/index.html', '<script type="module" src="./assets/app.js"></script><link rel="stylesheet" href="./assets/app.css">');
 writeFileSync('dist/web/assets/app.js', ${JSON.stringify('const compilerExample = `import("{0}")`; const generatedHtml = `<img src="` + name + `">`; new URL(`editor.worker-fixture.js`, import.meta.url);')});
 writeFileSync('dist/web/assets/app.css', '@font-face{font-family:codicon;src:url("./codicon-fixture.ttf")}');
@@ -173,11 +174,11 @@ describe('runtime artifact verifier', () => {
   test('re-verifies a producer archive without creating or changing archive bytes', async () => {
     const produced = await produce('development-check');
     const before = await stat(produced.archive);
-    const output = JSON.parse((await execute(verifier, verifierArgs(produced), { CUMPA_RELEASE_SUPPORT_SERVICE_URL: undefined })).stdout) as Record<string, unknown>;
+    const output = JSON.parse((await execute(verifier, verifierArgs(produced), { [`${RENAME_MAP.envPrefix}RELEASE_SUPPORT_SERVICE_URL`]: undefined })).stdout) as Record<string, unknown>;
     const after = await stat(produced.archive);
 
     expect(output).toMatchObject({
-      kind: 'cumpa.runtime-artifact-verification/v1',
+      kind: `${RENAME_MAP.kindPrefix}.runtime-artifact-verification/v1`,
       status: 'passed',
       purpose: 'development-check',
       archive: { basename: produced.evidence.archive.basename, sha256: produced.evidence.archive.sha256 },
@@ -191,22 +192,22 @@ describe('runtime artifact verifier', () => {
     const output = JSON.parse((await execute(
       verifier,
       ['--profile', 'bootstrap', ...verifierArgs(bootstrap)],
-      { CUMPA_RELEASE_SUPPORT_SERVICE_URL: origin },
+      { [`${RENAME_MAP.envPrefix}RELEASE_SUPPORT_SERVICE_URL`]: origin },
     )).stdout) as Record<string, unknown>;
 
     expect(output).toMatchObject({
       status: 'passed',
       purpose: 'bootstrap',
-      package: { name: '@shipwithai/cumpa', version: bootstrapVersion },
+      package: { name: RENAME_MAP.npmPackage, version: bootstrapVersion },
       support: { configured: true, originSha256: createHash('sha256').update(origin).digest('hex') },
     });
-    await expect(verifierFailure(verifierArgs(bootstrap), { CUMPA_RELEASE_SUPPORT_SERVICE_URL: origin })).resolves.toContain('runtime artifact verifier failed');
-    await expect(verifierFailure(verifierArgs(bootstrap, bootstrap.evidencePath, bootstrap.evidence.archive.sha256, 'stable'), { CUMPA_RELEASE_SUPPORT_SERVICE_URL: origin })).resolves.toContain('runtime artifact verifier failed');
+    await expect(verifierFailure(verifierArgs(bootstrap), { [`${RENAME_MAP.envPrefix}RELEASE_SUPPORT_SERVICE_URL`]: origin })).resolves.toContain('runtime artifact verifier failed');
+    await expect(verifierFailure(verifierArgs(bootstrap, bootstrap.evidencePath, bootstrap.evidence.archive.sha256, 'stable'), { [`${RENAME_MAP.envPrefix}RELEASE_SUPPORT_SERVICE_URL`]: origin })).resolves.toContain('runtime artifact verifier failed');
     await expect(verifierFailure([
       ...verifierArgs(bootstrap, bootstrap.evidencePath, bootstrap.evidence.archive.sha256, 'bootstrap'),
       '--profile',
       'bootstrap',
-    ], { CUMPA_RELEASE_SUPPORT_SERVICE_URL: origin })).resolves.toContain('runtime artifact verifier failed');
+    ], { [`${RENAME_MAP.envPrefix}RELEASE_SUPPORT_SERVICE_URL`]: origin })).resolves.toContain('runtime artifact verifier failed');
 
     const crossed = await Promise.all([
       reboundEvidence(bootstrap, (evidence) => {
@@ -230,7 +231,7 @@ describe('runtime artifact verifier', () => {
     for (const evidencePath of crossed) {
       await expect(verifierFailure(
         verifierArgs(bootstrap, evidencePath, archiveIdentity(await readFile(bootstrap.archive)).sha256, 'bootstrap'),
-        { CUMPA_RELEASE_SUPPORT_SERVICE_URL: origin },
+        { [`${RENAME_MAP.envPrefix}RELEASE_SUPPORT_SERVICE_URL`]: origin },
       )).resolves.toContain('runtime artifact verifier failed');
     }
   }, 180_000);
@@ -238,24 +239,24 @@ describe('runtime artifact verifier', () => {
   test('selects the trusted runtime profile before installation while the default remains stable', async () => {
     const stable = await produce('development-check');
     const stableEnvironment = {
-      CUMPA_RUNTIME_CUSTODY_DIR: stable.custody,
-      CUMPA_RUNTIME_ARCHIVE_BASENAME: stable.evidence.archive.basename,
-      CUMPA_RUNTIME_ARCHIVE_SHA256: stable.evidence.archive.sha256,
-      CUMPA_RUNTIME_EVIDENCE: stable.evidencePath,
+      [`${RENAME_MAP.envPrefix}RUNTIME_CUSTODY_DIR`]: stable.custody,
+      [`${RENAME_MAP.envPrefix}RUNTIME_ARCHIVE_BASENAME`]: stable.evidence.archive.basename,
+      [`${RENAME_MAP.envPrefix}RUNTIME_ARCHIVE_SHA256`]: stable.evidence.archive.sha256,
+      [`${RENAME_MAP.envPrefix}RUNTIME_EVIDENCE`]: stable.evidencePath,
     };
     expect(readRuntimeArtifact(stableEnvironment).package.version).toBe(version);
 
     const bootstrap = await produce('bootstrap', true);
     const bootstrapEnvironment = {
-      CUMPA_RUNTIME_CUSTODY_DIR: bootstrap.custody,
-      CUMPA_RUNTIME_ARCHIVE_BASENAME: bootstrap.evidence.archive.basename,
-      CUMPA_RUNTIME_ARCHIVE_SHA256: bootstrap.evidence.archive.sha256,
-      CUMPA_RUNTIME_EVIDENCE: bootstrap.evidencePath,
-      CUMPA_RUNTIME_PROFILE: 'bootstrap',
+      [`${RENAME_MAP.envPrefix}RUNTIME_CUSTODY_DIR`]: bootstrap.custody,
+      [`${RENAME_MAP.envPrefix}RUNTIME_ARCHIVE_BASENAME`]: bootstrap.evidence.archive.basename,
+      [`${RENAME_MAP.envPrefix}RUNTIME_ARCHIVE_SHA256`]: bootstrap.evidence.archive.sha256,
+      [`${RENAME_MAP.envPrefix}RUNTIME_EVIDENCE`]: bootstrap.evidencePath,
+      [`${RENAME_MAP.envPrefix}RUNTIME_PROFILE`]: 'bootstrap',
     };
     expect(readRuntimeArtifact(bootstrapEnvironment).package.version).toBe(bootstrapVersion);
     for (const profile of ['', 'candidate']) {
-      expect(() => readRuntimeArtifact({ ...bootstrapEnvironment, CUMPA_RUNTIME_PROFILE: profile })).toThrow();
+      expect(() => readRuntimeArtifact({ ...bootstrapEnvironment, [`${RENAME_MAP.envPrefix}RUNTIME_PROFILE`]: profile })).toThrow();
     }
   }, 180_000);
 
@@ -320,9 +321,9 @@ describe('runtime artifact verifier', () => {
     const produced = await produce('candidate', true);
     for (const status of ['candidate', 'verified', 'accepted-local']) {
       const evidence = await clonedEvidence(produced, (copy) => { copy.status = status; });
-      const output = JSON.parse((await execute(verifier, verifierArgs(produced, evidence), { CUMPA_RELEASE_SUPPORT_SERVICE_URL: origin })).stdout) as Record<string, unknown>;
+      const output = JSON.parse((await execute(verifier, verifierArgs(produced, evidence), { [`${RENAME_MAP.envPrefix}RELEASE_SUPPORT_SERVICE_URL`]: origin })).stdout) as Record<string, unknown>;
       expect(output).toMatchObject({ status: 'passed', purpose: 'candidate', support: { configured: true, originSha256: createHash('sha256').update(origin).digest('hex') } });
     }
-    await expect(verifierFailure(verifierArgs(produced), { CUMPA_RELEASE_SUPPORT_SERVICE_URL: undefined })).resolves.toContain('requires CUMPA_RELEASE_SUPPORT_SERVICE_URL');
+    await expect(verifierFailure(verifierArgs(produced), { [`${RENAME_MAP.envPrefix}RELEASE_SUPPORT_SERVICE_URL`]: undefined })).resolves.toContain(`requires ${RENAME_MAP.envPrefix}RELEASE_SUPPORT_SERVICE_URL`);
   }, 180_000);
 });

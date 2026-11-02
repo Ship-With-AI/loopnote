@@ -8,11 +8,13 @@ import { promisify } from 'node:util';
 
 import { afterEach, describe, expect, test } from 'vitest';
 import { bootstrapVersion, version } from '../../scripts/release-identity.mjs';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 
 const execFileAsync = promisify(execFile);
 const projectRoot = join(dirname(fileURLToPath(import.meta.url)), '../..');
 const producerSource = join(projectRoot, 'scripts', 'pack-runtime.mjs');
 const identitySource = join(projectRoot, 'scripts', 'release-identity.mjs');
+const renameMapSource = join(projectRoot, 'scripts', 'rename-map.json');
 const roots: string[] = [];
 
 const origin = `https://${'a'.repeat(20)}.supabase.co`;
@@ -32,7 +34,7 @@ type Fixture = Readonly<{
 }>;
 
 async function createFixture(): Promise<Fixture> {
-  const root = await mkdtemp(join(tmpdir(), 'cumpa-runtime-producer-'));
+  const root = await mkdtemp(join(tmpdir(), `${RENAME_MAP.slug}-runtime-producer-`));
   roots.push(root);
   const scripts = join(root, 'scripts');
   const bin = join(root, 'bin');
@@ -43,10 +45,10 @@ async function createFixture(): Promise<Fixture> {
   ]);
   await Promise.all([
     writeFile(join(root, 'package.json'), JSON.stringify({
-      name: '@shipwithai/cumpa',
+      name: RENAME_MAP.npmPackage,
       version,
       engines: { node: '>=24' },
-      bin: { cumpa: 'dist/bin/cumpa.mjs' },
+      bin: { [RENAME_MAP.binCommand]: `dist/bin/${RENAME_MAP.binCommand}.mjs` },
       files: ['dist/', 'README.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md'],
       dependencies: { fastify: '5.10.0' },
     }), 'utf8'),
@@ -57,6 +59,7 @@ async function createFixture(): Promise<Fixture> {
     writeFile(join(root, 'src', 'native', 'directory-exchange.cc'), 'native fixture\n', 'utf8'),
     writeFile(join(scripts, 'pack-runtime.mjs'), await readFile(producerSource)),
     writeFile(join(scripts, 'release-identity.mjs'), await readFile(identitySource)),
+    writeFile(join(scripts, 'rename-map.json'), await readFile(renameMapSource)),
   ]);
 
   const calls = join(root, 'calls.log');
@@ -70,23 +73,23 @@ import { join } from 'node:path';
 
 const args = process.argv.slice(2);
 if (args[0] === '--version') { process.stdout.write('11.12.1\\n'); process.exit(0); }
-appendFileSync(process.env.CUMPA_FAKE_NPM_CALLS, args.join(' ') + '\\n');
+appendFileSync(process.env.${RENAME_MAP.envPrefix}FAKE_NPM_CALLS, args.join(' ') + '\\n');
 if (args[0] === 'run' && args[1] === 'build') {
-  if (process.env.CUMPA_FAKE_BUILD_FAILURE) process.exit(7);
+  if (process.env.${RENAME_MAP.envPrefix}FAKE_BUILD_FAILURE) process.exit(7);
   const dist = join(process.cwd(), 'dist');
   mkdirSync(join(dist, 'bin'), { recursive: true });
   mkdirSync(join(dist, 'web'), { recursive: true });
   mkdirSync(join(dist, 'native'), { recursive: true });
-  writeFileSync(join(dist, 'bin', 'cumpa.mjs'), process.env.CUMPA_FAKE_BUNDLE_CONTENT ?? 'bin\\n');
+  writeFileSync(join(dist, 'bin', '${RENAME_MAP.binCommand}.mjs'), process.env.${RENAME_MAP.envPrefix}FAKE_BUNDLE_CONTENT ?? 'bin\\n');
   writeFileSync(join(dist, 'web', 'index.html'), '<html></html>\\n');
   writeFileSync(join(dist, 'native', 'directory_exchange.node'), 'native\\n');
-  if (process.env.CUMPA_FAKE_FORBIDDEN_CONTENT) writeFileSync(join(dist, 'web', 'app.js.map'), '{}\\n');
-  if (process.env.CUMPA_FAKE_SOURCE_DRIFT) writeFileSync(join(process.cwd(), 'README.md'), 'drifted source\\n');
-  const holdMilliseconds = Number.parseInt(process.env.CUMPA_FAKE_BUILD_HOLD_MS ?? '0', 10);
+  if (process.env.${RENAME_MAP.envPrefix}FAKE_FORBIDDEN_CONTENT) writeFileSync(join(dist, 'web', 'app.js.map'), '{}\\n');
+  if (process.env.${RENAME_MAP.envPrefix}FAKE_SOURCE_DRIFT) writeFileSync(join(process.cwd(), 'README.md'), 'drifted source\\n');
+  const holdMilliseconds = Number.parseInt(process.env.${RENAME_MAP.envPrefix}FAKE_BUILD_HOLD_MS ?? '0', 10);
   if (holdMilliseconds > 0) {
-    appendFileSync(process.env.CUMPA_FAKE_BUILD_EVENTS, 'start ' + process.pid + '\\n');
+    appendFileSync(process.env.${RENAME_MAP.envPrefix}FAKE_BUILD_EVENTS, 'start ' + process.pid + '\\n');
     Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, holdMilliseconds);
-    appendFileSync(process.env.CUMPA_FAKE_BUILD_EVENTS, 'end ' + process.pid + '\\n');
+    appendFileSync(process.env.${RENAME_MAP.envPrefix}FAKE_BUILD_EVENTS, 'end ' + process.pid + '\\n');
   }
   process.exit(0);
 }
@@ -112,7 +115,7 @@ addDirectory('dist');
 files.sort((left, right) => left.path.localeCompare(right.path));
 const manifest = JSON.parse(readFileSync(join(packageRoot, 'package.json'), 'utf8'));
 if (packingDirectory) {
-  writeFileSync(process.env.CUMPA_FAKE_PACK_OBSERVATIONS, JSON.stringify({
+  writeFileSync(process.env.${RENAME_MAP.envPrefix}FAKE_PACK_OBSERVATIONS, JSON.stringify({
     directory: packingDirectory,
     mode: statSync(packingDirectory).mode & 0o777,
     manifest,
@@ -141,20 +144,20 @@ const entry = ({ path, mode, bytes }) => {
   return [header, bytes, padding];
 };
 const archiveBytes = gzipSync(Buffer.concat([...files.flatMap(entry), Buffer.alloc(1024)]));
-const filename = 'cumpa-' + manifest.version + '.tgz';
-const archive = process.env.CUMPA_FAKE_ARCHIVE_SUBSTITUTION ? Buffer.concat([archiveBytes, Buffer.from('substituted archive')]) : archiveBytes;
+const filename = '${RENAME_MAP.slug}-' + manifest.version + '.tgz';
+const archive = process.env.${RENAME_MAP.envPrefix}FAKE_ARCHIVE_SUBSTITUTION ? Buffer.concat([archiveBytes, Buffer.from('substituted archive')]) : archiveBytes;
 writeFileSync(join(custody, filename), archive);
-if (process.env.CUMPA_FAKE_PACK_FAILURE) process.exit(9);
+if (process.env.${RENAME_MAP.envPrefix}FAKE_PACK_FAILURE) process.exit(9);
 const inventory = files.map(({ path, size, mode }) => ({ path, size, mode }));
-if (process.env.CUMPA_FAKE_EXTRA_FILE) inventory.push({ path: 'unexpected.txt', size: 1, mode: 420 });
-if (process.env.CUMPA_FAKE_INVENTORY_MISMATCH) inventory.pop();
+if (process.env.${RENAME_MAP.envPrefix}FAKE_EXTRA_FILE) inventory.push({ path: 'unexpected.txt', size: 1, mode: 420 });
+if (process.env.${RENAME_MAP.envPrefix}FAKE_INVENTORY_MISMATCH) inventory.pop();
 const result = {
   filename,
   shasum: createHash('sha1').update(archiveBytes).digest('hex'),
   integrity: 'sha512-' + createHash('sha512').update(archiveBytes).digest('base64'),
   files: inventory,
 };
-process.stdout.write(JSON.stringify(process.env.CUMPA_FAKE_MULTIPLE_RESULTS ? [result, result] : [result]));
+process.stdout.write(JSON.stringify(process.env.${RENAME_MAP.envPrefix}FAKE_MULTIPLE_RESULTS ? [result, result] : [result]));
 `, 'utf8');
   await chmod(npm, 0o755);
 
@@ -174,8 +177,8 @@ process.stdout.write(JSON.stringify(process.env.CUMPA_FAKE_MULTIPLE_RESULTS ? [r
     env: {
       ...process.env,
       PATH: `${bin}:${process.env.PATH ?? ''}`,
-      CUMPA_FAKE_NPM_CALLS: calls,
-      CUMPA_FAKE_PACK_OBSERVATIONS: packingObservations,
+      [`${RENAME_MAP.envPrefix}FAKE_NPM_CALLS`]: calls,
+      [`${RENAME_MAP.envPrefix}FAKE_PACK_OBSERVATIONS`]: packingObservations,
     },
   };
 }
@@ -222,7 +225,7 @@ async function invokeConcurrent(
 function runtimePackLock(root: string): string {
   return join(
     tmpdir(),
-    `cumpa-pack-runtime-${createHash('sha256').update(root).digest('hex').slice(0, 16)}.lock`,
+    `${RENAME_MAP.slug}-pack-runtime-${createHash('sha256').update(root).digest('hex').slice(0, 16)}.lock`,
   );
 }
 
@@ -265,12 +268,12 @@ describe('runtime archive producer', () => {
   test('distinguishes compiler source-map strings from emitted source-map payloads', async () => {
     const compiler = await createFixture();
     await invoke(compiler, producerArgs(compiler), {
-      CUMPA_FAKE_BUNDLE_CONTENT: 'writer.writeComment(`//# sourceMappingURL=${url}`);',
+      [`${RENAME_MAP.envPrefix}FAKE_BUNDLE_CONTENT`]: 'writer.writeComment(`//# sourceMappingURL=${url}`);',
     });
     expect(JSON.parse(await readFile(compiler.evidence, 'utf8')).archive.sha256).toMatch(/^[a-f0-9]{64}$/u);
     const directive = await createFixture();
     await invoke(directive, producerArgs(directive), {
-      CUMPA_FAKE_BUNDLE_CONTENT: 'console.log(1);\n//# sourceMappingURL=app.js.map',
+      [`${RENAME_MAP.envPrefix}FAKE_BUNDLE_CONTENT`]: 'console.log(1);\n//# sourceMappingURL=app.js.map',
     });
     await expect(lstat(directive.evidence)).rejects.toMatchObject({ code: 'ENOENT' });
   });
@@ -282,11 +285,11 @@ describe('runtime archive producer', () => {
     await writeFile(readme, 'staged modification\n');
     await execFileAsync('git', ['add', 'README.md'], { cwd: staged.root });
     await writeFile(readme, original);
-    await invoke(staged, producerArgs(staged, 'candidate'), { CUMPA_RELEASE_SUPPORT_SERVICE_URL: origin });
+    await invoke(staged, producerArgs(staged, 'candidate'), { [`${RENAME_MAP.envPrefix}RELEASE_SUPPORT_SERVICE_URL`]: origin });
     expect(await npmCalls(staged)).toEqual([]);
     await expect(lstat(staged.evidence)).rejects.toMatchObject({ code: 'ENOENT' });
     const extra = await createFixture();
-    await invoke(extra, producerArgs(extra), { CUMPA_FAKE_EXTRA_FILE: '1' });
+    await invoke(extra, producerArgs(extra), { [`${RENAME_MAP.envPrefix}FAKE_EXTRA_FILE`]: '1' });
     await expect(lstat(extra.evidence)).rejects.toMatchObject({ code: 'ENOENT' });
   });
 
@@ -324,7 +327,7 @@ describe('runtime archive producer', () => {
     expect(absentEvidence.support).toEqual({ configured: false });
 
     const configured = await createFixture();
-    const result = await invoke(configured, producerArgs(configured), { CUMPA_RELEASE_SUPPORT_SERVICE_URL: origin });
+    const result = await invoke(configured, producerArgs(configured), { [`${RENAME_MAP.envPrefix}RELEASE_SUPPORT_SERVICE_URL`]: origin });
     const evidenceText = await readFile(configured.evidence, 'utf8');
     const evidence = JSON.parse(evidenceText);
     const output = `${result.stdout ?? ''}${result.stderr ?? ''}${result instanceof Error ? result.message : ''}`;
@@ -336,11 +339,11 @@ describe('runtime archive producer', () => {
     });
 
     const deployment = await createFixture();
-    await invoke(deployment, producerArgs(deployment, 'deployment-check'), { CUMPA_RELEASE_SUPPORT_SERVICE_URL: origin });
+    await invoke(deployment, producerArgs(deployment, 'deployment-check'), { [`${RENAME_MAP.envPrefix}RELEASE_SUPPORT_SERVICE_URL`]: origin });
     expect(JSON.parse(await readFile(deployment.evidence, 'utf8')).status).toBe('deployment-check');
 
     const candidate = await createFixture();
-    await invoke(candidate, producerArgs(candidate, 'candidate'), { CUMPA_RELEASE_SUPPORT_SERVICE_URL: origin });
+    await invoke(candidate, producerArgs(candidate, 'candidate'), { [`${RENAME_MAP.envPrefix}RELEASE_SUPPORT_SERVICE_URL`]: origin });
     expect(JSON.parse(await readFile(candidate.evidence, 'utf8')).status).toBe('candidate');
   });
 
@@ -359,13 +362,13 @@ describe('runtime archive producer', () => {
     }
 
     const forbidden = await createFixture();
-    await invoke(forbidden, producerArgs(forbidden), { CUMPA_FAKE_FORBIDDEN_CONTENT: '1' });
+    await invoke(forbidden, producerArgs(forbidden), { [`${RENAME_MAP.envPrefix}FAKE_FORBIDDEN_CONTENT`]: '1' });
     expect(await npmCalls(forbidden)).toEqual(['run build']);
     await expect(lstat(forbidden.evidence)).rejects.toMatchObject({ code: 'ENOENT' });
 
     const candidate = await createFixture();
     await writeFile(join(candidate.root, 'README.md'), 'dirty source\n');
-    await invoke(candidate, producerArgs(candidate, 'candidate'), { CUMPA_RELEASE_SUPPORT_SERVICE_URL: origin });
+    await invoke(candidate, producerArgs(candidate, 'candidate'), { [`${RENAME_MAP.envPrefix}RELEASE_SUPPORT_SERVICE_URL`]: origin });
     expect(await npmCalls(candidate)).toEqual([]);
 
     const development = await createFixture();
@@ -378,7 +381,7 @@ describe('runtime archive producer', () => {
     expect(developmentEvidence.native.binary.path).toBe('dist/native/directory_exchange.node');
 
     const drifting = await createFixture();
-    await invoke(drifting, producerArgs(drifting), { CUMPA_FAKE_SOURCE_DRIFT: '1' });
+    await invoke(drifting, producerArgs(drifting), { [`${RENAME_MAP.envPrefix}FAKE_SOURCE_DRIFT`]: '1' });
     expect(await npmCalls(drifting)).toEqual(['run build']);
     await expect(lstat(drifting.evidence)).rejects.toMatchObject({ code: 'ENOENT' });
   });
@@ -393,10 +396,10 @@ describe('runtime archive producer', () => {
     expect(await npmCalls(fixture)).toHaveLength(2);
     expect((await npmCalls(fixture))[0]).toBe('run build');
     expect((await npmCalls(fixture))[1]).toMatch(/^pack --json --ignore-scripts --pack-destination /u);
-    expect(evidence.kind).toBe('cumpa.runtime-artifact-evidence/v1');
+    expect(evidence.kind).toBe(`${RENAME_MAP.kindPrefix}.runtime-artifact-evidence/v1`);
     expect(evidence.package.version).toBe(version);
     expect(evidence.archive).toMatchObject({
-      basename: `cumpa-${version}.tgz`,
+      basename: `${RENAME_MAP.slug}-${version}.tgz`,
       byteLength: archive.byteLength,
       sha256: createHash('sha256').update(archive).digest('hex'),
       npmShasumSha1: createHash('sha1').update(archive).digest('hex'),
@@ -406,7 +409,7 @@ describe('runtime archive producer', () => {
     expect(evidence.archive).not.toHaveProperty('path');
     expect(evidenceText).not.toContain(fixture.root);
     expect(evidence.contents.dist.files).toEqual(expect.arrayContaining([
-      expect.objectContaining({ path: 'dist/bin/cumpa.mjs' }),
+      expect.objectContaining({ path: `dist/bin/${RENAME_MAP.binCommand}.mjs` }),
       expect.objectContaining({ path: 'dist/web/index.html' }),
     ]));
   });
@@ -418,7 +421,7 @@ describe('runtime archive producer', () => {
     const sourceManifestMode = (await lstat(join(fixture.root, 'package.json'))).mode & 0o777;
     const sourceLockMode = (await lstat(join(fixture.root, 'package-lock.json'))).mode & 0o777;
 
-    const result = await invoke(fixture, producerArgs(fixture, 'bootstrap'), { CUMPA_RELEASE_SUPPORT_SERVICE_URL: origin });
+    const result = await invoke(fixture, producerArgs(fixture, 'bootstrap'), { [`${RENAME_MAP.envPrefix}RELEASE_SUPPORT_SERVICE_URL`]: origin });
     expect(result).not.toBeInstanceOf(Error);
 
     const evidenceText = await readFile(fixture.evidence, 'utf8');
@@ -437,7 +440,7 @@ describe('runtime archive producer', () => {
       'LICENSE',
       'README.md',
       'THIRD_PARTY_NOTICES.md',
-      'dist/bin/cumpa.mjs',
+      `dist/bin/${RENAME_MAP.binCommand}.mjs`,
       'dist/native/directory_exchange.node',
       'dist/web/index.html',
       'package.json',
@@ -447,7 +450,7 @@ describe('runtime archive producer', () => {
       purpose: 'bootstrap',
       status: 'bootstrap',
       package: {
-        name: '@shipwithai/cumpa',
+        name: RENAME_MAP.npmPackage,
         version: bootstrapVersion,
         manifestProjection: {
           field: 'version',
@@ -463,7 +466,7 @@ describe('runtime archive producer', () => {
         packageLockSha256: createHash('sha256').update(sourceLock).digest('hex'),
       },
       archive: {
-        basename: `cumpa-${bootstrapVersion}.tgz`,
+        basename: `${RENAME_MAP.slug}-${bootstrapVersion}.tgz`,
         byteLength: (await readFile(archive)).byteLength,
         sha256: createHash('sha256').update(await readFile(archive)).digest('hex'),
       },
@@ -485,8 +488,8 @@ describe('runtime archive producer', () => {
     const sourceLockMode = (await lstat(join(fixture.root, 'package-lock.json'))).mode & 0o777;
 
     await invoke(fixture, producerArgs(fixture, 'bootstrap'), {
-      CUMPA_RELEASE_SUPPORT_SERVICE_URL: origin,
-      CUMPA_FAKE_PACK_FAILURE: '1',
+      [`${RENAME_MAP.envPrefix}RELEASE_SUPPORT_SERVICE_URL`]: origin,
+      [`${RENAME_MAP.envPrefix}FAKE_PACK_FAILURE`]: '1',
     });
     expect(await npmCalls(fixture)).toHaveLength(2);
 
@@ -522,8 +525,8 @@ describe('runtime archive producer', () => {
             join(fixture.root, `evidence-${index}.json`),
           ],
           {
-            CUMPA_FAKE_BUILD_EVENTS: events,
-            CUMPA_FAKE_BUILD_HOLD_MS: '250',
+            [`${RENAME_MAP.envPrefix}FAKE_BUILD_EVENTS`]: events,
+            [`${RENAME_MAP.envPrefix}FAKE_BUILD_HOLD_MS`]: '250',
           },
         )),
       );
@@ -540,17 +543,17 @@ describe('runtime archive producer', () => {
 
   test('denies evidence after build/pack failures, ambiguous results, inventory mismatch, or archive substitution without deleting emitted archives', async () => {
     for (const failure of [
-      'CUMPA_FAKE_BUILD_FAILURE',
-      'CUMPA_FAKE_PACK_FAILURE',
-      'CUMPA_FAKE_MULTIPLE_RESULTS',
-      'CUMPA_FAKE_INVENTORY_MISMATCH',
-      'CUMPA_FAKE_ARCHIVE_SUBSTITUTION',
+      `${RENAME_MAP.envPrefix}FAKE_BUILD_FAILURE`,
+      `${RENAME_MAP.envPrefix}FAKE_PACK_FAILURE`,
+      `${RENAME_MAP.envPrefix}FAKE_MULTIPLE_RESULTS`,
+      `${RENAME_MAP.envPrefix}FAKE_INVENTORY_MISMATCH`,
+      `${RENAME_MAP.envPrefix}FAKE_ARCHIVE_SUBSTITUTION`,
     ]) {
       const fixture = await createFixture();
       await invoke(fixture, producerArgs(fixture), { [failure]: '1' });
       await expect(lstat(fixture.evidence)).rejects.toMatchObject({ code: 'ENOENT' });
-      if (failure !== 'CUMPA_FAKE_BUILD_FAILURE') {
-        await expect(lstat(join(fixture.custody, `cumpa-${version}.tgz`))).resolves.toMatchObject({ isFile: expect.any(Function) });
+      if (failure !== `${RENAME_MAP.envPrefix}FAKE_BUILD_FAILURE`) {
+        await expect(lstat(join(fixture.custody, `${RENAME_MAP.slug}-${version}.tgz`))).resolves.toMatchObject({ isFile: expect.any(Function) });
       }
     }
   });

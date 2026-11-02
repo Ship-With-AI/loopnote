@@ -12,8 +12,8 @@ const bridgeRoots: string[] = [];
 
 function bridgeEnvironment(root: string): NodeJS.ProcessEnv {
   return {
-    CUMPA_AGENT_READY_EVIDENCE_REPORT: join(root, 'scenario'),
-    CUMPA_AGENT_READY_EVIDENCE_RUN_ID: 'unit-run',
+    [`${RENAME_MAP.envPrefix}AGENT_READY_EVIDENCE_REPORT`]: join(root, 'scenario'),
+    [`${RENAME_MAP.envPrefix}AGENT_READY_EVIDENCE_RUN_ID`]: 'unit-run',
   };
 }
 

@@ -174,10 +174,10 @@ function requiredDigest(value: unknown, label: string, pattern: RegExp): string 
 }
 
 function runtimeProfile(environment: NodeJS.ProcessEnv): RuntimeProfile {
-  const value = environment.CUMPA_RUNTIME_PROFILE;
+  const value = environment[`${RENAME_MAP.envPrefix}RUNTIME_PROFILE`];
   if (value === undefined) return 'stable';
   if (value === 'bootstrap') return value;
-  fail('CUMPA_RUNTIME_PROFILE must be bootstrap when set');
+  fail(`${RENAME_MAP.envPrefix}RUNTIME_PROFILE must be bootstrap when set`);
 }
 
 function manifestProjection(evidence: ProducerEvidence): void {
@@ -468,10 +468,10 @@ export function installRuntimeArtifact(artifact: RuntimeArtifact): InstalledRunt
 }
 
 function scenarioBridge(environment: NodeJS.ProcessEnv): Readonly<{ readonly path: string; readonly runId: string }> | undefined {
-  const report = environment.CUMPA_AGENT_READY_EVIDENCE_REPORT;
-  const runId = environment.CUMPA_AGENT_READY_EVIDENCE_RUN_ID;
+  const report = environment[`${RENAME_MAP.envPrefix}AGENT_READY_EVIDENCE_REPORT`];
+  const runId = environment[`${RENAME_MAP.envPrefix}AGENT_READY_EVIDENCE_RUN_ID`];
   if (report === undefined && runId === undefined) return undefined;
-  if (report === undefined || report.length === 0 || runId === undefined || runId.length === 0) fail('CUMPA_AGENT_READY_EVIDENCE_REPORT and CUMPA_AGENT_READY_EVIDENCE_RUN_ID must be supplied together');
+  if (report === undefined || report.length === 0 || runId === undefined || runId.length === 0) fail(`${RENAME_MAP.envPrefix}AGENT_READY_EVIDENCE_REPORT and ${RENAME_MAP.envPrefix}AGENT_READY_EVIDENCE_RUN_ID must be supplied together`);
   return Object.freeze({ path: resolve(report), runId });
 }
 

@@ -9,6 +9,7 @@ import { z } from 'zod';
 
 import { createSharedSupportHome } from '../helpers/public-runtime.js';
 import { assertSourceControlUnchanged, captureSourceControlSnapshot } from '../helpers/source-control-snapshot.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 
 const projectRoot = resolve(import.meta.dirname, '../..');
 const playwright = join(projectRoot, 'node_modules/@playwright/test/cli.js');
@@ -53,7 +54,7 @@ const sourceControlSchema = z.strictObject({
   scenarios: z.array(z.strictObject({ name: z.string().min(1), unchanged: passed })),
 });
 const scenarioBaseSchema = {
-  kind: z.literal('cumpa.runtime-artifact-scenario/v1'),
+  kind: z.literal(`${RENAME_MAP.kindPrefix}.runtime-artifact-scenario/v1`),
   status: z.enum(['passed', 'partially-blocked']),
   runId: z.string().uuid(),
   profile: z.string(),
@@ -115,9 +116,9 @@ function driverEnvironment(): NodeJS.ProcessEnv {
 }
 
 function supportWindow(): SupportWindow {
-  const value = process.env.CUMPA_SUPPORT_STATE_WINDOW;
+  const value = process.env[`${RENAME_MAP.envPrefix}SUPPORT_STATE_WINDOW`];
   if (value === 'pre-restore' || value === 'post-restore') return value;
-  throw new Error('CUMPA_SUPPORT_STATE_WINDOW must be pre-restore or post-restore');
+  throw new Error(`${RENAME_MAP.envPrefix}SUPPORT_STATE_WINDOW must be pre-restore or post-restore`);
 }
 
 function expectedStates(window: SupportWindow): readonly string[] {
@@ -129,7 +130,7 @@ function runChild(args: string[], environment: NodeJS.ProcessEnv): void {
     execFileSync(process.execPath, args, { cwd: projectRoot, env: environment, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 16 * 1024 * 1024 });
   } catch (error) {
     const failure = error as { status?: number; stdout?: string; stderr?: string };
-    const origin = process.env.CUMPA_RELEASE_SUPPORT_SERVICE_URL;
+    const origin = process.env[`${RENAME_MAP.envPrefix}RELEASE_SUPPORT_SERVICE_URL`];
     const diagnostics = `${failure.stdout ?? ''}${failure.stderr ?? ''}`;
     const redacted = origin === undefined
       ? diagnostics
@@ -220,7 +221,7 @@ function reportFor(source: PublicSource, window: SupportWindow, bridge: string, 
   const sourceControl = sourceControlUnchanged(review.sourceControl);
   const supportStates = support.supportStates.map((row) => Object.freeze({ ...row, window, observed: true as const }));
   return {
-    kind: 'cumpa.public-artifact-acceptance/v1',
+    kind: `${RENAME_MAP.kindPrefix}.public-artifact-acceptance/v1`,
     requirement: source === 'public-global' ? 'ACC-01' : 'ACC-02',
     path: source,
     window,
@@ -262,30 +263,30 @@ function reportFor(source: PublicSource, window: SupportWindow, bridge: string, 
 }
 
 test('runs the public global and npx browser acceptance paths', { timeout: 35 * 60_000 }, async () => {
-  const reportPrefix = process.env.CUMPA_PUBLIC_ARTIFACT_ACCEPTANCE_REPORT;
+  const reportPrefix = process.env[`${RENAME_MAP.envPrefix}PUBLIC_ARTIFACT_ACCEPTANCE_REPORT`];
   if (!reportPrefix || !isAbsolute(reportPrefix) || existsSync(reportPrefix)) throw new Error('A new absolute public acceptance report prefix is required');
   if (!lstatSync(dirname(reportPrefix)).isDirectory()) throw new Error('Public acceptance report parent must be a directory');
   const window = supportWindow();
-  const supportHome = createSharedSupportHome(process.env.CUMPA_ACCEPTANCE_SUPPORT_HOME);
+  const supportHome = createSharedSupportHome(process.env[`${RENAME_MAP.envPrefix}ACCEPTANCE_SUPPORT_HOME`]);
   const before = await captureSourceControlSnapshot(projectRoot);
-  const bridgeRoot = mkdtempSync(join(tmpdir(), 'cumpa-public-acceptance-'));
+  const bridgeRoot = mkdtempSync(join(tmpdir(), `${RENAME_MAP.slug}-public-acceptance-`));
   const reports: Array<readonly [PublicSource, PathReport]> = [];
   try {
     for (const source of sources) {
       const bridge = join(bridgeRoot, `${source}-${window}`);
       const runId = randomUUID();
       const environment = driverEnvironment();
-      environment.CUMPA_PUBLIC_INSTALL_SOURCE = source;
-      environment.CUMPA_ACCEPTANCE_SUPPORT_HOME = supportHome.home;
-      environment.CUMPA_SUPPORT_STATE_WINDOW = window;
-      environment.CUMPA_AGENT_READY_EVIDENCE_REPORT = bridge;
-      environment.CUMPA_AGENT_READY_EVIDENCE_RUN_ID = runId;
+      environment[`${RENAME_MAP.envPrefix}PUBLIC_INSTALL_SOURCE`] = source;
+      environment[`${RENAME_MAP.envPrefix}ACCEPTANCE_SUPPORT_HOME`] = supportHome.home;
+      environment[`${RENAME_MAP.envPrefix}SUPPORT_STATE_WINDOW`] = window;
+      environment[`${RENAME_MAP.envPrefix}AGENT_READY_EVIDENCE_REPORT`] = bridge;
+      environment[`${RENAME_MAP.envPrefix}AGENT_READY_EVIDENCE_RUN_ID`] = runId;
       runChild([playwright, 'test', '--config', acceptanceConfig, 'tests/e2e/package-assets.spec.ts', 'tests/e2e/agent-ready-export.spec.ts', 'tests/e2e/public-support-states.spec.ts'], environment);
       reports.push([source, reportFor(source, window, bridge, runId)]);
       }
     await assertSourceControlUnchanged(before, await captureSourceControlSnapshot(projectRoot));
     for (const [source, report] of reports) {
-      publishReport(reportDestination(reportPrefix, source, window), report, [projectRoot, supportHome.home, bridgeRoot, process.env.CUMPA_RELEASE_SUPPORT_SERVICE_URL ?? '']);
+      publishReport(reportDestination(reportPrefix, source, window), report, [projectRoot, supportHome.home, bridgeRoot, process.env[`${RENAME_MAP.envPrefix}RELEASE_SUPPORT_SERVICE_URL`] ?? '']);
     }
     console.log(JSON.stringify({
       status: 'partially-blocked',
