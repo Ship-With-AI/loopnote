@@ -6,6 +6,7 @@ import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 
 import { expect, test } from '@playwright/test';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 
 const execFileAsync = promisify(execFile);
 const script = new URL('../../scripts/verify-supabase-support.mjs', import.meta.url).pathname;
@@ -116,7 +117,7 @@ if (JSON.stringify(actual) !== database && !functionDeployment) {
       PATH: `${bin}${delimiter}${process.env.PATH ?? ''}`,
       NODE_OPTIONS: `--import=${pathToFileURL(fetchHook).href}`,
       GITHUB_ACTIONS: 'true',
-      CUMPA_DEPLOYMENT_ENVIRONMENT: 'production',
+      [`${RENAME_MAP.envPrefix}DEPLOYMENT_ENVIRONMENT`]: 'production',
       SUPPORT_PROVIDER_MODE: 'prelaunch-test',
       SUPABASE_ACCESS_TOKEN: 'token',
       SUPABASE_PROJECT_REF: projectRef,
@@ -170,7 +171,7 @@ globalThis.fetch = async (input, options = {}) => {
     PATH: `${bin}${delimiter}${process.env.PATH ?? ''}`,
     NODE_OPTIONS: `--import=${pathToFileURL(fetchHook).href}`,
     GITHUB_ACTIONS: 'true',
-    CUMPA_DEPLOYMENT_ENVIRONMENT: 'production',
+    [`${RENAME_MAP.envPrefix}DEPLOYMENT_ENVIRONMENT`]: 'production',
     SUPPORT_PROVIDER_MODE: 'production-live',
     SUPABASE_ACCESS_TOKEN: 'token',
     SUPABASE_PROJECT_REF: projectRef,
@@ -270,7 +271,7 @@ test('acceptance markers reject browser observations not covered by their digest
       'checkout-delay',
       'checkout-cancellation',
     ].map((id) => ({ id, status: 'passed' })),
-    completion: { status: 200, content_type: 'text/plain', body: 'Support flow complete. You can return to Cumpa.' },
+    completion: { status: 200, content_type: 'text/plain', body: `Support flow complete. You can return to ${RENAME_MAP.displayName}.` },
     review_unrestricted: true,
   };
   const marker = testInfo.outputPath('marker.json');
@@ -387,7 +388,7 @@ test('final review rejects the former five-input contract and binds six immutabl
       'checkout-delay',
       'checkout-cancellation',
     ].map((id) => ({ id, status: 'passed' })),
-    completion: { status: 200, content_type: 'text/plain', body: 'Support flow complete. You can return to Cumpa.' },
+    completion: { status: 200, content_type: 'text/plain', body: `Support flow complete. You can return to ${RENAME_MAP.displayName}.` },
     review_unrestricted: true,
   };
   const observationsPayload = await writeRecord(observationsPath, observations);
@@ -592,7 +593,7 @@ test('final review rejects the former five-input contract and binds six immutabl
   const releasePayload = await writeRecord(releasePath, release);
   await writeRecord(testInfo.outputPath('02-16-RELEASE-APPROVAL.md'), {
     version: 1,
-    kind: 'cumpa.release-approval',
+    kind: `${RENAME_MAP.kindPrefix}.release-approval`,
     status: 'approved',
     release_record_sha256: releasePayload.sha256,
     run_id: release.run.id,

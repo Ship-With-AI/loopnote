@@ -4,6 +4,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { promisify } from 'node:util';
 
 import { expect, test } from '@playwright/test';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 
 const execFileAsync = promisify(execFile);
 const script = new URL('../../scripts/verify-supabase-support.mjs', import.meta.url).pathname;
@@ -86,7 +87,7 @@ async function writeSyntheticAcceptance(deploymentPath: string, acceptancePath: 
       'checkout-delay',
       'checkout-cancellation',
     ].map((id) => ({ id, status: 'passed' })),
-    completion: { status: 200, content_type: 'text/plain', body: 'Support flow complete. You can return to Cumpa.' },
+    completion: { status: 200, content_type: 'text/plain', body: `Support flow complete. You can return to ${RENAME_MAP.displayName}.` },
     review_unrestricted: true,
   };
   const marker = {
@@ -267,7 +268,7 @@ test('acceptance marker and machine merge bind browser observations to the prote
     '--marker', markerPath,
     '--output', outputPath,
   ])).resolves.toBeDefined();
-  const merged = JSON.parse((await readFile(outputPath, 'utf8')).match(/<!-- cumpa-evidence\n(.+)\n-->/su)?.[1] ?? '');
+  const merged = JSON.parse((await readFile(outputPath, 'utf8')).match(new RegExp(`<!-- ${RENAME_MAP.slug}-evidence\\n(.+)\\n-->`, 'su'))?.[1] ?? '');
   expect(merged).toMatchObject({
     kind: 'acceptance',
     hostile_matrix: hostileRun.hostile_matrix,

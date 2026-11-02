@@ -6,6 +6,7 @@ import { expect, test, type Browser, type Page } from '@playwright/test';
 import { openRuntimeSession } from '../helpers/open-runtime-session.js';
 import type { RuntimeSessionSupportObservation } from '../helpers/open-runtime-session.js';
 import { publishScenarioRecord } from '../helpers/runtime-artifact.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 
 const summary = 'Marketplace OMP browser review summary.';
 const comment = 'Marketplace OMP browser comment.';
@@ -55,9 +56,9 @@ async function saveSummaryAndExport(page: Page): Promise<void> {
 type SupportWindow = 'pre-restore' | 'post-restore';
 
 function supportWindow(): SupportWindow {
-  const value = process.env.CUMPA_SUPPORT_STATE_WINDOW;
+  const value = process.env[`${RENAME_MAP.envPrefix}SUPPORT_STATE_WINDOW`];
   if (value === 'pre-restore' || value === 'post-restore') return value;
-  throw new Error('[marketplace-review] CUMPA_SUPPORT_STATE_WINDOW must be pre-restore or post-restore');
+  throw new Error(`[marketplace-review] ${RENAME_MAP.envPrefix}SUPPORT_STATE_WINDOW must be pre-restore or post-restore`);
 }
 
 function observedSupportMode(
@@ -87,8 +88,8 @@ test('classifies a verified post-restore startup', () => {
 });
 
 test('finishes the agent-supervised marketplace review and records window-scoped live support observations', async ({ page, browser }: { page: Page; browser: Browser }) => {
-  const marker = process.env.CUMPA_MARKETPLACE_URL_MARKER;
-  if (!marker) throw new Error('[marketplace-review] CUMPA_MARKETPLACE_URL_MARKER is required');
+  const marker = process.env[`${RENAME_MAP.envPrefix}MARKETPLACE_URL_MARKER`];
+  if (!marker) throw new Error(`[marketplace-review] ${RENAME_MAP.envPrefix}MARKETPLACE_URL_MARKER is required`);
   const window = supportWindow();
   const observation = await openRuntimeSession(page, await waitForLoopbackUrl(marker), { dismissUnverified: false });
   const mode = observedSupportMode(window, observation);
