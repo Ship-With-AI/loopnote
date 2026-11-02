@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { RENAME_MAP } from '../domain/product-identity.js';
+
 import {
   ChangedFileSchema,
   ExactPatchValidationTargetSchema,
@@ -312,7 +314,7 @@ const ExportDriftEndpointSchema = z
 export const ReviewExportV1Schema = z
   .strictObject({
     schemaVersion: z.literal(1),
-    kind: z.literal('cumpa/export'),
+    kind: z.literal(`${RENAME_MAP.kindPrefix}/export`),
     exportedAt: z.string().datetime(),
     acceptedDraftRevision: RevisionSchema,
     comparison: z
@@ -381,7 +383,7 @@ export const ReviewExportV1Schema = z
 export const ReviewExportV2Schema = z
   .strictObject({
     schemaVersion: z.literal(2),
-    kind: z.literal('cumpa/export'),
+    kind: z.literal(`${RENAME_MAP.kindPrefix}/export`),
     exportedAt: z.string().datetime(),
     acceptedDraftRevision: RevisionSchema,
     comparison: z
@@ -440,7 +442,7 @@ const ExactPatchExportScopeSchema = z
 export const ReviewExportV3Schema = z
   .strictObject({
     schemaVersion: z.literal(3),
-    kind: z.literal('cumpa/export'),
+    kind: z.literal(`${RENAME_MAP.kindPrefix}/export`),
     exportedAt: z.string().datetime(),
     acceptedDraftRevision: RevisionSchema,
     patch: ExactPatchExportScopeSchema,
@@ -498,7 +500,7 @@ const StandaloneExportScopeSchema = z
 export const ReviewExportV4Schema = z
   .strictObject({
     schemaVersion: z.literal(4),
-    kind: z.literal('cumpa/export'),
+    kind: z.literal(`${RENAME_MAP.kindPrefix}/export`),
     exportedAt: z.string().datetime(),
     acceptedDraftRevision: RevisionSchema,
     standalone: StandaloneExportScopeSchema,
@@ -587,7 +589,7 @@ const WorkingTreeDriftFlagSchema = z
 export const ReviewExportV5Schema = z
   .strictObject({
     schemaVersion: z.literal(5),
-    kind: z.literal('cumpa/export'),
+    kind: z.literal(`${RENAME_MAP.kindPrefix}/export`),
     exportedAt: z.string().datetime(),
     acceptedDraftRevision: RevisionSchema,
     uncommitted: UncommittedExportScopeSchema,
@@ -627,7 +629,7 @@ export const ReviewExportV5Schema = z
 export const ReviewExportV6Schema = z
   .strictObject({
     schemaVersion: z.literal(6),
-    kind: z.literal('cumpa/export'),
+    kind: z.literal(`${RENAME_MAP.kindPrefix}/export`),
     exportedAt: z.string().datetime(),
     acceptedDraftRevision: RevisionSchema,
     standalone: StandaloneExportScopeSchema,

@@ -2,6 +2,8 @@ import { Buffer } from 'node:buffer';
 
 import { z } from 'zod';
 
+import { RENAME_MAP } from '../domain/product-identity.js';
+
 export const MAX_AGENT_REQUEST_BYTES = 1_048_576;
 export const MAX_GIT_ARGUMENT_BYTES = 4_096;
 export const MAX_PATHSPEC_COUNT = 256;
@@ -61,7 +63,7 @@ const ExactPatchTargetSchema = z
 
 export const ExactPatchRequestSchema = z
   .strictObject({
-    kind: z.literal('cumpa.review-request'),
+    kind: z.literal(`${RENAME_MAP.kindPrefix}.review-request`),
     schemaVersion: z.literal(1),
     mode: z.literal('patch'),
     patch: z
@@ -75,7 +77,7 @@ export const ExactPatchRequestSchema = z
 
 const RevisionRequestSchema = z
   .strictObject({
-    kind: z.literal('cumpa.review-request'),
+    kind: z.literal(`${RENAME_MAP.kindPrefix}.review-request`),
     schemaVersion: z.literal(1),
     mode: z.literal('revisions'),
     revisions: RevisionRangeSchema,
@@ -107,7 +109,7 @@ const UncommittedRequestScopeSchema = z
 
 const UncommittedRequestSchema = z
   .strictObject({
-    kind: z.literal('cumpa.review-request'),
+    kind: z.literal(`${RENAME_MAP.kindPrefix}.review-request`),
     schemaVersion: z.literal(1),
     mode: z.literal('uncommitted'),
     uncommitted: UncommittedRequestScopeSchema,
@@ -126,7 +128,7 @@ const FilesRequestScopeSchema = z
 
 const FilesRequestSchema = z
   .strictObject({
-    kind: z.literal('cumpa.review-request'),
+    kind: z.literal(`${RENAME_MAP.kindPrefix}.review-request`),
     schemaVersion: z.literal(1),
     mode: z.literal('files'),
     files: FilesRequestScopeSchema,

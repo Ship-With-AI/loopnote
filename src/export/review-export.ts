@@ -1,5 +1,7 @@
 import { createHash } from 'node:crypto';
 
+import { RENAME_MAP } from '../domain/product-identity.js';
+
 import {
   AnchorVerificationSchema,
   ReviewDraftV1Schema,
@@ -148,7 +150,7 @@ export function buildReviewExportV1(snapshot: AcceptedReviewSnapshotV1, exported
   const allComments = files.flatMap((file) => file.comments);
   const document = {
     schemaVersion: 1 as const,
-    kind: 'cumpa/export' as const,
+    kind: `${RENAME_MAP.kindPrefix}/export` as const,
     exportedAt,
     acceptedDraftRevision: draft.revision,
     comparison: snapshot.comparison,

@@ -5,6 +5,7 @@ import {
   MAX_AGENT_REQUEST_BYTES,
   type AgentReviewRequest,
 } from '../contracts/request.js';
+import { RENAME_MAP } from '../domain/product-identity.js';
 
 const strictUtf8 = new TextDecoder('utf-8', { fatal: true });
 
@@ -15,6 +16,7 @@ export type AgentRequestErrorKind =
   | 'malformed-json'
   | 'unsupported-version'
   | 'invalid-request'
+  | 'legacy-kind'
   | 'unknown-mode'
   | 'base-with-unstaged'
   | 'path-outside-repository'
@@ -22,12 +24,13 @@ export type AgentRequestErrorKind =
   | 'pathspec-ignored';
 
 const requestErrorMessages = {
-  'empty-request': 'Request input is empty. Pipe one cumpa.review-request JSON document.',
+  'empty-request': `Request input is empty. Pipe one ${RENAME_MAP.kindPrefix}.review-request JSON document.`,
   'request-too-large': 'Request input exceeds 1048576 bytes. Reduce the request and try again.',
   'invalid-utf8': 'Request input must be valid UTF-8 JSON.',
   'malformed-json': 'Request input must contain one JSON document.',
   'unsupported-version': 'Request schema version is unsupported. Use schemaVersion 1.',
-  'invalid-request': 'Request is invalid. Use kind "cumpa.review-request", schemaVersion 1, and one supported source mode.',
+  'invalid-request': `Request is invalid. Use kind "${RENAME_MAP.kindPrefix}.review-request", schemaVersion 1, and one supported source mode.`,
+  'legacy-kind': `Request kind is outdated. Use kind "${RENAME_MAP.kindPrefix}.review-request" instead.`,
   'unknown-mode': 'Request mode is not supported. Use revisions, patch, uncommitted, or files.',
   'base-with-unstaged': '"base" cannot be combined with source "unstaged".',
   'path-outside-repository': 'Request references a path outside the repository.',
@@ -43,6 +46,19 @@ export class AgentRequestError extends Error {
     this.name = 'AgentRequestError';
     this.kind = kind;
   }
+}
+
+// The literal old-kind string is an intentional, documented grep-audit exception
+// (17.1-PATTERNS.md Pattern 1): it must match the exact pre-rename kind so requests
+// still carrying it are recognized and rejected with a specific, named error.
+function isLegacyKind(value: unknown): boolean {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    !Array.isArray(value) &&
+    'kind' in value &&
+    value.kind === 'cumpa.review-request'
+  );
 }
 
 function isUnsupportedVersion(value: unknown): boolean {
@@ -130,13 +146,15 @@ export async function readAgentReviewRequest(
   const parsed = AgentReviewRequestSchema.safeParse(value);
   if (!parsed.success) {
     throw new AgentRequestError(
-      isUnsupportedVersion(value)
-        ? 'unsupported-version'
-        : isUnknownMode(value)
-          ? 'unknown-mode'
-          : isBaseWithUnstaged(value)
-            ? 'base-with-unstaged'
-            : 'invalid-request',
+      isLegacyKind(value)
+        ? 'legacy-kind'
+        : isUnsupportedVersion(value)
+          ? 'unsupported-version'
+          : isUnknownMode(value)
+            ? 'unknown-mode'
+            : isBaseWithUnstaged(value)
+              ? 'base-with-unstaged'
+              : 'invalid-request',
     );
   }
 
