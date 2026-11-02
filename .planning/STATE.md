@@ -4,8 +4,8 @@ milestone: v2.0
 milestone_name: Artifact Review
 current_phase: 17.1
 current_phase_name: full-project-rename
-status: gaps_found
-stopped_at: "Phase 17.1 executed (22/22 plans) but verification found 3 gaps (17.1-VERIFICATION.md): package.json version 1.6.1 not 2.0.0, D-06 support.json copy inherits legacy mode, D-05 .cumpa drafts restore undocumented and broken by renamed hash domains. Next: /gsd-plan-phase 17.1 --gaps"
+status: ready_to_execute
+stopped_at: "Gap closure planned: 17.1-23 (package.json 2.0.0, support.json copy 0o600, README upgrade notes without .cumpa drafts carry-over). Next: /gsd-execute-phase 17.1 --gaps-only"
 last_updated: "2026-11-02T13:22:56.000Z"
 last_activity: 2026-11-02
 last_activity_desc: 17.1-22 wrote scripts/audit-rename-exceptions.mjs and tests/unit/rename-audit.test.ts (REN-01's final wave-3 gate), wired a new root `npm test` (vitest run) into package.json, and fixed 12 files' genuinely-leftover cumpa references the audit's own full-tree reconciliation surfaced; scanner confirms zero disallowed cumpa hits remain outside the four documented exception categories (109 correctly classified). Phase 17.1 (full-project-rename) is now complete (22/22 plans).
@@ -28,9 +28,9 @@ See: .planning/PROJECT.md (updated 2026-09-09)
 
 ## Current Position
 
-Phase: 17.1 (full-project-rename) — EXECUTED, VERIFICATION GAPS (22/22 plans, 5/8 must-haves)
-Plan: 22 of 22 (final)
-Status: gaps_found — 3 gaps in 17.1-VERIFICATION.md; phase not complete. Next: /gsd-plan-phase 17.1 --gaps, then /gsd-execute-phase 17.1 --gaps-only
+Phase: 17.1 (full-project-rename) — gap closure planned (22/23 plans executed)
+Plan: 23 of 23 (gap closure, wave 1)
+Status: Ready to execute — 17.1-23 closes the 3 gaps in 17.1-VERIFICATION.md. Next: /gsd-execute-phase 17.1 --gaps-only
 Last activity: 2026-11-02 — 17.1-22 wrote the rename-exceptions audit scanner + Vitest spec, wired a new root `npm test` into package.json, and fixed 12 files' genuinely-leftover cumpa references the audit's own reconciliation found; zero disallowed cumpa hits remain in the live tree.
 
 ## Performance Metrics
