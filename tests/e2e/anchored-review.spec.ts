@@ -23,11 +23,12 @@ import { expect, test } from '@playwright/test';
 import type { Browser, Page, TestInfo } from '@playwright/test';
 
 import { createGitFixture, type GitFixture } from '../helpers/git-fixture.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
-const packedRoot = mkdtempSync(join(tmpdir(), 'cumpa-anchored-pack-'));
+const packedRoot = mkdtempSync(join(tmpdir(), `${RENAME_MAP.slug}-anchored-pack-`));
 const extractedPackageRoot = join(packedRoot, 'package');
-const executablePath = join(extractedPackageRoot, 'dist/bin/cumpa.mjs');
+const executablePath = join(extractedPackageRoot, `dist/bin/${RENAME_MAP.binCommand}.mjs`);
 const fakeBinRoot = join(packedRoot, 'fake-bin');
 test.setTimeout(90_000);
 
@@ -104,8 +105,8 @@ function startGeneratedCli(repository: GitFixture, head = repository.headRef): R
     env: {
       ...environment,
       PATH: `${fakeBinRoot}:${process.env.PATH ?? ''}`,
-      CUMPA_BROWSER_OPEN_MARKER: browserMarkerPath,
-      CUMPA_LAUNCH_OPTIONS: JSON.stringify({
+      [`${RENAME_MAP.envPrefix}BROWSER_OPEN_MARKER`]: browserMarkerPath,
+      [`${RENAME_MAP.envPrefix}LAUNCH_OPTIONS`]: JSON.stringify({
         cwd: repository.nestedCwd,
         base: { label: 'main', revision: repository.baseRef },
         head: { label: head.slice('refs/heads/'.length), revision: head },
@@ -216,7 +217,7 @@ test.beforeAll(() => {
     [
       '#!/usr/bin/env node',
       "const { appendFileSync } = require('node:fs');",
-      "const markerPath = process.env.CUMPA_BROWSER_OPEN_MARKER;",
+      `const markerPath = process.env.${RENAME_MAP.envPrefix}BROWSER_OPEN_MARKER;`,
       "if (markerPath !== undefined) appendFileSync(markerPath, `${JSON.stringify(process.argv.slice(2))}\\n`);",
       'process.exitCode = 1;',
       '',
@@ -256,7 +257,7 @@ test('packaged anchored gap closure recovers a non-line-1 exact anchor', async (
   const baseOid = fixture.git(['rev-parse', fixture.baseRef]).toString('ascii').trim();
   const headOid = fixture.git(['rev-parse', fixture.headRef]).toString('ascii').trim();
   const mergeBaseOid = fixture.git(['merge-base', fixture.baseRef, fixture.headRef]).toString('ascii').trim();
-  const draftsPath = join(fixture.root, '.cumpa', 'drafts');
+  const draftsPath = join(fixture.root, RENAME_MAP.repoStateDir.replace(/\/$/, ''), 'drafts');
   const commentBody = 'Packaged comment on unchanged head line ten.';
   const initial = startGeneratedCli(fixture);
 
@@ -366,7 +367,7 @@ test('packaged changed files dialog returns to the diff heading', async ({ brows
 test('packaged review renders an added file as one single-pane and accepts a comment', async ({ browser, page }, testInfo) => {
   assertChromium(browser, testInfo);
   const fixture = await createGitFixture({ anchoredReview: true });
-  const draftsPath = join(fixture.root, '.cumpa', 'drafts');
+  const draftsPath = join(fixture.root, RENAME_MAP.repoStateDir.replace(/\/$/, ''), 'drafts');
   const commentBody = 'Packaged comment on the added file head line one.';
   const running = startGeneratedCli(fixture);
 
@@ -419,7 +420,7 @@ test('packaged review renders an added file as one single-pane and accepts a com
 test('packaged review renders a deleted file as one single-pane and accepts a comment', async ({ browser, page }, testInfo) => {
   assertChromium(browser, testInfo);
   const fixture = await createGitFixture({ anchoredReview: true });
-  const draftsPath = join(fixture.root, '.cumpa', 'drafts');
+  const draftsPath = join(fixture.root, RENAME_MAP.repoStateDir.replace(/\/$/, ''), 'drafts');
   const commentBody = 'Packaged comment on the deleted file base line one.';
   const running = startGeneratedCli(fixture);
 

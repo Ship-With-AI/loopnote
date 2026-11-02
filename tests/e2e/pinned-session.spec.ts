@@ -25,6 +25,7 @@ import {
   createGitFixture,
   type GitFixture,
 } from '../helpers/git-fixture.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 import { createShutdownController } from '../../src/server/lifecycle.js';
 import type { ComparisonSelection } from '../../src/contracts/comparison.js';
 import type {
@@ -40,12 +41,12 @@ const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const canonicalTokens = canonicalRoot(repositoryRoot);
 const toRootRgb = (token: string): string => toCssRgb(canonicalTokens, token);
 const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-const packedRoot = mkdtempSync(join(tmpdir(), 'cumpa-session-pack-'));
+const packedRoot = mkdtempSync(join(tmpdir(), `${RENAME_MAP.slug}-session-pack-`));
 const extractedPackageRoot = join(packedRoot, 'package');
 const fakeBinRoot = join(packedRoot, 'fake-bin');
 const executablePath = join(
   extractedPackageRoot,
-  'dist/bin/cumpa.mjs',
+  `dist/bin/${RENAME_MAP.binCommand}.mjs`,
 );
 
 
@@ -66,8 +67,9 @@ interface GeneratedCliSelections {
   readonly head: ComparisonSelection;
 }
 
+const reviewRequestKind = `${RENAME_MAP.kindPrefix}.review-request` as const;
 interface GeneratedRangeRequest {
-  readonly kind: 'cumpa.review-request';
+  readonly kind: typeof reviewRequestKind;
   readonly schemaVersion: 1;
   readonly mode: 'revisions';
   readonly revisions: Readonly<{
@@ -83,7 +85,7 @@ function rangeRequest(
   head: string = repository.headRef,
 ): GeneratedRangeRequest {
   return {
-    kind: 'cumpa.review-request',
+    kind: reviewRequestKind,
     schemaVersion: 1,
     mode: 'revisions',
     revisions: { base, head, ...(pathspecs.length === 0 ? {} : { pathspecs }) },
@@ -181,14 +183,14 @@ function startGeneratedCli(
       PATH: `${fakeBinRoot}:${process.env.PATH ?? ''}`,
       ...(request === undefined
         ? {
-            CUMPA_LAUNCH_OPTIONS: JSON.stringify({
+            [`${RENAME_MAP.envPrefix}LAUNCH_OPTIONS`]: JSON.stringify({
               cwd: repository.nestedCwd,
               ...selections,
             }),
           }
         : {}),
-      CUMPA_OPENER_LOG: openerLogPath,
-      CUMPA_TERMINAL_CAPTURE: outputPath,
+      [`${RENAME_MAP.envPrefix}OPENER_LOG`]: openerLogPath,
+      [`${RENAME_MAP.envPrefix}TERMINAL_CAPTURE`]: outputPath,
     },
     stdio: [request === undefined ? 'ignore' : 'pipe', outputDescriptor, outputDescriptor],
   });
@@ -212,8 +214,8 @@ async function runGeneratedRequest(
     env: {
       ...environment,
       PATH: `${fakeBinRoot}:${process.env.PATH ?? ''}`,
-      CUMPA_OPENER_LOG: openerLogPath,
-      CUMPA_TERMINAL_CAPTURE: stdoutPath,
+      [`${RENAME_MAP.envPrefix}OPENER_LOG`]: openerLogPath,
+      [`${RENAME_MAP.envPrefix}TERMINAL_CAPTURE`]: stdoutPath,
     },
     stdio: ['pipe', stdoutDescriptor, stderrDescriptor],
   });
@@ -299,8 +301,8 @@ test.beforeAll(() => {
     join(packedRoot, 'fake-open.mjs'),
     `#!/usr/bin/env node
 import { appendFileSync, readFileSync } from 'node:fs';
-const terminal = readFileSync(process.env.CUMPA_TERMINAL_CAPTURE, 'utf8');
-appendFileSync(process.env.CUMPA_OPENER_LOG, JSON.stringify({ arguments: process.argv.slice(2), terminal }) + '\\n');
+const terminal = readFileSync(process.env.${RENAME_MAP.envPrefix}TERMINAL_CAPTURE, 'utf8');
+appendFileSync(process.env.${RENAME_MAP.envPrefix}OPENER_LOG, JSON.stringify({ arguments: process.argv.slice(2), terminal }) + '\\n');
 process.exitCode = 1;
 `,
     'utf8',
@@ -350,7 +352,7 @@ test('generated CLI opens immutable pinned session', async ({ browser, page }, t
     );
 
     await proveLoadingTransition(page, url);
-    await expect(page.getByRole('img', { name: 'Cumpa' })).toBeVisible();
+    await expect(page.getByRole('img', { name: RENAME_MAP.displayName })).toBeVisible();
     await expect(page.locator('.session-header').getByRole('heading', { level: 1 })).toHaveCount(0);
     await expect(page.locator('.session-header__comparison')).toContainText(
       `BASEBase fixture · ${expectedBase.slice(0, 7)}→HEADHead fixture · ${expectedHead.slice(0, 7)}`,
@@ -514,7 +516,7 @@ test('range content error does not fall back to current refs', async ({ browser 
     await expect(page.getByRole('heading', { name: 'Pinned range unavailable' })).toBeVisible();
     await expect(
       page.getByText(
-        'Cumpa could not load the pinned commits or scoped file inventory. Relaunch the same request; this review will not substitute current refs.',
+        `${RENAME_MAP.displayName} could not load the pinned commits or scoped file inventory. Relaunch the same request; this review will not substitute current refs.`,
       ),
     ).toBeVisible();
     await expect(page.getByRole('button', { name: 'Try loading pinned diff again' })).toBeVisible();
@@ -883,7 +885,7 @@ test('identity session and empty states', async ({ browser, context, page }, tes
       'Pinned session unavailable',
     );
     await expect(securityPage.getByRole('alert')).toHaveText(
-      'This request is not available in the current session. Relaunch Cumpa from the terminal.',
+      `This request is not available in the current session. Relaunch ${RENAME_MAP.displayName} from the terminal.`,
     );
     await expect(securityPage.locator('body')).not.toContainText(repository.root);
     await expect(securityPage.locator('.unavailable-shell')).toHaveCSS('background-color', toRootRgb('--surface-canvas'));
@@ -910,7 +912,7 @@ test('identity session and empty states', async ({ browser, context, page }, tes
       'Review unavailable',
     );
     await expect(errorPage.getByRole('alert')).toHaveText(
-      'This pinned session is unavailable. Return to the terminal and launch Cumpa again. Diagnostic details are shown in the terminal.',
+      `This pinned session is unavailable. Return to the terminal and launch ${RENAME_MAP.displayName} again. Diagnostic details are shown in the terminal.`,
     );
     await expect(errorPage.locator('body')).not.toContainText(repository.root);
     await expect(errorPage.getByRole('button', { name: /retry/i })).toHaveCount(0);
@@ -925,7 +927,7 @@ test('identity session and empty states', async ({ browser, context, page }, tes
       'Review unavailable',
     );
     await expect(stoppedPage.getByRole('alert')).toHaveText(
-      'This pinned session has stopped. Relaunch Cumpa from the terminal to continue.',
+      `This pinned session has stopped. Relaunch ${RENAME_MAP.displayName} from the terminal to continue.`,
     );
     await expect(stoppedPage.getByRole('button', { name: /retry/i })).toHaveCount(0);
     await expect(stoppedPage.getByRole('navigation', { name: 'Changed files' })).toHaveCount(0);
@@ -1319,7 +1321,7 @@ test('fragment token protects loopback API', async ({ browser, page, request }, 
     ]) {
       const body = await response.text();
       expect(body).toContain(
-        'This request is not available in the current session. Relaunch Cumpa from the terminal.',
+        `This request is not available in the current session. Relaunch ${RENAME_MAP.displayName} from the terminal.`,
       );
       expect(body).not.toContain(token);
       expect(body).not.toContain(repository.root);

@@ -302,7 +302,7 @@ test('keeps the required recovery surface open and labels the retained receipt a
 
   const failure = page.getByRole('alert');
   await expect(failure).toContainText('Export needs recovery');
-  await expect(failure).toContainText('Cumpa could not confirm a complete new export pair. No success receipt is available. Check terminal details, then try again after recovery.');
+  await expect(failure).toContainText(`${RENAME_MAP.displayName} could not confirm a complete new export pair. No success receipt is available. Check terminal details, then try again after recovery.`);
   await expect(failure.getByRole('region', { name: 'Previous confirmed export' })).toBeVisible();
 
   await page.keyboard.press('Escape');

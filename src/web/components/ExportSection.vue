@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue';
 
+import { RENAME_MAP } from '../../domain/product-identity.js';
+
 import type { AppendLoopnoteIgnoreResult, ExportDirectoryRevealResult } from '../../contracts/api.js';
 import type { ReviewExportState } from '../model/review-draft-state.js';
 import type { WorkspaceComment } from '../model/workspace-state.js';
@@ -114,7 +116,7 @@ watch(() => props.exportState.phase, (phase) => {
         <UiIcon name="error" class="inline-notice__icon" />
         <div class="inline-notice__content">
           <h4 id="export-failure-heading" ref="failureHeading" tabindex="-1">{{ exportState.failure === 'recoveryRequired' ? 'Export needs recovery' : 'Export was not published' }}</h4>
-          <p>{{ exportState.failure === 'recoveryRequired' ? 'Cumpa could not confirm a complete new export pair. No success receipt is available. Check terminal details, then try again after recovery.' : exportState.failure === 'reExportUnsupported' ? 'This export cannot replace a previous pair safely on this runtime.' : 'The export pair could not be validated.' }}</p>
+          <p>{{ exportState.failure === 'recoveryRequired' ? `${RENAME_MAP.displayName} could not confirm a complete new export pair. No success receipt is available. Check terminal details, then try again after recovery.` : exportState.failure === 'reExportUnsupported' ? 'This export cannot replace a previous pair safely on this runtime.' : 'The export pair could not be validated.' }}</p>
           <ExportReceipt
             v-if="exportState.previousConfirmedReceipt !== null"
             :receipt="exportState.previousConfirmedReceipt"

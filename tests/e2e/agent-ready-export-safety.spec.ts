@@ -210,7 +210,7 @@ test('attached lifecycle renders waiting, progress, completion, and safe recover
     kind: 'staleAnchors', affectedCommentIds: [], affectedCount: 1,
   }));
   await expect(completion.getByRole('alert').getByText('Review can’t be finished', { exact: true })).toBeFocused();
-  await expect(completion.getByText('Cumpa found stale or unavailable feedback anchors in the accepted review. Affected comments: 1. No feedback returned. Their recorded anchors remain unchanged and may not be actionable in exported feedback.', { exact: true })).toBeVisible();
+  await expect(completion.getByText(`${RENAME_MAP.displayName} found stale or unavailable feedback anchors in the accepted review. Affected comments: 1. No feedback returned. Their recorded anchors remain unchanged and may not be actionable in exported feedback.`, { exact: true })).toBeVisible();
 
   await page.evaluate(() => globalThis.__setAttachedLifecycle('retryableFailure', {
     kind: 'revisionConflict', expectedRevision: 7, actualRevision: 8,
@@ -228,22 +228,22 @@ test('attached lifecycle renders waiting, progress, completion, and safe recover
 
   await page.evaluate(() => globalThis.__setAttachedLifecycle('retryableFailure', { kind: 'draftReadOnly' }));
   await expect(completion.getByRole('alert').getByText('Review draft can’t be validated', { exact: true })).toBeFocused();
-  await expect(completion.getByText('The accepted local draft is corrupt, incomplete, or read-only. No feedback was returned. Reload the review; if it remains unavailable, relaunch Cumpa.', { exact: true })).toBeVisible();
+  await expect(completion.getByText(`The accepted local draft is corrupt, incomplete, or read-only. No feedback was returned. Reload the review; if it remains unavailable, relaunch ${RENAME_MAP.displayName}.`, { exact: true })).toBeVisible();
   await expect(completion.getByRole('button', { name: 'Reload review', exact: true })).toBeVisible();
 
   await page.evaluate(() => globalThis.__setAttachedLifecycle('retryableFailure', { kind: 'persistenceFailure' }));
   await expect(completion.getByRole('alert').getByText('Review was not finished', { exact: true })).toBeFocused();
-  await expect(completion.getByText('No feedback was returned. Check that Cumpa is still running, then try Finish review again.', { exact: true })).toBeVisible();
+  await expect(completion.getByText(`No feedback was returned. Check that ${RENAME_MAP.displayName} is still running, then try Finish review again.`, { exact: true })).toBeVisible();
   await expect(completion.getByRole('button', { name: 'Try Finish review again', exact: true })).toBeVisible();
 
   await page.evaluate(() => globalThis.__setAttachedLifecycle('terminalFailure'));
   await expect(completion.getByRole('alert').getByText('Completion status unavailable', { exact: true })).toBeFocused();
-  await expect(completion.getByText('Cumpa disconnected before this tab received confirmation. This tab does not claim the review was finished. Check the invoking terminal. If Cumpa is still running, reload to reconnect.', { exact: true })).toBeVisible();
+  await expect(completion.getByText(`${RENAME_MAP.displayName} disconnected before this tab received confirmation. This tab does not claim the review was finished. Check the invoking terminal. If ${RENAME_MAP.displayName} is still running, reload to reconnect.`, { exact: true })).toBeVisible();
   await expect(completion.getByRole('button', { name: 'Reload page', exact: true })).toBeVisible();
 
   await page.evaluate(() => globalThis.__setAttachedLifecycle('waitingDisconnected'));
   await expect(completion.getByRole('alert').getByText('Attached review disconnected', { exact: true })).toBeFocused();
-  await expect(completion.getByText('The browser lost its connection to Cumpa. This review is still unfinished. Reload this page while Cumpa is running, then choose Finish review.', { exact: true })).toBeVisible();
+  await expect(completion.getByText(`The browser lost its connection to ${RENAME_MAP.displayName}. This review is still unfinished. Reload this page while ${RENAME_MAP.displayName} is running, then choose Finish review.`, { exact: true })).toBeVisible();
   await expect(completion.getByRole('button', { name: 'Reload page', exact: true })).toBeVisible();
 
   await page.evaluate(() => globalThis.__setAttachedLifecycle('waiting', undefined, { summaryBuffer: 'Unsaved summary' }));

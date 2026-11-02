@@ -26,15 +26,16 @@ import {
   createGitFixture,
   type GitFixture,
 } from '../helpers/git-fixture.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-const packedRoot = mkdtempSync(join(tmpdir(), 'cumpa-tree-pack-'));
+const packedRoot = mkdtempSync(join(tmpdir(), `${RENAME_MAP.slug}-tree-pack-`));
 const extractedPackageRoot = join(packedRoot, 'package');
 const fakeBinRoot = join(packedRoot, 'fake-bin');
 const executablePath = join(
   extractedPackageRoot,
-  'dist/bin/cumpa.mjs',
+  `dist/bin/${RENAME_MAP.binCommand}.mjs`,
 );
 const safeGitArguments = [
   '--no-optional-locks',
@@ -216,13 +217,13 @@ function startGeneratedCli(repository: GitFixture): RunningCli {
     env: {
       ...environment,
       PATH: `${fakeBinRoot}:${process.env.PATH ?? ''}`,
-      CUMPA_LAUNCH_OPTIONS: JSON.stringify({
+      [`${RENAME_MAP.envPrefix}LAUNCH_OPTIONS`]: JSON.stringify({
         cwd: repository.nestedCwd,
         base: { label: 'Base tree fixture', revision: repository.baseRef },
         head: { label: 'Head tree fixture', revision: repository.headRef },
       }),
-      CUMPA_OPENER_LOG: openerLogPath,
-      CUMPA_TERMINAL_CAPTURE: outputPath,
+      [`${RENAME_MAP.envPrefix}OPENER_LOG`]: openerLogPath,
+      [`${RENAME_MAP.envPrefix}TERMINAL_CAPTURE`]: outputPath,
     },
     stdio: ['ignore', outputDescriptor, outputDescriptor],
   });

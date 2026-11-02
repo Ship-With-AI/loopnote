@@ -28,6 +28,7 @@ import type {
 import { canonicalRoot } from '../helpers/canonical-root.js';
 import { createGitFixture } from '../helpers/git-fixture.js';
 import type { GitFixture } from '../helpers/git-fixture.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 import {
   normalizeDeclaration,
   resolveToken,
@@ -43,10 +44,10 @@ const toCompiledDeclaration = (token: string): string => normalizeDeclaration(
   .replace(/#([0-9a-f])\1([0-9a-f])\2([0-9a-f])\3$/u, '#$1$2$3')
   .replace(/#([0-9a-f])\1([0-9a-f])\2([0-9a-f])\3([0-9a-f])\4$/u, '#$1$2$3$4');
 const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-const packedRoot = mkdtempSync(join(tmpdir(), 'cumpa-responsive-pack-'));
+const packedRoot = mkdtempSync(join(tmpdir(), `${RENAME_MAP.slug}-responsive-pack-`));
 const extractedPackageRoot = join(packedRoot, 'package');
 const fakeBinRoot = join(packedRoot, 'fake-bin');
-const executablePath = join(extractedPackageRoot, 'dist/bin/cumpa.mjs');
+const executablePath = join(extractedPackageRoot, `dist/bin/${RENAME_MAP.binCommand}.mjs`);
 
 interface PackResult {
   readonly filename: string;
@@ -128,16 +129,16 @@ function startGeneratedCli(repository: GitFixture): RunningCli {
     env: {
       ...environment,
       PATH: `${fakeBinRoot}:${process.env.PATH ?? ''}`,
-      CUMPA_LAUNCH_OPTIONS: JSON.stringify({
+      [`${RENAME_MAP.envPrefix}LAUNCH_OPTIONS`]: JSON.stringify({
         cwd: repository.nestedCwd,
         base: { label: 'Base responsive fixture', revision: repository.baseRef },
         head: { label: 'Head responsive fixture', revision: repository.headRef },
       }),
-      CUMPA_OPENER_LOG: join(
+      [`${RENAME_MAP.envPrefix}OPENER_LOG`]: join(
         packedRoot,
         `opener-${crypto.randomUUID()}.log`,
       ),
-      CUMPA_TERMINAL_CAPTURE: outputPath,
+      [`${RENAME_MAP.envPrefix}TERMINAL_CAPTURE`]: outputPath,
     },
     stdio: ['ignore', outputDescriptor, outputDescriptor],
   });
@@ -815,13 +816,13 @@ test('responsive keyboard and accessibility contract', async ({
       'BASEBase responsive fixture',
     );
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('alpha.ts');
-    await expect(page.locator('#cumpa-heading')).toHaveAttribute('title', '00-src/components/alpha.ts');
+    await expect(page.locator(`#${RENAME_MAP.cssPrefix}heading`)).toHaveAttribute('title', '00-src/components/alpha.ts');
     await expect(page.locator('.shell-footer__local-status')).toHaveText('Local review · pinned commits');
     await expect(page.locator('.shell-footer__draft-status')).toHaveText('Draft stays local · export is explicit');
 
     await test.step('rendered real workspace contrast contract', async () => {
       await expectRenderedContrast(
-        page.locator('#cumpa-heading'),
+        page.locator(`#${RENAME_MAP.cssPrefix}heading`),
         'active file heading',
         4.5,
       );
@@ -898,12 +899,13 @@ test('responsive keyboard and accessibility contract', async ({
       await expect(fixture.getByRole('button', { name: 'Disabled' })).toHaveCSS('color', toRootRgb('--status-disabled-foreground'));
       await expect(fixture.getByLabel('Semantic textarea')).toHaveCSS('caret-color', toRootRgb('--text-primary'));
 
-      const typography = await page.evaluate(() => [
-        '#cumpa-heading', '[data-normal-file]', '.availability-marker', '.pin-cue',
+      const headingSelector = `#${RENAME_MAP.cssPrefix}heading`;
+      const typography = await page.evaluate((heading) => [
+        heading, '[data-normal-file]', '.availability-marker', '.pin-cue',
       ].map((selector) => {
         const style = getComputedStyle(document.querySelector(selector)!);
         return [selector, style.fontSize, style.fontWeight, style.lineHeight, style.fontFamily];
-      }));
+      }), headingSelector);
       const pageHeading = resolveToken(canonicalTokens, '--font-size-page-heading');
       const pageHeadingLineHeight = resolveToken(canonicalTokens, '--line-height-page-heading');
       const bodySize = resolveToken(canonicalTokens, '--font-size-body');
@@ -912,7 +914,7 @@ test('responsive keyboard and accessibility contract', async ({
       const metadataLineHeight = resolveToken(canonicalTokens, '--line-height-metadata');
       const computedUiFont = expect.stringMatching(/^-apple-system, (?:BlinkMacSystemFont|"system-ui"), "Segoe UI", sans-serif$/);
       expect(typography).toEqual([
-        ['#cumpa-heading', pageHeading, '600', pageHeadingLineHeight, computedUiFont],
+        [headingSelector, pageHeading, '600', pageHeadingLineHeight, computedUiFont],
         ['[data-normal-file]', bodySize, '400', bodyLineHeight, computedUiFont],
         ['.availability-marker', metadataSize, '600', metadataLineHeight, computedUiFont],
         ['.pin-cue', metadataSize, '600', metadataLineHeight, computedUiFont],
@@ -988,7 +990,7 @@ test('responsive keyboard and accessibility contract', async ({
       await page.setViewportSize({ width: 320, height: 640 });
 
       for (const [name, destination] of [
-        ['Skip to diff', 'cumpa-heading'],
+        ['Skip to diff', `${RENAME_MAP.cssPrefix}heading`],
       ] as const) {
         const skipLink = page.getByRole('link', { name, exact: true });
         await skipLink.focus();
@@ -1010,12 +1012,12 @@ test('responsive keyboard and accessibility contract', async ({
       await expectFocusIndicatorUnclipped(firstFile);
       await page.keyboard.press('Enter');
       await expect(changedFiles).toHaveCount(0);
-      await expect(page.locator('#cumpa-heading')).toBeFocused();
+      await expect(page.locator(`#${RENAME_MAP.cssPrefix}heading`)).toBeFocused();
 
       await page.keyboard.press('Alt+Shift+]');
-      await expect(page.locator('#cumpa-heading')).toContainText('beta-after-a-very-long-rename.ts');
+      await expect(page.locator(`#${RENAME_MAP.cssPrefix}heading`)).toContainText('beta-after-a-very-long-rename.ts');
       await page.keyboard.press('Alt+Shift+[');
-      await expect(page.locator('#cumpa-heading')).toContainText('alpha.ts');
+      await expect(page.locator(`#${RENAME_MAP.cssPrefix}heading`)).toContainText('alpha.ts');
 
 
       await page.keyboard.press('F7');
@@ -1027,7 +1029,7 @@ test('responsive keyboard and accessibility contract', async ({
     await test.step('desktop review toolbar exposes four controls in sequential Tab order', async () => {
       await page.setViewportSize({ width: 1440, height: 900 });
       await page.keyboard.press('Alt+Shift+]');
-      await expect(page.locator('#cumpa-heading')).toContainText('beta-after-a-very-long-rename.ts');
+      await expect(page.locator(`#${RENAME_MAP.cssPrefix}heading`)).toContainText('beta-after-a-very-long-rename.ts');
 
       const previousFile = page.getByRole('button', { name: 'Previous file', exact: true });
       const nextFile = page.getByRole('button', { name: 'Next file', exact: true });
@@ -1050,7 +1052,7 @@ test('responsive keyboard and accessibility contract', async ({
       await assertNoPageOverflow(page);
 
       await page.keyboard.press('Alt+Shift+[');
-      await expect(page.locator('#cumpa-heading')).toContainText('alpha.ts');
+      await expect(page.locator(`#${RENAME_MAP.cssPrefix}heading`)).toContainText('alpha.ts');
     });
 
     await test.step('Phase 08 boundary matrix preserves local diff overflow and complete identities', async () => {
@@ -1064,17 +1066,17 @@ test('responsive keyboard and accessibility contract', async ({
       const changedFiles = page.getByRole('dialog', { name: 'Changed files', exact: true });
       const movedFile = changedFiles.locator('.file-tree .file-row').nth(1);
       await movedFile.click();
-      const movedPath = page.locator('#cumpa-heading .path-display');
+      const movedPath = page.locator(`#${RENAME_MAP.cssPrefix}heading .path-display`);
       await expect(movedPath).toContainText('beta-before-a-very-long-rename.ts');
       await expect(movedPath).toContainText('→');
       await expect(movedPath).toContainText('beta-after-a-very-long-rename.ts');
-      expect(await page.locator('#cumpa-heading').evaluate((element) => element.getBoundingClientRect().height)).toBeLessThanOrEqual(32);
+      expect(await page.locator(`#${RENAME_MAP.cssPrefix}heading`).evaluate((element) => element.getBoundingClientRect().height)).toBeLessThanOrEqual(32);
 
       await page.setViewportSize({ width: 1440, height: 640 });
       // 31.5px heading line-height + 4px top padding + 4px bottom padding + 1px bottom border.
       expect(await page.locator('.review-toolbar').evaluate((element) => element.getBoundingClientRect().height)).toBeLessThanOrEqual(41);
       await page.keyboard.press('Alt+Shift+[');
-      await expect(page.locator('#cumpa-heading')).toContainText('alpha.ts');
+      await expect(page.locator(`#${RENAME_MAP.cssPrefix}heading`)).toContainText('alpha.ts');
       await page.setViewportSize({ width: 320, height: 640 });
       await expect(page.locator('.changed-files-sidebar')).not.toBeVisible();
       await files.focus();
@@ -1362,7 +1364,7 @@ test('responsive keyboard and accessibility contract', async ({
       await page.getByRole('button', { name: 'Close changed files' }).click();
     });
 
-    if (process.env.CUMPA_TRUE_ZOOM === '1') {
+    if (process.env[`${RENAME_MAP.envPrefix}TRUE_ZOOM`] === '1') {
       test.setTimeout(90_000);
       await test.step('headed true 4× browser zoom preserves the effective 320px contract', async () => {
         await page.setViewportSize({ width: 1280, height: 640 });

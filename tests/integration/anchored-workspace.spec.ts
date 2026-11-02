@@ -533,15 +533,15 @@ test('Phase 07 header and control states', async ({ page }) => {
 
     const header = page.locator('.review-toolbar');
     await expect(header).toHaveCount(1);
-    await expect(page.locator('#cumpa-heading')).toHaveCount(1);
+    await expect(page.locator(`#${RENAME_MAP.cssPrefix}heading`)).toHaveCount(1);
     await expect(page.getByRole('banner')).toContainText(new RegExp('HEAD\\s*head · bbbbbbb'));
     await expect(page.getByRole('heading', {
       level: 1,
       name: 'renamed from src/old/first.ts to src/new/first.ts',
     })).toBeVisible();
-    await expect(page.locator('#cumpa-heading')).toHaveAttribute('title', 'src/new/first.ts');
-    await expect(page.locator('#cumpa-heading .path-display__old .path-text__filename')).toHaveText('first.ts');
-    await expect(page.locator('#cumpa-heading .path-display__new .path-text__filename')).toHaveText('first.ts');
+    await expect(page.locator(`#${RENAME_MAP.cssPrefix}heading`)).toHaveAttribute('title', 'src/new/first.ts');
+    await expect(page.locator(`#${RENAME_MAP.cssPrefix}heading .path-display__old .path-text__filename`)).toHaveText('first.ts');
+    await expect(page.locator(`#${RENAME_MAP.cssPrefix}heading .path-display__new .path-text__filename`)).toHaveText('first.ts');
 
     const previousFile = page.getByRole('button', { name: 'Previous file', exact: true });
     const nextFile = page.getByRole('button', { name: 'Next file', exact: true });
@@ -668,7 +668,7 @@ test('Phase 07 inline conversation states', async ({ page }) => {
   delayedFailure.release();
   expect((await failureResponse).status()).toBe(500);
   await expect(composer.locator('[role="alert"]')).toHaveText(
-    'Comment wasn’t added. Your text is still here. Check that Cumpa is running, then try again.',
+    `Comment wasn’t added. Your text is still here. Check that ${RENAME_MAP.displayName} is running, then try again.`,
   );
   await expect(textarea).toHaveValue(retainedText);
   await expect(composer).not.toHaveAttribute('aria-busy', 'true');
@@ -1007,7 +1007,7 @@ test.describe('async comment settlement', () => {
   test('async comment settlement restores A retry state when its delayed failure returns', async ({ page }) => {
     const delayed = delayNextMutation('persistenceFailure');
     const body = 'Keep retry text and anchor on file A.';
-    const message = 'Comment wasn’t added. Your text is still here. Check that Cumpa is running, then try again.';
+    const message = `Comment wasn’t added. Your text is still here. Check that ${RENAME_MAP.displayName} is running, then try again.`;
 
     await openReview(page);
     await hoverMonacoLine(page, 'head', 'export const changed = 3;');
@@ -1024,7 +1024,7 @@ test.describe('async comment settlement', () => {
     delayed.release();
     expect((await response).status()).toBe(500);
     await expect(page.locator('.session-shell > .visually-hidden[aria-live="polite"]')).toHaveText(
-      'Comment on src/first.ts at head line 10 wasn’t added. Your text is still here. Check that Cumpa is running, then try again.',
+      `Comment on src/first.ts at head line 10 wasn’t added. Your text is still here. Check that ${RENAME_MAP.displayName} is running, then try again.`,
     );
     await expect(page.getByRole('heading', { level: 1, name: 'src/second.ts' })).toBeVisible();
     await expect(page.locator('.monaco-anchor-zone--composer')).toHaveCount(0);
@@ -1080,7 +1080,7 @@ test.describe('async comment settlement', () => {
 
   test('repeated identical settlement messages create distinct live-region updates', async ({ page }) => {
     const body = 'Retry the same failed comment.';
-    const announcement = 'Comment on src/first.ts at head line 10 wasn’t added. Your text is still here. Check that Cumpa is running, then try again.';
+    const announcement = `Comment on src/first.ts at head line 10 wasn’t added. Your text is still here. Check that ${RENAME_MAP.displayName} is running, then try again.`;
     const liveRegion = page.locator('.session-shell > .visually-hidden[aria-live="polite"]');
 
     const firstDelayed = delayNextMutation('persistenceFailure');

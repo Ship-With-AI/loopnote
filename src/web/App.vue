@@ -230,7 +230,7 @@ const unavailableHeading = computed(() =>
 );
 const unavailableMessage = computed(() =>
   patchSnapshotUnavailable.value
-    ? 'The accepted patch snapshot is missing, corrupt, incomplete, or unreadable. Relaunch Cumpa with an exact patch that matches the current implementation.'
+    ? `The accepted patch snapshot is missing, corrupt, incomplete, or unreadable. Relaunch ${RENAME_MAP.displayName} with an exact patch that matches the current implementation.`
     : errorMessage.value,
 );
 const selectedIndex = computed(() => reviewableFiles.value.findIndex((file) => file.fileId === selectedFile.value?.fileId));
@@ -739,7 +739,7 @@ async function runCommands(commands: readonly WorkspaceCommand[]): Promise<void>
           }
           const comment = result.draft.comments.at(-1);
           if (comment === undefined) {
-            throw new SessionClientError('draft', 'Comment wasn’t added. Your text is still here. Check that Cumpa is running, then try again.');
+            throw new SessionClientError('draft', `Comment wasn’t added. Your text is still here. Check that ${RENAME_MAP.displayName} is running, then try again.`);
           }
           const workspaceComment: WorkspaceComment = {
             id: comment.id,
@@ -765,14 +765,14 @@ async function runCommands(commands: readonly WorkspaceCommand[]): Promise<void>
           if (workspace !== originWorkspace) {
             return;
           }
-          const message = 'Comment wasn’t added. Your text is still here. Check that Cumpa is running, then try again.';
+          const message = `Comment wasn’t added. Your text is still here. Check that ${RENAME_MAP.displayName} is running, then try again.`;
           dispatchWorkspace({
             type: 'add-failed',
             fileId: command.fileId,
             requestId: command.requestId,
             message,
           });
-          announce(`Comment on ${commentLocation} wasn’t added. Your text is still here. Check that Cumpa is running, then try again.`);
+          announce(`Comment on ${commentLocation} wasn’t added. Your text is still here. Check that ${RENAME_MAP.displayName} is running, then try again.`);
         })) ?? Promise.resolve());
         break;
       }
@@ -941,7 +941,7 @@ async function refreshSupportStatus(): Promise<void> {
     if (result.status === 'verified') {
       if (supportDialogOpen.value && supportDialogMode.value !== 'verified') {
         supportDialogMode.value = 'thankYou';
-        announce('Thank you for supporting Cumpa.');
+        announce(`Thank you for supporting ${RENAME_MAP.displayName}.`);
         if (supportThankYouTimer !== undefined) window.clearTimeout(supportThankYouTimer);
         supportThankYouTimer = window.setTimeout(closeSupportDialog, 1_500);
       }
@@ -1206,7 +1206,7 @@ onBeforeUnmount(() => {
 <template>
   <main v-if="primarySurface === 'loading' && errorMessage === ''" class="loading-shell">
     <section class="state-card" aria-labelledby="loading-heading">
-      <h1 id="loading-heading">{{ isExactPatchSession ? 'Cumpa: loading exact patch' : 'Cumpa: loading pinned comparison' }}</h1>
+      <h1 id="loading-heading">{{ isExactPatchSession ? `${RENAME_MAP.displayName}: loading exact patch` : `${RENAME_MAP.displayName}: loading pinned comparison` }}</h1>
       <p role="status">{{ isExactPatchSession ? 'Opening frozen patch review…' : 'Opening local draft…' }}</p>
     </section>
   </main>
@@ -1246,7 +1246,7 @@ onBeforeUnmount(() => {
     >
       <InlineNotice v-if="patchDrifted" tone="error">
         <h2>Implemented content changed</h2>
-        <p>The repository or worktree no longer matches this exact patch. The frozen review remains readable, but Cumpa will not substitute current content. Relaunch with a patch that matches the current implementation.</p>
+        <p>{{ `The repository or worktree no longer matches this exact patch. The frozen review remains readable, but ${RENAME_MAP.displayName} will not substitute current content. Relaunch with a patch that matches the current implementation.` }}</p>
       </InlineNotice>
       <SelectorDriftNotice :drift="selectorDriftStatus" />
       <StaleAnchorNotice v-if="hasUnverifiedAnchors" />
@@ -1316,23 +1316,23 @@ onBeforeUnmount(() => {
         </section>
         <section v-else-if="selectedFile?.availability.kind !== 'text'" class="empty-state">
           <h2>Diff unavailable for this file</h2>
-          <p>{{ selectedFile?.availability.kind === 'unsupported' && selectedFile.availability.reason === 'changed-during-capture' ? 'This file changed while Cumpa was capturing the snapshot and could not be read consistently. Refresh to recapture it.' : `${selectedFile?.availability.kind === 'unsupported' ? `unsupported: ${selectedFile.availability.reason}` : 'unavailable: missing-object'}. Select another changed file to continue reviewing.` }}</p>
+          <p>{{ selectedFile?.availability.kind === 'unsupported' && selectedFile.availability.reason === 'changed-during-capture' ? `This file changed while ${RENAME_MAP.displayName} was capturing the snapshot and could not be read consistently. Refresh to recapture it.` : `${selectedFile?.availability.kind === 'unsupported' ? `unsupported: ${selectedFile.availability.reason}` : 'unavailable: missing-object'}. Select another changed file to continue reviewing.` }}</p>
         </section>
         <section v-else-if="diffLoading" class="diff-state">Loading diff…</section>
         <section v-else-if="diffError !== ''" class="empty-state" :role="isRangeSession || isExactPatchSession ? 'alert' : undefined">
           <template v-if="isExactPatchSession">
             <h2>Frozen patch file unavailable</h2>
-            <p>Cumpa could not read this file from the frozen patch snapshot. Try the same snapshot again; current repository or worktree bytes will not be substituted.</p>
+            <p>{{ `${RENAME_MAP.displayName} could not read this file from the frozen patch snapshot. Try the same snapshot again; current repository or worktree bytes will not be substituted.` }}</p>
             <button type="button" class="ui-button" @click="retryDiff">Try frozen snapshot again</button>
           </template>
           <template v-else-if="isRangeSession">
             <h2>Pinned range unavailable</h2>
-            <p>Cumpa could not load the pinned commits or scoped file inventory. Relaunch the same request; this review will not substitute current refs.</p>
+            <p>{{ `${RENAME_MAP.displayName} could not load the pinned commits or scoped file inventory. Relaunch the same request; this review will not substitute current refs.` }}</p>
             <button type="button" class="ui-button" @click="retryDiff">Try loading pinned diff again</button>
           </template>
           <template v-else>
             <h2>Diff couldn’t be loaded</h2>
-            <p>The pinned file content is unavailable. Try again, or relaunch Cumpa if the session ended.</p>
+            <p>{{ `The pinned file content is unavailable. Try again, or relaunch ${RENAME_MAP.displayName} if the session ended.` }}</p>
             <button type="button" class="ui-button" @click="retryDiff">Try loading diff again</button>
           </template>
         </section>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { AppendLoopnoteIgnoreResult, ExportDirectoryRevealResult, FinishReviewResult } from '../../contracts/api.js';
+import { RENAME_MAP } from '../../domain/product-identity.js';
 import { computed, nextTick, ref, watch } from 'vue';
 
 import type { ReviewExportState, ReviewPendingOperation } from '../model/review-draft-state.js';
@@ -147,7 +148,7 @@ watch(reviewFailure, (failed) => {
       <div class="inline-notice__content">
         <h3 id="review-operation-failed-heading">Review change failed</h3>
         <p v-if="failure?.operation === 'comment'">Comment wasn’t saved. Your text is still in this tab.</p>
-        <p v-else>The review change wasn’t saved. The accepted local draft is unchanged. Try again after checking Cumpa is running.</p>
+        <p v-else>{{ `The review change wasn’t saved. The accepted local draft is unchanged. Try again after checking ${RENAME_MAP.displayName} is running.` }}</p>
       </div>
     </section>
     <SummarySection
@@ -221,8 +222,7 @@ watch(reviewFailure, (failed) => {
           <UiIcon name="error" class="inline-notice__icon" />
           <div class="inline-notice__content">
             <h4 ref="completionFailure" tabindex="-1">Attached review disconnected</h4>
-            <p>The browser lost its connection to Cumpa. This review is still unfinished. Reload this page while Cumpa is running, then choose Finish review.</p>
-            <button type="button" class="ui-button" @click="emit('reloadAttached')">Reload page</button>
+            <p>{{ `The browser lost its connection to ${RENAME_MAP.displayName}. This review is still unfinished. Reload this page while ${RENAME_MAP.displayName} is running, then choose Finish review.` }}</p>
           </div>
         </div>
       </template>
@@ -232,8 +232,7 @@ watch(reviewFailure, (failed) => {
           <UiIcon name="error" class="inline-notice__icon" />
           <div class="inline-notice__content">
             <h4 ref="completionFailure" tabindex="-1">Completion status unavailable</h4>
-            <p>Cumpa disconnected before this tab received confirmation. This tab does not claim the review was finished. Check the invoking terminal. If Cumpa is still running, reload to reconnect.</p>
-            <button type="button" class="ui-button" @click="emit('reloadAttached')">Reload page</button>
+            <p>{{ `${RENAME_MAP.displayName} disconnected before this tab received confirmation. This tab does not claim the review was finished. Check the invoking terminal. If ${RENAME_MAP.displayName} is still running, reload to reconnect.` }}</p>
           </div>
         </div>
       </template>
@@ -254,7 +253,7 @@ watch(reviewFailure, (failed) => {
           <UiIcon name="warning" class="inline-notice__icon" />
           <div class="inline-notice__content">
             <h4 ref="completionFailure" tabindex="-1">Review can’t be finished</h4>
-            <p>Cumpa found stale or unavailable feedback anchors in the accepted review. Affected comments: {{ attachedFailure.affectedCount }}. No feedback returned. Their recorded anchors remain unchanged and may not be actionable in exported feedback.</p>
+            <p>{{ `${RENAME_MAP.displayName} found stale or unavailable feedback anchors in the accepted review. Affected comments: ${attachedFailure.affectedCount}. No feedback returned. Their recorded anchors remain unchanged and may not be actionable in exported feedback.` }}</p>
           </div>
         </div>
       </template>
@@ -274,8 +273,7 @@ watch(reviewFailure, (failed) => {
           <UiIcon name="warning" class="inline-notice__icon" />
           <div class="inline-notice__content">
             <h4 ref="completionFailure" tabindex="-1">Review draft can’t be validated</h4>
-            <p>The accepted local draft is corrupt, incomplete, or read-only. No feedback was returned. Reload the review; if it remains unavailable, relaunch Cumpa.</p>
-            <button type="button" class="ui-button" @click="emit('reloadAttached')">Reload review</button>
+            <p>{{ `The accepted local draft is corrupt, incomplete, or read-only. No feedback was returned. Reload the review; if it remains unavailable, relaunch ${RENAME_MAP.displayName}.` }}</p>
           </div>
         </div>
       </template>
@@ -285,8 +283,7 @@ watch(reviewFailure, (failed) => {
           <UiIcon name="error" class="inline-notice__icon" />
           <div class="inline-notice__content">
             <h4 ref="completionFailure" tabindex="-1">Review was not finished</h4>
-            <p>No feedback was returned. Check that Cumpa is still running, then try Finish review again.</p>
-            <button type="button" class="ui-button ui-button--primary" @click="finishAttachedReview">Try Finish review again</button>
+            <p>{{ `No feedback was returned. Check that ${RENAME_MAP.displayName} is still running, then try Finish review again.` }}</p>
           </div>
         </div>
       </template>

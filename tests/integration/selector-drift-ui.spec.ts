@@ -374,7 +374,7 @@ test('selector drift uses the fixed endpoint and leaves the pinned review and fo
   await expect(notice).toContainText(headOid);
   await expect(notice).toContainText('This source is no longer available.');
   await page.getByRole('button', { name: 'Launch new comparison' }).click();
-  await expect(notice).toContainText('Return to the terminal and launch Cumpa again, then choose the current sources. This open review will remain pinned.');
+  await expect(notice).toContainText(`Return to the terminal and launch ${RENAME_MAP.displayName} again, then choose the current sources. This open review will remain pinned.`);
 
   for (const request of browserRequests) {
     expect(request.method).toBe('GET');
@@ -451,7 +451,7 @@ test('exact patch retry stays snapshot-only and terminal loss focuses one source
   await openReview(page);
   await expect(page.getByRole('heading', { name: 'Frozen patch file unavailable' })).toBeVisible();
   await expect(page.getByText(
-    'Cumpa could not read this file from the frozen patch snapshot. Try the same snapshot again; current repository or worktree bytes will not be substituted.',
+    `${RENAME_MAP.displayName} could not read this file from the frozen patch snapshot. Try the same snapshot again; current repository or worktree bytes will not be substituted.`,
     { exact: true },
   )).toBeVisible();
   await expect(page.locator('body')).not.toContainText(/\bpinned\b/iu);
@@ -496,7 +496,7 @@ test('exact patch retry stays snapshot-only and terminal loss focuses one source
   await expect(blockingHeading).toHaveCount(1);
   await expect(blockingHeading).toBeFocused();
   await expect(page.getByText(
-    'The accepted patch snapshot is missing, corrupt, incomplete, or unreadable. Relaunch Cumpa with an exact patch that matches the current implementation.',
+    `The accepted patch snapshot is missing, corrupt, incomplete, or unreadable. Relaunch ${RENAME_MAP.displayName} with an exact patch that matches the current implementation.`,
     { exact: true },
   )).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Pinned session unavailable' })).toHaveCount(0);

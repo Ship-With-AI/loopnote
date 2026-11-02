@@ -22,11 +22,12 @@ import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
 import { createGitFixture, type GitFixture } from '../helpers/git-fixture.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
-const packedRoot = mkdtempSync(join(tmpdir(), 'cumpa-uncommitted-pack-'));
+const packedRoot = mkdtempSync(join(tmpdir(), `${RENAME_MAP.slug}-uncommitted-pack-`));
 const extractedPackageRoot = join(packedRoot, 'package');
-const executablePath = join(extractedPackageRoot, 'dist/bin/cumpa.mjs');
+const executablePath = join(extractedPackageRoot, `dist/bin/${RENAME_MAP.binCommand}.mjs`);
 const fakeBinRoot = join(packedRoot, 'fake-bin');
 test.setTimeout(90_000);
 
@@ -91,7 +92,7 @@ function startGeneratedUncommittedCli(
     env: {
       ...environment,
       PATH: `${fakeBinRoot}:${process.env.PATH ?? ''}`,
-      CUMPA_BROWSER_OPEN_MARKER: browserMarkerPath,
+      [`${RENAME_MAP.envPrefix}BROWSER_OPEN_MARKER`]: browserMarkerPath,
     },
     stdio: [options.stdin ?? 'ignore', outputDescriptor, outputDescriptor],
   });
@@ -187,7 +188,7 @@ test.beforeAll(() => {
     [
       '#!/usr/bin/env node',
       "const { appendFileSync } = require('node:fs');",
-      'const markerPath = process.env.CUMPA_BROWSER_OPEN_MARKER;',
+      `const markerPath = process.env.${RENAME_MAP.envPrefix}BROWSER_OPEN_MARKER;`,
       'if (markerPath !== undefined) appendFileSync(markerPath, `${JSON.stringify(process.argv.slice(2))}\\n`);',
       'process.exitCode = 1;',
       '',
@@ -202,7 +203,7 @@ test.afterAll(() => {
   rmSync(packedRoot, { force: true, recursive: true });
 });
 
-test('packaged cumpa --staged launches a frozen snapshot that survives an external edit, and Refresh reclassifies a comment to orphaned', async ({ browser }) => {
+test(`packaged ${RENAME_MAP.binCommand} --staged launches a frozen snapshot that survives an external edit, and Refresh reclassifies a comment to orphaned`, async ({ browser }) => {
   const fixture = await createGitFixture();
   await fixture.write('src/added.ts', 'export const added = true;\n');
   fixture.git(['add', 'src/added.ts']);
@@ -225,7 +226,7 @@ test('packaged cumpa --staged launches a frozen snapshot that survives an extern
     await page.locator('.monaco-anchor-zone--composer button').filter({ hasText: 'Add comment' }).click();
     expect((await addResponse).status()).toBe(201);
 
-    // A real edit made entirely outside Cumpa, after the snapshot was captured.
+    // A real edit made entirely outside Loopnote, after the snapshot was captured.
     // --staged reviews HEAD→index (git diff --cached), so the edit must be
     // re-staged to register as a change the Staged scope can see at all.
     await fixture.write('src/added.ts', 'export const added = true;\nexport const extra = 1;\n');
@@ -275,7 +276,7 @@ test('packaged cumpa --staged launches a frozen snapshot that survives an extern
   }
 });
 
-test('packaged cumpa --unstaged has no Base endpoint and cumpa --worktree surfaces an untracked file as added', async ({ browser }) => {
+test(`packaged ${RENAME_MAP.binCommand} --unstaged has no Base endpoint and ${RENAME_MAP.binCommand} --worktree surfaces an untracked file as added`, async ({ browser }) => {
   const unstagedFixture = await createGitFixture();
   await unstagedFixture.write('tracked.txt', 'base\nedited without staging\n');
   const unstagedRunning = startGeneratedUncommittedCli(unstagedFixture, ['--unstaged']);
@@ -407,7 +408,7 @@ test('Alt+Shift+R triggers the same real server-side refresh as the Refresh butt
   }
 });
 
-test('a second cumpa --staged launch on different staged content offers "Resume previous uncommitted review?", and accepting it copies the first session\'s comment into the new draft', async ({ browser }) => {
+test(`a second ${RENAME_MAP.binCommand} --staged launch on different staged content offers "Resume previous uncommitted review?", and accepting it copies the first session\'s comment into the new draft`, async ({ browser }) => {
   const fixture = await createGitFixture();
   let firstRunning: RunningCli | undefined;
   let secondRunning: RunningCli | undefined;

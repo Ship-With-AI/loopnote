@@ -16,6 +16,7 @@ import {
 import type { PinnedComparison } from '../../src/contracts/comparison.js';
 import type { SourceCandidate } from '../../src/domain/source.js';
 import type { SourceDiscovery } from '../../src/git/candidates.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 
 const baseOid = '1'.repeat(40);
 const headOid = '2'.repeat(40);
@@ -97,23 +98,23 @@ function plannedFailure(
 const fatalCases = [
   [
     'git-missing',
-    'Git is required but was not found. Install Git, then run Cumpa again.',
+    `Git is required but was not found. Install Git, then run ${RENAME_MAP.displayName} again.`,
   ],
   [
     'git-unsupported',
-    'Git 2.43.0 or newer with the required machine protocols is required. Upgrade Git, then run Cumpa again.',
+    `Git 2.43.0 or newer with the required machine protocols is required. Upgrade Git, then run ${RENAME_MAP.displayName} again.`,
   ],
   [
     'not-worktree',
-    'This directory is not inside a Git worktree. Run Cumpa from a Git worktree.',
+    `This directory is not inside a Git worktree. Run ${RENAME_MAP.displayName} from a Git worktree.`,
   ],
   [
     'bare-repository',
-    'Bare repositories are not supported. Run Cumpa from a non-bare Git worktree.',
+    `Bare repositories are not supported. Run ${RENAME_MAP.displayName} from a non-bare Git worktree.`,
   ],
   [
     'empty-repository',
-    'This repository has no commits yet. Create the first commit, then run Cumpa again.',
+    `This repository has no commits yet. Create the first commit, then run ${RENAME_MAP.displayName} again.`,
   ],
 ] as const;
 

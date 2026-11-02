@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { RENAME_MAP } from '../../domain/product-identity.js';
+
 import {
   DraftLoadResponseSchema,
   DraftMutationResultSchema,
@@ -48,15 +50,15 @@ import {
 } from '../../contracts/api.js';
 
 export const SECURITY_FAILURE_MESSAGE =
-  'This request is not available in the current session. Relaunch Cumpa from the terminal.';
+  `This request is not available in the current session. Relaunch ${RENAME_MAP.displayName} from the terminal.`;
 export const SESSION_UNAVAILABLE_MESSAGE =
-  'This pinned session is unavailable. Return to the terminal and launch Cumpa again. Diagnostic details are shown in the terminal.';
+  `This pinned session is unavailable. Return to the terminal and launch ${RENAME_MAP.displayName} again. Diagnostic details are shown in the terminal.`;
 export const SESSION_STOPPED_MESSAGE =
-  'This pinned session has stopped. Relaunch Cumpa from the terminal to continue.';
+  `This pinned session has stopped. Relaunch ${RENAME_MAP.displayName} from the terminal to continue.`;
 export const FILE_UNAVAILABLE_MESSAGE =
   'File details could not be loaded. Retry this file. If the problem continues, check the terminal diagnostic.';
 export const DRAFT_UNAVAILABLE_MESSAGE =
-  'Local draft couldn’t be opened. Existing review data was left unchanged. Relaunch Cumpa or check the terminal for details.';
+  `Local draft couldn’t be opened. Existing review data was left unchanged. Relaunch ${RENAME_MAP.displayName} or check the terminal for details.`;
 export type DraftView = Extract<DraftLoadResponse, { readonly kind: 'current' }>['draft'];
 export type SessionClientErrorKind = 'security' | 'session' | 'stopped' | 'file' | 'draft';
 

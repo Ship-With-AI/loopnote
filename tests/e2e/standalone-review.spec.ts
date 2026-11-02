@@ -25,11 +25,12 @@ import type { Page } from '@playwright/test';
 import { ExportReviewResultSchema } from '../../src/contracts/api.js';
 import { ReviewExportV4Schema } from '../../src/contracts/draft.js';
 import { createGitFixture, type GitFixture } from '../helpers/git-fixture.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
-const packedRoot = mkdtempSync(join(tmpdir(), 'cumpa-standalone-pack-'));
+const packedRoot = mkdtempSync(join(tmpdir(), `${RENAME_MAP.slug}-standalone-pack-`));
 const extractedPackageRoot = join(packedRoot, 'package');
-const executablePath = join(extractedPackageRoot, 'dist/bin/cumpa.mjs');
+const executablePath = join(extractedPackageRoot, `dist/bin/${RENAME_MAP.binCommand}.mjs`);
 const fakeBinRoot = join(packedRoot, 'fake-bin');
 test.setTimeout(90_000);
 
@@ -126,7 +127,7 @@ function startGeneratedStandaloneCli(
     env: {
       ...environment,
       PATH: `${fakeBinRoot}:${process.env.PATH ?? ''}`,
-      CUMPA_BROWSER_OPEN_MARKER: browserMarkerPath,
+      [`${RENAME_MAP.envPrefix}BROWSER_OPEN_MARKER`]: browserMarkerPath,
     },
     stdio: [options.stdin ?? 'ignore', outputDescriptor, outputDescriptor],
   });
@@ -228,7 +229,7 @@ test.beforeAll(() => {
     [
       '#!/usr/bin/env node',
       "const { appendFileSync } = require('node:fs');",
-      'const markerPath = process.env.CUMPA_BROWSER_OPEN_MARKER;',
+      `const markerPath = process.env.${RENAME_MAP.envPrefix}BROWSER_OPEN_MARKER;`,
       'if (markerPath !== undefined) appendFileSync(markerPath, `${JSON.stringify(process.argv.slice(2))}\\n`);',
       'process.exitCode = 1;',
       '',
@@ -243,7 +244,7 @@ test.afterAll(() => {
   rmSync(packedRoot, { force: true, recursive: true });
 });
 
-test('packaged cumpa <path> opens a standalone file, accepts a comment, and exports a schemaVersion 4 document whose provenance matches exactly what was reviewed', async ({ browser }) => {
+test(`packaged ${RENAME_MAP.binCommand} <path> opens a standalone file, accepts a comment, and exports a schemaVersion 4 document whose provenance matches exactly what was reviewed`, async ({ browser }) => {
   const fixture = await createGitFixture();
   const untrackedContent = 'export const added = true;\n';
   await fixture.write('src/added.ts', untrackedContent);
@@ -311,7 +312,7 @@ test('packaged cumpa <path> opens a standalone file, accepts a comment, and expo
   }
 });
 
-test('cumpa <nonexistent-path> fails before launch with a clear error and never opens a browser', async () => {
+test(`${RENAME_MAP.binCommand} <nonexistent-path> fails before launch with a clear error and never opens a browser`, async () => {
   const fixture = await createGitFixture();
   const running = startGeneratedStandaloneCli(fixture, ['does-not-exist.txt']);
   try {
@@ -325,7 +326,7 @@ test('cumpa <nonexistent-path> fails before launch with a clear error and never 
   }
 });
 
-test('cumpa <ignored-path> fails before launch with a .gitignore-specific error and never opens a browser', async () => {
+test(`${RENAME_MAP.binCommand} <ignored-path> fails before launch with a .gitignore-specific error and never opens a browser`, async () => {
   const fixture = await createGitFixture();
   await fixture.write('.gitignore', 'secret.txt\n');
   await fixture.write('secret.txt', 'ignored content\n');
@@ -341,7 +342,7 @@ test('cumpa <ignored-path> fails before launch with a .gitignore-specific error 
   }
 });
 
-test('cumpa --worktree <path> fails before launch with a mode-exclusivity error and never opens a browser', async () => {
+test(`${RENAME_MAP.binCommand} --worktree <path> fails before launch with a mode-exclusivity error and never opens a browser`, async () => {
   const fixture = await createGitFixture();
   const running = startGeneratedStandaloneCli(fixture, ['tracked.txt', '--worktree']);
   try {
@@ -354,7 +355,7 @@ test('cumpa --worktree <path> fails before launch with a mode-exclusivity error 
   }
 });
 
-test('cumpa ../outside.txt fails before launch with a clear traversal error and never opens a browser', async () => {
+test(`${RENAME_MAP.binCommand} ../outside.txt fails before launch with a clear traversal error and never opens a browser`, async () => {
   const fixture = await createGitFixture();
   // Argument resolution always runs `git ls-files`/`check-ignore` with the
   // repository root as cwd (resolveOneArgument in
@@ -377,9 +378,9 @@ test('cumpa ../outside.txt fails before launch with a clear traversal error and 
   }
 });
 
-test('cumpa <absolute-path-outside> fails before launch with a clear error and never opens a browser', async () => {
+test(`${RENAME_MAP.binCommand} <absolute-path-outside> fails before launch with a clear error and never opens a browser`, async () => {
   const fixture = await createGitFixture();
-  const outsideFile = join(tmpdir(), `cumpa-standalone-absolute-outside-${crypto.randomUUID()}.txt`);
+  const outsideFile = join(tmpdir(), `${RENAME_MAP.slug}-standalone-absolute-outside-${crypto.randomUUID()}.txt`);
   writeFileSync(outsideFile, 'outside content\n');
   const running = startGeneratedStandaloneCli(fixture, [outsideFile]);
   try {
@@ -394,9 +395,9 @@ test('cumpa <absolute-path-outside> fails before launch with a clear error and n
   }
 });
 
-test('cumpa <symlink-escape-path> fails before launch with a clear error and never opens a browser', async () => {
+test(`${RENAME_MAP.binCommand} <symlink-escape-path> fails before launch with a clear error and never opens a browser`, async () => {
   const fixture = await createGitFixture();
-  const outsideTargetDirectory = join(tmpdir(), `cumpa-standalone-escape-target-${crypto.randomUUID()}`);
+  const outsideTargetDirectory = join(tmpdir(), `${RENAME_MAP.slug}-standalone-escape-target-${crypto.randomUUID()}`);
   mkdirSync(outsideTargetDirectory, { recursive: true });
   writeFileSync(join(outsideTargetDirectory, 'secret.txt'), 'outside secret\n');
   // DEVIATION (Rule 1 - bug in plan wording): argument resolution runs

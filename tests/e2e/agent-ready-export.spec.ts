@@ -38,6 +38,7 @@ import {
   rehashRuntimeArtifact,
   writeRuntimeScenario,
 } from '../helpers/runtime-artifact.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 
 let acceptance: AcceptanceRuntime;
 let fakeBinRoot: string;
@@ -134,9 +135,9 @@ function startGeneratedCli(
     env: {
       ...acceptance.env,
       PATH: `${fakeBinRoot}:${acceptance.env.PATH ?? ''}`,
-      CUMPA_BROWSER_OPEN_MARKER: markerPath,
+      [`${RENAME_MAP.envPrefix}BROWSER_OPEN_MARKER`]: markerPath,
       BROWSER: join(fakeBinRoot, 'open'),
-      CUMPA_LAUNCH_OPTIONS: JSON.stringify({
+      [`${RENAME_MAP.envPrefix}LAUNCH_OPTIONS`]: JSON.stringify({
         cwd: fixture.nestedCwd,
         base: { label: selections.base.slice('refs/heads/'.length), revision: selections.base },
         head: { label: selections.head.slice('refs/heads/'.length), revision: selections.head },
@@ -151,7 +152,7 @@ function startAttachedCli(
   fixture: DirtyGitFixture,
   selections: Readonly<{ readonly base: string; readonly head: string }>,
   request: unknown = {
-    kind: 'cumpa.review-request',
+    kind: `${RENAME_MAP.kindPrefix}.review-request`,
     schemaVersion: 1,
     mode: 'revisions',
     revisions: { base: selections.base, head: selections.head },
@@ -167,7 +168,7 @@ function startAttachedCli(
     env: {
       ...acceptance.env,
       PATH: `${fakeBinRoot}:${acceptance.env.PATH ?? ''}`,
-      CUMPA_BROWSER_OPEN_MARKER: markerPath,
+      [`${RENAME_MAP.envPrefix}BROWSER_OPEN_MARKER`]: markerPath,
       BROWSER: join(fakeBinRoot, 'open'),
     },
     stdio: ['pipe', stdoutDescriptor, stderrDescriptor],
@@ -344,9 +345,9 @@ async function saveSummary(page: Page, summary: string): Promise<void> {
 
 
 function readOnlyDraft(fixture: DirtyGitFixture): Readonly<{ readonly bytes: Buffer; readonly draft: PersistedDraft }> {
-  const drafts = readdirSync(join(fixture.root, '.cumpa', 'drafts')).filter((entry) => entry.endsWith('.json'));
+  const drafts = readdirSync(join(fixture.root, RENAME_MAP.repoStateDir.replace(/\/$/, ''), 'drafts')).filter((entry) => entry.endsWith('.json'));
   expect(drafts).toHaveLength(1);
-  const bytes = readFileSync(join(fixture.root, '.cumpa', 'drafts', drafts[0]!));
+  const bytes = readFileSync(join(fixture.root, RENAME_MAP.repoStateDir.replace(/\/$/, ''), 'drafts', drafts[0]!));
   const raw = JSON.parse(bytes.toString('utf8')) as { revision: number; summary: string; comments: PersistedDraft['comments'] };
   return Object.freeze({ bytes, draft: Object.freeze(raw) });
 }
@@ -369,7 +370,7 @@ test.beforeAll(() => {
   writeFileSync(opener, [
     '#!/usr/bin/env node',
     "const { appendFileSync } = require('node:fs');",
-    "if (process.env.CUMPA_BROWSER_OPEN_MARKER) appendFileSync(process.env.CUMPA_BROWSER_OPEN_MARKER, `${JSON.stringify(process.argv.slice(2))}\\n`);",
+    `if (process.env.${RENAME_MAP.envPrefix}BROWSER_OPEN_MARKER) appendFileSync(process.env.${RENAME_MAP.envPrefix}BROWSER_OPEN_MARKER, \`\${JSON.stringify(process.argv.slice(2))}\\n\`);`,
     'process.exitCode = 0;',
     '',
   ].join('\n'));
@@ -380,7 +381,7 @@ test.afterAll(() => {
   if (acceptance === undefined) return;
   let cleaned = false;
   try {
-    if (process.env.CUMPA_AGENT_READY_EVIDENCE_REPORT !== undefined) {
+    if (process.env[`${RENAME_MAP.envPrefix}AGENT_READY_EVIDENCE_REPORT`] !== undefined) {
       expect([...completedScenarios].sort()).toEqual([...requiredScenarios].sort());
       sourceControlEvidence();
     }
@@ -488,7 +489,7 @@ test('installed resume after relaunch preserves accepted review state, completes
 
     const stablePairDirectory = join(
       fixture.root,
-      '.cumpa',
+      RENAME_MAP.repoStateDir.replace(/\/$/, ''),
       'exports',
       `${fixture.git(['rev-parse', fixture.baseRef]).toString('ascii').trim()}..${fixture.git(['rev-parse', fixture.headRef]).toString('ascii').trim()}`,
     );
@@ -555,7 +556,7 @@ test('installed resume after relaunch preserves accepted review state, completes
   const baseOid = fixture.git(['rev-parse', fixture.baseRef]).toString('ascii').trim();
   const headOid = fixture.git(['rev-parse', fixture.headRef]).toString('ascii').trim();
   const alternateHeadOid = fixture.git(['rev-parse', fixture.alternateHeadRef!]).toString('ascii').trim();
-  const pairDirectory = join(fixture.root, '.cumpa', 'exports', `${baseOid}..${headOid}`);
+  const pairDirectory = join(fixture.root, RENAME_MAP.repoStateDir.replace(/\/$/, ''), 'exports', `${baseOid}..${headOid}`);
   const [json, markdown, names] = await Promise.all([
     import('node:fs/promises').then(({ readFile }) => readFile(join(pairDirectory, 'review.json'))),
     import('node:fs/promises').then(({ readFile }) => readFile(join(pairDirectory, 'review.md'))),
@@ -669,7 +670,7 @@ test('attached range review stays silent until Finish then emits one canonical V
       },
     });
     expect(readFileSync(running.stderrPath, 'utf8')).toContain(url);
-    expect(existsSync(join(fixture.root, '.cumpa', 'drafts'))).toBe(false);
+    expect(existsSync(join(fixture.root, RENAME_MAP.repoStateDir.replace(/\/$/, ''), 'drafts'))).toBe(false);
     await registerSourceControlAssertion('range-finish', before, fixture);
     completedScenarios.add('range-finish');
     closeAttachedCliFiles(running);
@@ -700,7 +701,7 @@ test('equivalent installed attached ranges retain canonical provenance while own
     ]);
     await saveSummary(page, 'First equivalent attached review.');
     await saveSummary(secondPage, 'Second equivalent attached review.');
-    const drafts = readdirSync(join(fixture.root, '.cumpa', 'drafts')).sort();
+    const drafts = readdirSync(join(fixture.root, RENAME_MAP.repoStateDir.replace(/\/$/, ''), 'drafts')).sort();
     expect(drafts).toEqual([
       expect.stringMatching(/^agent-[0-9a-f]{32}\.json$/u),
       expect.stringMatching(/^agent-[0-9a-f]{32}\.json$/u),
@@ -757,7 +758,7 @@ test('installed exact-patch review grounds the submitted patch and emits canonic
     target: { kind: 'repository' },
   });
   const request = {
-    kind: 'cumpa.review-request',
+    kind: `${RENAME_MAP.kindPrefix}.review-request`,
     schemaVersion: 1,
     mode: 'patch',
     patch: { content: patch, target: { kind: 'repository' } },
@@ -800,7 +801,7 @@ test('installed exact-patch review grounds the submitted patch and emits canonic
       validationTarget: grounded.scope.validationTarget,
       snapshot: { status: 'unchanged', files: grounded.changedFiles },
     });
-    const reviewKey = createHash('sha256').update('cumpa-exact-patch-review-key-v1');
+    const reviewKey = createHash('sha256').update(`${RENAME_MAP.slug}-exact-patch-review-key-v1`);
     for (const value of [grounded.scope.digest, grounded.scope.validationTarget.kind, grounded.repositoryRoot]) {
       const bytes = Buffer.from(value, 'utf8');
       const length = Buffer.allocUnsafe(8);
@@ -855,21 +856,21 @@ test('installed configured support remains unavailable without outbound access a
 
   try {
     await openAcceptanceRuntimeSession(page, await waitForAttachedLoopbackUrl(running));
-    const support = page.getByRole('button', { name: 'Support Cumpa', exact: true });
+    const support = page.getByRole('button', { name: `Support ${RENAME_MAP.displayName}`, exact: true });
     await expect(support).toBeVisible();
     await support.click();
     const dialog = page.getByRole('dialog');
-    await expect(dialog.getByRole('heading', { name: 'Support Cumpa' })).toBeVisible();
+    await expect(dialog.getByRole('heading', { name: `Support ${RENAME_MAP.displayName}` })).toBeVisible();
     const blockedFetchesPath = acceptance.blockedFetchesPath;
     if (blockedFetchesPath === undefined) throw new Error('[runtime-artifact] fetch guard is missing');
     const blockedBeforeSupport = existsSync(blockedFetchesPath)
       ? readFileSync(blockedFetchesPath, 'utf8').split('\n').filter((line) => line === 'blocked').length
       : 0;
-    await dialog.getByRole('button', { name: 'Support Cumpa — $49.99' }).click();
+    await dialog.getByRole('button', { name: `Support ${RENAME_MAP.displayName} — $49.99` }).click();
     await expect.poll(() => existsSync(blockedFetchesPath)
       ? readFileSync(blockedFetchesPath, 'utf8').split('\n').filter((line) => line === 'blocked').length
       : 0).toBeGreaterThan(blockedBeforeSupport);
-    await expect(dialog.getByRole('button', { name: 'Support Cumpa — $49.99' })).toBeEnabled();
+    await expect(dialog.getByRole('button', { name: `Support ${RENAME_MAP.displayName} — $49.99` })).toBeEnabled();
     await dialog.getByRole('button', { name: 'Not now' }).click();
     await expect(dialog).toBeHidden();
 
@@ -901,7 +902,7 @@ test('installed uncommitted review resolves worktree changes and emits canonical
   try {
   const before = await captureSourceControlSnapshot(fixture.root);
   const request = {
-    kind: 'cumpa.review-request',
+    kind: `${RENAME_MAP.kindPrefix}.review-request`,
     schemaVersion: 1,
     mode: 'uncommitted',
     uncommitted: { source: 'worktree', base: fixture.baseRef },
@@ -954,7 +955,7 @@ test('installed files review resolves standalone paths and emits canonical V6 on
   try {
   const before = await captureSourceControlSnapshot(fixture.root);
   const request = {
-    kind: 'cumpa.review-request',
+    kind: `${RENAME_MAP.kindPrefix}.review-request`,
     schemaVersion: 1,
     mode: 'files',
     files: { paths: ['src/changed.ts'] },
@@ -1005,7 +1006,7 @@ test('installed agent request rejects an unknown mode before any browser launch'
   const fixture = await createDirtyGitFixture();
   try {
     const before = await captureSourceControlSnapshot(fixture.root);
-    const request = { kind: 'cumpa.review-request', schemaVersion: 1, mode: 'bogus' };
+    const request = { kind: `${RENAME_MAP.kindPrefix}.review-request`, schemaVersion: 1, mode: 'bogus' };
     const running = startAttachedCli(fixture, { base: fixture.baseRef, head: fixture.headRef }, request);
     try {
       const output = await waitForAttachedRejectionWithoutLoopbackUrl(running);
@@ -1026,7 +1027,7 @@ test('installed agent request rejects base combined with source unstaged before 
   try {
     const before = await captureSourceControlSnapshot(fixture.root);
     const request = {
-      kind: 'cumpa.review-request',
+      kind: `${RENAME_MAP.kindPrefix}.review-request`,
       schemaVersion: 1,
       mode: 'uncommitted',
       uncommitted: { source: 'unstaged', base: fixture.baseRef },
@@ -1053,7 +1054,7 @@ test('installed agent request rejects a relative files path outside the reposito
   try {
     const before = await captureSourceControlSnapshot(fixture.root);
     const request = {
-      kind: 'cumpa.review-request',
+      kind: `${RENAME_MAP.kindPrefix}.review-request`,
       schemaVersion: 1,
       mode: 'files',
       files: { paths: ['../outside.txt'] },
@@ -1076,12 +1077,12 @@ test('installed agent request rejects a relative files path outside the reposito
 
 test('installed agent request rejects an absolute files path outside the repository before any browser launch', async () => {
   const fixture = await createDirtyGitFixture();
-  const outsideFile = join(tmpdir(), `cumpa-agent-absolute-outside-${crypto.randomUUID()}.txt`);
+  const outsideFile = join(tmpdir(), `${RENAME_MAP.slug}-agent-absolute-outside-${crypto.randomUUID()}.txt`);
   writeFileSync(outsideFile, 'outside content\n');
   try {
     const before = await captureSourceControlSnapshot(fixture.root);
     const request = {
-      kind: 'cumpa.review-request',
+      kind: `${RENAME_MAP.kindPrefix}.review-request`,
       schemaVersion: 1,
       mode: 'files',
       files: { paths: [outsideFile] },
@@ -1107,7 +1108,7 @@ test('installed agent request rejects a files path that does not match any file 
   try {
     const before = await captureSourceControlSnapshot(fixture.root);
     const request = {
-      kind: 'cumpa.review-request',
+      kind: `${RENAME_MAP.kindPrefix}.review-request`,
       schemaVersion: 1,
       mode: 'files',
       files: { paths: ['does-not-exist.txt'] },
@@ -1134,7 +1135,7 @@ test('installed agent request rejects a files path excluded via .gitignore befor
   try {
     const before = await captureSourceControlSnapshot(fixture.root);
     const request = {
-      kind: 'cumpa.review-request',
+      kind: `${RENAME_MAP.kindPrefix}.review-request`,
       schemaVersion: 1,
       mode: 'files',
       files: { paths: ['secret-negative.txt'] },
@@ -1159,7 +1160,7 @@ test('installed agent request rejects an oversized uncommitted request before an
   try {
     const before = await captureSourceControlSnapshot(fixture.root);
     const request = {
-      kind: 'cumpa.review-request',
+      kind: `${RENAME_MAP.kindPrefix}.review-request`,
       schemaVersion: 1,
       mode: 'uncommitted',
       uncommitted: { source: 'worktree', base: 'x'.repeat(2 * 1_048_576) },
