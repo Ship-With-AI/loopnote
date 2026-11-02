@@ -5,15 +5,15 @@ milestone_name: Artifact Review
 current_phase: 17.1
 current_phase_name: full-project-rename
 status: executing
-stopped_at: Completed 17.1-12-PLAN.md
-last_updated: "2026-11-02T10:44:23.747Z"
+stopped_at: Completed 17.1-13-PLAN.md
+last_updated: "2026-11-02T10:54:20.000Z"
 last_activity: 2026-11-02
-last_activity_desc: 17.1-12 gitignore-status API producer-side rename complete
+last_activity_desc: 17.1-13 ignore-status API consumer rename (routes/capabilities/web layer) complete
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 69
-  completed_plans: 54
+  completed_plans: 55
   percent: 71
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-09-09)
 ## Current Position
 
 Phase: 17.1 (full-project-rename) — EXECUTING
-Plan: 13 of 22
-Status: Ready to execute
-Last activity: 2026-11-02 — 17.1-12 gitignore-status API producer-side rename complete
+Plan: 14 of 22
+Status: Ready execute
+Last activity: 2026-11-02 — 17.1-13 ignore-status API consumer rename (routes/capabilities/web layer) complete
 
 ## Performance Metrics
 
@@ -100,6 +100,7 @@ Last activity: 2026-11-02 — 17.1-12 gitignore-status API producer-side rename 
 | Phase 17.1 P10 | 55min | 2 tasks | 8 files |
 | Phase 17.1 P11 | 50min | 2 tasks | 12 files |
 | Phase 17.1 P12 | 35min | 2 tasks | 6 files |
+| Phase 17.1 P13 | 25min | 2 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -190,6 +191,7 @@ Decisions are logged in PROJECT.md Key Decisions.
 - [Phase 17.1]: 17.1-10: Renamed isCumpaInternalPath/filterCumpaInternal to isLoopnoteInternalPath/filterLoopnoteInternal (src/git/inventory.ts, worktree-inventory.ts), extended to match BOTH the legacy '.cumpa' byte prefix and RENAME_MAP.repoStateDir's new prefix per D-05; same dual-segment check added to exact-patch.ts/standalone-resolution.ts reserved-segment rejection, with the latter's error message naming all three reserved segments unconditionally.
 - [Phase 17.1]: 17.1-11: Renamed draft-store.ts/draft-loader.ts's `.cumpa/drafts` path and export-store.ts's `cumpaRoot`/`cumpaIdentity` fields (→ `stateRoot`/`stateIdentity`) and `.cumpa/exports/...` path literals to `RENAME_MAP.repoStateDir`-derived forms; `.gitignore` dual-lists new `.loopnote/` and preserved old `.cumpa/` entries per D-05/D-07. Left `tests/package/agent-ready-export-safety.test.ts`'s "allows the generated fixed ignore capability to append only the approved suffix" test red — depends on `src/server/gitignore-capability.ts`'s `cumpaIgnoreRule` constant, owned by sibling plan 17.1-12, not yet renamed.
 - [Phase 17.1]: 17.1-12: Renamed ignore-status.ts's probe path/inspectCumpaIgnore and gitignore-capability.ts's appendCumpaIgnoreRule/cumpaIgnoreRule byte content (now byte-identical to 17.1-11's `.gitignore` `.loopnote/` entry) and contracts/api.ts + client.ts's CumpaIgnoreStatus/AppendCumpaIgnoreResult schema/types/methods to RENAME_MAP-derived Loopnote forms. Left `src/server/capabilities.ts`/`routes.ts` untouched (owned by sibling plan 17.1-13, not yet renamed) — their stale imports of the pre-rename names cause one deferred 500 in `tests/api/gitignore.test.ts` and block `npm run build:node` (noEmitOnError) from refreshing `dist/`, so 17.1-11's previously flagged `tests/package/agent-ready-export-safety.test.ts` subtest remains red until 17.1-13 lands.
+- [Phase 17.1]: 17.1-13: Renamed `src/server/routes.ts`/`capabilities.ts` (including `capabilities.ts`'s `inspectCumpaIgnore` import/interface-member/4 implementations, not explicitly named in the plan's grep pattern but blocking the `ignore-status.js` import) and the 8 web-layer consumers to 17.1-12's renamed `LoopnoteIgnoreStatus`/`AppendLoopnoteIgnoreResult`/`appendLoopnoteIgnoreRule`/`getLoopnoteIgnoreStatus` forms; fixed App.vue's `cumpa-heading`/`loopnote-heading` desync (17.1-06) by deriving `aria-labelledby`/skip-link from `RENAME_MAP.cssPrefix`. `tsc --noEmit` now 0 diagnostics repo-wide (was 8); `tests/api/gitignore.test.ts` 5/5; `npm run build:node` succeeds; `tests/package/agent-ready-export-safety.test.ts` 8/8 including the previously-deferred ignore-append subtest.
 
 ### Pending Todos
 
@@ -243,6 +245,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-11-02T10:44:23.747Z
+Last session: 2026-11-02T10:54:20.000Z
 Stopped at: Completed 17.1-06-PLAN.md
 Resume file: None
