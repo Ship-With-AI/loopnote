@@ -2,7 +2,7 @@
 
 ## Product
 
-Loopnote is a local-first code review application for committed changes between two local Git branch or registered-worktree heads. Its core value is precise review feedback without publishing the comparison to a remote host.
+Loopnote is a local-first review application for any agent-produced artifact — code, plans, decisions, and docs — reviewed as a pinned Git comparison, uncommitted work, or a standalone file or glob. Its core value is precise review feedback without publishing the review to a remote host.
 Loopnote is the product name used across the CLI, browser workspace, exports, and repository-local state.
 
 ## Audience
@@ -12,14 +12,16 @@ Loopnote is the product name used across the CLI, browser workspace, exports, an
 
 ## Supplied capabilities
 
-- An interactive CLI selects an ordered base and head from local branches and registered worktrees.
+- An interactive CLI selects an ordered base and head from local branches and registered worktrees, or reviews uncommitted changes (staged, unstaged, or the full working tree) or standalone files and globs with no Base/Head selection.
 - Installed Git is the authority for repository discovery, refs, merge bases, worktrees, renames, changed-file metadata, and blobs.
 - A Fastify server binds to loopback only and opens a browser workspace.
-- The Vue interface uses Monaco for side-by-side text diffs, syntax highlighting, line mapping, and inline review controls.
+- The Vue interface renders side-by-side diffs for two-sided changes and a single full-width pane for added or deleted files, with syntax highlighting, line mapping, and inline review controls.
+- Uncommitted and standalone reviews freeze a snapshot at session start; an explicit Refresh re-reads the current worktree without losing saved comments.
 - Reviewers can leave line comments and an overall summary.
 - Versioned JSON drafts live in the repository-local, gitignored `.loopnote/` directory.
+- A coding agent can submit a revision range or an exact patch directly over stdin — through the marketplace skill or scripted directly — and receive a canonical, versioned JSON export without a browser round trip by the agent itself.
 - Exports provide Markdown and canonical JSON for a coding agent.
-- Version 1 reviews text files; binary, generated, oversized, and unsupported files remain visible but non-reviewable.
+- Loopnote reviews regular UTF-8 text files; binary, generated, oversized, and unsupported files remain visible but non-reviewable.
 
 ## Deliberate non-capabilities
 

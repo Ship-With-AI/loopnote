@@ -1,7 +1,17 @@
 {
   "name": "@shipwithai/loopnote",
   "version": "2.0.0",
-  "description": "Local-first review of pinned Git comparisons",
+  "description": "Local-first review for any agent-produced artifact: code, uncommitted work, or standalone files",
+  "keywords": [
+    "code-review",
+    "ai-agents",
+    "claude-code",
+    "codex",
+    "markdown-review",
+    "local-first",
+    "git",
+    "diff-review"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",
