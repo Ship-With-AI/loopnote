@@ -32,7 +32,6 @@ export type SupportFileSystem = Readonly<{
   readFile(path: string): Promise<Buffer>;
   mkdir(path: string, mode: number): Promise<void>;
   lstat(path: string): Promise<{ isSymbolicLink(): boolean; isFile(): boolean }>;
-  stat(path: string): Promise<{ mode: number }>;
   open(path: string, flags: number, mode: number): Promise<SupportFileHandle>;
   chmod(path: string, mode: number): Promise<void>;
   rename(from: string, to: string): Promise<void>;
@@ -44,7 +43,6 @@ const nodeFileSystem: SupportFileSystem = {
   readFile: async (path) => await fs.readFile(path),
   mkdir: async (path, mode) => { await fs.mkdir(path, { recursive: true, mode }); },
   lstat: async (path) => await fs.lstat(path),
-  stat: async (path) => await fs.stat(path),
   open: async (path, flags, mode) => {
     const handle = await fs.open(path, flags, mode);
     return { writeFile: async (bytes) => await handle.writeFile(bytes), sync: async () => await handle.sync(), close: async () => await handle.close() };
@@ -132,9 +130,10 @@ export function createSupportStore(options: Readonly<{ path?: string; legacyPath
   const persist = async (next: SupportStateV1): Promise<void> => {
     await writeAtomic(Buffer.from(`${JSON.stringify(SupportStateV1Schema.parse(next))}\n`), 0o600);
   };
-  // D-06: one-time, atomic, mode-preserving copy of the legacy per-user support.json to the new
-  // path — never a move (the legacy file is left untouched), never an ongoing fallback read.
-  // Runs at most once per store instance (createSupportStore() is called once per process).
+  // D-06: one-time, atomic copy of the legacy per-user support.json to the new path — never a
+  // move (the legacy file is left untouched), never an ongoing fallback read. The new-path file
+  // is always written with mode 0o600, matching the module's existing convention, never
+  // inherited from the legacy file (the legacy file's mode may be looser-than-0o600).
   const copyLegacyIfNeeded = async (): Promise<void> => {
     if (legacyCopyAttempted) return;
     legacyCopyAttempted = true;
@@ -144,8 +143,7 @@ export function createSupportStore(options: Readonly<{ path?: string; legacyPath
       if (entry.isSymbolicLink() || !entry.isFile()) return;
       const bytes = await fileSystem.readFile(legacyPath);
       SupportStateV1Schema.parse(JSON.parse(bytes.toString('utf8')));
-      const mode = (await fileSystem.stat(legacyPath)).mode & 0o777;
-      await writeAtomic(bytes, mode);
+      await writeAtomic(bytes, 0o600);
     } catch {
       // Missing, unreadable, or schema-invalid legacy file: leave it untouched and fall through
       // to ordinary initialization — a tampered legacy file is never partially trusted.
