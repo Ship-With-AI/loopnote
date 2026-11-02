@@ -17,7 +17,7 @@ const checkerPath = fileURLToPath(
   new URL('../../.kimi-code/skills/loopnote/scripts/check-loopnote.mjs', import.meta.url),
 );
 const recovery =
-  'npm install --global @shipwithai/loopnote@1.5.0\n' +
+  'npm install --global @shipwithai/loopnote@2.0.0\n' +
   'Requires Node.js 24+ and Git 2.43.0+.\n';
 
 function runChecker(body?: string, mode = 0o755) {
@@ -84,10 +84,10 @@ function expectRejected(result: SpawnSyncReturns<string>) {
 
 describe('installed Loopnote skill preflight', () => {
   it.each([
-    ['minimum release', '1.5.0'],
-    ['later minor release', '1.12.3'],
-    ['stable build metadata', '1.5.0+build.001'],
-    ['large numeric components', `1.${'9'.repeat(80)}.${'9'.repeat(80)}`],
+    ['minimum release', '2.0.0'],
+    ['later minor release', '2.12.3'],
+    ['stable build metadata', '2.0.0+build.001'],
+    ['large numeric components', `2.${'9'.repeat(80)}.${'9'.repeat(80)}`],
   ])('accepts the %s without claiming verification', (_label, version) => {
     const result = runChecker(`process.stdout.write(${JSON.stringify(`${version}\n`)});`);
     expect(result.status).toBe(0);
@@ -96,20 +96,21 @@ describe('installed Loopnote skill preflight', () => {
   });
 
   it.each([
-    ['version below the minimum', '1.4.9'],
-    ['next major version', '2.0.0'],
-    ['prerelease', '1.5.0-rc.1'],
+    ['legacy minimum release', '1.5.0'],
+    ['legacy later minor release', '1.12.3'],
+    ['next major version', '3.0.0'],
+    ['prerelease', '2.0.0-rc.1'],
     ['empty output', ''],
-    ['incomplete core', '1.5'],
-    ['leading-zero major', '01.5.0'],
-    ['leading-zero minor', '1.05.0'],
-    ['leading-zero patch', '1.5.00'],
-    ['version prefix', 'v1.5.0'],
-    ['version label', 'Loopnote 1.5.0'],
-    ['multiple versions', '1.5.0\n1.6.0'],
-    ['extra blank line', '1.5.0\n\n'],
-    ['empty build metadata', '1.5.0+'],
-    ['empty metadata segment', '1.5.0+build..1'],
+    ['incomplete core', '2.0'],
+    ['leading-zero major', '02.0.0'],
+    ['leading-zero minor', '2.05.0'],
+    ['leading-zero patch', '2.0.00'],
+    ['version prefix', 'v2.0.0'],
+    ['version label', 'Loopnote 2.0.0'],
+    ['multiple versions', '2.0.0\n2.1.0'],
+    ['extra blank line', '2.0.0\n\n'],
+    ['empty build metadata', '2.0.0+'],
+    ['empty metadata segment', '2.0.0+build..1'],
   ])('rejects %s with recovery guidance only', (_label, output) => {
     expectRejected(runChecker(`process.stdout.write(${JSON.stringify(output)});`));
   });
@@ -119,13 +120,13 @@ describe('installed Loopnote skill preflight', () => {
   });
 
   it('stops when the version executable cannot be spawned', () => {
-    expectRejected(runChecker("process.stdout.write('1.5.0\\n');", 0o644));
+    expectRejected(runChecker("process.stdout.write('2.0.0\\n');", 0o644));
   });
 
   it('rejects a failed probe even when its stdout looks supported', () => {
     expectRejected(
       runChecker(
-        "process.stdout.write('1.5.0\\n'); process.stderr.write('private fixture diagnostic'); process.exit(7);",
+        "process.stdout.write('2.0.0\\n'); process.stderr.write('private fixture diagnostic'); process.exit(7);",
       ),
     );
   });
@@ -136,7 +137,7 @@ describe('installed Loopnote skill preflight', () => {
 
   it('bounds diagnostic output even when the version is supported', () => {
     expectRejected(
-      runChecker("process.stdout.write('1.5.0\\n'); process.stderr.write('x'.repeat(16_384));"),
+      runChecker("process.stdout.write('2.0.0\\n'); process.stderr.write('x'.repeat(16_384));"),
     );
   });
 

@@ -8,7 +8,7 @@ import { buildIsolatedPath, isContainedPath } from './public-artifact-identity.j
 import { inheritedEnvironment, runRuntimeCommand } from './runtime-artifact.js';
 import { RENAME_MAP } from '../../src/domain/product-identity.js';
 const projectRoot = resolve(import.meta.dirname, '../..');
-const publishedSkillSha256 = '67634499d18d2603bad3318c7db4f06341c880bf9dee5fb0f5449256240f7a0f';
+const publishedSkillSha256 = '326b0d431a3fb041d5eba3905611350e08917534250e9ebcd93d65ae908765dc';
 
 type SharedSupportHome = Readonly<{
   readonly home: string;

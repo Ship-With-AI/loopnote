@@ -13,8 +13,8 @@ try {
 
   if (!result.error && !result.signal && result.status === 0) {
     const version = result.stdout.replace(/\r?\n$/, '');
-    const match = /^1\.(0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/.exec(version);
-    if (match && match[0] === version && (match[1].length > 1 || match[1] >= '5')) {
+    const match = /^2\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/.exec(version);
+    if (match && match[0] === version) {
       acceptedVersion = version;
     }
   }
@@ -24,7 +24,7 @@ try {
 
 if (acceptedVersion === undefined) {
   process.stderr.write(
-    'npm install --global @shipwithai/loopnote@1.5.0\n' +
+    'npm install --global @shipwithai/loopnote@2.0.0\n' +
       'Requires Node.js 24+ and Git 2.43.0+.\n',
   );
   process.exitCode = 1;

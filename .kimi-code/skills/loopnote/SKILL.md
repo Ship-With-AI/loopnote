@@ -10,9 +10,9 @@ Use Loopnote as the review UI and protocol authority. This skill is only a gate 
 
 ## Requirements
 
-The CLI is installed separately. Require Node.js 24+, Git 2.43.0+, and a stable Loopnote version `>=1.5.0 <2.0.0`; prereleases are not accepted. The bundled checker accepts valid build metadata without changing version precedence.
+The CLI is installed separately. Require Node.js 24+, Git 2.43.0+, and a stable Loopnote version `>=2.0.0 <3.0.0`; prereleases are not accepted. The bundled checker accepts valid build metadata without changing version precedence.
 
-Only Loopnote 1.5.0 has independent release verification. Acceptance of later stable 1.x versions is a compatibility policy, not a claim that those releases were tested.
+Acceptance of stable 2.x versions is a compatibility policy; no 2.x release has independent verification recorded in this file yet.
 
 Never install or upgrade Loopnote automatically, use an npx fallback, or substitute a source checkout or local tarball.
 
@@ -21,7 +21,7 @@ Never install or upgrade Loopnote automatically, use an npx fallback, or substit
 1. Resolve this installed skill's directory from the agent's loaded skill location, not the reviewed repository's working directory. Run `node "<installed-skill-directory>/scripts/check-loopnote.mjs"` as the first workflow operation, before Git resolution or review launch. If Node cannot run or the checker fails, stop and show the following guidance without executing it:
 
    ```text
-   npm install --global @shipwithai/loopnote@1.5.0
+   npm install --global @shipwithai/loopnote@2.0.0
    Requires Node.js 24+ and Git 2.43.0+.
    ```
 
@@ -94,11 +94,25 @@ Use exact-patch mode only when the user explicitly supplies a patch or asks to r
 
 `target.kind` is `repository` for committed `HEAD` or `worktree` for current on-disk entries. The patch must be non-empty, NUL-free UTF-8 and the entire request must not exceed 1 MiB.
 
+## Native uncommitted and files modes
+
+Use uncommitted or files mode only when the user asks to review current uncommitted changes or specific files rather than a committed range.
+
+```json
+{"kind":"loopnote.review-request","schemaVersion":1,"mode":"uncommitted","uncommitted":{"source":"worktree","base":"<ref-or-oid>"}}
+```
+
+```json
+{"kind":"loopnote.review-request","schemaVersion":1,"mode":"files","files":{"paths":["src/a.ts","src/b.ts"]}}
+```
+
+`source` is one of `staged`, `unstaged`, or `worktree`; omit `base` only when `source` is `unstaged`. `pathspecs`/`paths` are optional ordered filters.
+
 ## Protocol invariants
 
 - Piped stdin selects agent mode; stdout stays empty until successful Finish.
 - URL and diagnostics are stderr-only.
 - Revision requests use full pinned OIDs; base must be an ancestor of head.
-- Loopnote reviews committed worktree `HEAD`, not dirty worktree bytes.
+- Revision and exact-patch requests review committed `HEAD` state, never dirty worktree bytes; uncommitted and files requests explicitly review the current on-disk worktree instead.
 - Loopnote never applies, stages, commits, or pushes changes.
 - Do not treat process readiness as review completion; wait for successful exit and validate stdout.
