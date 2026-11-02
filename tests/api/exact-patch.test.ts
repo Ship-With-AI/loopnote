@@ -194,7 +194,7 @@ describe('exact patch snapshot sessions', () => {
       },
       files: [{ fileId }, { fileId: `file_${'q'.repeat(43)}` }],
     });
-    expect(Object.keys(session.json() as object)).toEqual(['patch', 'files']);
+    expect(Object.keys(session.json() as object)).toEqual(['patch', 'files', 'repoName']);
 
     for (let index = 0; index < 2; index += 1) {
       const content = await app.inject({ method: 'GET', url: `/api/files/${fileId}/content`, headers });

@@ -138,6 +138,7 @@ describe('frozen opaque session capabilities', () => {
       base: { label: 'main', oid: '1'.repeat(40) },
       head: { label: 'feature', oid: '2'.repeat(40) },
       mergeBaseOid: '3'.repeat(40),
+      repoName: 'never-on-the-wire',
       files: [
         {
           fileId,

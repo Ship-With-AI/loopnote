@@ -108,7 +108,7 @@ describe('uncommitted session apps', () => {
       changedFileCount: 2,
     });
     expect(body.uncommitted.reviewKey).toMatch(/^[0-9a-f]{64}$/u);
-    expect(Object.keys(body)).toEqual(['uncommitted', 'files']);
+    expect(Object.keys(body)).toEqual(['uncommitted', 'files', 'repoName']);
     expect(body.files).toHaveLength(2);
   });
 
