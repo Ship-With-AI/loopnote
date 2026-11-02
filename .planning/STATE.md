@@ -5,16 +5,16 @@ milestone_name: Artifact Review
 current_phase: 17.1
 current_phase_name: full-project-rename
 status: executing
-stopped_at: Completed 17.1-06-PLAN.md
-last_updated: "2026-11-02T09:28:04.402Z"
+stopped_at: Completed 17.1-07-PLAN.md
+last_updated: "2026-11-02T10:15:00.000Z"
 last_activity: 2026-11-02
-last_activity_desc: Phase 17.1 execution — 17.1-06 web display-copy rename complete
+last_activity_desc: Phase 17.1 execution — 17.1-07 docs/CLAUDE.md/mockups/evidence-ledger rename complete
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 69
-  completed_plans: 47
-  percent: 68
+  completed_plans: 48
+  percent: 70
 ---
 
 # Project State
@@ -29,15 +29,15 @@ See: .planning/PROJECT.md (updated 2026-09-09)
 ## Current Position
 
 Phase: 17.1 (full-project-rename) — EXECUTING
-Plan: 7 of 22
+Plan: 8 of 22
 Status: Ready to execute
-Last activity: 2026-11-02 — 17.1-06 web display-copy rename complete
+Last activity: 2026-11-02 — 17.1-07 docs/CLAUDE.md/mockups/evidence-ledger rename complete
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 125
+- Total plans completed: 126
 - Average duration: 23 min
 - Total execution time: 4.7 hours
 
@@ -94,6 +94,7 @@ Last activity: 2026-11-02 — 17.1-06 web display-copy rename complete
 | Phase 17.1 P04 | 25min | 2 tasks | 14 files |
 | Phase 17.1 P05 | 20min | 2 tasks | 16 files |
 | Phase 17.1 P06 | 30min | 1 tasks | 10 files |
+| Phase 17.1 P07 | 35min | 2 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -174,6 +175,10 @@ Decisions are logged in PROJECT.md Key Decisions.
 - [Phase 17.1]: 17.1-05: Renamed all five CUMPA_RUNTIME_* env vars in publish-npm.yml despite tests/helpers/runtime-artifact.ts (owned by 17.1-15) not yet renamed — Must_haves truths bullet explicitly lists CUMPA_RUNTIME_* and this plan owns publish-npm.yml; temporary cross-plan mismatch until 17.1-15 runs mirrors the plan's own accepted GitHub-secret situation
 - [Phase 17.1]: 17.1-05: Left verify-supabase-support.mjs:1002's 'return to Cumpa.' completion-text check unrenamed, deferred to 17.1-09 — Must byte-match supabase/functions/support-flow/index.ts's literal completion text, owned by sibling plan 17.1-09 which has not yet run
 - [Phase 17.1]: 17.1-06: ActiveFileToolbar.vue's 'cumpa-heading' DOM id renamed to RENAME_MAP.cssPrefix-derived 'loopnote-heading' per plan instruction, intentionally desyncing from src/web/App.vue's aria-labelledby/skip-link (owned by 17.1-13) and tests/e2e/responsive-session.spec.ts + tests/integration/anchored-workspace.spec.ts's '#cumpa-heading' locators (owned by 17.1-19) until those sibling plans land
+- [Phase 17.1]: 17.1-07: README's protocol JSON examples' kind: "cumpa.review-request" renamed to loopnote.review-request to match src/contracts/request.ts's live RENAME_MAP.kindPrefix literal (already renamed by 17.1-02) — the committed doc-validation test parses these examples through the real Zod schema, so a stale kind would describe an invalid protocol.
+- [Phase 17.1]: 17.1-07: docs/distribution-operations.md and docs/support-service-operations.md's CUMPA_RUNTIME_*/CUMPA_RELEASE_*/cumpa-npm-stable/cumpa.release-approval references renamed to LOOPNOTE_ forms by grepping 17.1-05's already-committed package.json/.github/workflows/publish-npm.yml/scripts/verify-supabase-support.mjs rather than guessing.
+- [Phase 17.1]: 17.1-07: mockups/01-quiet-workspace.html and 01b-quiet-workspace-tree.html's large single-line embedded demo-data JSON blobs (9.1KB/12.9KB) renamed via a targeted literal string-replace rather than manual line retyping; both re-verified as valid JSON after the change.
+- [Phase 17.1]: 17.1-07: EVIDENCE.md's Claim column updated to Support Loopnote (matching 17.1-06's renamed SupportDialog.vue) and its prose-convention sentence to **Loopnote**, while the historical '@shipwithai/cumpa@1.5.0' version-pinned fact was preserved verbatim per RESEARCH.md's history exception.
 
 ### Pending Todos
 
