@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { lstat, readdir } from 'node:fs/promises';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { extname as posixExtname } from 'node:path/posix';
 
 import type { GroundedExactPatch, PinnedComparison, ChangedFile, UncommittedScope } from '../contracts/comparison.js';
@@ -425,6 +425,7 @@ export function createCapabilityRegistry(
         }),
     ...(options.attachedCompletion === undefined ? {} : { attached: { kind: 'agent-review' as const } }),
     ...(options.support === undefined ? {} : { support: { enabled: true as const } }),
+    repoName: basename(comparison.repositoryRoot),
 
     files: comparison.changedFiles.map((file) => {
       const status =
@@ -753,6 +754,7 @@ export async function createExactPatchCapabilityRegistry(
     ...(await snapshot.session()),
     ...(options.attachedCompletion === undefined ? {} : { attached: { kind: 'agent-review' as const } }),
     ...(options.support === undefined ? {} : { support: { enabled: true as const } }),
+    repoName: basename(grounded.repositoryRoot),
   });
   const session = await sessionResponse();
   if (!('patch' in session)) throw new Error('Exact patch snapshot did not provide patch provenance.');
@@ -1034,6 +1036,7 @@ export async function createUncommittedCapabilityRegistry(
       })),
       ...(options.attachedCompletion === undefined ? {} : { attached: { kind: 'agent-review' as const } }),
       ...(options.support === undefined ? {} : { support: { enabled: true as const } }),
+      repoName: basename(scope.repositoryRoot),
     });
   };
 
@@ -1390,6 +1393,7 @@ export async function createStandaloneCapabilityRegistry(
       })),
       ...(options.attachedCompletion === undefined ? {} : { attached: { kind: 'agent-review' as const } }),
       ...(options.support === undefined ? {} : { support: { enabled: true as const } }),
+      repoName: basename(scope.repositoryRoot),
     });
   };
 

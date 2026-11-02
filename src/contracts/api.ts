@@ -389,6 +389,7 @@ const PinnedSessionResponseSchema = z
     files: z.array(SessionFileSchema).readonly(),
     attached: AttachedSessionMarkerSchema.optional(),
     support: SessionSupportCapabilitySchema.optional(),
+    repoName: z.string().optional(),
 
   })
   .superRefine((session, context) => {
@@ -419,6 +420,7 @@ const ExactPatchSessionResponseSchema = z
     files: z.array(SessionFileSchema).readonly(),
     attached: AttachedSessionMarkerSchema.optional(),
     support: SessionSupportCapabilitySchema.optional(),
+    repoName: z.string().optional(),
   })
   .readonly();
 
@@ -437,6 +439,7 @@ const UncommittedSessionResponseSchema = z
     files: z.array(SessionFileSchema).readonly(),
     attached: AttachedSessionMarkerSchema.optional(),
     support: SessionSupportCapabilitySchema.optional(),
+    repoName: z.string().optional(),
   })
   .readonly();
 
