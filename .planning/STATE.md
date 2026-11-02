@@ -5,15 +5,15 @@ milestone_name: Artifact Review
 current_phase: 17.1
 current_phase_name: full-project-rename
 status: executing
-stopped_at: Completed 17.1-19-PLAN.md
-last_updated: "2026-11-02T13:38:08.000Z"
+stopped_at: Completed 17.1-20-PLAN.md
+last_updated: "2026-11-02T12:43:59.000Z"
 last_activity: 2026-11-02
-last_activity_desc: 17.1-19 CLI error assertions + 10 packed-release e2e spec fixtures renamed; discovered and fixed unowned Cumpa display-copy gap in App.vue/ExportSection.vue/ReviewNotesDialog.vue/api/client.ts, synced 4 sibling-owned test files, fixed a page.evaluate() RENAME_MAP browser-context bug
+last_activity_desc: 17.1-20 renamed comparison.test.ts's five domain-error-message assertions, three git-layer test files' cumpa- tmpdir prefixes (plus their own 'Cumpa ... Fixture' user.name literals, a discovery beyond the plan's named interface sites), and the shared git-fixture.ts helper's two tmpdir-prefix and two user.name fixture sites to RENAME_MAP forms
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 69
-  completed_plans: 59
+  completed_plans: 60
   percent: 71
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-09-09)
 ## Current Position
 
 Phase: 17.1 (full-project-rename) — EXECUTING
-Plan: 19 of 22
+Plan: 20 of 22
 Status: Ready execute
-Last activity: 2026-11-02 — 17.1-19 CLI error assertions + 10 packed-release e2e spec fixtures renamed; production display-copy gap (App.vue/ExportSection.vue/ReviewNotesDialog.vue/api/client.ts) closed as a deviation
+Last activity: 2026-11-02 — 17.1-20 comparison.test.ts's five domain-error-message assertions, three git-layer test files' cumpa- tmpdir prefixes (+ their own 'Cumpa ... Fixture' user.name literals, a discovery), and the shared git-fixture.ts helper renamed to RENAME_MAP forms
 
 ## Performance Metrics
 
@@ -196,6 +196,7 @@ Decisions are logged in PROJECT.md Key Decisions.
 - [Phase 17.1]: 17.1-15: Renamed release-artifact test-helper identity (packageName, evidence-kind literals, bin key/basename, four deferred `LOOPNOTE_RUNTIME_*` env vars, tmpdir prefixes, `LOOPNOTE_ACCEPTANCE_SUPPORT_HOME`/`LOOPNOTE_PUBLIC_INSTALL_SOURCE`) across `tests/helpers/{public-runtime,acceptance-runtime,runtime-artifact}.ts` and 3 unit tests. Reverted `public-artifact-identity.ts`'s `PINNED_PUBLIC_ARTIFACT` (net-zero diff) and every real-registry-install site in `public-runtime.ts` back to the old `@shipwithai/cumpa@1.5.0` form after empirically proving the rename breaks `write-acceptance-evidence.mjs`'s `assertNoPrivateValues`/`completeInstallProof` (17.1-05, same immutable-history precedent). Left `CUMPA_RUNTIME_PROFILE`/`CUMPA_AGENT_READY_EVIDENCE_REPORT`/`RUN_ID` unrenamed as live cross-file contracts owned by sibling plans 17.1-16/17.1-19, not yet run. Discovered `package.json`'s `bin` value still points at stale `dist/bin/cumpa.mjs` (owned by no current 17.1 plan).
 - [Phase 17.1]: 17.1-16: Renamed every current/local-build identity literal across `tests/package/{agent-ready-export,npm-release-verifier,public-artifact-acceptance,runtime-artifact-verifier,runtime-package-contract,runtime-producer}.test.ts` and `tests/e2e/{support-payment,support-restore,marketplace-review}.spec.ts` to `RENAME_MAP` forms. Left 3 pinned `@shipwithai/cumpa@1.5.0` literals old-form in `public-artifact-acceptance.test.ts`'s `publicProof` assertions (same immutable-history category 17.1-05/17.1-15 established). Resolved `CUMPA_SUPPORT_STATE_WINDOW`/`CUMPA_MARKETPLACE_URL_MARKER` against already-renamed senders (17.1-08/17.1-14). Resolved `CUMPA_RUNTIME_PROFILE`/`CUMPA_AGENT_READY_EVIDENCE_REPORT`/`RUN_ID` by also renaming `tests/helpers/runtime-artifact.ts` and `tests/unit/publish-scenario-record.test.ts` (owned by already-complete 17.1-15, which explicitly deferred this exact decision to "whichever of 17.1-16/17.1-19 runs first"); `tests/e2e/agent-ready-export.spec.ts` (17.1-19, not yet run) still reads the old form, a temporary documented mismatch. Fixed a pre-existing `scripts/rename-map.json` missing-copy bug (17.1-05 introduced the import dependency) in three test fixtures, found via live `vitest run`, restoring 21/21 + 18/18 passing tests. `runtime-artifact-verifier.test.ts`'s 7 real-`pack-runtime.mjs` tests remain blocked on the orchestrator-owned `package.json` `bin.loopnote` stale-path gap (unrelated to this plan's renames).
 - [Phase 17.1]: 17.1-19: Renamed `tests/cli/errors.test.ts`'s five domain error messages and all ten packed-release e2e specs' `cumpa-...-pack-` tmpdir prefixes, `dist/bin/cumpa.mjs` paths, `CUMPA_*` env vars, `cumpa.review-request` kind fixtures, and `.cumpa` drafts/exports paths to `RENAME_MAP`-derived forms. Renamed `tests/integration/anchored-workspace.spec.ts`'s `#cumpa-heading` locators and matching display text (deferred by 17.1-06/17.1-11). Discovered during live Playwright verification that `src/web/App.vue`/`ExportSection.vue`/`ReviewNotesDialog.vue`/`api/client.ts` still hardcoded literal `Cumpa` prose that no 17.1 plan owned (17.1-06 explicitly excluded App.vue/ExportSection.vue/ReviewNotesDialog.vue; 17.1-12/13 only renamed their ignore-status API-consumer symbols there) — renamed those to `RENAME_MAP.displayName` and synced the four sibling-owned test files (`agent-ready-export-safety.spec.ts`, `export-receipt-ui.spec.ts`, `selector-drift-ui.spec.ts`, `support-dialog.spec.ts`) whose assertions depended on the now-changed text, confirming green via live Playwright runs. Also fixed a `page.evaluate()` browser-context bug (`RENAME_MAP` is a Node import, inaccessible inside a closure sent to the browser) in `responsive-session.spec.ts`. Left two confirmed pre-existing, unrelated failures untouched: `agent-ready-export-safety.spec.ts`'s `.cumpa` exports-directory literal (owned by a different RENAME_MAP field per the 17.1-02 entry above) and `selector-drift-ui.spec.ts`'s `exactPatchSession()` schema-validation failure (already tracked in Deferred Items below).
+- [Phase 17.1]: 17.1-20: Renamed `tests/git/comparison.test.ts`'s five domain-error-message assertions to `RENAME_MAP.displayName`-based template literals matching 17.1-04's renamed `src/domain/errors.ts`. Renamed `tests/git/{anchored-content,availability,selector-drift}.test.ts`'s own `cumpa-...-` tmpdir fixture prefixes to `RENAME_MAP.slug`-derived forms, plus discovered and renamed `anchored-content.test.ts`'s/`availability.test.ts`'s own `'Cumpa Anchor/Availability Fixture'` git `user.name` literals (not named in the plan's `<interfaces>` block, found via full-file grep). Renamed the shared `tests/helpers/git-fixture.ts` helper's two tmpdir-prefix sites (`cumpa-git-`/`cumpa-validation-git-`) and two `'Cumpa Fixture'` `user.name` sites to `RENAME_MAP`-derived forms — this helper is imported by every other Git-layer test file, so `npm run test:git`'s full 12-file/109-test suite re-verifies the rename's correctness for all its consumers.
 
 ### Pending Todos
 
@@ -249,6 +250,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-11-02T13:38:08.000Z
-Stopped at: Completed 17.1-19-PLAN.md
+Last session: 2026-11-02T12:43:59.000Z
+Stopped at: Completed 17.1-20-PLAN.md
 Resume file: None
