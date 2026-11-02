@@ -21,8 +21,9 @@ import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 
 import { z } from 'zod';
 import { bootstrapVersion, version } from '../../scripts/release-identity.mjs';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 
-const packageName = '@shipwithai/cumpa';
+const packageName = RENAME_MAP.npmPackage;
 const runtimeProfiles = {
   stable: { version, purpose: undefined },
   bootstrap: { version: bootstrapVersion, purpose: 'bootstrap' },
@@ -47,7 +48,7 @@ const ManifestProjectionSchema = z.strictObject({
 const ProducerEvidenceSchema = z.object({
   status: z.enum(['bootstrap', 'candidate', 'verified', 'accepted-local', 'development-check', 'deployment-check']),
   purpose: z.enum(['bootstrap', 'candidate', 'development-check', 'deployment-check']),
-  kind: z.literal('cumpa.runtime-artifact-evidence/v1'),
+  kind: z.literal(`${RENAME_MAP.kindPrefix}.runtime-artifact-evidence/v1`),
   archive: z.object({
     basename: z.string(),
     byteLength: z.number().int().nonnegative(),
@@ -98,7 +99,7 @@ function installedManifestSchema(version: string) {
     version: z.literal(version),
     license: z.literal('MIT'),
     engines: z.object({ node: z.literal('>=24') }),
-    bin: z.object({ cumpa: z.literal('dist/bin/cumpa.mjs') }),
+    bin: z.object({ [RENAME_MAP.binCommand]: z.literal(`dist/bin/${RENAME_MAP.binCommand}.mjs`) }),
   });
 }
 
@@ -126,7 +127,7 @@ export interface RuntimeArtifact {
 
 export interface RuntimeInstallProof {
   readonly packageLabel: `${typeof packageName}@${RuntimePackageIdentity['version']}`;
-  readonly binLabel: 'cumpa';
+  readonly binLabel: 'loopnote';
   readonly manifestSha256: string;
   readonly dependencyCount: number;
   readonly dependencyInventorySha256: string;
@@ -185,11 +186,11 @@ function manifestProjection(evidence: ProducerEvidence): void {
 }
 function safeArchivePath(custody: string, archiveBasename: string): string {
   if (basename(archiveBasename) !== archiveBasename || !archiveBasenamePattern.test(archiveBasename)) {
-    fail('CUMPA_RUNTIME_ARCHIVE_BASENAME must be a safe .tgz basename');
+    fail(`${RENAME_MAP.envPrefix}RUNTIME_ARCHIVE_BASENAME must be a safe .tgz basename`);
   }
   const custodyPath = resolve(custody);
   const custodyStat = lstatSync(custodyPath);
-  if (!custodyStat.isDirectory() || custodyStat.isSymbolicLink()) fail('CUMPA_RUNTIME_CUSTODY_DIR must be a real directory');
+  if (!custodyStat.isDirectory() || custodyStat.isSymbolicLink()) fail(`${RENAME_MAP.envPrefix}RUNTIME_CUSTODY_DIR must be a real directory`);
   const archivePath = resolve(custodyPath, archiveBasename);
   if (relative(custodyPath, archivePath).startsWith('..') || !archivePath.startsWith(`${custodyPath}${sep}`)) fail('archive path escaped custody directory');
   const archiveStat = lstatSync(archivePath);
@@ -235,12 +236,12 @@ function sameIdentity(left: RuntimeArchiveIdentity, right: RuntimeArchiveIdentit
 function producerEvidence(path: string, profile: RuntimeProfile): ProducerEvidence {
   const evidencePath = resolve(path);
   const evidenceStat = lstatSync(evidencePath);
-  if (!evidenceStat.isFile() || evidenceStat.isSymbolicLink()) fail('CUMPA_RUNTIME_EVIDENCE must name a regular file');
+  if (!evidenceStat.isFile() || evidenceStat.isSymbolicLink()) fail(`${RENAME_MAP.envPrefix}RUNTIME_EVIDENCE must name a regular file`);
   let raw: unknown;
   try {
     raw = JSON.parse(readFileSync(evidencePath, 'utf8'));
   } catch {
-    fail('CUMPA_RUNTIME_EVIDENCE must contain JSON');
+    fail(`${RENAME_MAP.envPrefix}RUNTIME_EVIDENCE must contain JSON`);
   }
   const parsed = ProducerEvidenceSchema.safeParse(raw);
   if (!parsed.success) fail('unexpected producer evidence shape');
@@ -260,13 +261,13 @@ function producerEvidence(path: string, profile: RuntimeProfile): ProducerEviden
 export function readRuntimeArtifact(environment: NodeJS.ProcessEnv = process.env): RuntimeArtifact {
   scenarioBridge(environment);
   const profile = runtimeProfile(environment);
-  const custody = requiredEnvironment(environment, 'CUMPA_RUNTIME_CUSTODY_DIR');
-  const archiveBasename = requiredEnvironment(environment, 'CUMPA_RUNTIME_ARCHIVE_BASENAME');
-  const expectedSha256 = requiredDigest(requiredEnvironment(environment, 'CUMPA_RUNTIME_ARCHIVE_SHA256'), 'CUMPA_RUNTIME_ARCHIVE_SHA256', sha256Pattern);
-  const evidence = producerEvidence(requiredEnvironment(environment, 'CUMPA_RUNTIME_EVIDENCE'), profile);
+  const custody = requiredEnvironment(environment, `${RENAME_MAP.envPrefix}RUNTIME_CUSTODY_DIR`);
+  const archiveBasename = requiredEnvironment(environment, `${RENAME_MAP.envPrefix}RUNTIME_ARCHIVE_BASENAME`);
+  const expectedSha256 = requiredDigest(requiredEnvironment(environment, `${RENAME_MAP.envPrefix}RUNTIME_ARCHIVE_SHA256`), `${RENAME_MAP.envPrefix}RUNTIME_ARCHIVE_SHA256`, sha256Pattern);
+  const evidence = producerEvidence(requiredEnvironment(environment, `${RENAME_MAP.envPrefix}RUNTIME_EVIDENCE`), profile);
   const archivePath = safeArchivePath(custody, archiveBasename);
   const archive = readIdentity(archivePath, archiveBasename);
-  if (archive.sha256 !== expectedSha256) fail('archive SHA-256 does not match CUMPA_RUNTIME_ARCHIVE_SHA256');
+  if (archive.sha256 !== expectedSha256) fail(`archive SHA-256 does not match ${RENAME_MAP.envPrefix}RUNTIME_ARCHIVE_SHA256`);
   const evidenceArchive: RuntimeArchiveIdentity = {
     basename: evidence.archive.basename,
     byteLength: evidence.archive.byteLength,
@@ -370,7 +371,7 @@ export function runRuntimeCommand(
   const environment = { ...options.env };
   const references = [command, ...args].map((value, index) => {
     if (/["\r\n]/u.test(value)) fail('unsafe Windows command argument');
-    const key = `CUMPA_TEST_COMMAND_ARG_${index}`;
+    const key = `${RENAME_MAP.envPrefix}TEST_COMMAND_ARG_${index}`;
     environment[key] = value;
     return `"%${key}%"`;
   });
@@ -385,7 +386,7 @@ export function runRuntimeCommand(
 
 export function installRuntimeArtifact(artifact: RuntimeArtifact): InstalledRuntimeArtifact {
   rehashRuntimeArtifact(artifact);
-  const root = mkdtempSync(join(tmpdir(), 'cumpa-runtime-artifact-'));
+  const root = mkdtempSync(join(tmpdir(), `${RENAME_MAP.slug}-runtime-artifact-`));
   let cleaned = false;
   const cleanup = (): void => {
     if (cleaned) return;
@@ -413,9 +414,9 @@ export function installRuntimeArtifact(artifact: RuntimeArtifact): InstalledRunt
     assertDirectDependencies(parsedTree.data, artifact);
     const inventory = collectDependencyInventory(parsedTree.data);
     const packageRoot = process.platform === 'win32'
-      ? join(prefix, 'node_modules', '@shipwithai', 'cumpa')
-      : join(prefix, 'lib', 'node_modules', '@shipwithai', 'cumpa');
-    const executablePath = process.platform === 'win32' ? join(prefix, 'cumpa.cmd') : join(prefix, 'bin', 'cumpa');
+      ? join(prefix, 'node_modules', '@shipwithai', RENAME_MAP.binCommand)
+      : join(prefix, 'lib', 'node_modules', '@shipwithai', RENAME_MAP.binCommand);
+    const executablePath = process.platform === 'win32' ? join(prefix, `${RENAME_MAP.binCommand}.cmd`) : join(prefix, 'bin', RENAME_MAP.binCommand);
     if (!existsSync(packageRoot) || !existsSync(executablePath) || lstatSync(packageRoot).isSymbolicLink()) fail('npm did not create the scoped package and generated bin');
     const manifestBytes = readFileSync(join(packageRoot, 'package.json'));
     const manifest = installedManifestSchema(artifact.package.version).safeParse(JSON.parse(manifestBytes.toString('utf8')));
@@ -438,7 +439,7 @@ export function installRuntimeArtifact(artifact: RuntimeArtifact): InstalledRunt
       '};',
       '',
     ].join('\n'), { mode: 0o600, flag: 'wx' });
-    const nodeEntrypointPath = process.platform === 'win32' ? join(packageRoot, manifest.data.bin.cumpa) : executablePath;
+    const nodeEntrypointPath = process.platform === 'win32' ? join(packageRoot, manifest.data.bin[RENAME_MAP.binCommand]) : executablePath;
     return Object.freeze({
       root,
       packageRoot,
@@ -453,7 +454,7 @@ export function installRuntimeArtifact(artifact: RuntimeArtifact): InstalledRunt
       env: Object.freeze(env),
       proof: Object.freeze({
         packageLabel: `${artifact.package.name}@${artifact.package.version}`,
-        binLabel: 'cumpa',
+        binLabel: 'loopnote',
         manifestSha256: createHash('sha256').update(new Uint8Array(manifestBytes.buffer, manifestBytes.byteOffset, manifestBytes.byteLength)).digest('hex'),
         dependencyCount: inventory.length,
         dependencyInventorySha256: createHash('sha256').update(JSON.stringify(inventory)).digest('hex'),
@@ -495,7 +496,7 @@ export function publishScenarioRecord(
   try {
     writeFileSync(temporary, `${JSON.stringify({
       ...record,
-      kind: 'cumpa.runtime-artifact-scenario/v1',
+      kind: `${RENAME_MAP.kindPrefix}.runtime-artifact-scenario/v1`,
       status: options.status ?? 'passed',
       runId: bridge.runId,
       scenario,

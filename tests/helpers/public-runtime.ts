@@ -22,6 +22,7 @@ import {
   isContainedPath,
 } from './public-artifact-identity.js';
 import { protectedEnvironment, runRuntimeCommand } from './runtime-artifact.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 
 type InstallScripts = 'enabled' | 'disabled';
 type Resolution = Readonly<{ version: string; resolved: string; integrity: string }>;
@@ -30,7 +31,7 @@ const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const npxCommand = process.platform === 'win32' ? 'npx.cmd' : 'npx';
 const nodeCommand = process.platform === 'win32' ? 'node.exe' : 'node';
 const projectRoot = resolve(import.meta.dirname, '../..');
-const defaultSharedSupportHome = join(tmpdir(), 'cumpa-phase-07-shared-support-home');
+const defaultSharedSupportHome = join(tmpdir(), `${RENAME_MAP.slug}-phase-07-shared-support-home`);
 
 
 export interface InstalledPublicRuntime {
@@ -261,7 +262,7 @@ function ownedRoot(prefix: string): Readonly<{ readonly root: string; cleanup():
 }
 
 export function createSharedSupportHome(existingHome?: string): SharedSupportHome {
-  const home = resolve(existingHome ?? process.env.CUMPA_ACCEPTANCE_SUPPORT_HOME ?? defaultSharedSupportHome);
+  const home = resolve(existingHome ?? process.env[`${RENAME_MAP.envPrefix}ACCEPTANCE_SUPPORT_HOME`] ?? defaultSharedSupportHome);
   const existed = existsSync(home);
   mkdirSync(home, { recursive: true, mode: 0o700 });
   if (!existed) chmodSync(home, 0o700);
@@ -288,7 +289,7 @@ export function installPublicGlobalRuntime(options: Readonly<{
   readonly supportHome: SharedSupportHome;
   readonly installScripts: InstallScripts;
 }>): InstalledPublicRuntime {
-  const temporary = ownedRoot('cumpa-public-global-');
+  const temporary = ownedRoot(`${RENAME_MAP.slug}-public-global-`);
   try {
     const env = isolatedEnvironment(temporary.root, options.supportHome);
     const prefix = env.npm_config_prefix;
@@ -370,7 +371,7 @@ function npxPackage(cache: string): Readonly<{ readonly packageRoot: string; rea
 export function preparePublicNpxRuntime(options: Readonly<{
   readonly supportHome: SharedSupportHome;
 }>): InstalledPublicRuntime {
-  const temporary = ownedRoot('cumpa-public-npx-');
+  const temporary = ownedRoot(`${RENAME_MAP.slug}-public-npx-`);
   try {
     const env = isolatedEnvironment(temporary.root, options.supportHome);
     const cache = env.npm_config_cache;

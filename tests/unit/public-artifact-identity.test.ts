@@ -3,6 +3,8 @@ import { tmpdir } from 'node:os';
 
 import { describe, expect, it } from 'vitest';
 
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
+
 import {
   PINNED_PUBLIC_ARTIFACT,
   assertPinnedInstalledResolution,
@@ -42,7 +44,7 @@ describe('public artifact identity', () => {
     expect(assertPinnedRegistryDist(pinnedDist)).toEqual(pinnedDist);
 
     for (const dist of [
-      { ...pinnedDist, tarball: 'https://registry.example.test/cumpa-1.5.0.tgz' },
+      { ...pinnedDist, tarball: `https://registry.example.test/${RENAME_MAP.slug}-1.5.0.tgz` },
       { ...pinnedDist, shasum: `${pinnedDist.shasum.slice(0, -1)}0` },
       { ...pinnedDist, integrity: `${pinnedDist.integrity}x` },
     ]) {
@@ -54,7 +56,7 @@ describe('public artifact identity', () => {
     expect(assertPinnedInstalledResolution(pinnedResolution)).toEqual(pinnedResolution);
 
     for (const entry of [
-      { ...pinnedResolution, resolved: 'file:../cumpa-1.5.0.tgz' },
+      { ...pinnedResolution, resolved: `file:../${RENAME_MAP.slug}-1.5.0.tgz` },
       { version: pinnedResolution.version, integrity: pinnedResolution.integrity },
       { ...pinnedResolution, integrity: `${pinnedResolution.integrity}x` },
       { ...pinnedResolution, version: '1.5.0-bootstrap.0' },
@@ -64,10 +66,10 @@ describe('public artifact identity', () => {
   });
 
   it('uses a separator boundary for realpath containment', () => {
-    const root = resolve(tmpdir(), 'cumpa-public-artifact-prefix');
+    const root = resolve(tmpdir(), `${RENAME_MAP.slug}-public-artifact-prefix`);
 
     expect(isContainedPath(root, root)).toBe(true);
-    expect(isContainedPath(join(root, 'bin', 'cumpa'), root)).toBe(true);
+    expect(isContainedPath(join(root, 'bin', RENAME_MAP.binCommand), root)).toBe(true);
     expect(isContainedPath(`${root}-sibling`, root)).toBe(false);
     expect(isContainedPath(dirname(root), root)).toBe(false);
     expect(isContainedPath(resolve(tmpdir(), 'unrelated'), root)).toBe(false);
@@ -75,7 +77,7 @@ describe('public artifact identity', () => {
 
   it('builds PATH only from supplied absolute directories', () => {
     const directories = [
-      resolve(tmpdir(), 'cumpa-prefix', 'bin'),
+      resolve(tmpdir(), `${RENAME_MAP.slug}-prefix`, 'bin'),
       dirname(process.execPath),
       '/usr/bin',
       '/bin',

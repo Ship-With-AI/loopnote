@@ -4,6 +4,8 @@ import { join } from 'node:path';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
+
 import { publishScenarioRecord, writeRuntimeScenario } from '../helpers/runtime-artifact.js';
 
 const bridgeRoots: string[] = [];
@@ -36,13 +38,13 @@ afterEach(() => {
 
 describe('publishScenarioRecord', () => {
   it('publishes passed by default and retains caller record keys', () => {
-    const root = mkdtempSync(join(tmpdir(), 'cumpa-scenario-record-'));
+    const root = mkdtempSync(join(tmpdir(), `${RENAME_MAP.slug}-scenario-record-`));
     bridgeRoots.push(root);
 
     publishScenarioRecord('public-global', { observation: 'retained' }, { environment: bridgeEnvironment(root) });
 
     expect(published(root, 'public-global')).toMatchObject({
-      kind: 'cumpa.runtime-artifact-scenario/v1',
+      kind: `${RENAME_MAP.kindPrefix}.runtime-artifact-scenario/v1`,
       status: 'passed',
       runId: 'unit-run',
       scenario: 'public-global',
@@ -52,7 +54,7 @@ describe('publishScenarioRecord', () => {
   });
 
   it('preserves a caller-supplied partially-blocked status', () => {
-    const root = mkdtempSync(join(tmpdir(), 'cumpa-scenario-record-'));
+    const root = mkdtempSync(join(tmpdir(), `${RENAME_MAP.slug}-scenario-record-`));
     bridgeRoots.push(root);
 
     publishScenarioRecord('marketplace', { observation: 'blocked' }, {
@@ -64,7 +66,7 @@ describe('publishScenarioRecord', () => {
   });
 
   it('keeps local archive scenarios pinned to passed', () => {
-    const root = mkdtempSync(join(tmpdir(), 'cumpa-scenario-record-'));
+    const root = mkdtempSync(join(tmpdir(), `${RENAME_MAP.slug}-scenario-record-`));
     bridgeRoots.push(root);
 
     writeRuntimeScenario('review', localArchiveRecord(), bridgeEnvironment(root));
@@ -73,18 +75,18 @@ describe('publishScenarioRecord', () => {
   });
 
   it('rejects private keys and absolute home literals without publishing a record', () => {
-    const root = mkdtempSync(join(tmpdir(), 'cumpa-scenario-record-'));
+    const root = mkdtempSync(join(tmpdir(), `${RENAME_MAP.slug}-scenario-record-`));
     bridgeRoots.push(root);
     const environment = bridgeEnvironment(root);
 
-    for (const record of [{ path: 'private' }, { observation: '/Users/private/cumpa' }]) {
+    for (const record of [{ path: 'private' }, { observation: `/Users/private/${RENAME_MAP.slug}` }]) {
       expect(() => publishScenarioRecord('public-npx', record, { environment })).toThrow('[runtime-artifact]');
       expect(existsSync(join(root, 'scenario.public-npx.json'))).toBe(false);
     }
   });
 
   it('does nothing when its supplied environment does not configure a bridge', () => {
-    const root = mkdtempSync(join(tmpdir(), 'cumpa-scenario-record-'));
+    const root = mkdtempSync(join(tmpdir(), `${RENAME_MAP.slug}-scenario-record-`));
     bridgeRoots.push(root);
 
     expect(() => publishScenarioRecord('public-npx', { observation: 'ignored' }, { environment: {} })).not.toThrow();

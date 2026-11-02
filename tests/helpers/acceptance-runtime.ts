@@ -13,6 +13,7 @@ import {
   type RuntimeArtifact,
   type RuntimeInstallProof,
 } from './runtime-artifact.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 
 export type AcceptanceInstallSource = 'local-archive' | 'public-global' | 'public-npx';
 
@@ -35,7 +36,7 @@ function installPublicRuntime(
   source: Exclude<AcceptanceInstallSource, 'local-archive'>,
   environment: NodeJS.ProcessEnv,
 ): AcceptanceRuntime {
-  const supportHome = createSharedSupportHome(environment.CUMPA_ACCEPTANCE_SUPPORT_HOME);
+  const supportHome = createSharedSupportHome(environment[`${RENAME_MAP.envPrefix}ACCEPTANCE_SUPPORT_HOME`]);
   try {
     const runtime = source === 'public-global'
       ? installPublicGlobalRuntime({ supportHome, installScripts: 'enabled' })
@@ -64,7 +65,7 @@ function installPublicRuntime(
 }
 
 export function resolveAcceptanceRuntime(environment: NodeJS.ProcessEnv = process.env): AcceptanceRuntime {
-  const source = environment.CUMPA_PUBLIC_INSTALL_SOURCE ?? 'local-archive';
+  const source = environment[`${RENAME_MAP.envPrefix}PUBLIC_INSTALL_SOURCE`] ?? 'local-archive';
   if (source === 'local-archive') {
     const artifact = readRuntimeArtifact(environment);
     const runtime = installRuntimeArtifact(artifact);
@@ -82,7 +83,7 @@ export function resolveAcceptanceRuntime(environment: NodeJS.ProcessEnv = proces
     });
   }
   if (source === 'public-global' || source === 'public-npx') return installPublicRuntime(source, environment);
-  throw new Error(`[acceptance-runtime] CUMPA_PUBLIC_INSTALL_SOURCE must be local-archive, public-global, or public-npx; received ${JSON.stringify(source)}`);
+  throw new Error(`[acceptance-runtime] ${RENAME_MAP.envPrefix}PUBLIC_INSTALL_SOURCE must be local-archive, public-global, or public-npx; received ${JSON.stringify(source)}`);
 }
 
 export function publicSupportHomeOf(runtime: AcceptanceRuntime): string | undefined {

@@ -11,6 +11,8 @@ import {
   writeAcceptanceEvidence,
 } from '../../scripts/write-acceptance-evidence.mjs';
 
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
+
 const tarballUrl = 'https://registry.npmjs.org/@shipwithai/cumpa/-/cumpa-1.5.0.tgz';
 const integrity = 'sha512-gUBrMYwL8u75k1JX1OxO2dwfUsjQGHAqPUjh8e5Ep6gVs52wwEZFwkl49fBU2eggU9S7J1r27SCa8W1X/iHn5g==';
 const marketplaceRepository = 'https://github.com/Ship-With-AI/skills.git';
@@ -162,7 +164,7 @@ function report(path: 'public-global' | 'public-npx' | 'marketplace', window: 'p
 }
 
 function writeRecord(reports: ProducerReport[]) {
-  const root = mkdtempSync(join(tmpdir(), 'cumpa-evidence-unit-'));
+  const root = mkdtempSync(join(tmpdir(), `${RENAME_MAP.slug}-evidence-unit-`));
   try {
     const files = reports.map((entry, index) => {
       const path = join(root, `report-${index}.json`);
@@ -238,7 +240,7 @@ test('refuses private values without echoing them', () => {
 
 test('builds a pinned record and records shared support narrowing', () => {
   const record = buildAcceptanceEvidence(inputs(true));
-  expect(record.kind).toBe('cumpa.public-artifact-acceptance/v1');
+  expect(record.kind).toBe(`${RENAME_MAP.kindPrefix}.public-artifact-acceptance/v1`);
   expect(record.status).toBe('passed');
   expect(record.artifactIdentity).toMatchObject(inputs().artifactIdentity);
   expect(record.limitations.join('\n')).toMatch(/shared voluntary-support identity/u);
