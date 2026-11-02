@@ -4,9 +4,9 @@ const installationId = "i".repeat(43);
 const intent = "a".repeat(43);
 const supabaseUrl = "https://abcdefghijklmnopqrst.supabase.co";
 const userId = "11111111-1111-4111-8111-111111111111";
-const complete = "Support flow complete. You can return to Cumpa.";
-const invalid = "This support link is invalid or expired. Return to Cumpa and try again.";
-const unavailable = "Support is temporarily unavailable. Return to Cumpa and try again.";
+const complete = "Support flow complete. You can return to Loopnote.";
+const invalid = "This support link is invalid or expired. Return to Loopnote and try again.";
+const unavailable = "Support is temporarily unavailable. Return to Loopnote and try again.";
 
 function assert(condition: unknown, message = "assertion failed"): asserts condition {
   if (!condition) throw new Error(message);
