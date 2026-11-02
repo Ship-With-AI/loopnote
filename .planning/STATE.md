@@ -5,10 +5,10 @@ milestone_name: Artifact Review
 current_phase: 17.1
 current_phase_name: full-project-rename
 status: executing
-stopped_at: Completed 17.1-05-PLAN.md
+stopped_at: Completed 17.1-06-PLAN.md
 last_updated: "2026-11-02T09:28:04.402Z"
 last_activity: 2026-11-02
-last_activity_desc: Phase 17.1 execution started
+last_activity_desc: Phase 17.1 execution — 17.1-06 web display-copy rename complete
 progress:
   total_phases: 7
   completed_phases: 5
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-09-09)
 ## Current Position
 
 Phase: 17.1 (full-project-rename) — EXECUTING
-Plan: 6 of 22
+Plan: 7 of 22
 Status: Ready to execute
-Last activity: 2026-11-02 — Phase 17.1 execution started
+Last activity: 2026-11-02 — 17.1-06 web display-copy rename complete
 
 ## Performance Metrics
 
@@ -93,6 +93,7 @@ Last activity: 2026-11-02 — Phase 17.1 execution started
 | Phase 17.1 P03 | 45min | 2 tasks | 14 files |
 | Phase 17.1 P04 | 25min | 2 tasks | 14 files |
 | Phase 17.1 P05 | 20min | 2 tasks | 16 files |
+| Phase 17.1 P06 | 30min | 1 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -172,6 +173,7 @@ Decisions are logged in PROJECT.md Key Decisions.
 - [Phase 17.1]: 17.1-05: Renamed scripts/build-native-addon.mjs and tests/unit/build-native-addon.test.ts, absent from this plan's files_modified — 17.1-04's SUMMARY explicitly defers CUMPA_NATIVE_BUILD_* to this plan and build-native-addon.mjs is in this plan's top-level files_modified; leaving the test's env var keys stale would silently break its environment-override intent
 - [Phase 17.1]: 17.1-05: Renamed all five CUMPA_RUNTIME_* env vars in publish-npm.yml despite tests/helpers/runtime-artifact.ts (owned by 17.1-15) not yet renamed — Must_haves truths bullet explicitly lists CUMPA_RUNTIME_* and this plan owns publish-npm.yml; temporary cross-plan mismatch until 17.1-15 runs mirrors the plan's own accepted GitHub-secret situation
 - [Phase 17.1]: 17.1-05: Left verify-supabase-support.mjs:1002's 'return to Cumpa.' completion-text check unrenamed, deferred to 17.1-09 — Must byte-match supabase/functions/support-flow/index.ts's literal completion text, owned by sibling plan 17.1-09 which has not yet run
+- [Phase 17.1]: 17.1-06: ActiveFileToolbar.vue's 'cumpa-heading' DOM id renamed to RENAME_MAP.cssPrefix-derived 'loopnote-heading' per plan instruction, intentionally desyncing from src/web/App.vue's aria-labelledby/skip-link (owned by 17.1-13) and tests/e2e/responsive-session.spec.ts + tests/integration/anchored-workspace.spec.ts's '#cumpa-heading' locators (owned by 17.1-19) until those sibling plans land
 
 ### Pending Todos
 
@@ -226,5 +228,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-11-02T09:28:04.397Z
-Stopped at: Completed 17.1-05-PLAN.md
+Stopped at: Completed 17.1-06-PLAN.md
 Resume file: None
