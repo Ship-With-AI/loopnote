@@ -17,6 +17,7 @@ import type {
   GitRunResult,
   GitRunner,
 } from '../../src/git/runner.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 
 const safeGitArguments = [
   '--no-optional-locks',
@@ -49,7 +50,7 @@ interface AvailabilityFixture {
 const fixtures: AvailabilityFixture[] = [];
 
 async function createAvailabilityFixture(): Promise<AvailabilityFixture> {
-  const root = await mkdtemp(join(tmpdir(), 'cumpa-availability-'));
+  const root = await mkdtemp(join(tmpdir(), `${RENAME_MAP.slug}-availability-`));
   const git = (arguments_: readonly string[], input?: Uint8Array): Buffer =>
     execFileSync('git', [...safeGitArguments, ...arguments_], {
       cwd: root,
@@ -61,7 +62,7 @@ async function createAvailabilityFixture(): Promise<AvailabilityFixture> {
     });
 
   git(['init', '--initial-branch=main']);
-  git(['config', '--local', 'user.name', 'Cumpa Availability Fixture']);
+  git(['config', '--local', 'user.name', `${RENAME_MAP.displayName} Availability Fixture`]);
   git([
     'config',
     '--local',

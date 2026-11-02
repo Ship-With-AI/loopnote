@@ -3,6 +3,8 @@ import { chmod, mkdtemp, mkdir, realpath, rm, writeFile } from 'node:fs/promises
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
+
 const gitEnvironment = {
   ...process.env,
   GIT_CONFIG_NOSYSTEM: '1',
@@ -58,7 +60,7 @@ export interface DirtyGitFixture extends GitFixture {
 export async function createGitFixture(
   options: GitFixtureOptions = {},
 ): Promise<GitFixture> {
-  const temporaryRoot = await mkdtemp(join(tmpdir(), 'cumpa-git-'));
+  const temporaryRoot = await mkdtemp(join(tmpdir(), `${RENAME_MAP.slug}-git-`));
   const repositoryRoot = join(temporaryRoot, 'repository');
 
   const invokeGit = (arguments_: readonly string[]): Buffer =>
@@ -80,7 +82,7 @@ export async function createGitFixture(
       stdio: ['pipe', 'pipe', 'pipe'],
     },
   );
-  invokeGit(['config', '--local', 'user.name', 'Cumpa Fixture']);
+  invokeGit(['config', '--local', 'user.name', `${RENAME_MAP.displayName} Fixture`]);
   invokeGit(['config', '--local', 'user.email', 'fixture@test.invalid']);
   invokeGit(['config', '--local', 'commit.gpgSign', 'false']);
 
@@ -336,7 +338,7 @@ export async function createValidationGitFixture(
   kind: ValidationFixtureKind,
 ): Promise<ValidationGitFixture> {
   const temporaryRoot = await mkdtemp(
-    join(tmpdir(), 'cumpa-validation-git-'),
+    join(tmpdir(), `${RENAME_MAP.slug}-validation-git-`),
   );
   const repositoryRoot = join(temporaryRoot, 'repository');
   const invokeGit = (arguments_: readonly string[]): Buffer =>
@@ -375,7 +377,7 @@ export async function createValidationGitFixture(
   let headOid: string | undefined;
 
   if (kind !== 'bare' && kind !== 'non-repository') {
-    invokeGit(['config', '--local', 'user.name', 'Cumpa Fixture']);
+    invokeGit(['config', '--local', 'user.name', `${RENAME_MAP.displayName} Fixture`]);
     invokeGit(['config', '--local', 'user.email', 'fixture@test.invalid']);
     invokeGit(['config', '--local', 'commit.gpgSign', 'false']);
   }

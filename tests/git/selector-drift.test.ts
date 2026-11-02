@@ -7,6 +7,7 @@ import { afterEach, describe, expect, test, vi } from 'vitest';
 import type { PinnedComparison } from '../../src/contracts/comparison.js';
 import { createSelectorDriftObserver } from '../../src/git/selector-drift.js';
 import { createGitRunner } from '../../src/git/runner.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 import type { GitRunner } from '../../src/git/runner.js';
 import { createGitFixture, type GitFixture } from '../helpers/git-fixture.js';
 
@@ -64,7 +65,7 @@ function oid(git: GitFixture, revision: string): string {
 }
 
 async function detachedWorktree(git: GitFixture, revision: string): Promise<string> {
-  const path = await mkdtemp(join(tmpdir(), 'cumpa-selector-worktree-'));
+  const path = await mkdtemp(join(tmpdir(), `${RENAME_MAP.slug}-selector-worktree-`));
   temporaryRoots.push(path);
   git.git(['worktree', 'add', '--detach', path, revision]);
   return await realpath(path);

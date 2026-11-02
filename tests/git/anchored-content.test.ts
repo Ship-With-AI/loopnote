@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, test } from 'vitest';
 
 import { createPinnedComparison } from '../../src/git/comparison.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 import { createCapabilityRegistry } from '../../src/server/capabilities.js';
 
 const roots: string[] = [];
@@ -23,10 +24,10 @@ function git(root: string, arguments_: readonly string[]): string {
 }
 
 async function createFixture(): Promise<{ readonly root: string }> {
-  const root = await mkdtemp(join(tmpdir(), 'cumpa-anchor-'));
+  const root = await mkdtemp(join(tmpdir(), `${RENAME_MAP.slug}-anchor-`));
   roots.push(root);
   git(root, ['init', '--initial-branch=main']);
-  git(root, ['config', 'user.name', 'Cumpa Anchor Fixture']);
+  git(root, ['config', 'user.name', `${RENAME_MAP.displayName} Anchor Fixture`]);
   git(root, ['config', 'user.email', 'anchor@test.invalid']);
   await writeFile(join(root, 'old-name.ts'), 'shared\nbase only\nunchanged\n');
   await writeFile(join(root, 'deleted.ts'), 'delete me\n');
