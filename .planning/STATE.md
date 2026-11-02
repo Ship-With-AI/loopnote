@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-09-09)
 ## Current Position
 
 Phase: 17.1 (full-project-rename) — EXECUTING
-Plan: 17 of 22
+Plan: 18 of 22
 Status: Ready execute
-Last activity: 2026-11-02 — 17.1-16 package-acceptance and release-flow e2e rename complete
+Last activity: 2026-11-02 — 17.1-18 API test fixture + state-path rename (exact-patch/export/standalone/uncommitted) complete, plus support.test.ts env-var fix
 
 ## Performance Metrics
 
@@ -248,6 +248,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-11-02T12:04:15.000Z
-Stopped at: Completed 17.1-17-PLAN.md
+Last session: 2026-11-02T12:14:35.000Z
+Stopped at: Completed 17.1-18-PLAN.md
 Resume file: None
