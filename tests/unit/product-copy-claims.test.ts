@@ -31,6 +31,30 @@ function extractBannedPhrases(productMdText: string): string[] {
     .filter((phrase) => phrase.length > 0);
 }
 
+/**
+ * D-06 (18-CONTEXT.md:28) names the claim *forms* that must never ship — "hosted",
+ * "cloud sync", "multi-user", "multi-reviewer", "approvals" — which are shorter and more
+ * likely paraphrases than PRODUCT.md's full comma-separated non-capability phrases (e.g.
+ * "remote hosting", "cloud synchronization", "multi-user collaboration"). The phrase-level
+ * check above only catches the literal multi-word phrasing extracted from PRODUCT.md; these
+ * stems close the substring gap so a paraphrase like "hosted review" or "multi-reviewer
+ * workflow" still fails the guard even though it is not a verbatim PRODUCT.md phrase.
+ * "approvals" is included for parity with D-06's list even though it already matches a
+ * PRODUCT.md phrase verbatim.
+ */
+const BANNED_CLAIM_STEMS = ['hosted', 'cloud sync', 'multi-user', 'multi-reviewer', 'approvals'] as const;
+
+/** Returns the first banned phrase or stem found in `text`, or `undefined` if none match. */
+function findBannedClaim(text: string, bannedPhrases: readonly string[]): string | undefined {
+  const lower = text.toLowerCase();
+  for (const candidate of [...bannedPhrases, ...BANNED_CLAIM_STEMS]) {
+    if (lower.includes(candidate)) {
+      return candidate;
+    }
+  }
+  return undefined;
+}
+
 describe('product copy claims (D-06 automated claims check)', () => {
   const productMdText = readFileSync(productMdPath, 'utf8');
   const readmeText = readFileSync(readmePath, 'utf8');
@@ -39,7 +63,7 @@ describe('product copy claims (D-06 automated claims check)', () => {
     readonly keywords?: readonly string[];
   };
 
-  it("README and npm copy contain none of PRODUCT.md's banned non-capability phrases", () => {
+  it("README and npm copy contain none of PRODUCT.md's banned non-capability phrases or D-06's claim stems", () => {
     const bannedPhrases = extractBannedPhrases(productMdText);
     expect(bannedPhrases.length).toBeGreaterThan(0);
 
@@ -55,6 +79,38 @@ describe('product copy claims (D-06 automated claims check)', () => {
         `package.json description/keywords must not contain banned phrase "${phrase}"`,
       ).toBe(false);
     }
+
+    for (const stem of BANNED_CLAIM_STEMS) {
+      expect(lowerReadme.includes(stem), `README.md must not contain banned claim stem "${stem}"`).toBe(false);
+      expect(
+        lowerNpmCopy.includes(stem),
+        `package.json description/keywords must not contain banned claim stem "${stem}"`,
+      ).toBe(false);
+    }
+  });
+
+  it('findBannedClaim catches D-06 paraphrases that the phrase-only check would miss', () => {
+    const bannedPhrases = extractBannedPhrases(productMdText);
+
+    // Each fixture below paraphrases a non-capability using one of D-06's named claim
+    // forms rather than PRODUCT.md's exact comma-separated wording, proving the stem
+    // guard — not just the phrase guard — is what catches it.
+    const paraphraseFixtures = [
+      'Loopnote now offers a hosted review tier for teams.',
+      'Comments sync instantly thanks to built-in cloud sync.',
+      'Invite teammates for multi-user editing of the same review.',
+      'Supports multi-reviewer sign-off before merging.',
+    ];
+
+    for (const fixture of paraphraseFixtures) {
+      expect(
+        findBannedClaim(fixture, bannedPhrases),
+        `expected a banned claim stem to be detected in: "${fixture}"`,
+      ).not.toBeUndefined();
+    }
+
+    // Clean, on-claims-boundary text must not trip the guard.
+    expect(findBannedClaim('Local-first review for agent-produced artifacts.', bannedPhrases)).toBeUndefined();
   });
 
   it('the agent-artifact positioning claim is backed by PRODUCT.md', () => {
