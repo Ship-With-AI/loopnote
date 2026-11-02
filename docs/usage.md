@@ -56,7 +56,7 @@ For Markdown files, the file toolbar offers **Source** and **Rendered** buttons:
 
 ## Standalone-file review
 
-Positional `[paths...]` arguments or `loopnote --staged`/`--unstaged`/`--worktree` with no base/head selection review named files or globs directly, rather than a two-sided base/head comparison. Each reviewed file renders full-width in a single pane instead of as a side-by-side diff; line comments and the overall summary work the same as for a two-sided comparison.
+Positional `[paths...]` arguments review named files or globs directly, rather than as a two-sided base/head comparison. Each reviewed file renders full-width in a single pane; line comments and the overall summary work the same as for a two-sided comparison.
 
 ## Refresh and snapshot semantics
 
