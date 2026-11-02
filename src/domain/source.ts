@@ -1,6 +1,6 @@
 export const DIRTY_ROW_LABEL = 'Dirty — committed HEAD only';
 export const DIRTY_EXPLANATION =
-  "The worktree's committed HEAD will be reviewed. Staged, unstaged, and untracked bytes are ignored.";
+  'This worktree has uncommitted changes. This comparison reviews its committed HEAD only — use --worktree, --staged, or --unstaged to review the uncommitted changes directly.';
 export const PENDING_ROW_LABEL = 'Checking worktree state…';
 export const UNAVAILABLE_WORKTREE_REASON =
   'Unavailable — this registered worktree cannot be resolved. Choose another entry or repair it with Git.';

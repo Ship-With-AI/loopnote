@@ -1454,7 +1454,7 @@ export async function run(
 
   await new Command()
     .name(RENAME_MAP.binCommand)
-    .description('Local-first review of pinned Git comparisons')
+    .description('Local-first review for any agent-produced artifact: code, uncommitted work, or standalone files')
     .version(await readPackageVersionFromManifest())
     .option('--staged', 'Review staged changes (HEAD→index) against a base')
     .option('--unstaged', 'Review unstaged changes (index→working tree)')
