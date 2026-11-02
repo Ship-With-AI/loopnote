@@ -34,6 +34,7 @@
     "verify:prerequisites": "node scripts/verify-prerequisites.mjs && npm run build:runtime",
     "verify:production-artifacts": "node scripts/verify-production-artifacts.mjs",
     "verify:semantic-css": "npm run build:web && node scripts/verify-semantic-css.mjs",
+    "test": "vitest run",
     "test:unit": "node scripts/run-focused-vitest.mjs tests/unit",
     "test:git": "node scripts/run-focused-vitest.mjs tests/git",
     "test:api": "vitest run tests/api",
