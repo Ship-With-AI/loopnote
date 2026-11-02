@@ -1,6 +1,6 @@
 {
   "name": "@shipwithai/loopnote",
-  "version": "1.6.1",
+  "version": "2.0.0",
   "description": "Local-first review of pinned Git comparisons",
   "license": "MIT",
   "repository": {
