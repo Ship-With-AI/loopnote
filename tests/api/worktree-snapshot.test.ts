@@ -12,6 +12,7 @@ import {
   type WorktreeSnapshotRefreshDependencies,
 } from '../../src/server/worktree-snapshot.js';
 import { createGitFixture, type GitFixture } from '../helpers/git-fixture.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 
 const fixtures: GitFixture[] = [];
 const roots: string[] = [];
@@ -28,7 +29,7 @@ async function makeFixture(options?: Parameters<typeof createGitFixture>[0]): Pr
 }
 
 async function makeRoot(): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), 'cumpa-wtsnap-'));
+  const root = await mkdtemp(join(tmpdir(), `${RENAME_MAP.slug}-wtsnap-`));
   roots.push(root);
   return root;
 }

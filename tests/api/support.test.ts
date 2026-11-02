@@ -216,7 +216,7 @@ describe('hosted support contracts', () => {
   });
 
   test('omits support routes from pinned and exact sessions when no HTTPS service is configured', async () => {
-    vi.stubEnv('CUMPA_SUPPORT_SERVICE_URL', '');
+    vi.stubEnv(`${RENAME_MAP.envPrefix}SUPPORT_SERVICE_URL`, '');
     const repositoryRoot = await root();
     const pinned = createSessionApp(comparison(repositoryRoot), { sessionToken: token });
     const exact = await createExactPatchSessionApp(exactPatch(repositoryRoot), {
@@ -238,7 +238,7 @@ describe('hosted support contracts', () => {
   });
 
   test('advertises support for an explicit HTTPS service', async () => {
-    vi.stubEnv('CUMPA_SUPPORT_SERVICE_URL', serviceUrl);
+    vi.stubEnv(`${RENAME_MAP.envPrefix}SUPPORT_SERVICE_URL`, serviceUrl);
     const app = createSessionApp(comparison(await root()), { sessionToken: token });
     bind(app);
 

@@ -10,6 +10,7 @@ import { createUncommittedCapabilityRegistry } from '../../src/server/capabiliti
 import { materializeWorktreeSnapshot } from '../../src/server/worktree-snapshot.js';
 import { buildDurableAnchor } from '../../src/domain/anchor.js';
 import { createGitFixture, type GitFixture } from '../helpers/git-fixture.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 
 const token = 'p'.repeat(43);
 const host = '127.0.0.1:43132';
@@ -30,7 +31,7 @@ async function makeFixture(options?: Parameters<typeof createGitFixture>[0]): Pr
 }
 
 async function makeRoot(): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), 'cumpa-uncommitted-session-'));
+  const root = await mkdtemp(join(tmpdir(), `${RENAME_MAP.slug}-uncommitted-session-`));
   roots.push(root);
   return root;
 }
@@ -326,7 +327,7 @@ describe('uncommitted session apps', () => {
       text: headSide.text,
     });
 
-    const directory = join(fixture.root, '.cumpa', 'drafts');
+    const directory = join(fixture.root, RENAME_MAP.repoStateDir.replace(/\/$/, ''), 'drafts');
     await mkdir(directory, { recursive: true });
     const candidatePath = join(directory, `${'7'.repeat(64)}.json`);
     const priorDraft = {

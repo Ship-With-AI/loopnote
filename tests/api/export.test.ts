@@ -7,6 +7,7 @@ import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { createSessionApp } from '../../src/server/app.js';
 import { ExportReviewResultSchema } from '../../src/contracts/api.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 
 const token = 'a'.repeat(43);
 const host = '127.0.0.1:43130';
@@ -23,7 +24,7 @@ async function buildApp(range?: {
   readonly pathspecs: readonly string[];
   readonly reviewKey: string;
 }) {
-  const repositoryRoot = await mkdtemp(join(tmpdir(), 'cumpa-export-api-'));
+  const repositoryRoot = await mkdtemp(join(tmpdir(), `${RENAME_MAP.slug}-export-api-`));
   roots.push(repositoryRoot);
   const revealDraftFile = vi.fn(async () => undefined);
   const app = createSessionApp({
@@ -61,7 +62,7 @@ async function buildApp(range?: {
 }
 
 async function writeCompleteExport(repositoryRoot: string): Promise<void> {
-  const directory = join(repositoryRoot, '.cumpa', 'exports', `${'1'.repeat(40)}..${'2'.repeat(40)}`);
+  const directory = join(repositoryRoot, RENAME_MAP.repoStateDir.replace(/\/$/, ''), 'exports', `${'1'.repeat(40)}..${'2'.repeat(40)}`);
   await mkdir(directory, { recursive: true });
   await writeFile(join(directory, 'review.json'), '{}');
   await writeFile(join(directory, 'review.md'), 'review\n');
@@ -135,8 +136,8 @@ describe('secured export and fixed export-directory reveal APIs', () => {
         head: { label: 'head', oid: '2'.repeat(40) },
       },
       files: [
-        { path: `.cumpa/exports/${'1'.repeat(40)}..${'2'.repeat(40)}/review.json` },
-        { path: `.cumpa/exports/${'1'.repeat(40)}..${'2'.repeat(40)}/review.md` },
+        { path: `${RENAME_MAP.repoStateDir}exports/${'1'.repeat(40)}..${'2'.repeat(40)}/review.json` },
+        { path: `${RENAME_MAP.repoStateDir}exports/${'1'.repeat(40)}..${'2'.repeat(40)}/review.md` },
       ],
     });
     expect(JSON.stringify(response.json())).not.toContain(repositoryRoot);
@@ -181,11 +182,11 @@ describe('secured export and fixed export-directory reveal APIs', () => {
         head: { oid: '2'.repeat(40) },
       },
       files: [
-        { path: `.cumpa/exports/${reviewKey}/review.json` },
-        { path: `.cumpa/exports/${reviewKey}/review.md` },
+        { path: `${RENAME_MAP.repoStateDir}exports/${reviewKey}/review.json` },
+        { path: `${RENAME_MAP.repoStateDir}exports/${reviewKey}/review.md` },
       ],
     });
-    expect(JSON.parse(await readFile(join(repositoryRoot, '.cumpa', 'exports', reviewKey, 'review.json'), 'utf8'))).toMatchObject({
+    expect(JSON.parse(await readFile(join(repositoryRoot, RENAME_MAP.repoStateDir.replace(/\/$/, ''), 'exports', reviewKey, 'review.json'), 'utf8'))).toMatchObject({
       schemaVersion: 2,
       range: {
         requestedBase: 'agent/base',
@@ -222,13 +223,13 @@ describe('secured export and fixed export-directory reveal APIs', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({ kind: 'revealed' });
-    expect(revealDraftFile).toHaveBeenCalledWith(join(repositoryRoot, '.cumpa', 'exports', `${'1'.repeat(40)}..${'2'.repeat(40)}`));
+    expect(revealDraftFile).toHaveBeenCalledWith(join(repositoryRoot, RENAME_MAP.repoStateDir.replace(/\/$/, ''), 'exports', `${'1'.repeat(40)}..${'2'.repeat(40)}`));
     expect(JSON.stringify(response.json())).not.toContain(repositoryRoot);
   });
 
   test('rejects malformed confirmed receipts before API clients can mislabel the pair', () => {
-    const firstDirectory = `.cumpa/exports/${'1'.repeat(40)}..${'2'.repeat(40)}`;
-    const secondDirectory = `.cumpa/exports/${'3'.repeat(40)}..${'4'.repeat(40)}`;
+    const firstDirectory = `${RENAME_MAP.repoStateDir}exports/${'1'.repeat(40)}..${'2'.repeat(40)}`;
+    const secondDirectory = `${RENAME_MAP.repoStateDir}exports/${'3'.repeat(40)}..${'4'.repeat(40)}`;
     const json = { path: `${firstDirectory}/review.json`, sha256: 'a'.repeat(64), bytes: 128 };
     const markdown = { path: `${firstDirectory}/review.md`, sha256: 'b'.repeat(64), bytes: 256 };
 
@@ -243,7 +244,7 @@ describe('secured export and fixed export-directory reveal APIs', () => {
   });
 
   test('accepts only server-confirmed receipt drift identities and the distinct recovery-required result', () => {
-    const directory = `.cumpa/exports/${'1'.repeat(40)}..${'2'.repeat(40)}`;
+    const directory = `${RENAME_MAP.repoStateDir}exports/${'1'.repeat(40)}..${'2'.repeat(40)}`;
     const receipt = exportedReceipt([
       { path: `${directory}/review.json`, sha256: 'a'.repeat(64), bytes: 128 },
       { path: `${directory}/review.md`, sha256: 'b'.repeat(64), bytes: 256 },
@@ -275,7 +276,7 @@ describe('secured export and fixed export-directory reveal APIs', () => {
   });
 
   test('rejects acknowledged receipt drift that does not map one-to-one to the pinned comparison', () => {
-    const directory = `.cumpa/exports/${'1'.repeat(40)}..${'2'.repeat(40)}`;
+    const directory = `${RENAME_MAP.repoStateDir}exports/${'1'.repeat(40)}..${'2'.repeat(40)}`;
     const receipt = exportedReceipt([
       { path: `${directory}/review.json`, sha256: 'a'.repeat(64), bytes: 128 },
       { path: `${directory}/review.md`, sha256: 'b'.repeat(64), bytes: 256 },
@@ -314,7 +315,7 @@ describe('secured export and fixed export-directory reveal APIs', () => {
   });
 
   test('requires server-confirmed pinned comparison identities on every receipt', () => {
-    const directory = `.cumpa/exports/${'1'.repeat(40)}..${'2'.repeat(40)}`;
+    const directory = `${RENAME_MAP.repoStateDir}exports/${'1'.repeat(40)}..${'2'.repeat(40)}`;
     expect(ExportReviewResultSchema.safeParse({
       ...exportedReceipt([
         { path: `${directory}/review.json`, sha256: 'a'.repeat(64), bytes: 128 },
@@ -327,23 +328,23 @@ describe('secured export and fixed export-directory reveal APIs', () => {
     }).success).toBe(true);
   });
 
-  test.each(['.cumpa', 'exports'] as const)(
+  test.each([RENAME_MAP.repoStateDir.replace(/\/$/, ''), 'exports'] as const)(
     'refuses reveal through an externally directed %s parent symlink',
     async (managedParent) => {
       const { app, repositoryRoot, revealDraftFile } = await buildApp();
-      const outside = await mkdtemp(join(tmpdir(), 'cumpa-export-reveal-outside-'));
+      const outside = await mkdtemp(join(tmpdir(), `${RENAME_MAP.slug}-export-reveal-outside-`));
       roots.push(outside);
       const stableName = `${'1'.repeat(40)}..${'2'.repeat(40)}`;
-      const outsideExportsRoot = managedParent === '.cumpa' ? join(outside, 'exports') : outside;
+      const outsideExportsRoot = managedParent === RENAME_MAP.repoStateDir.replace(/\/$/, '') ? join(outside, 'exports') : outside;
       const outsideStable = join(outsideExportsRoot, stableName);
       await mkdir(outsideStable, { recursive: true });
       await writeFile(join(outsideStable, 'review.json'), '{}');
       await writeFile(join(outsideStable, 'review.md'), 'review\n');
-      if (managedParent === '.cumpa') {
-        await symlink(outside, join(repositoryRoot, '.cumpa'), 'dir');
+      if (managedParent === RENAME_MAP.repoStateDir.replace(/\/$/, '')) {
+        await symlink(outside, join(repositoryRoot, RENAME_MAP.repoStateDir.replace(/\/$/, '')), 'dir');
       } else {
-        await mkdir(join(repositoryRoot, '.cumpa'));
-        await symlink(outside, join(repositoryRoot, '.cumpa', 'exports'), 'dir');
+        await mkdir(join(repositoryRoot, RENAME_MAP.repoStateDir.replace(/\/$/, '')));
+        await symlink(outside, join(repositoryRoot, RENAME_MAP.repoStateDir.replace(/\/$/, ''), 'exports'), 'dir');
       }
 
       const response = await app.inject({ method: 'POST', url: '/api/export/reveal', headers });

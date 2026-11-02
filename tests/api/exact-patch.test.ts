@@ -11,6 +11,7 @@ import { ReviewExportV3Schema } from '../../src/contracts/draft.js';
 import { createAttachedCompletionCoordinator } from '../../src/server/attached-completion.js';
 import { createGroundedExactPatch } from '../../src/git/exact-patch.js';
 import { createGitFixture } from '../helpers/git-fixture.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 
 const token = 'p'.repeat(43);
 const host = '127.0.0.1:43130';
@@ -82,7 +83,7 @@ function grounded(
 }
 
 async function root(): Promise<string> {
-  const value = await mkdtemp(join(tmpdir(), 'cumpa-exact-patch-'));
+  const value = await mkdtemp(join(tmpdir(), `${RENAME_MAP.slug}-exact-patch-`));
   roots.push(value);
   return value;
 }
@@ -235,7 +236,7 @@ describe('exact patch snapshot sessions', () => {
 
     expect((await first.inject({ method: 'GET', url: '/api/draft', headers })).json()).toMatchObject({
       kind: 'missing',
-      path: `.cumpa/drafts/${firstScope}.json`,
+      path: `${RENAME_MAP.repoStateDir}drafts/${firstScope}.json`,
     });
     await setSummary(first, 'First patch.');
     const firstExport = await exportReview(first);
@@ -247,14 +248,14 @@ describe('exact patch snapshot sessions', () => {
     });
     if (firstReceipt.kind !== 'exported') throw new Error('Expected an exact patch export receipt.');
     expect(firstReceipt.files.map((file) => file.path)).toEqual([
-      `.cumpa/exports/${firstScope}/review.json`,
-      `.cumpa/exports/${firstScope}/review.md`,
+      `${RENAME_MAP.repoStateDir}exports/${firstScope}/review.json`,
+      `${RENAME_MAP.repoStateDir}exports/${firstScope}/review.md`,
     ]);
     expect((await second.inject({ method: 'GET', url: '/api/draft', headers })).json()).toMatchObject({
       kind: 'missing',
-      path: `.cumpa/drafts/${secondScope}.json`,
+      path: `${RENAME_MAP.repoStateDir}drafts/${secondScope}.json`,
     });
-    await expect(readFile(join(repositoryRoot, '.cumpa', 'drafts', `${secondScope}.json`))).rejects.toMatchObject({ code: 'ENOENT' });
+    await expect(readFile(join(repositoryRoot, RENAME_MAP.repoStateDir.replace(/\/$/, ''), 'drafts', `${secondScope}.json`))).rejects.toMatchObject({ code: 'ENOENT' });
     await first.close();
     apps.delete(first);
     expect((await second.inject({ method: 'GET', url: '/api/session', headers })).json()).toMatchObject({
@@ -319,7 +320,7 @@ describe('exact patch snapshot sessions', () => {
     if (receipt.kind !== 'exported' || !('patch' in receipt)) throw new Error('Expected an exact patch export receipt.');
     const reviewKey = receipt.patch.reviewKey;
     const document = ReviewExportV3Schema.parse(
-      JSON.parse(await readFile(join(repositoryRoot, '.cumpa', 'exports', reviewKey, 'review.json'), 'utf8')),
+      JSON.parse(await readFile(join(repositoryRoot, RENAME_MAP.repoStateDir.replace(/\/$/, ''), 'exports', reviewKey, 'review.json'), 'utf8')),
     );
     expect(document).toMatchObject({
       schemaVersion: 3,
@@ -352,7 +353,7 @@ describe('exact patch snapshot sessions', () => {
     });
     if (receipt.kind !== 'exported' || !('patch' in receipt)) throw new Error('Expected an exact patch export receipt.');
     const document = ReviewExportV3Schema.parse(
-      JSON.parse(await readFile(join(repositoryRoot, '.cumpa', 'exports', receipt.patch.reviewKey, 'review.json'), 'utf8')),
+      JSON.parse(await readFile(join(repositoryRoot, RENAME_MAP.repoStateDir.replace(/\/$/, ''), 'exports', receipt.patch.reviewKey, 'review.json'), 'utf8')),
     );
     expect(document.patch.snapshot.status).toBe('drifted');
     expect(document.patch.snapshot.files.map((file) => file.id)).toContain(fileId);
@@ -362,7 +363,7 @@ describe('exact patch snapshot sessions', () => {
   test('latches snapshot loss and blocks content and export without live fallback', async () => {
     const { app, repositoryRoot } = await buildProductionApp();
     await setSummary(app);
-    const snapshotRoot = (await readdir(repositoryRoot)).find((name) => name.startsWith('cumpa-patch-'));
+    const snapshotRoot = (await readdir(repositoryRoot)).find((name) => name.startsWith(`${RENAME_MAP.slug}-patch-`));
     expect(snapshotRoot).toBeDefined();
     await rm(join(repositoryRoot, snapshotRoot!), { recursive: true, force: true });
 
@@ -374,7 +375,7 @@ describe('exact patch snapshot sessions', () => {
   test('strictly parses the manifest and permanently latches corruption before every capability use', async () => {
     const { app, repositoryRoot } = await buildProductionApp();
     await setSummary(app);
-    const snapshotRoot = (await readdir(repositoryRoot)).find((name) => name.startsWith('cumpa-patch-'));
+    const snapshotRoot = (await readdir(repositoryRoot)).find((name) => name.startsWith(`${RENAME_MAP.slug}-patch-`));
     expect(snapshotRoot).toBeDefined();
     const manifestPath = join(repositoryRoot, snapshotRoot!, 'manifest.json');
     const original = await readFile(manifestPath);

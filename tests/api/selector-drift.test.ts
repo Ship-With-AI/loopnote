@@ -8,6 +8,7 @@ import { afterEach, describe, expect, test, vi } from 'vitest';
 import type { PinnedComparison } from '../../src/contracts/comparison.js';
 import type { SelectorDriftObserver } from '../../src/git/selector-drift.js';
 import { createSessionApp } from '../../src/server/app.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 
 const token = 'a'.repeat(43);
 const host = '127.0.0.1:43131';
@@ -39,7 +40,7 @@ function comparison(repositoryRoot: string): PinnedComparison {
 }
 
 async function buildApp(observer: SelectorDriftObserver) {
-  const repositoryRoot = await mkdtemp(join(tmpdir(), 'cumpa-selector-drift-api-'));
+  const repositoryRoot = await mkdtemp(join(tmpdir(), `${RENAME_MAP.slug}-selector-drift-api-`));
   roots.push(repositoryRoot);
   const app = createSessionApp(comparison(repositoryRoot), {
     sessionToken: token,

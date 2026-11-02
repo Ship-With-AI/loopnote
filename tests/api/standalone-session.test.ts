@@ -9,6 +9,7 @@ import { materializeWorktreeSnapshot } from '../../src/server/worktree-snapshot.
 import { buildDurableAnchor } from '../../src/domain/anchor.js';
 import { ReviewExportV4Schema } from '../../src/contracts/draft.js';
 import { createGitFixture, type GitFixture } from '../helpers/git-fixture.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 
 const roots: string[] = [];
 const fixtures: GitFixture[] = [];
@@ -20,7 +21,7 @@ async function makeFixture(options?: Parameters<typeof createGitFixture>[0]): Pr
 }
 
 async function makeRoot(): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), 'cumpa-standalone-session-'));
+  const root = await mkdtemp(join(tmpdir(), `${RENAME_MAP.slug}-standalone-session-`));
   roots.push(root);
   return root;
 }
@@ -193,7 +194,7 @@ describe('standalone capability registry', () => {
     expect(result.kind).toBe('exported');
 
     const document = ReviewExportV4Schema.parse(
-      JSON.parse(await readFile(join(fixture.root, '.cumpa', 'exports', reviewKey, 'review.json'), 'utf8')),
+      JSON.parse(await readFile(join(fixture.root, RENAME_MAP.repoStateDir.replace(/\/$/, ''), 'exports', reviewKey, 'review.json'), 'utf8')),
     );
     expect(document.schemaVersion).toBe(4);
     expect(document.standalone.originalArguments).toEqual(['a.txt', 'sub'].sort());
@@ -201,7 +202,7 @@ describe('standalone capability registry', () => {
     expect(document.standalone.fileDigests).toHaveLength(2);
     expect(document.standalone.reviewKey).toBe(reviewKey);
 
-    const markdown = await readFile(join(fixture.root, '.cumpa', 'exports', reviewKey, 'review.md'), 'utf8');
+    const markdown = await readFile(join(fixture.root, RENAME_MAP.repoStateDir.replace(/\/$/, ''), 'exports', reviewKey, 'review.md'), 'utf8');
     expect(markdown).toContain('## Standalone files');
   });
 

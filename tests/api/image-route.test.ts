@@ -16,6 +16,7 @@ import {
   readWorktreeImageBytes,
   resolveRelativeImagePath,
 } from '../../src/server/image-content.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 
 const token = 'i'.repeat(43);
 const expectedHost = '127.0.0.1:43180';
@@ -33,7 +34,7 @@ function markdownPath(value: string) {
 }
 
 async function root(): Promise<string> {
-  const value = await mkdtemp(join(tmpdir(), 'cumpa-image-content-'));
+  const value = await mkdtemp(join(tmpdir(), `${RENAME_MAP.slug}-image-content-`));
   roots.push(value);
   return value;
 }
@@ -259,7 +260,7 @@ async function createCommittedImageFixture(): Promise<CommittedImageFixture> {
     env: gitEnvironment,
     stdio: ['pipe', 'pipe', 'pipe'],
   });
-  git(['config', '--local', 'user.name', 'Cumpa Image Fixture']);
+  git(['config', '--local', 'user.name', `${RENAME_MAP.displayName} Image Fixture`]);
   git(['config', '--local', 'user.email', 'fixture@test.invalid']);
   git(['config', '--local', 'commit.gpgSign', 'false']);
 
