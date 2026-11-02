@@ -6,15 +6,15 @@ current_phase: 17.1
 current_phase_name: full-project-rename
 status: executing
 stopped_at: Completed 17.1-02-PLAN.md
-last_updated: "2026-11-02T09:01:07.668Z"
+last_updated: "2026-11-02T09:07:24.183Z"
 last_activity: 2026-11-02
 last_activity_desc: Phase 17.1 execution started
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 69
-  completed_plans: 45
-  percent: 65
+  completed_plans: 46
+  percent: 67
 ---
 
 # Project State
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-09-09)
 ## Current Position
 
 Phase: 17.1 (full-project-rename) — EXECUTING
-Plan: 4 of 22
+Plan: 5 of 22
 Status: Ready to execute
 Last activity: 2026-11-02 — Phase 17.1 execution started
 
@@ -91,6 +91,7 @@ Last activity: 2026-11-02 — Phase 17.1 execution started
 | Phase 17.1 P01 | 18min | 3 tasks | 3 files |
 | Phase 17.1 P02 | 20min | 2 tasks | 11 files |
 | Phase 17.1 P03 | 45min | 2 tasks | 14 files |
+| Phase 17.1 P04 | 25min | 2 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -164,6 +165,8 @@ Decisions are logged in PROJECT.md Key Decisions.
 - [Phase 17.1]: tests/e2e/agent-ready-export-safety.spec.ts's .cumpa exports-directory literal and tests/cli/request.test.ts's CUMPA_SUPPORT_SERVICE_URL env stub left untouched in 17.1-02 — different RENAME_MAP fields (repoStateDir/envPrefix) owned by other plans, not the kind literal
 - [Phase 17.1]: 17.1-03: Renamed CUMPA_THEME alongside CUMPA_THEME_ID/applyCumpaTheme via the same ts-morph pass -- the plan's action text only gave the latter two as examples, but CUMPA_THEME is a third literal in the same file the must_haves truth bans
 - [Phase 17.1]: 17.1-03: Also renamed CUMPA_LAUNCH_OPTIONS/CUMPA_BROWSER_OPEN_MARKER in tests/e2e/package-assets.spec.ts, the only plan owning that file in the whole 17.1 phase -- leaving them unrenamed would have broken the test against the already-renamed src/cli/run.ts
+- [Phase 17.1]: 17.1-04: Left CUMPA_NATIVE_BUILD_ROOT/PLATFORM/ARCH env var names untouched in tests/unit/build-native-addon.test.ts — Owned by sibling plan 17.1-05 along with scripts/build-native-addon.mjs; only the file's own cumpa-native-build- tmpdir prefix was renamed per this plan's literal action text
+- [Phase 17.1]: 17.1-04: Anchor golden-regression hash recomputed empirically, not hand-derived — Read the test runner's actual failure-diff Received value (6b6737df1bd5c8bc1776da0c6cacd8dbb16aaf95a05f090b9cc1c4b7ba1994ef) after renaming CONTEXT_DOMAIN, pasted it into the literal, re-ran to confirm GREEN
 
 ### Pending Todos
 
@@ -217,6 +220,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-11-02T09:01:07.663Z
+Last session: 2026-11-02T09:07:17.139Z
 Stopped at: Completed 17.1-02-PLAN.md
 Resume file: None
