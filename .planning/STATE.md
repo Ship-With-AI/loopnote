@@ -4,17 +4,17 @@ milestone: v2.0
 milestone_name: Artifact Review
 current_phase: 17.1
 current_phase_name: full-project-rename
-status: executing
-stopped_at: Completed 17.1-21-PLAN.md
-last_updated: "2026-11-02T12:54:41.816Z"
+status: complete
+stopped_at: Completed 17.1-22-PLAN.md (phase 17.1 complete, 22/22 plans)
+last_updated: "2026-11-02T13:22:56.000Z"
 last_activity: 2026-11-02
-last_activity_desc: 17.1-21 wrote 17.1-RELEASE-CHECKLIST.md (REN-05, dependency-ordered manual release checklist: GitHub repo rename + remote/package.json reminder, GitHub Actions secret re-creation, npm publish/deprecate, Supabase/Stripe renames, AIOS listing updates, marketplace skill PR merge) and renamed the shipwithai-skills repo's cumpa-uncommitted-files-request-modes branch's skills/cumpa/ tree to skills/loopnote/ (local commit 9fdc8d3, unpushed)
+last_activity_desc: 17.1-22 wrote scripts/audit-rename-exceptions.mjs and tests/unit/rename-audit.test.ts (REN-01's final wave-3 gate), wired a new root `npm test` (vitest run) into package.json, and fixed 12 files' genuinely-leftover cumpa references the audit's own full-tree reconciliation surfaced; scanner confirms zero disallowed cumpa hits remain outside the four documented exception categories (109 correctly classified). Phase 17.1 (full-project-rename) is now complete (22/22 plans).
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 69
-  completed_plans: 63
-  percent: 71
+  completed_plans: 64
+  percent: 93
 ---
 
 # Project State
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-09-09)
 
 ## Current Position
 
-Phase: 17.1 (full-project-rename) — EXECUTING
-Plan: 21 of 22
-Status: Ready execute
-Last activity: 2026-11-02 — 17.1-21 wrote 17.1-RELEASE-CHECKLIST.md (REN-05, dependency-ordered manual release checklist) and renamed the shipwithai-skills repo's cumpa-uncommitted-files-request-modes branch's skills/cumpa/ tree to skills/loopnote/ (local commit 9fdc8d3, unpushed)
+Phase: 17.1 (full-project-rename) — COMPLETE (22/22 plans)
+Plan: 22 of 22 (final)
+Status: Phase complete — ready to resume at Phase 18 (Product Repositioning Copy)
+Last activity: 2026-11-02 — 17.1-22 wrote the rename-exceptions audit scanner + Vitest spec, wired a new root `npm test` into package.json, and fixed 12 files' genuinely-leftover cumpa references the audit's own reconciliation found; zero disallowed cumpa hits remain in the live tree.
 
 ## Performance Metrics
 
@@ -102,6 +102,7 @@ Last activity: 2026-11-02 — 17.1-21 wrote 17.1-RELEASE-CHECKLIST.md (REN-05, d
 | Phase 17.1 P12 | 35min | 2 tasks | 6 files |
 | Phase 17.1 P13 | 25min | 2 tasks | 10 files |
 | Phase 17.1 P21 | 25min | 2 tasks | 4 files |
+| Phase 17.1 P22 | 70min | 2 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -199,6 +200,8 @@ Decisions are logged in PROJECT.md Key Decisions.
 - [Phase 17.1]: 17.1-19: Renamed `tests/cli/errors.test.ts`'s five domain error messages and all ten packed-release e2e specs' `cumpa-...-pack-` tmpdir prefixes, `dist/bin/cumpa.mjs` paths, `CUMPA_*` env vars, `cumpa.review-request` kind fixtures, and `.cumpa` drafts/exports paths to `RENAME_MAP`-derived forms. Renamed `tests/integration/anchored-workspace.spec.ts`'s `#cumpa-heading` locators and matching display text (deferred by 17.1-06/17.1-11). Discovered during live Playwright verification that `src/web/App.vue`/`ExportSection.vue`/`ReviewNotesDialog.vue`/`api/client.ts` still hardcoded literal `Cumpa` prose that no 17.1 plan owned (17.1-06 explicitly excluded App.vue/ExportSection.vue/ReviewNotesDialog.vue; 17.1-12/13 only renamed their ignore-status API-consumer symbols there) — renamed those to `RENAME_MAP.displayName` and synced the four sibling-owned test files (`agent-ready-export-safety.spec.ts`, `export-receipt-ui.spec.ts`, `selector-drift-ui.spec.ts`, `support-dialog.spec.ts`) whose assertions depended on the now-changed text, confirming green via live Playwright runs. Also fixed a `page.evaluate()` browser-context bug (`RENAME_MAP` is a Node import, inaccessible inside a closure sent to the browser) in `responsive-session.spec.ts`. Left two confirmed pre-existing, unrelated failures untouched: `agent-ready-export-safety.spec.ts`'s `.cumpa` exports-directory literal (owned by a different RENAME_MAP field per the 17.1-02 entry above) and `selector-drift-ui.spec.ts`'s `exactPatchSession()` schema-validation failure (already tracked in Deferred Items below).
 - [Phase 17.1]: 17.1-20: Renamed `tests/git/comparison.test.ts`'s five domain-error-message assertions to `RENAME_MAP.displayName`-based template literals matching 17.1-04's renamed `src/domain/errors.ts`. Renamed `tests/git/{anchored-content,availability,selector-drift}.test.ts`'s own `cumpa-...-` tmpdir fixture prefixes to `RENAME_MAP.slug`-derived forms, plus discovered and renamed `anchored-content.test.ts`'s/`availability.test.ts`'s own `'Cumpa Anchor/Availability Fixture'` git `user.name` literals (not named in the plan's `<interfaces>` block, found via full-file grep). Renamed the shared `tests/helpers/git-fixture.ts` helper's two tmpdir-prefix sites (`cumpa-git-`/`cumpa-validation-git-`) and two `'Cumpa Fixture'` `user.name` sites to `RENAME_MAP`-derived forms — this helper is imported by every other Git-layer test file, so `npm run test:git`'s full 12-file/109-test suite re-verifies the rename's correctness for all its consumers.
 - [Phase 17.1]: 17.1-21: checked out the shipwithai-skills repo's cumpa-uncommitted-files-request-modes branch (not the checked-out branch at execution time) before any write, then renamed skills/cumpa/ to skills/loopnote/ and committed locally, unpushed — Plan assumed the branch was already checked out; a plain git checkout of the existing target branch (no -b, no force, no push) satisfies the plan's actual safety intent of never writing to the wrong branch
+- [Phase 17.1]: 17.1-22: Full-tree `grep -rliE cumpa` reconciliation (required by the plan, no more mid-wave deferral in wave 3) found 12 files with genuinely unrenamed `cumpa` leftovers that no prior plan (02-21) actually covered despite some being explicitly "deferred to sibling plan X" in that plan's SUMMARY — fixed all 12 in place rather than deferring (env var literals in `tests/cli/{request,selection}.test.ts`, `tests/e2e/public-support-states.spec.ts`, `tests/helpers/omp-profile.ts`, `tests/package/marketplace-profile-acceptance.test.ts`; stray fixture literals in `tests/git/{exact-patch,inventory}.test.ts`, `tests/e2e/package-assets.spec.ts`; missing `RENAME_MAP` import + tmpdir prefixes in `tests/helpers/export-fault-runner.ts`; a stale message-string env-var name in `scripts/write-acceptance-evidence.mjs`; a stale local-build binary path in `tests/performance/production-picker.mjs`).
+- [Phase 17.1]: 17.1-22: Scanner enumerates the live tree via `git ls-files` (tracked) + `git ls-files --others --exclude-standard` (untracked-not-ignored) instead of a hardcoded directory-exclusion walk, so it automatically tracks whatever `.gitignore` already excludes; added `package.json`'s first-ever root `"test": "vitest run"` script since none existed to wire the new spec into.
 
 ### Pending Todos
 
