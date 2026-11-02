@@ -4,7 +4,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // REN-01's final wave-3 gate: a re-globbing, grep-equivalent scanner that fails on any
-// live-tree `cumpa` (case-insensitive) hit outside four documented allowed-exception
+// live-tree `cumpa` (case-insensitive) hit outside five documented allowed-exception
 // categories. The live-tree file set is derived from `git ls-files` (tracked) plus
 // `git ls-files --others --exclude-standard` (untracked-but-not-ignored) at run time, so
 // it automatically tracks whatever `.gitignore` already excludes (node_modules/, dist/,
@@ -79,6 +79,15 @@ const HISTORICAL_IDENTITY_PATTERN = /@shipwithai\/cumpa(?:@\d+\.\d+\.\d+)?|skill
 // is that same still-live, immutable published-artifact fact.
 const HISTORICAL_REAL_RUNTIME_FILE = 'tests/helpers/public-runtime.ts';
 
+// Category 5 — D-05-amendment upgrade notes (17.1-23's README.md "Upgrading from Cumpa"
+// section): the new section deliberately documents the old product name and the old
+// `.cumpa/` directory for 1.x users upgrading to 2.0.0 — it is user-facing upgrade
+// documentation, not a leftover rename artifact. Scoped to exactly this one file and a
+// narrow literal pattern, so it cannot mask a genuinely new leftover `cumpa` reference
+// anywhere else in the tree.
+const UPGRADE_NOTES_FILE = 'README.md';
+const UPGRADE_NOTES_PATTERN = /\.cumpa\/|\bCumpa\b/u;
+
 function gitListFiles(scanRoot, arguments_) {
   return execFileSync('git', arguments_, { cwd: scanRoot, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 })
     .split('\0')
@@ -109,12 +118,13 @@ function isAllowedException(file, line) {
   if (EXCLUSION_PREFIX_FILES.has(file) && EXCLUSION_PREFIX_PATTERN.test(line)) return true;
   if (HISTORICAL_IDENTITY_FILES.has(file) && HISTORICAL_IDENTITY_PATTERN.test(line)) return true;
   if (file === HISTORICAL_REAL_RUNTIME_FILE) return true;
+  if (file === UPGRADE_NOTES_FILE && UPGRADE_NOTES_PATTERN.test(line)) return true;
   return false;
 }
 
 /**
  * Re-globs the live tree (at `options.root`, default this repo's root) and returns
- * every `cumpa` (case-insensitive) hit that falls outside the four documented
+ * every `cumpa` (case-insensitive) hit that falls outside the five documented
  * allowed-exception categories, as `{ file, line, text }` for diagnosis.
  *
  * @param {{ root?: string }} [options]

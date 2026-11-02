@@ -277,6 +277,10 @@ Loopnote reviews regular UTF-8 text files only. Each inspected blob side must be
 
 Binary, non-UTF-8, oversized, symlink, submodule, and unsupported mode/type entries stay visible but are not reviewable. Missing-object cases (missing objects) are separately unavailable rather than unsupported file kinds. Loopnote does not separately detect arbitrary generated source files. Its own `.loopnote/` internal output is always excluded from the review inventory.
 
+## Upgrading from Cumpa
+
+Loopnote is the renamed continuation of Cumpa. If a `.cumpa/` directory exists from a 1.x install, the drafts and exports stored there are not readable by 2.0.0 and are not migrated. `.cumpa/` is excluded from Loopnote's review file inventory and never appears as reviewable or comparable content. `.cumpa/` is no longer used and can be deleted. Voluntary support status carries over automatically on first run; no action is required.
+
 ## License and independent notices
 
 Loopnote is open source under the [MIT License](LICENSE). You may use, copy, modify, distribute, sublicense, and sell copies, including in commercial products, provided you retain the required copyright and permission notices. The software is provided without warranty.

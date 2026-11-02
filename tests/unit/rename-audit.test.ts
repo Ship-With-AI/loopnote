@@ -12,7 +12,7 @@ describe('audit-rename-exceptions', () => {
     const hits = auditRenameExceptions();
     if (hits.length > 0) {
       const detail = hits.map((hit) => `  ${hit.file}:${hit.line}: ${hit.text.trim()}`).join('\n');
-      throw new Error(`Disallowed "cumpa" reference(s) found outside the four documented exception categories:\n${detail}`);
+      throw new Error(`Disallowed "cumpa" reference(s) found outside the five documented exception categories:\n${detail}`);
     }
     expect(hits).toEqual([]);
   });
