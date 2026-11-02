@@ -5,16 +5,16 @@ milestone_name: Artifact Review
 current_phase: 18
 current_phase_name: product-repositioning-copy
 status: executing
-stopped_at: Completed 18-04-PLAN.md
-last_updated: "2026-11-02T15:59:59.000Z"
+stopped_at: Completed 18-05-PLAN.md — Phase 18 complete
+last_updated: "2026-11-02T17:20:00.000Z"
 last_activity: 2026-11-02
-last_activity_desc: Plan 18-04 complete — repoName added end-to-end (api.ts/capabilities.ts) for the D-09 browser tab title; D-08 "Files" sidebar copy and POS-02 dirty-badge text applied; App.vue empty states rewritten to locked D-10 copy (uncommitted branch per Approval record item 10); npm test 853/853 green; next is 18-05 (Playwright spec updates, deferred from this plan)
+last_activity_desc: Plan 18-05 complete — all seven deferred Playwright e2e/integration specs (anchored-review, file-tree, pinned-session, responsive-session, anchored-workspace, draft-recovery-ui, support-dialog) updated to match Plan 18-04's applied D-08 "Files" sidebar copy, D-10 empty-state copy, and POS-02 dirty-badge text; also fixed a second stale pinned-comparison empty-state message assertion found during full-suite verification; npx playwright test 111 passed, 2 pre-existing selector-drift-ui failures remain (unrelated, confirmed pre-existing on commit 3196e96); npm test 853/853 green. Phase 18 (product-repositioning-copy) complete — all 5 plans done.
 progress:
   total_phases: 7
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 70
-  completed_plans: 68
-  percent: 87
+  completed_plans: 70
+  percent: 100
 ---
 
 # Project State
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-09-09)
 
 ## Current Position
 
-Phase: 18 (product-repositioning-copy) — EXECUTING
-Plan: 5 of 5 (18-05-PLAN.md next; 18-01/18-02/18-03/18-04 complete)
-Status: Executing Phase 18
-Last activity: 2026-11-02 — Plan 18-04 complete (repoName end-to-end for D-09 tab title; D-08 "Files" sidebar copy; POS-02 dirty-badge text; D-10 empty states rewritten per locked UI-SPEC + Approval record item 10; npm test 853/853 green; Playwright spec updates deferred to 18-05 per plan scope)
+Phase: 18 (product-repositioning-copy) — COMPLETE
+Plan: 5 of 5 (18-01/18-02/18-03/18-04/18-05 all complete)
+Status: Phase 18 complete — all 5 plans done
+Last activity: 2026-11-02 — Plan 18-05 complete (seven deferred Playwright specs updated to D-08 "Files" sidebar copy, D-10 empty-state copy, POS-02 dirty-badge text; npx playwright test 111 passed with only the 2 pre-existing selector-drift-ui.spec.ts failures remaining; npm test 853/853 green)
 
 ## Performance Metrics
 
@@ -103,6 +103,7 @@ Last activity: 2026-11-02 — Plan 18-04 complete (repoName end-to-end for D-09 
 | Phase 17.1 P13 | 25min | 2 tasks | 10 files |
 | Phase 17.1 P21 | 25min | 2 tasks | 4 files |
 | Phase 17.1 P22 | 70min | 2 tasks | 14 files |
+| Phase 18 P05 | 50min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -203,6 +204,7 @@ Decisions are logged in PROJECT.md Key Decisions.
 - [Phase 17.1]: 17.1-22: Full-tree `grep -rliE cumpa` reconciliation (required by the plan, no more mid-wave deferral in wave 3) found 12 files with genuinely unrenamed `cumpa` leftovers that no prior plan (02-21) actually covered despite some being explicitly "deferred to sibling plan X" in that plan's SUMMARY — fixed all 12 in place rather than deferring (env var literals in `tests/cli/{request,selection}.test.ts`, `tests/e2e/public-support-states.spec.ts`, `tests/helpers/omp-profile.ts`, `tests/package/marketplace-profile-acceptance.test.ts`; stray fixture literals in `tests/git/{exact-patch,inventory}.test.ts`, `tests/e2e/package-assets.spec.ts`; missing `RENAME_MAP` import + tmpdir prefixes in `tests/helpers/export-fault-runner.ts`; a stale message-string env-var name in `scripts/write-acceptance-evidence.mjs`; a stale local-build binary path in `tests/performance/production-picker.mjs`).
 - [Phase 17.1]: 17.1-22: Scanner enumerates the live tree via `git ls-files` (tracked) + `git ls-files --others --exclude-standard` (untracked-not-ignored) instead of a hardcoded directory-exclusion walk, so it automatically tracks whatever `.gitignore` already excludes; added `package.json`'s first-ever root `"test": "vitest run"` script since none existed to wire the new spec into.
 - [Phase 17.1]: 17.1-23 (gap closure, 23/23): Bumped package.json/package-lock.json to 2.0.0 (D-03) with only the two root lockfile version fields changing, and added an explicit pre-publish version-verification step to 17.1-RELEASE-CHECKLIST.md Item 3. Amended D-06 (support-store.ts's copyLegacyIfNeeded now hardcodes writeAtomic(bytes, 0o600), never inheriting the legacy file's mode; removed the now-dead fileSystem.stat method) — proven RED→GREEN by two tests (0o640/0o644 legacy inputs). Amended D-05 (no `mv .cumpa .loopnote` instruction; README.md's new "Upgrading from Cumpa" section states 1.x `.cumpa/` drafts/exports are not migrated/readable by 2.0.0, are excluded from the review inventory, and can be deleted; src/domain/comparison-key.ts's renamed `loopnote-*-v1` hash domain tags were explicitly left untouched) and extended scripts/audit-rename-exceptions.mjs with a fifth, file-scoped exception category (UPGRADE_NOTES_FILE/UPGRADE_NOTES_PATTERN) so the live-tree audit still finds zero disallowed hits. Closes CR-01/WR-01/WR-02 from 17.1-VERIFICATION.md/17.1-REVIEW.md.
+- [Phase 18]: 18-05: Left file-tree.spec.ts's three DirectoryRow.vue descendant-count locators (`collision/.*2 changed files`, `control/.*1 changed file`, `kept/.*2 changed files`) unrenamed — that per-folder count label is a distinct concept from D-08's sidebar/dialog/toggle noun rename and is outside `18-UI-SPEC.md`'s D-08 Apply-to list; 18-04 never touched DirectoryRow.vue. Also fixed a second stale pinned-comparison empty-state message assertion (`pinned-session.spec.ts:999`) the plan's read_first did not name, found via full-suite verification; full `npx playwright test` run now shows only the 2 pre-existing `selector-drift-ui.spec.ts:423/441` failures (confirmed pre-existing on commit 3196e96, unrelated to this plan's files).
 
 ### Pending Todos
 
