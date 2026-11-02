@@ -216,6 +216,12 @@ const emptyFilesCopy = computed(() => {
         : 'Relaunch with a different range.',
     };
   }
+  if (isStandaloneSession.value) {
+    return {
+      heading: 'No files in this standalone review.',
+      message: 'Restore the files, then Refresh.',
+    };
+  }
   if (isUncommittedSession.value) {
     return {
       heading: `No changes in ${uncommittedSourceLabel.value}.`,
@@ -231,13 +237,18 @@ const emptyFilesCopy = computed(() => {
 const sessionKindTitleSegment = computed(() => {
   if (isExactPatchSession.value) return 'Exact patch';
   if (isStandaloneSession.value) return `${uncommittedSession.value?.changedFileCount ?? 0} files`;
-  if (isUncommittedSession.value) return `${uncommittedSourceLabel.value} vs HEAD`;
+  if (isUncommittedSession.value) {
+    const baseOid = uncommittedSession.value?.baseCommitOid;
+    return `${uncommittedSourceLabel.value} vs ${baseOid === undefined ? 'HEAD' : controlSafeDisplay(baseOid.slice(0, 7))}`;
+  }
   return `${session.value?.files.length ?? 0} files`;
 });
 const documentTitle = computed(() =>
   session.value === undefined
     ? RENAME_MAP.displayName
-    : `${RENAME_MAP.displayName} · ${session.value.repoName ?? ''} · ${sessionKindTitleSegment.value}`,
+    : [RENAME_MAP.displayName, controlSafeDisplay(session.value.repoName ?? ''), sessionKindTitleSegment.value]
+        .filter((segment) => segment !== '')
+        .join(' · '),
 );
 
 const unavailableHeading = computed(() =>
