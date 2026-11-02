@@ -61,9 +61,9 @@
 
 - [x] **REN-01**: User installs and runs the product under its new npm package and CLI command, and sees only the new name in `--help`, the browser workspace, and exports; the old package is deprecated with no alias command.
 - [x] **REN-02**: Coding agent uses the new protocol `kind` values for requests and results; a request with an old `cumpa.*` kind fails before launch with a specific error naming the new kind.
-- [ ] **REN-03**: User's reviews read and write only the new repo-local state directory; the old `.cumpa/` is neither migrated nor listed as reviewable content.
-- [ ] **REN-04**: An existing supporter keeps their support status: `support.json` is copied once from the old per-user state directory when the new one is missing.
-- [ ] **REN-05**: Maintainers have a manual release checklist for the GitHub repo rename, `<new>@2.0.0` publish, `@shipwithai/cumpa` deprecation, Supabase/Stripe renames, and the marketplace skill PR (prerequisite `>=2.0.0 <3.0.0`).
+- [x] **REN-03**: User's reviews read and write only the new repo-local state directory; the old `.cumpa/` is neither migrated nor listed as reviewable content.
+- [x] **REN-04**: An existing supporter keeps their support status: `support.json` is copied once from the old per-user state directory when the new one is missing.
+- [x] **REN-05**: Maintainers have a manual release checklist for the GitHub repo rename, `<new>@2.0.0` publish, `@shipwithai/cumpa` deprecation, Supabase/Stripe renames, and the marketplace skill PR (prerequisite `>=2.0.0 <3.0.0`).
 
 ### Positioning
 
@@ -128,9 +128,9 @@ Deferred, tracked but not in the v2.0 roadmap.
 | SKL-04 | Phase 17 | Complete |
 | REN-01 | Phase 17.1 | Complete |
 | REN-02 | Phase 17.1 | Complete |
-| REN-03 | Phase 17.1 | Pending |
-| REN-04 | Phase 17.1 | Pending |
-| REN-05 | Phase 17.1 | Pending |
+| REN-03 | Phase 17.1 | Complete |
+| REN-04 | Phase 17.1 | Complete |
+| REN-05 | Phase 17.1 | Complete |
 | POS-01 | Phase 18 | Pending |
 | POS-02 | Phase 18 | Pending |
 | POS-03 | Phase 18 | Pending |
