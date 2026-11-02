@@ -5,16 +5,16 @@ milestone_name: Artifact Review
 current_phase: 17.1
 current_phase_name: full-project-rename
 status: executing
-stopped_at: Completed 17.1-01-PLAN.md
-last_updated: "2026-11-02T08:31:03.548Z"
+stopped_at: Completed 17.1-02-PLAN.md
+last_updated: "2026-11-02T08:42:39.184Z"
 last_activity: 2026-11-02
 last_activity_desc: Phase 17.1 execution started
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 69
-  completed_plans: 43
-  percent: 62
+  completed_plans: 44
+  percent: 64
 ---
 
 # Project State
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-09-09)
 ## Current Position
 
 Phase: 17.1 (full-project-rename) — EXECUTING
-Plan: 2 of 22
+Plan: 3 of 22
 Status: Ready to execute
 Last activity: 2026-11-02 — Phase 17.1 execution started
 
@@ -89,6 +89,7 @@ Last activity: 2026-11-02 — Phase 17.1 execution started
 | Phase 17-agent-protocol-extension-marketplace-skill P04 | 55min | 2 tasks | 3 files |
 | Phase 17 P05 | 35min | 3 tasks | 2 files |
 | Phase 17.1 P01 | 18min | 3 tasks | 3 files |
+| Phase 17.1 P02 | 20min | 2 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -158,6 +159,8 @@ Decisions are logged in PROJECT.md Key Decisions.
 - [quick-261031-q09]: Fixed the open-runtime-session.ts stale .monaco-diff-editor assertion flagged by 17-04/17-VERIFICATION.md Human Verification #1 — now asserts .diff-workspace__editor, matching the pattern already established by quick task 261031-au0. Custody-gated suite went from 6/16 to 15/16 passing (deterministic across 3 runs); the 1 remaining failure is an independently-confirmed pre-existing, load-dependent harness artifact unrelated to this fix (reproduces in the pre-fix baseline; passes cleanly in isolation). See 261031-q09-SUMMARY.md and deferred-items.md.
 - [Phase ?]: Checkpoint resolved: new product name is 'Loopnote' (slug 'loopnote') — Supplied by user in orchestrating conversation on 2026-11-02 after npm/GitHub/brew collision checks; RENAME_MAP computed from this literal
 - [Phase 17.1]: Used plain Error, not a subclass, for product-identity validation failures — Matches src/domain/file-tree.ts's existing plain-Error convention; no recovery/kind metadata consumers exist for this module
+- [Phase 17.1]: legacy-kind message names only the new kind; isLegacyKind checked before isUnsupportedVersion in the rejection ternary, ahead of isUnknownMode/isBaseWithUnstaged
+- [Phase 17.1]: tests/e2e/agent-ready-export-safety.spec.ts's .cumpa exports-directory literal and tests/cli/request.test.ts's CUMPA_SUPPORT_SERVICE_URL env stub left untouched in 17.1-02 — different RENAME_MAP fields (repoStateDir/envPrefix) owned by other plans, not the kind literal
 
 ### Pending Todos
 
@@ -211,6 +214,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-11-02T08:31:03.540Z
-Stopped at: Completed 17.1-01-PLAN.md
+Last session: 2026-11-02T08:42:39.177Z
+Stopped at: Completed 17.1-02-PLAN.md
 Resume file: None
