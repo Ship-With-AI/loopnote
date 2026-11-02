@@ -67,9 +67,9 @@
 
 ### Positioning
 
-- [ ] **POS-01**: Visitors to the README and npm page read Cumpa described as local review for any agent-produced artifact (code, plans, decisions, docs), with no hosted or multi-reviewer claim.
-- [ ] **POS-02**: CLI users see `--help`, picker, and dirty-source copy that describe uncommitted and standalone review accurately; the "staged, unstaged, and untracked bytes are ignored" wording is gone.
-- [ ] **POS-03**: Reviewers see browser workspace titles, labels, and empty states that fit artifact review rather than only code diffs.
+- [x] **POS-01**: Visitors to the README and npm page read Cumpa described as local review for any agent-produced artifact (code, plans, decisions, docs), with no hosted or multi-reviewer claim.
+- [x] **POS-02**: CLI users see `--help`, picker, and dirty-source copy that describe uncommitted and standalone review accurately; the "staged, unstaged, and untracked bytes are ignored" wording is gone.
+- [x] **POS-03**: Reviewers see browser workspace titles, labels, and empty states that fit artifact review rather than only code diffs.
 
 ## Future Requirements
 
@@ -131,9 +131,9 @@ Deferred, tracked but not in the v2.0 roadmap.
 | REN-03 | Phase 17.1 | Complete |
 | REN-04 | Phase 17.1 | Complete |
 | REN-05 | Phase 17.1 | Complete |
-| POS-01 | Phase 18 | Pending |
-| POS-02 | Phase 18 | Pending |
-| POS-03 | Phase 18 | Pending |
+| POS-01 | Phase 18 | Complete |
+| POS-02 | Phase 18 | Complete |
+| POS-03 | Phase 18 | Complete |
 
 **Coverage:**
 
