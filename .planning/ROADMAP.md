@@ -247,7 +247,7 @@ Plans:
   4. A `grep -i cumpa` audit of live code, config, tests, scripts and docs finds only the allowed exceptions (history, old-kind rejection, supporter-state migration source, old-dir exclusion).
   5. A manual release checklist covers the GitHub repo rename, npm publish of 2.0.0 and deprecation of `@shipwithai/cumpa`, Supabase/Stripe renames, and the updated marketplace skill draft PR (prerequisite `>=2.0.0 <3.0.0`).
 
-**Plans**: 15/22 plans executed
+**Plans**: 17/22 plans executed
 **Blocked on**: the new name. Execution starts with a human checkpoint that supplies it.
 
 ### Phase 18: Product Repositioning Copy
@@ -280,8 +280,8 @@ Plans:
 - [x] 17.1-13-PLAN.md
 - [x] 17.1-14-PLAN.md
 - [x] 17.1-15-PLAN.md
-- [ ] 17.1-16-PLAN.md
-- [ ] 17.1-17-PLAN.md
+- [x] 17.1-16-PLAN.md
+- [x] 17.1-17-PLAN.md
 - [ ] 17.1-18-PLAN.md
 - [ ] 17.1-19-PLAN.md
 - [ ] 17.1-20-PLAN.md
