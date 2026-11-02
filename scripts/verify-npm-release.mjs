@@ -6,11 +6,12 @@ import { tmpdir } from 'node:os';
 import { basename, delimiter, dirname, isAbsolute, join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { archiveBasename, packageLabel, packumentUrl, provenanceSubject, registryTarballUrl, version as packageVersion } from './release-identity.mjs';
+import renameMap from './rename-map.json' with { type: 'json' };
 
 const execFileAsync = promisify(execFile);
-const packageName = '@shipwithai/cumpa';
+const packageName = renameMap.npmPackage;
 const registry = 'https://registry.npmjs.org/';
-const repository = 'Ship-With-AI/cumpa';
+const repository = `Ship-With-AI/${renameMap.slug}`;
 const repositoryId = '1327753770';
 const ownerId = '224984099';
 const workflowPath = '.github/workflows/publish-npm.yml';
@@ -172,11 +173,11 @@ function allTrue(value, label, expected) {
 function validateProducer(value, archive) {
   allowedObject(value, producerKeys, 'producer evidence');
   boundedEvidence(value, 'producer evidence');
-  if (value.kind !== 'cumpa.runtime-artifact-evidence/v1' || value.status !== 'candidate' || value.purpose !== 'candidate') fail('invalid producer evidence');
+  if (value.kind !== `${renameMap.kindPrefix}.runtime-artifact-evidence/v1` || value.status !== 'candidate' || value.purpose !== 'candidate') fail('invalid producer evidence');
   validatePackage(value.package, 'producer package');
   same(validateArchive(value.archive, 'producer archive'), archive, 'producer archive');
   const source = allowedObject(value.source, ['repository', 'head', 'tree', 'clean', 'trackedDiffSha256', 'packageJsonSha256', 'inputsSha256', 'packageLockSha256'], 'producer source');
-  if (source.repository !== 'git+https://github.com/Ship-With-AI/cumpa.git' || source.clean !== true || source.trackedDiffSha256 !== hash('sha256', JSON.stringify(['', '']))) fail('invalid producer source');
+  if (source.repository !== `git+https://github.com/Ship-With-AI/${renameMap.slug}.git` || source.clean !== true || source.trackedDiffSha256 !== hash('sha256', JSON.stringify(['', '']))) fail('invalid producer source');
   for (const field of ['head', 'tree', 'trackedDiffSha256', 'packageJsonSha256', 'inputsSha256', 'packageLockSha256']) requirePattern(source[field], `producer source ${field}`, field === 'head' || field === 'tree' ? gitShaPattern : sha256Pattern);
   const build = allowedObject(value.build, ['configured', 'platform', 'arch', 'node', 'npm', 'git', 'os', 'napi', 'compiler'], 'producer build');
   const compiler = allowedObject(build.compiler, ['command', 'version', 'target'], 'producer compiler');
@@ -196,7 +197,7 @@ function validateProducer(value, archive) {
     requirePattern(entry.sha256, 'producer dist entry digest', sha256Pattern);
     outputFiles.set(entry.path, entry);
   }
-  for (const path of ['dist/bin/cumpa.mjs', 'dist/web/index.html', 'dist/native/directory_exchange.node']) if (!outputFiles.has(path)) fail('missing producer runtime output');
+  for (const path of [`dist/bin/${renameMap.binCommand}.mjs`, 'dist/web/index.html', 'dist/native/directory_exchange.node']) if (!outputFiles.has(path)) fail('missing producer runtime output');
   const inventory = value.archive.files;
   if (!Array.isArray(inventory) || inventory.length !== outputFiles.size + 4) fail('invalid producer archive inventory');
   const paths = new Set();
@@ -219,7 +220,7 @@ function validateProducer(value, archive) {
 function validateScanner(value, producer) {
   allowedObject(value, ['kind', 'status', 'purpose', 'archive', 'inventory', 'legal', 'package', 'web', 'native', 'support', 'checks', 'limitations'], 'scanner report', ['sha256']);
   boundedEvidence(value, 'scanner report');
-  if (!isRecord(value) || value.kind !== 'cumpa.runtime-artifact-verification/v1' || value.status !== 'passed' || value.purpose !== 'candidate') fail('invalid scanner report');
+  if (!isRecord(value) || value.kind !== `${renameMap.kindPrefix}.runtime-artifact-verification/v1` || value.status !== 'passed' || value.purpose !== 'candidate') fail('invalid scanner report');
   const archive = validateArchive(value.archive, 'scanner archive');
   const packageInfo = validatePackage(value.package, 'scanner package');
   same(archive, validateArchive(producer.archive, 'producer archive'), 'scanner archive');
@@ -247,13 +248,13 @@ function validateScanner(value, producer) {
 function validateAcceptance(value, producer, scanner) {
   allowedObject(value, ['kind', 'status', 'profile', 'purpose', 'archive', 'package', 'install', 'scanner', 'browser', 'review', 'support', 'exactPatch', 'native', 'cleanup', 'sourceControl', 'checks', 'limitations'], 'acceptance report', ['sha256']);
   boundedEvidence(value, 'acceptance report');
-  if (value.kind !== 'cumpa.runtime-artifact-acceptance/v1' || value.status !== 'passed' || value.profile !== 'stable' || value.purpose !== 'candidate') fail('invalid acceptance report');
+  if (value.kind !== `${renameMap.kindPrefix}.runtime-artifact-acceptance/v1` || value.status !== 'passed' || value.profile !== 'stable' || value.purpose !== 'candidate') fail('invalid acceptance report');
   const archive = validateArchive(value.archive, 'acceptance archive');
   const packageInfo = validatePackage(value.package, 'acceptance package');
   same(archive, validateArchive(producer.archive, 'producer archive'), 'acceptance archive');
   same(packageInfo, producer.package, 'acceptance package');
   const install = allowedObject(value.install, ['packageLabel', 'binLabel', 'manifestSha256', 'dependencyCount', 'dependencyInventorySha256'], 'acceptance install');
-  if (install.packageLabel !== packageLabel || install.binLabel !== 'cumpa' || install.manifestSha256 !== producer.source.packageJsonSha256 || !Number.isSafeInteger(install.dependencyCount) || install.dependencyCount < Object.keys(producer.package.runtimeDependencies).length || !sha256Pattern.test(install.dependencyInventorySha256)) fail('acceptance install mismatch');
+  if (install.packageLabel !== packageLabel || install.binLabel !== renameMap.binCommand || install.manifestSha256 !== producer.source.packageJsonSha256 || !Number.isSafeInteger(install.dependencyCount) || install.dependencyCount < Object.keys(producer.package.runtimeDependencies).length || !sha256Pattern.test(install.dependencyInventorySha256)) fail('acceptance install mismatch');
   const browser = allowedObject(value.browser, ['assets', 'workers', 'codicon'], 'acceptance browser');
   const review = allowedObject(value.review, ['relaunch', 'canonicalV2', 'isolatedDrafts', 'reExport'], 'acceptance review');
   const exactPatch = allowedObject(value.exactPatch, ['canonicalV3', 'grounded'], 'acceptance patch');
@@ -352,7 +353,7 @@ export async function sealCiCandidateEvidence({ archivePath, producerEvidencePat
 }
 
 function validateSealedEvidence(value) {
-  if (!isRecord(value) || value.kind !== 'cumpa.runtime-artifact-evidence/v1' || value.status !== 'verified' || value.purpose !== 'candidate') fail('invalid sealed candidate evidence');
+  if (!isRecord(value) || value.kind !== `${renameMap.kindPrefix}.runtime-artifact-evidence/v1` || value.status !== 'verified' || value.purpose !== 'candidate') fail('invalid sealed candidate evidence');
   const core = allowedObject(value, producerKeys, 'sealed candidate', ['scanner', 'acceptance', 'ci']);
   const producer = validateProducer({ ...core, status: 'candidate' }, validateArchive(value.archive, 'sealed archive'));
   const scanner = validateScanner(value.scanner, producer);
@@ -387,7 +388,7 @@ export async function verifyCiCandidateForPublish({ archivePath, evidencePath, e
   const { archive } = await readArchive(archivePath);
   same(archive, validateArchive(evidence.archive, 'sealed archive'), 'archive');
   const artifact = validateArtifactTransport(artifactId, artifactDigest);
-  return { kind: 'cumpa.ci-candidate-prepublish/v1', status: 'passed', archive, ci: evidence.ci, artifact };
+  return { kind: `${renameMap.kindPrefix}.ci-candidate-prepublish/v1`, status: 'passed', archive, ci: evidence.ci, artifact };
 }
 
 function statementFromBundle(bundle) {
@@ -427,7 +428,7 @@ export function inspectNpmProvenance({ evidence, audit }) {
   if (!Array.isArray(definition.resolvedDependencies) || definition.resolvedDependencies.length !== 1 || !isRecord(definition.resolvedDependencies[0]) || definition.resolvedDependencies[0].uri !== `git+https://github.com/${repository}@${branchRef}` || !isRecord(definition.resolvedDependencies[0].digest) || definition.resolvedDependencies[0].digest.gitCommit !== sealed.ci.sourceSha) fail('provenance source mismatch');
   if (!isRecord(predicate.runDetails.builder) || predicate.runDetails.builder.id !== 'https://github.com/actions/runner/github-hosted' || !isRecord(predicate.runDetails.metadata) || predicate.runDetails.metadata.invocationId !== `https://github.com/${repository}/actions/runs/${sealed.ci.runId}/attempts/${sealed.ci.runAttempt}`) fail('provenance runner mismatch');
   return {
-    kind: 'cumpa.npm-provenance-inspection/v1', status: 'passed',
+    kind: `${renameMap.kindPrefix}.npm-provenance-inspection/v1`, status: 'passed',
     subject: { name: subject.name, sha512 },
     claims: { repository, repositoryId, ownerId, workflowPath, ref: branchRef, sourceSha: sealed.ci.sourceSha, runId: sealed.ci.runId, runAttempt: sealed.ci.runAttempt, event: 'workflow_dispatch', runner: 'github-hosted' },
     checks: [
@@ -524,7 +525,7 @@ function exactDist(metadata) {
 }
 
 async function readInstalledTarget(root, integrity) {
-  const target = join(root, 'node_modules', '@shipwithai', 'cumpa', 'package.json');
+  const target = join(root, 'node_modules', '@shipwithai', renameMap.slug, 'package.json');
   let manifest;
   let lock;
   try {
@@ -534,7 +535,7 @@ async function readInstalledTarget(root, integrity) {
     fail('npm did not install the audit target');
   }
   if (!isRecord(manifest) || manifest.name !== packageName || manifest.version !== packageVersion || !isRecord(lock) || !isRecord(lock.packages)) fail('npm audit target mismatch');
-  const entry = lock.packages['node_modules/@shipwithai/cumpa'];
+  const entry = lock.packages[`node_modules/@shipwithai/${renameMap.slug}`];
   if (!isRecord(entry) || (Object.hasOwn(entry, 'name') && entry.name !== packageName) || entry.version !== packageVersion || entry.integrity !== integrity || entry.resolved !== registryTarballUrl) fail('npm lock target mismatch');
 }
 
@@ -550,7 +551,7 @@ export async function verifyPublicNpmRelease({ evidencePath, expectedEvidenceSha
   const npmPath = await executable('npm');
   const npmRoot = dirname(dirname(npmPath));
   const npxPath = join(npmRoot, 'bin', 'npx-cli.js');
-  const root = await mkdtemp(join(tmpdir(), 'cumpa-npm-release-'));
+  const root = await mkdtemp(join(tmpdir(), `${renameMap.slug}-npm-release-`));
   let result;
   try {
     await chmod(root, 0o700);
@@ -580,8 +581,8 @@ export async function verifyPublicNpmRelease({ evidencePath, expectedEvidenceSha
     await mkdir(globalRoot, { mode: 0o700 });
     const globalEnv = await protectedNpmEnvironment(join(root, 'global-npm'));
     await run(process.execPath, [npmPath, 'install', '--global', '--prefix', globalEnv.npm_config_prefix, packageLabel, '--ignore-scripts', '--no-audit', '--registry', registry], { cwd: globalRoot, env: globalEnv });
-    const globalBin = join(globalEnv.npm_config_prefix, 'bin', 'cumpa');
-    const globalManifest = JSON.parse(await readFile(join(globalEnv.npm_config_prefix, 'lib', 'node_modules', '@shipwithai', 'cumpa', 'package.json'), 'utf8'));
+    const globalBin = join(globalEnv.npm_config_prefix, 'bin', renameMap.binCommand);
+    const globalManifest = JSON.parse(await readFile(join(globalEnv.npm_config_prefix, 'lib', 'node_modules', '@shipwithai', renameMap.slug, 'package.json'), 'utf8'));
     if (!isRecord(globalManifest) || globalManifest.name !== packageName || globalManifest.version !== packageVersion) fail('global install target mismatch');
     if ((await run(globalBin, ['--version'], { cwd: globalRoot, env: globalEnv })).stdout.trim() !== packageVersion) fail('global consumer version mismatch');
 
@@ -590,7 +591,7 @@ export async function verifyPublicNpmRelease({ evidencePath, expectedEvidenceSha
     const npxEnv = await protectedNpmEnvironment(join(root, 'npx-npm'));
     if ((await run(process.execPath, [npxPath, '--yes', packageLabel, '--version'], { cwd: npxRoot, env: npxEnv })).stdout.trim() !== packageVersion) fail('npx consumer version mismatch');
 
-    result = { kind: 'cumpa.npm-release-verification/v1', status: 'passed', archive, artifact, provenance, consumers: { global: { package: packageLabel, command: 'cumpa --version', version: packageVersion }, npx: { command: `npx --yes ${packageLabel} --version`, version: packageVersion } }, cleanup: { complete: true } };
+    result = { kind: `${renameMap.kindPrefix}.npm-release-verification/v1`, status: 'passed', archive, artifact, provenance, consumers: { global: { package: packageLabel, command: `${renameMap.binCommand} --version`, version: packageVersion }, npx: { command: `npx --yes ${packageLabel} --version`, version: packageVersion } }, cleanup: { complete: true } };
   } finally {
     await rm(root, { recursive: true, force: true });
   }

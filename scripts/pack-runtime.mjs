@@ -23,16 +23,17 @@ import os from 'node:os';
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { bootstrapVersion, version as stableVersion } from './release-identity.mjs';
+import renameMap from './rename-map.json' with { type: 'json' };
 
 const root = resolve(dirname(dirname(fileURLToPath(import.meta.url))));
 
-const runtimePackLock = join(os.tmpdir(), `cumpa-pack-runtime-${sha256(root).slice(0, 16)}.lock`);
+const runtimePackLock = join(os.tmpdir(), `${renameMap.slug}-pack-runtime-${sha256(root).slice(0, 16)}.lock`);
 const lockWait = new Int32Array(new SharedArrayBuffer(4));
 const purposes = new Set(['bootstrap', 'candidate', 'development-check', 'deployment-check']);
 const requiredFiles = ['README.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md'];
 const buildInputs = ['src', 'scripts', 'index.html', 'tsconfig.json', 'tsconfig.web.json', 'vite.config.ts'];
 const packageFiles = ['package.json', 'package-lock.json', ...requiredFiles];
-const forbiddenPath = /(?:^|\/)(?:\.git|\.github|\.planning|\.cumpa|node_modules|src|tests?|fixtures?|\.kimi-code)(?:\/|$)|\.(?:map|tsx?|vue)$/u;
+const forbiddenPath = new RegExp(`(?:^|/)(?:\\.git|\\.github|\\.planning|\\.cumpa|\\.${renameMap.slug}|node_modules|src|tests?|fixtures?|\\.kimi-code)(?:/|$)|\\.(?:map|tsx?|vue)$`, 'u');
 // Bounded scan: compiler strings describing maps are not emitted map payloads.
 const sourceMapContent = /(?:^[ \t]*\/\/[#@][ \t]*sourceMappingURL=|^[ \t]*\/\*[#@][ \t]*sourceMappingURL=|["']sourcesContent["']\s*:\s*\[)/mu;
 
@@ -322,9 +323,9 @@ function packageContract() {
   }
   if (
     !manifest
-    || manifest.name !== '@shipwithai/cumpa'
+    || manifest.name !== renameMap.npmPackage
     || manifest.engines?.node !== '>=24'
-    || manifest.bin?.cumpa !== 'dist/bin/cumpa.mjs'
+    || manifest.bin?.[renameMap.binCommand] !== `dist/bin/${renameMap.binCommand}.mjs`
     || Object.hasOwn(manifest, 'private')
     || !Array.isArray(manifest.files)
     || manifest.files.length !== 4
@@ -353,7 +354,7 @@ function packageOutputInventory() {
       sha256: sha256(content),
     };
   }).sort((left, right) => left.path.localeCompare(right.path));
-  if (!files.some((file) => file.path === 'dist/bin/cumpa.mjs') || !files.some((file) => file.path === 'dist/web/index.html')) {
+  if (!files.some((file) => file.path === `dist/bin/${renameMap.binCommand}.mjs`) || !files.some((file) => file.path === 'dist/web/index.html')) {
     fail('build did not produce required runtime files');
   }
   return { files, sha256: sha256(JSON.stringify(files)) };
@@ -458,7 +459,7 @@ function npmVersion() {
 
 function buildEnvironment(origin) {
   const environment = { ...process.env, NODE_ENV: 'production' };
-  if (origin === undefined) delete environment.CUMPA_RELEASE_SUPPORT_SERVICE_URL;
+  if (origin === undefined) delete environment[`${renameMap.envPrefix}RELEASE_SUPPORT_SERVICE_URL`];
   return environment;
 }
 function compilerIdentity() {
@@ -478,7 +479,7 @@ function compilerIdentity() {
 
 function packEnvironment() {
   const environment = { ...process.env };
-  delete environment.CUMPA_RELEASE_SUPPORT_SERVICE_URL;
+  delete environment[`${renameMap.envPrefix}RELEASE_SUPPORT_SERVICE_URL`];
   return environment;
 }
 
@@ -496,7 +497,7 @@ function sameValue(left, right) {
 }
 
 function bootstrapPackingTree(packageIdentity) {
-  const packingTree = mkdtempSync(join(os.tmpdir(), 'cumpa-bootstrap-pack-'));
+  const packingTree = mkdtempSync(join(os.tmpdir(), `${renameMap.slug}-bootstrap-pack-`));
   chmodSync(packingTree, 0o700);
   const manifest = { ...packageIdentity.manifest, version: bootstrapVersion };
   if (
@@ -529,7 +530,7 @@ function bootstrapPackingTree(packageIdentity) {
 
 function main() {
   const options = parseArguments(process.argv.slice(2));
-  const origin = process.env.CUMPA_RELEASE_SUPPORT_SERVICE_URL;
+  const origin = process.env[`${renameMap.envPrefix}RELEASE_SUPPORT_SERVICE_URL`];
   const support = supportConfiguration(origin, options.purpose);
   const sourceBefore = trackedSource();
   if (!sourceBefore.clean && options.purpose !== 'development-check') fail('clean tracked source is required for this purpose');
@@ -598,7 +599,7 @@ function main() {
       || inputsSha256 !== preflightSource()
     ) fail('tracked source changed during pack');
     const evidence = {
-      kind: 'cumpa.runtime-artifact-evidence/v1',
+      kind: `${renameMap.kindPrefix}.runtime-artifact-evidence/v1`,
       status: options.purpose === 'candidate' ? 'candidate' : options.purpose,
       purpose: options.purpose,
       package: {
@@ -649,7 +650,7 @@ function main() {
 try {
   main();
 } catch (error) {
-  const origin = process.env.CUMPA_RELEASE_SUPPORT_SERVICE_URL;
+  const origin = process.env[`${renameMap.envPrefix}RELEASE_SUPPORT_SERVICE_URL`];
   const detail = error instanceof Error ? error.message : 'unknown error';
   process.stderr.write(`runtime producer failed: ${origin ? detail.replaceAll(origin, '[redacted]') : detail}\n`);
   process.exitCode = 1;

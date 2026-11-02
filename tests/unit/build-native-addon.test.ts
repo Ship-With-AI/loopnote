@@ -26,9 +26,9 @@ function runBuild(root: string, platform: string, arch: string) {
     encoding: 'utf8',
     env: {
       ...process.env,
-      CUMPA_NATIVE_BUILD_ROOT: root,
-      CUMPA_NATIVE_BUILD_PLATFORM: platform,
-      CUMPA_NATIVE_BUILD_ARCH: arch,
+      [`${RENAME_MAP.envPrefix}NATIVE_BUILD_ROOT`]: root,
+      [`${RENAME_MAP.envPrefix}NATIVE_BUILD_PLATFORM`]: platform,
+      [`${RENAME_MAP.envPrefix}NATIVE_BUILD_ARCH`]: arch,
     },
   });
 }

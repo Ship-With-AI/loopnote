@@ -2,6 +2,7 @@ import { existsSync, linkSync, mkdirSync, readFileSync, unlinkSync, writeFileSyn
 import { basename, dirname, isAbsolute, join, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
+import renameMap from './rename-map.json' with { type: 'json' };
 
 const requiredRequirements = new Set(['ACC-01', 'ACC-02', 'ACC-03', 'ACC-04']);
 const requiredSources = ['global', 'npx', 'marketplace'];
@@ -162,7 +163,7 @@ function completeMarketplaceReview(evidence) {
     && evidence.lifecycle?.terminalExit === 0
     && evidence.canonical?.nonEmpty === true
     && evidence.canonical.parseable === true
-    && evidence.canonical.kind === 'cumpa/export'
+    && evidence.canonical.kind === `${renameMap.kindPrefix}/export`
     && evidence.canonical.summaryMatchesBrowser === true
     && evidence.canonical.commentMatchesBrowser === true;
 }
@@ -220,7 +221,7 @@ export function buildAcceptanceEvidence(inputs) {
   const status = deriveAcceptanceStatus(requirements);
   const restoreFinding = normalizeRestoreFinding(inputs.restoreReportedCompleteWithoutLinkage);
   const record = {
-    kind: 'cumpa.public-artifact-acceptance/v1',
+    kind: `${renameMap.kindPrefix}.public-artifact-acceptance/v1`,
     status,
     acceptedAt: inputs.acceptedAt,
     host: inputs.host,

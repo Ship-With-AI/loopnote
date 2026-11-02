@@ -18,6 +18,7 @@ import { basename, dirname, isAbsolute, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { babelParse, walk } from 'vue/compiler-sfc';
 import { bootstrapVersion, version } from './release-identity.mjs';
+import renameMap from './rename-map.json' with { type: 'json' };
 
 const root = resolve(dirname(dirname(fileURLToPath(import.meta.url))));
 const purposes = new Set(['bootstrap', 'candidate', 'development-check', 'deployment-check']);
@@ -26,7 +27,7 @@ const profiles = {
   stable: { purpose: undefined, version },
   bootstrap: { purpose: 'bootstrap', version: bootstrapVersion },
 };
-const requiredRoots = ['package.json', 'README.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'dist/bin/cumpa.mjs'];
+const requiredRoots = ['package.json', 'README.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md', `dist/bin/${renameMap.binCommand}.mjs`];
 const legalRoots = ['README.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md'];
 const workerRoles = ['editor', 'css', 'html', 'json', 'ts'];
 const maxArchiveBytes = 16 * 1024 * 1024; // Measured candidate is 3.52 MB; retain >4x headroom.
@@ -34,7 +35,7 @@ const maxFiles = 512; // Measured candidate has 140 dist entries; retain >3x hea
 const maxFileBytes = 32 * 1024 * 1024;
 const maxExtractedBytes = 64 * 1024 * 1024;
 const textFile = /\.(?:js|mjs|cjs|json|html|css|svg|txt|md)$/u;
-const forbiddenPath = /(?:^|\/)(?:\.agents|\.claude|\.cumpa|\.github|\.git|\.kimi-code|\.planning|fixtures?|node_modules|src|tests?)(?:\/|$)|(?:^|\/)\.env(?:\.|$)|\.(?:map|p12|pem|key|tsx?|vue)$/u;
+const forbiddenPath = new RegExp(`(?:^|/)(?:\\.agents|\\.claude|\\.cumpa|\\.${renameMap.slug}|\\.github|\\.git|\\.kimi-code|\\.planning|fixtures?|node_modules|src|tests?)(?:/|$)|(?:^|/)\\.env(?:\\.|$)|\\.(?:map|p12|pem|key|tsx?|vue)$`, 'u');
 const protectedValue = /(?:\b(?:sk|rk|pk)_[A-Za-z0-9_]+|\bwhsec_[A-Za-z0-9_]+|\bgh[ops]_[A-Za-z0-9_]+|\b(?:STRIPE|SUPABASE|GITHUB)_[A-Z0-9_]*(?:SECRET|TOKEN|PASSWORD|CLIENT_ID|PRICE_ID|WEBHOOK_ENDPOINT_ID)\b|(?:oauth|access_token|id_token|payer_email|profile_email)=)/iu;
 const legacyRuntime = /(?:services\/support|render\.ya?ml|RESEND_API_KEY|magic[-_ ]?link|recovery[-_ ]?token|DATABASE_URL|EMAIL_LOOKUP_HMAC_KEY|RECOVERY_TOKEN_HMAC_KEY)/iu;
 // Anchored emitted-map signatures deliberately do not classify compiler string literals as maps.
@@ -176,7 +177,7 @@ function readEvidence(path, profile) {
   } catch {
     fail('evidence must be valid JSON');
   }
-  if (!isRecord(evidence) || evidence.kind !== 'cumpa.runtime-artifact-evidence/v1') fail('unexpected producer evidence kind');
+  if (!isRecord(evidence) || evidence.kind !== `${renameMap.kindPrefix}.runtime-artifact-evidence/v1`) fail('unexpected producer evidence kind');
   if (!purposes.has(evidence.purpose) || typeof evidence.status !== 'string') fail('invalid producer evidence purpose or status');
   if (profile === 'bootstrap') {
     if (evidence.purpose !== profiles.bootstrap.purpose || evidence.status !== 'bootstrap') fail('bootstrap profile requires bootstrap evidence');
@@ -185,7 +186,7 @@ function readEvidence(path, profile) {
   } else if (evidence.status !== evidence.purpose || !['development-check', 'deployment-check'].includes(evidence.status)) {
     fail('invalid producer evidence status');
   }
-  if (!isRecord(evidence.package) || evidence.package.name !== '@shipwithai/cumpa' || evidence.package.version !== profiles[profile].version) fail('invalid package identity');
+  if (!isRecord(evidence.package) || evidence.package.name !== renameMap.npmPackage || evidence.package.version !== profiles[profile].version) fail('invalid package identity');
   evidence.package.runtimeDependencies = exactDependencies(evidence.package.runtimeDependencies, 'runtime dependencies');
   if (profile === 'bootstrap') {
     exactKeys(evidence.package.manifestProjection, ['field', 'sourceVersion', 'packedVersion', 'sourceSha256', 'projectedInputSha256', 'packedOutputSha256'], 'bootstrap manifest projection');
@@ -272,14 +273,14 @@ function canonicalOrigin(value) {
   try {
     url = new URL(value);
   } catch {
-    fail('CUMPA_RELEASE_SUPPORT_SERVICE_URL must be canonical');
+    fail(`${renameMap.envPrefix}RELEASE_SUPPORT_SERVICE_URL must be canonical`);
   }
   const ref = url.hostname.slice(0, -'.supabase.co'.length);
   if (
     value !== `https://${ref}.supabase.co`
     || url.protocol !== 'https:'
     || !/^[a-z0-9]{20}$/u.test(ref)
-  ) fail('CUMPA_RELEASE_SUPPORT_SERVICE_URL must be canonical');
+  ) fail(`${renameMap.envPrefix}RELEASE_SUPPORT_SERVICE_URL must be canonical`);
   return { origin: value, ref };
 }
 
@@ -323,10 +324,10 @@ function assertManifest(bytes, evidence, profile) {
   }
   if (
     !isRecord(manifest)
-    || manifest.name !== '@shipwithai/cumpa'
+    || manifest.name !== renameMap.npmPackage
     || manifest.version !== profiles[profile].version
     || manifest.engines?.node !== '>=24'
-    || manifest.bin?.cumpa !== 'dist/bin/cumpa.mjs'
+    || manifest.bin?.[renameMap.binCommand] !== `dist/bin/${renameMap.binCommand}.mjs`
     || Object.hasOwn(manifest, 'private')
     || !Array.isArray(manifest.files)
     || JSON.stringify(manifest.files) !== JSON.stringify(['dist/', 'README.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md'])
@@ -417,19 +418,19 @@ function verify(options) {
     || sha256(readFileSync(join(root, evidence.native.source.path))) !== evidence.native.source.sha256
   ) fail('reviewed source identity mismatch');
 
-  const originValue = process.env.CUMPA_RELEASE_SUPPORT_SERVICE_URL;
+  const originValue = process.env[`${renameMap.envPrefix}RELEASE_SUPPORT_SERVICE_URL`];
   let support;
   if (evidence.support.configured) {
-    if (originValue === undefined) fail('configured evidence requires CUMPA_RELEASE_SUPPORT_SERVICE_URL');
+    if (originValue === undefined) fail(`configured evidence requires ${renameMap.envPrefix}RELEASE_SUPPORT_SERVICE_URL`);
     support = canonicalOrigin(originValue);
     if (sha256(support.origin) !== evidence.support.originSha256) fail('configured support origin does not match evidence fingerprint');
   } else {
-    if (originValue !== undefined) fail('unconfigured evidence rejects CUMPA_RELEASE_SUPPORT_SERVICE_URL');
+    if (originValue !== undefined) fail(`unconfigured evidence rejects ${renameMap.envPrefix}RELEASE_SUPPORT_SERVICE_URL`);
     support = undefined;
   }
 
   const originalUmask = process.umask(0o077);
-  const parent = mkdtempSync(join(os.tmpdir(), 'cumpa-artifact-'));
+  const parent = mkdtempSync(join(os.tmpdir(), `${renameMap.slug}-artifact-`));
   const extractionRoot = join(parent, `extract-${randomBytes(8).toString('hex')}`);
   let cleaned = false;
   const cleanup = () => {
@@ -499,8 +500,8 @@ function verify(options) {
       if (!files.has(nativePath) || evidence.native.binary === null || files.get(nativePath).sha256 !== evidence.native.binary.sha256) fail('Darwin ARM64 native binary is missing or mismatched');
     } else if (files.has(nativePath) || evidence.native.binary !== null) fail('unsupported target must omit the native binary');
     if (support) {
-      const launcher = files.get('dist/bin/cumpa.mjs').bytes.toString('utf8');
-      const assignment = `if (process.env.CUMPA_SUPPORT_SERVICE_URL === undefined) process.env.CUMPA_SUPPORT_SERVICE_URL = '${support.origin}';`;
+      const launcher = files.get(`dist/bin/${renameMap.binCommand}.mjs`).bytes.toString('utf8');
+      const assignment = `if (process.env.${renameMap.envPrefix}SUPPORT_SERVICE_URL === undefined) process.env.${renameMap.envPrefix}SUPPORT_SERVICE_URL = '${support.origin}';`;
       const assignments = babelParse(launcher, { sourceType: 'module' }).program.body.filter(
         (node) => node.type === 'IfStatement' && launcher.slice(node.start, node.end) === assignment,
       );
@@ -510,7 +511,7 @@ function verify(options) {
     const archiveAfter = digestArchive(options.archivePath);
     if (JSON.stringify(archiveAfter) !== JSON.stringify(archiveBefore)) fail('archive changed during verification');
     return {
-      kind: 'cumpa.runtime-artifact-verification/v1',
+      kind: `${renameMap.kindPrefix}.runtime-artifact-verification/v1`,
       status: 'passed',
       purpose: evidence.purpose,
       ...(options.profile === 'bootstrap' ? { profile: 'bootstrap' } : {}),
@@ -537,7 +538,7 @@ try {
   options = parseArguments(process.argv.slice(2));
   process.stdout.write(`${JSON.stringify(verify(options))}\n`);
 } catch (error) {
-  const origin = process.env.CUMPA_RELEASE_SUPPORT_SERVICE_URL;
+  const origin = process.env[`${renameMap.envPrefix}RELEASE_SUPPORT_SERVICE_URL`];
   const detail = error instanceof Error ? error.message : 'unknown error';
   process.stderr.write(`runtime artifact verifier failed: ${origin ? detail.replaceAll(origin, '[redacted]') : detail}\n`);
   process.exitCode = 1;
