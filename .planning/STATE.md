@@ -5,16 +5,16 @@ milestone_name: Artifact Review
 current_phase: 17.1
 current_phase_name: full-project-rename
 status: executing
-stopped_at: Completed 17.1-02-PLAN.md
-last_updated: "2026-11-02T09:07:24.183Z"
+stopped_at: Completed 17.1-05-PLAN.md
+last_updated: "2026-11-02T09:28:04.402Z"
 last_activity: 2026-11-02
 last_activity_desc: Phase 17.1 execution started
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 69
-  completed_plans: 46
-  percent: 67
+  completed_plans: 47
+  percent: 68
 ---
 
 # Project State
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-09-09)
 ## Current Position
 
 Phase: 17.1 (full-project-rename) — EXECUTING
-Plan: 5 of 22
+Plan: 6 of 22
 Status: Ready to execute
 Last activity: 2026-11-02 — Phase 17.1 execution started
 
@@ -92,6 +92,7 @@ Last activity: 2026-11-02 — Phase 17.1 execution started
 | Phase 17.1 P02 | 20min | 2 tasks | 11 files |
 | Phase 17.1 P03 | 45min | 2 tasks | 14 files |
 | Phase 17.1 P04 | 25min | 2 tasks | 14 files |
+| Phase 17.1 P05 | 20min | 2 tasks | 16 files |
 
 ## Accumulated Context
 
@@ -167,6 +168,10 @@ Decisions are logged in PROJECT.md Key Decisions.
 - [Phase 17.1]: 17.1-03: Also renamed CUMPA_LAUNCH_OPTIONS/CUMPA_BROWSER_OPEN_MARKER in tests/e2e/package-assets.spec.ts, the only plan owning that file in the whole 17.1 phase -- leaving them unrenamed would have broken the test against the already-renamed src/cli/run.ts
 - [Phase 17.1]: 17.1-04: Left CUMPA_NATIVE_BUILD_ROOT/PLATFORM/ARCH env var names untouched in tests/unit/build-native-addon.test.ts — Owned by sibling plan 17.1-05 along with scripts/build-native-addon.mjs; only the file's own cumpa-native-build- tmpdir prefix was renamed per this plan's literal action text
 - [Phase 17.1]: 17.1-04: Anchor golden-regression hash recomputed empirically, not hand-derived — Read the test runner's actual failure-diff Received value (6b6737df1bd5c8bc1776da0c6cacd8dbb16aaf95a05f090b9cc1c4b7ba1994ef) after renaming CONTEXT_DOMAIN, pasted it into the literal, re-ran to confirm GREEN
+- [Phase 17.1]: 17.1-05: Left write-acceptance-evidence.mjs's pinned v1.5.0 tarball URL/packageLabel literals (lines 10, 139) in old form — Both validate against readPinnedIdentity()/readMarketplaceIdentity()'s frozen v1.5 milestone archive literals (lines 366/379), which the plan correctly leaves unrenamed as immutable history; renaming the allowlist/label would make assertNoPrivateValues reject the pinned archive's own tarballUrl on every invocation
+- [Phase 17.1]: 17.1-05: Renamed scripts/build-native-addon.mjs and tests/unit/build-native-addon.test.ts, absent from this plan's files_modified — 17.1-04's SUMMARY explicitly defers CUMPA_NATIVE_BUILD_* to this plan and build-native-addon.mjs is in this plan's top-level files_modified; leaving the test's env var keys stale would silently break its environment-override intent
+- [Phase 17.1]: 17.1-05: Renamed all five CUMPA_RUNTIME_* env vars in publish-npm.yml despite tests/helpers/runtime-artifact.ts (owned by 17.1-15) not yet renamed — Must_haves truths bullet explicitly lists CUMPA_RUNTIME_* and this plan owns publish-npm.yml; temporary cross-plan mismatch until 17.1-15 runs mirrors the plan's own accepted GitHub-secret situation
+- [Phase 17.1]: 17.1-05: Left verify-supabase-support.mjs:1002's 'return to Cumpa.' completion-text check unrenamed, deferred to 17.1-09 — Must byte-match supabase/functions/support-flow/index.ts's literal completion text, owned by sibling plan 17.1-09 which has not yet run
 
 ### Pending Todos
 
@@ -220,6 +225,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-11-02T09:07:17.139Z
-Stopped at: Completed 17.1-02-PLAN.md
+Last session: 2026-11-02T09:28:04.397Z
+Stopped at: Completed 17.1-05-PLAN.md
 Resume file: None
