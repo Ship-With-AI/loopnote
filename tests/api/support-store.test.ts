@@ -89,7 +89,7 @@ describe('support.json one-time D-06 copy', () => {
     expect(after.mtimeMs).toBe(before.mtimeMs);
   });
 
-  test('preserves the legacy file mode on the copied new-path file', async () => {
+  test('hardcodes the copied new-path file to mode 0o600 when the legacy file is 0o640', async () => {
     const directory = await root();
     const legacyPath = join(directory, 'legacy', 'support.json');
     const newPath = join(directory, 'new', 'support.json');
@@ -100,9 +100,22 @@ describe('support.json one-time D-06 copy', () => {
     const store = createSupportStore({ path: newPath, legacyPath });
     await store.state();
 
-    const legacyMode = (await stat(legacyPath)).mode & 0o777;
     const newMode = (await stat(newPath)).mode & 0o777;
-    expect(newMode).toBe(0o640);
-    expect(newMode).toBe(legacyMode);
+    expect(newMode).toBe(0o600);
+  });
+
+  test('hardcodes the copied new-path file to mode 0o600 when the legacy file is 0o644', async () => {
+    const directory = await root();
+    const legacyPath = join(directory, 'legacy', 'support.json');
+    const newPath = join(directory, 'new', 'support.json');
+    await mkdir(dirname(legacyPath), { recursive: true });
+    await writeFile(legacyPath, `${JSON.stringify(legacyState)}\n`, { mode: 0o644 });
+    await chmod(legacyPath, 0o644);
+
+    const store = createSupportStore({ path: newPath, legacyPath });
+    await store.state();
+
+    const newMode = (await stat(newPath)).mode & 0o777;
+    expect(newMode).toBe(0o600);
   });
 });
