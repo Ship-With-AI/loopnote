@@ -6,6 +6,7 @@ import { afterEach, describe, expect, test } from 'vitest';
 
 import { buildDurableAnchor } from '../../src/domain/anchor.js';
 import { comparisonKey } from '../../src/domain/comparison-key.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 import { createDraftStore, type DraftFileSystem } from '../../src/server/draft-store.js';
 
 const roots: string[] = [];
@@ -28,7 +29,7 @@ const anchor = buildDurableAnchor({
 });
 
 async function root(): Promise<string> {
-  const value = await fs.mkdtemp(join(tmpdir(), 'cumpa-atomic-'));
+  const value = await fs.mkdtemp(join(tmpdir(), `${RENAME_MAP.slug}-atomic-`));
   roots.push(value);
   return value;
 }
@@ -96,7 +97,7 @@ describe('atomic draft persistence', () => {
       expect(await initialStore.mutate({ expectedRevision: 0, mutation: { type: 'addComment', body: 'already persisted', anchor } })).toMatchObject({ kind: 'accepted' });
       const canonicalPath = join(
         repositoryRoot,
-        '.cumpa',
+        RENAME_MAP.repoStateDir.replace(/\/$/, ''),
         'drafts',
         `${comparisonKey(comparison.baseCommitOid, comparison.headCommitOid)}.json`,
       );

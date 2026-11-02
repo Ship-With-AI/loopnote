@@ -4,6 +4,7 @@ import { join } from 'node:path';
 
 import { afterEach, describe, expect, test } from 'vitest';
 
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 import { AttachedCompletionCoordinator } from '../../src/server/attached-completion.js';
 import { createDraftStore } from '../../src/server/draft-store.js';
 
@@ -15,7 +16,7 @@ const comparison = {
 };
 
 async function root(): Promise<string> {
-  const value = await mkdtemp(join(tmpdir(), 'cumpa-attached-completion-'));
+  const value = await mkdtemp(join(tmpdir(), `${RENAME_MAP.slug}-attached-completion-`));
   roots.push(value);
   return value;
 }

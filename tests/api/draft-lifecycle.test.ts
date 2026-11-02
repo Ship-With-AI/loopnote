@@ -6,6 +6,7 @@ import type { FastifyInstance } from 'fastify';
 import { afterEach, describe, expect, test } from 'vitest';
 
 import type { PinnedComparison } from '../../src/contracts/comparison.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 import { createSessionApp } from '../../src/server/app.js';
 
 const token = 'a'.repeat(43);
@@ -44,7 +45,7 @@ function comparison(repositoryRoot: string): PinnedComparison {
 }
 
 async function app(): Promise<FastifyInstance> {
-  const repositoryRoot = await mkdtemp(join(tmpdir(), 'cumpa-lifecycle-'));
+  const repositoryRoot = await mkdtemp(join(tmpdir(), `${RENAME_MAP.slug}-lifecycle-`));
   roots.push(repositoryRoot);
   const value = createSessionApp(comparison(repositoryRoot), {
     sessionToken: token,

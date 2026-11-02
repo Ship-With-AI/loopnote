@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 import { createSessionApp } from '../../src/server/app.js';
 
 const token = 'a'.repeat(43);
@@ -14,7 +15,7 @@ const roots: string[] = [];
 const apps = new Set<FastifyInstance>();
 
 async function buildApp(revealDraftFile = vi.fn(async () => undefined)) {
-  const repositoryRoot = await mkdtemp(join(tmpdir(), 'cumpa-draft-reveal-'));
+  const repositoryRoot = await mkdtemp(join(tmpdir(), `${RENAME_MAP.slug}-draft-reveal-`));
   roots.push(repositoryRoot);
   const app = createSessionApp({
     repositoryRoot,
@@ -66,7 +67,7 @@ describe('fixed active-draft reveal API', () => {
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({ kind: 'revealed' });
     expect(revealDraftFile).toHaveBeenCalledTimes(1);
-    expect(revealDraftFile).toHaveBeenCalledWith(expect.stringContaining(join(repositoryRoot, '.cumpa', 'drafts')));
+    expect(revealDraftFile).toHaveBeenCalledWith(expect.stringContaining(join(repositoryRoot, RENAME_MAP.repoStateDir.replace(/\/$/, ''), 'drafts')));
     expect(JSON.stringify(response.json())).not.toContain(repositoryRoot);
   });
 

@@ -7,6 +7,7 @@ import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import type { PinnedComparison } from '../../src/contracts/comparison.js';
 import { comparisonKey, rangeReviewKey } from '../../src/domain/comparison-key.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 import { createSessionApp } from '../../src/server/app.js';
 import { createAttachedCompletionCoordinator } from '../../src/server/attached-completion.js';
 
@@ -82,6 +83,7 @@ function buildApp(
 ) {
   const app = createSessionApp(comparison(root, baseOid, headOid, reviewRange), {
     sessionToken: token,
+    diagnostics: (d) => console.error('DIAG', JSON.stringify(d)),
     onCapabilityLookup: onLookup,
     objectReader: {
       inspect: async () => ({ kind: 'available' as const, objectType: 'blob', size: 12 }),
@@ -111,7 +113,7 @@ function buildApp(
 }
 
 async function root(): Promise<string> {
-  const value = await mkdtemp(join(tmpdir(), 'cumpa-draft-'));
+  const value = await mkdtemp(join(tmpdir(), `${RENAME_MAP.slug}-draft-`));
   roots.push(value);
   return value;
 }
@@ -129,7 +131,7 @@ describe('comparison-local draft routes', () => {
 
     expect((await first.inject({ method: 'GET', url: '/api/draft', headers })).json()).toMatchObject({
       kind: 'missing',
-      path: '.cumpa/drafts/' + comparisonKey('1'.repeat(40), '2'.repeat(40)) + '.json',
+      path: `${RENAME_MAP.repoStateDir}drafts/` + comparisonKey('1'.repeat(40), '2'.repeat(40)) + '.json',
     });
 
     const added = await first.inject({
@@ -142,7 +144,7 @@ describe('comparison-local draft routes', () => {
     expect(added.json()).toMatchObject({ kind: 'accepted', draft: { comments: [{ state: 'open', body: 'Keep this exact line.' }] } });
 
     const persisted = JSON.parse(await readFile(
-      join(repositoryRoot, '.cumpa', 'drafts', `${comparisonKey('1'.repeat(40), '2'.repeat(40))}.json`),
+      join(repositoryRoot, RENAME_MAP.repoStateDir.replace(/\/$/, ''), 'drafts', `${comparisonKey('1'.repeat(40), '2'.repeat(40))}.json`),
       'utf8',
     )) as { comparison: Record<string, unknown> };
     expect(persisted.comparison).not.toHaveProperty('range');
@@ -169,11 +171,11 @@ describe('comparison-local draft routes', () => {
 
     expect((await first.inject({ method: 'GET', url: '/api/draft', headers })).json()).toMatchObject({
       kind: 'missing',
-      path: `.cumpa/drafts/${firstRange.reviewKey}.json`,
+      path: `${RENAME_MAP.repoStateDir}drafts/${firstRange.reviewKey}.json`,
     });
     expect((await second.inject({ method: 'GET', url: '/api/draft', headers })).json()).toMatchObject({
       kind: 'missing',
-      path: `.cumpa/drafts/${secondRange.reviewKey}.json`,
+      path: `${RENAME_MAP.repoStateDir}drafts/${secondRange.reviewKey}.json`,
     });
 
     expect((await first.inject({
@@ -202,7 +204,7 @@ describe('comparison-local draft routes', () => {
     expect(reviewRange.reviewKey).toBe(range(['src']).reviewKey);
     expect((await first.inject({ method: 'GET', url: '/api/draft', headers })).json()).toMatchObject({
       kind: 'missing',
-      path: `.cumpa/drafts/${firstScope}.json`,
+      path: `${RENAME_MAP.repoStateDir}drafts/${firstScope}.json`,
     });
     expect((await first.inject({
       method: 'POST',
@@ -212,14 +214,14 @@ describe('comparison-local draft routes', () => {
     })).statusCode).toBe(200);
     expect((await second.inject({ method: 'GET', url: '/api/draft', headers })).json()).toMatchObject({
       kind: 'missing',
-      path: `.cumpa/drafts/${secondScope}.json`,
+      path: `${RENAME_MAP.repoStateDir}drafts/${secondScope}.json`,
     });
-    expect(await readFile(join(repositoryRoot, '.cumpa', 'drafts', `${firstScope}.json`), 'utf8')).toContain('First attached review.');
+    expect(await readFile(join(repositoryRoot, RENAME_MAP.repoStateDir.replace(/\/$/, ''), 'drafts', `${firstScope}.json`), 'utf8')).toContain('First attached review.');
   });
 
   test.each([
     ['reviewKey', 'f'.repeat(64)],
-    ['path', '.cumpa/drafts/controlled.json'],
+    ['path', `${RENAME_MAP.repoStateDir}drafts/controlled.json`],
     ['baseCommitOid', 'f'.repeat(40)],
     ['headCommitOid', 'f'.repeat(40)],
     ['label', 'controlled'],
@@ -318,7 +320,7 @@ describe('comparison-local draft routes', () => {
     expect(denied.statusCode).toBe(401);
     expect(onLookup).not.toHaveBeenCalled();
 
-    const directory = join(repositoryRoot, '.cumpa', 'drafts');
+    const directory = join(repositoryRoot, RENAME_MAP.repoStateDir.replace(/\/$/, ''), 'drafts');
     await mkdir(directory, { recursive: true });
     const file = join(
       directory,

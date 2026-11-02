@@ -7,6 +7,7 @@ import type { FastifyInstance } from 'fastify';
 import { afterEach, describe, expect, test } from 'vitest';
 
 import { comparisonKey } from '../../src/domain/comparison-key.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 import { createSessionApp } from '../../src/server/app.js';
 
 const token = 'a'.repeat(43);
@@ -54,9 +55,9 @@ async function buildApp(repositoryRoot: string) {
 }
 
 async function corruptDraft(bytes: Buffer): Promise<{ root: string; path: string }> {
-  const root = await mkdtemp(join(tmpdir(), 'cumpa-draft-recovery-'));
+  const root = await mkdtemp(join(tmpdir(), `${RENAME_MAP.slug}-draft-recovery-`));
   roots.push(root);
-  const directory = join(root, '.cumpa', 'drafts');
+  const directory = join(root, RENAME_MAP.repoStateDir.replace(/\/$/, ''), 'drafts');
   const path = join(directory, `${comparisonKey('1'.repeat(40), '2'.repeat(40))}.json`);
   await mkdir(directory, { recursive: true });
   await writeFile(path, bytes);
@@ -79,7 +80,7 @@ describe('corrupt draft recovery API', () => {
     expect(loaded.statusCode).toBe(200);
     expect(loaded.json()).toMatchObject({
       kind: 'malformed',
-      path: '.cumpa/drafts/' + comparisonKey('1'.repeat(40), '2'.repeat(40)) + '.json',
+      path: `${RENAME_MAP.repoStateDir}drafts/` + comparisonKey('1'.repeat(40), '2'.repeat(40)) + '.json',
       fingerprint: createHash('sha256').update(bytes).digest('hex'),
     });
     expect(JSON.stringify(loaded.json())).not.toContain(bytes.toString('utf8'));
@@ -116,7 +117,7 @@ describe('corrupt draft recovery API', () => {
     expect(recovered.statusCode).toBe(201);
     expect(recovered.json()).toMatchObject({
       kind: 'recovered',
-      backupPath: '.cumpa/drafts/' + comparisonKey('1'.repeat(40), '2'.repeat(40)) + `.corrupt.${fingerprint}.bak`,
+      backupPath: `${RENAME_MAP.repoStateDir}drafts/` + comparisonKey('1'.repeat(40), '2'.repeat(40)) + `.corrupt.${fingerprint}.bak`,
       draft: { schemaVersion: 1, revision: 0, summary: '', comments: [] },
     });
     const backup = join(root, recovered.json().backupPath);

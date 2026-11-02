@@ -5,6 +5,7 @@ import { afterEach, describe, expect, test } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 
 import type { GroundedExactPatch, PinnedComparison } from '../../src/contracts/comparison.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 import { AttachedCompletionCoordinator } from '../../src/server/attached-completion.js';
 import { createExactPatchSessionApp, createSessionApp } from '../../src/server/app.js';
 import { createDraftStore } from '../../src/server/draft-store.js';
@@ -74,7 +75,7 @@ function exactPatch(repositoryRoot: string): GroundedExactPatch {
 }
 
 async function root(): Promise<string> {
-  const value = await mkdtemp(join(tmpdir(), 'cumpa-attached-completion-'));
+  const value = await mkdtemp(join(tmpdir(), `${RENAME_MAP.slug}-attached-completion-`));
   roots.push(value);
   return value;
 }

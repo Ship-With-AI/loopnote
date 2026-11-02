@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { RENAME_MAP } from '../domain/product-identity.js';
+
 import {
   AvailabilitySchema,
   ChangedFileStatusKindSchema,
@@ -108,9 +110,9 @@ export const DraftViewSchema = z
   })
   .readonly();
 
-export const SafeDraftPathSchema = z
-  .string()
-  .regex(/^\.cumpa\/drafts\/[A-Za-z0-9._-]+$/u);
+const SAFE_DRAFT_PATH_PATTERN = new RegExp(`^\\${RENAME_MAP.repoStateDir}drafts/[A-Za-z0-9._-]+$`, 'u');
+
+export const SafeDraftPathSchema = z.string().regex(SAFE_DRAFT_PATH_PATTERN);
 
 const DraftMalformedLoadSchema = z
   .strictObject({
@@ -502,15 +504,20 @@ export const PatchStatusResponseSchema = z
   ])
   .readonly();
 
-const ExportReceiptDirectoryPattern =
-  /^\.cumpa\/exports\/((?:(?:[0-9a-f]{40}|[0-9a-f]{64})\.\.(?:[0-9a-f]{40}|[0-9a-f]{64}))|(?:[0-9a-f]{64}|agent-[0-9a-f]{32}))\/review\.(?:json|md)$/u;
+const ExportReceiptDirectoryPattern = new RegExp(
+  `^\\${RENAME_MAP.repoStateDir}exports/((?:(?:[0-9a-f]{40}|[0-9a-f]{64})\\.\\.(?:[0-9a-f]{40}|[0-9a-f]{64}))|(?:[0-9a-f]{64}|agent-[0-9a-f]{32}))/review\\.(?:json|md)$`,
+  'u',
+);
 
 const ExportReceiptJsonFileSchema = z
   .strictObject({
     path: z
       .string()
       .regex(
-        /^\.cumpa\/exports\/(?:(?:[0-9a-f]{40}|[0-9a-f]{64})\.\.(?:[0-9a-f]{40}|[0-9a-f]{64})|(?:[0-9a-f]{64}|agent-[0-9a-f]{32}))\/review\.json$/u,
+        new RegExp(
+          `^\\${RENAME_MAP.repoStateDir}exports/(?:(?:[0-9a-f]{40}|[0-9a-f]{64})\\.\\.(?:[0-9a-f]{40}|[0-9a-f]{64})|(?:[0-9a-f]{64}|agent-[0-9a-f]{32}))/review\\.json$`,
+          'u',
+        ),
       ),
     algorithm: z.literal('sha256'),
     sha256: z.string().regex(/^[0-9a-f]{64}$/u),
@@ -523,7 +530,10 @@ const ExportReceiptMarkdownFileSchema = z
     path: z
       .string()
       .regex(
-        /^\.cumpa\/exports\/(?:(?:[0-9a-f]{40}|[0-9a-f]{64})\.\.(?:[0-9a-f]{40}|[0-9a-f]{64})|(?:[0-9a-f]{64}|agent-[0-9a-f]{32}))\/review\.md$/u,
+        new RegExp(
+          `^\\${RENAME_MAP.repoStateDir}exports/(?:(?:[0-9a-f]{40}|[0-9a-f]{64})\\.\\.(?:[0-9a-f]{40}|[0-9a-f]{64})|(?:[0-9a-f]{64}|agent-[0-9a-f]{32}))/review\\.md$`,
+          'u',
+        ),
       ),
     algorithm: z.literal('sha256'),
     sha256: z.string().regex(/^[0-9a-f]{64}$/u),
