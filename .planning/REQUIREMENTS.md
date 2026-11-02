@@ -59,7 +59,7 @@
 
 ### Rename
 
-- [ ] **REN-01**: User installs and runs the product under its new npm package and CLI command, and sees only the new name in `--help`, the browser workspace, and exports; the old package is deprecated with no alias command.
+- [x] **REN-01**: User installs and runs the product under its new npm package and CLI command, and sees only the new name in `--help`, the browser workspace, and exports; the old package is deprecated with no alias command.
 - [ ] **REN-02**: Coding agent uses the new protocol `kind` values for requests and results; a request with an old `cumpa.*` kind fails before launch with a specific error naming the new kind.
 - [ ] **REN-03**: User's reviews read and write only the new repo-local state directory; the old `.cumpa/` is neither migrated nor listed as reviewable content.
 - [ ] **REN-04**: An existing supporter keeps their support status: `support.json` is copied once from the old per-user state directory when the new one is missing.
@@ -126,7 +126,7 @@ Deferred, tracked but not in the v2.0 roadmap.
 | AGENT-08 | Phase 17 | Complete |
 | AGENT-09 | Phase 17 | Complete |
 | SKL-04 | Phase 17 | Complete |
-| REN-01 | Phase 17.1 | Pending |
+| REN-01 | Phase 17.1 | Complete |
 | REN-02 | Phase 17.1 | Pending |
 | REN-03 | Phase 17.1 | Pending |
 | REN-04 | Phase 17.1 | Pending |

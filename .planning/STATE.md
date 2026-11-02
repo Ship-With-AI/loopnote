@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Artifact Review
-current_phase: 17
-current_phase_name: agent-protocol-extension-marketplace-skill
-status: human_needed
-stopped_at: "Phase 17 re-verified after quick task 261031-q09: open-runtime-session.ts's stale .monaco-diff-editor assertion (Human Verification #1) is fixed, confirmed, and committed — 17-VERIFICATION.md now scores 14/15 (up from 10/15). The sole remaining human_needed item is opening the draft PR against Ship-With-AI/skills (D-05)."
-last_updated: "2026-10-31T19:50:00.000Z"
-last_activity: 2026-10-31
-last_activity_desc: Phase 17 execution started
+current_phase: 17.1
+current_phase_name: full-project-rename
+status: executing
+stopped_at: Completed 17.1-01-PLAN.md
+last_updated: "2026-11-02T08:31:03.548Z"
+last_activity: 2026-11-02
+last_activity_desc: Phase 17.1 execution started
 progress:
   total_phases: 7
   completed_phases: 5
-  total_plans: 42
-  completed_plans: 42
-  percent: 71
+  total_plans: 69
+  completed_plans: 43
+  percent: 62
 ---
 
 # Project State
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-09)
 
 **Core value:** A developer can accurately review repository-grounded changes chosen by a developer or coding agent and return precise, drift-detectable feedback the agent can act on.
-**Current focus:** Phase 17 — agent-protocol-extension-marketplace-skill
+**Current focus:** Phase 17.1 — full-project-rename
 
 ## Current Position
 
-Phase: 17 (agent-protocol-extension-marketplace-skill) — HUMAN_NEEDED
-Plan: 5 of 5
-Status: Executed, re-verified (14/15 truths; 1 behavior-unverified is an unrelated multi-file-drift test-coverage gap, not blocked by any e2e harness issue), reviewed (clean of blockers after CR-01/WR-01 fix), security-closed (18/18). Quick task 261031-q09 fixed and closed the open-runtime-session.ts .monaco-diff-editor test-harness bug (Human Verification #1). Awaiting one remaining human action: open the draft PR against Ship-With-AI/skills from the local cumpa-uncommitted-files-request-modes branch once a real 2.0.0-equivalent release publishes (D-05).
-Last activity: 2026-10-31 — Phase 17 execution started
+Phase: 17.1 (full-project-rename) — EXECUTING
+Plan: 2 of 22
+Status: Ready to execute
+Last activity: 2026-11-02 — Phase 17.1 execution started
 
 ## Performance Metrics
 
@@ -88,6 +88,7 @@ Last activity: 2026-10-31 — Phase 17 execution started
 | Phase 17 P03 | 10min | 2 tasks | 1 files |
 | Phase 17-agent-protocol-extension-marketplace-skill P04 | 55min | 2 tasks | 3 files |
 | Phase 17 P05 | 35min | 3 tasks | 2 files |
+| Phase 17.1 P01 | 18min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -155,6 +156,8 @@ Decisions are logged in PROJECT.md Key Decisions.
 - [Phase 17]: Branched shipwithai-skills' local branch cumpa-uncommitted-files-request-modes off a verified-clean main (not the pre-existing skill/write-it-down branch) to avoid carrying unrelated local commits. — The plan requires branching off the current default branch; main was confirmed byte-identical to origin/main before branching.
 - [Phase 17]: Verified the version-gate bump end-to-end by temporarily setting diff-review's own package.json to 2.0.0, packing a development-check runtime artifact, installing it into an isolated npm global prefix, and running check-cumpa.mjs against it, then reverting package.json to zero residual diff. — No npm registry was touched and the 2.0.0 tarball was never published; this proves the regex/guidance changes work against real packed bytes without requiring an actual 2.0.0 release.
 - [quick-261031-q09]: Fixed the open-runtime-session.ts stale .monaco-diff-editor assertion flagged by 17-04/17-VERIFICATION.md Human Verification #1 — now asserts .diff-workspace__editor, matching the pattern already established by quick task 261031-au0. Custody-gated suite went from 6/16 to 15/16 passing (deterministic across 3 runs); the 1 remaining failure is an independently-confirmed pre-existing, load-dependent harness artifact unrelated to this fix (reproduces in the pre-fix baseline; passes cleanly in isolation). See 261031-q09-SUMMARY.md and deferred-items.md.
+- [Phase ?]: Checkpoint resolved: new product name is 'Loopnote' (slug 'loopnote') — Supplied by user in orchestrating conversation on 2026-11-02 after npm/GitHub/brew collision checks; RENAME_MAP computed from this literal
+- [Phase 17.1]: Used plain Error, not a subclass, for product-identity validation failures — Matches src/domain/file-tree.ts's existing plain-Error convention; no recovery/kind metadata consumers exist for this module
 
 ### Pending Todos
 
@@ -208,6 +211,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-10-31T19:50:00.000Z
-Stopped at: Phase 17 re-verified after quick task 261031-q09 fixed the open-runtime-session.ts .monaco-diff-editor test-harness bug — 17-VERIFICATION.md now 14/15 truths verified. Sole remaining human_needed item: open the draft PR against Ship-With-AI/skills (D-05).
+Last session: 2026-11-02T08:31:03.540Z
+Stopped at: Completed 17.1-01-PLAN.md
 Resume file: None

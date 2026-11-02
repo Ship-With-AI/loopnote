@@ -247,7 +247,7 @@ Plans:
   4. A `grep -i cumpa` audit of live code, config, tests, scripts and docs finds only the allowed exceptions (history, old-kind rejection, supporter-state migration source, old-dir exclusion).
   5. A manual release checklist covers the GitHub repo rename, npm publish of 2.0.0 and deprecation of `@shipwithai/cumpa`, Supabase/Stripe renames, and the updated marketplace skill draft PR (prerequisite `>=2.0.0 <3.0.0`).
 
-**Plans**: 22 plans across 3 waves — wave 1: rename-map derivation (01); wave 2 (19 parallel mechanical-rename plans, all depending only on 01): protocol kind literals (02), CLI/package/Monaco identity (03), server/domain runtime identity (04), release scripts/CI (05), web display-copy (06), docs/misc (07), marketplace skill (08), Supabase (09), git-layer dual-exclusion (10), repo-local state-dir paths (11), ignore-status API (12), ignore-status consumers (13), support.json D-06 copy (14), release-artifact test coverage (15-16), test-fixture sweeps (17-20), release checklist (21); wave 3: full-tree rename audit (22, depends on every wave-2 rename plan).
+**Plans**: 1/22 plans executed
 **Blocked on**: the new name. Execution starts with a human checkpoint that supplies it.
 
 ### Phase 18: Product Repositioning Copy
@@ -264,6 +264,29 @@ Plans:
 **Plans**: 5 plans
 
 Plans:
+
+- [x] 17.1-01-PLAN.md
+- [ ] 17.1-02-PLAN.md
+- [ ] 17.1-03-PLAN.md
+- [ ] 17.1-04-PLAN.md
+- [ ] 17.1-05-PLAN.md
+- [ ] 17.1-06-PLAN.md
+- [ ] 17.1-07-PLAN.md
+- [ ] 17.1-08-PLAN.md
+- [ ] 17.1-09-PLAN.md
+- [ ] 17.1-10-PLAN.md
+- [ ] 17.1-11-PLAN.md
+- [ ] 17.1-12-PLAN.md
+- [ ] 17.1-13-PLAN.md
+- [ ] 17.1-14-PLAN.md
+- [ ] 17.1-15-PLAN.md
+- [ ] 17.1-16-PLAN.md
+- [ ] 17.1-17-PLAN.md
+- [ ] 17.1-18-PLAN.md
+- [ ] 17.1-19-PLAN.md
+- [ ] 17.1-20-PLAN.md
+- [ ] 17.1-21-PLAN.md
+- [ ] 17.1-22-PLAN.md
 - [ ] 18-01-PLAN.md — Copy draft (`18-COPY-DRAFT.md`) + blocking human-approval checkpoint (D-05)
 - [ ] 18-02-PLAN.md — README/PRODUCT.md/package.json apply + D-06 automated claims-check test (TDD), new `docs/usage.md`
 - [ ] 18-03-PLAN.md — CLI copy apply: `run.ts`/`picker.ts`/`source.ts` + their unit tests
