@@ -1,3 +1,5 @@
+import { RENAME_MAP } from '../domain/product-identity.js';
+
 export type ShutdownSignal = 'SIGINT' | 'SIGTERM';
 
 export interface ShutdownSignalSource {
@@ -35,7 +37,7 @@ export function createShutdownController(
   const reportError =
     options.reportError ??
     ((error: unknown) => {
-      console.error('Cumpa shutdown failed.', error);
+      console.error(`${RENAME_MAP.displayName} shutdown failed.`, error);
     });
   let shutdownPromise: Promise<void> | undefined;
 

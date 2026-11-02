@@ -1,4 +1,5 @@
 import type { SupportAction } from '../contracts/api.js';
+import { RENAME_MAP } from '../domain/product-identity.js';
 import { z } from 'zod';
 
 const responseLimit = 8192;
@@ -28,7 +29,7 @@ export function createHostedSupportClient(options: Readonly<{
   serviceUrl?: string;
   fetch?: typeof fetch;
 }> = {}): HostedSupportClient {
-  const configuredServiceUrl = options.serviceUrl ?? process.env.CUMPA_SUPPORT_SERVICE_URL;
+  const configuredServiceUrl = options.serviceUrl ?? process.env[`${RENAME_MAP.envPrefix}SUPPORT_SERVICE_URL`];
   let service: URL | undefined;
   try {
     service = configuredServiceUrl === undefined ? undefined : new URL(configuredServiceUrl);

@@ -6,6 +6,8 @@ import { spawnSync } from 'node:child_process';
 
 import { afterEach, describe, expect, test } from 'vitest';
 
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
+
 const require = createRequire(import.meta.url);
 const roots: string[] = [];
 const declaredNativeTarget = process.platform === 'darwin' && process.arch === 'arm64';
@@ -16,7 +18,7 @@ type DirectoryExchangeAddon = Readonly<{
 }>;
 
 async function buildAddon(): Promise<DirectoryExchangeAddon> {
-  const root = await mkdtemp(join(tmpdir(), 'cumpa-native-exchange-'));
+  const root = await mkdtemp(join(tmpdir(), `${RENAME_MAP.slug}-native-exchange-`));
   roots.push(root);
   const source = join(process.cwd(), 'src/native/directory-exchange.cc');
   const output = join(root, 'directory_exchange.node');
@@ -43,7 +45,7 @@ afterEach(async () => {
 
 describe('native directory exchange probe', () => {
   test.runIf(declaredNativeTarget)('compiles the actual adapter and proves one complete sibling pair swaps without stable absence', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'cumpa-native-probe-'));
+    const root = await mkdtemp(join(tmpdir(), `${RENAME_MAP.slug}-native-probe-`));
     roots.push(root);
 
 

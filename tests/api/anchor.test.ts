@@ -3,6 +3,7 @@ import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import type { PinnedComparison } from '../../src/contracts/comparison.js';
 import { createSessionApp } from '../../src/server/app.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -14,7 +15,7 @@ const fileId = `file_${'a'.repeat(43)}`;
 const unsupportedFileId = `file_${'b'.repeat(43)}`;
 const unknownFileId = `file_${'z'.repeat(43)}`;
 const securityMessage =
-  'This request is not available in the current session. Relaunch Cumpa from the terminal.';
+  `This request is not available in the current session. Relaunch ${RENAME_MAP.displayName} from the terminal.`;
 const apps = new Set<FastifyInstance>();
 
 function path(value: string) {
@@ -320,7 +321,7 @@ describe('range-aware durable anchor drift (A-01)', () => {
   });
 
   async function tempRoot(): Promise<string> {
-    const value = await mkdtemp(join(tmpdir(), 'cumpa-anchor-'));
+    const value = await mkdtemp(join(tmpdir(), `${RENAME_MAP.slug}-anchor-`));
     driftRoots.push(value);
     return value;
   }

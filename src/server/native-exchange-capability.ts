@@ -3,6 +3,8 @@ import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { RENAME_MAP } from '../domain/product-identity.js';
+
 import type { ReExportCapability } from './export-store.js';
 
 type DirectoryExchangeAddon = Readonly<{
@@ -31,7 +33,7 @@ export function createNativeExchangeCapabilityObserver(
     let capability = unsupportedCapability;
 
     try {
-      probeRoot = await dependencies.mkdtemp(join(tmpdir(), 'cumpa-native-exchange-probe-'));
+      probeRoot = await dependencies.mkdtemp(join(tmpdir(), `${RENAME_MAP.slug}-native-exchange-probe-`));
       const addon = dependencies.loadAddon();
       if (addon.probeDirectoryExchange(probeRoot).kind === 'supported') {
         capability = Object.freeze({

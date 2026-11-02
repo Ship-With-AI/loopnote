@@ -6,6 +6,7 @@ import type { FastifyInstance } from 'fastify';
 
 import type { PinnedComparison } from '../../src/contracts/comparison.js';
 import { createSessionApp } from '../../src/server/app.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 
 const token = 't'.repeat(43);
 const wrongToken = 'w'.repeat(43);
@@ -13,7 +14,7 @@ const expectedHost = '127.0.0.1:43127';
 const expectedOrigin = `http://${expectedHost}`;
 const fileId = `file_${'f'.repeat(43)}`;
 const securityMessage =
-  'This request is not available in the current session. Relaunch Cumpa from the terminal.';
+  `This request is not available in the current session. Relaunch ${RENAME_MAP.displayName} from the terminal.`;
 
 const comparison: PinnedComparison = {
   repositoryRoot: '/private/repository/that-must-not-leak',

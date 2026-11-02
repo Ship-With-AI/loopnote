@@ -6,12 +6,14 @@ import { fileURLToPath } from 'node:url';
 
 import { afterEach, describe, expect, test } from 'vitest';
 
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
+
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const script = join(projectRoot, 'scripts', 'build-native-addon.mjs');
 const roots: string[] = [];
 
 async function fixtureRoot(): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), 'cumpa-native-build-'));
+  const root = await mkdtemp(join(tmpdir(), `${RENAME_MAP.slug}-native-build-`));
   roots.push(root);
   await mkdir(join(root, 'src', 'native'), { recursive: true });
   await copyFile(join(projectRoot, 'src', 'native', 'directory-exchange.cc'), join(root, 'src', 'native', 'directory-exchange.cc'));

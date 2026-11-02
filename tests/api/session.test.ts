@@ -3,6 +3,7 @@ import type { FastifyInstance } from 'fastify';
 
 import type { PinnedComparison } from '../../src/contracts/comparison.js';
 import { createSessionApp } from '../../src/server/app.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 
 const token = 's'.repeat(43);
 const expectedHost = '127.0.0.1:43128';
@@ -10,7 +11,7 @@ const expectedOrigin = `http://${expectedHost}`;
 const fileId = `file_${'a'.repeat(43)}`;
 const unknownFileId = `file_${'z'.repeat(43)}`;
 const securityMessage =
-  'This request is not available in the current session. Relaunch Cumpa from the terminal.';
+  `This request is not available in the current session. Relaunch ${RENAME_MAP.displayName} from the terminal.`;
 
 function path(value: string) {
   return {

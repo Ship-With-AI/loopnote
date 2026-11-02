@@ -31,6 +31,7 @@ import {
   type SecurityDiagnostic,
   type SessionSecurityTarget,
 } from './security.js';
+import { RENAME_MAP } from '../domain/product-identity.js';
 
 export interface CreateSessionAppOptions extends CapabilityRegistryOptions {
   readonly sessionToken: string;
@@ -59,7 +60,7 @@ export interface SessionApp extends FastifyInstance {
 export function createConfiguredSupportCapability(
   environment: NodeJS.ProcessEnv = process.env,
 ): SupportCapability | undefined {
-  const serviceUrl = environment.CUMPA_SUPPORT_SERVICE_URL;
+  const serviceUrl = environment[`${RENAME_MAP.envPrefix}SUPPORT_SERVICE_URL`];
   try {
     if (serviceUrl === undefined || new URL(serviceUrl).protocol !== 'https:') return undefined;
   } catch {
@@ -77,7 +78,7 @@ function testRecoveryFailure(): TestRecoveryFailure | undefined {
     return undefined;
   }
 
-  const configured = process.env.CUMPA_TEST_RECOVERY_FAILURE;
+  const configured = process.env[`${RENAME_MAP.envPrefix}TEST_RECOVERY_FAILURE`];
   return configured === 'backup' || configured === 'replacement' ? configured : undefined;
 }
 
@@ -201,7 +202,7 @@ export async function createUncommittedSessionApp(
   options: CreateUncommittedSessionAppOptions,
 ): Promise<SessionApp> {
   const snapshot = await materializeWorktreeSnapshot(scope, {
-    root: options.snapshotRoot ?? join(tmpdir(), `cumpa-worktree-${randomUUID()}`),
+    root: options.snapshotRoot ?? join(tmpdir(), `${RENAME_MAP.slug}-worktree-${randomUUID()}`),
   });
   const app = Fastify({
     logger: false,
@@ -227,7 +228,7 @@ export async function createStandaloneSessionApp(
   options: CreateStandaloneSessionAppOptions,
 ): Promise<SessionApp> {
   const snapshot = await materializeWorktreeSnapshot(scope, {
-    root: options.snapshotRoot ?? join(tmpdir(), `cumpa-worktree-${randomUUID()}`),
+    root: options.snapshotRoot ?? join(tmpdir(), `${RENAME_MAP.slug}-worktree-${randomUUID()}`),
   });
   const app = Fastify({
     logger: false,

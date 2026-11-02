@@ -3,9 +3,10 @@ import { randomBytes, timingSafeEqual } from 'node:crypto';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import { ApiErrorSchema, type ApiError } from '../contracts/api.js';
+import { RENAME_MAP } from '../domain/product-identity.js';
 
 export const REQUEST_UNAVAILABLE_MESSAGE =
-  'This request is not available in the current session. Relaunch Cumpa from the terminal.';
+  `This request is not available in the current session. Relaunch ${RENAME_MAP.displayName} from the terminal.`;
 
 export const REQUEST_UNAVAILABLE_ERROR: ApiError = ApiErrorSchema.parse({
   code: 'request-unavailable',
