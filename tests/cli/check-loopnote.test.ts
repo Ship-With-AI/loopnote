@@ -14,14 +14,14 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 const checkerPath = fileURLToPath(
-  new URL('../../.kimi-code/skills/cumpa/scripts/check-cumpa.mjs', import.meta.url),
+  new URL('../../.kimi-code/skills/loopnote/scripts/check-loopnote.mjs', import.meta.url),
 );
 const recovery =
-  'npm install --global @shipwithai/cumpa@1.5.0\n' +
+  'npm install --global @shipwithai/loopnote@1.5.0\n' +
   'Requires Node.js 24+ and Git 2.43.0+.\n';
 
 function runChecker(body?: string, mode = 0o755) {
-  const cwd = mkdtempSync(join(tmpdir(), 'cumpa-preflight-'));
+  const cwd = mkdtempSync(join(tmpdir(), 'loopnote-preflight-'));
   const forbiddenPath = join(cwd, 'unexpected-command');
   const probePidPath = join(cwd, 'probe.pid');
   let result: SpawnSyncReturns<string> | undefined;
@@ -38,7 +38,7 @@ function runChecker(body?: string, mode = 0o755) {
     }
     if (body !== undefined) {
       writeFileSync(
-        join(cwd, 'cumpa'),
+        join(cwd, 'loopnote'),
         '#!/usr/bin/env node\n' +
           `require('node:fs').writeFileSync(${JSON.stringify(probePidPath)}, String(process.pid));\n` +
           "if (process.argv.length !== 3 || process.argv[2] !== '--version') process.exit(64);\n" +
@@ -82,7 +82,7 @@ function expectRejected(result: SpawnSyncReturns<string>) {
   expect(result.stderr).toBe(recovery);
 }
 
-describe('installed Cumpa skill preflight', () => {
+describe('installed Loopnote skill preflight', () => {
   it.each([
     ['minimum release', '1.5.0'],
     ['later minor release', '1.12.3'],
@@ -105,7 +105,7 @@ describe('installed Cumpa skill preflight', () => {
     ['leading-zero minor', '1.05.0'],
     ['leading-zero patch', '1.5.00'],
     ['version prefix', 'v1.5.0'],
-    ['version label', 'Cumpa 1.5.0'],
+    ['version label', 'Loopnote 1.5.0'],
     ['multiple versions', '1.5.0\n1.6.0'],
     ['extra blank line', '1.5.0\n\n'],
     ['empty build metadata', '1.5.0+'],
@@ -114,7 +114,7 @@ describe('installed Cumpa skill preflight', () => {
     expectRejected(runChecker(`process.stdout.write(${JSON.stringify(output)});`));
   });
 
-  it('stops when Cumpa is absent without installing it', () => {
+  it('stops when Loopnote is absent without installing it', () => {
     expectRejected(runChecker());
   });
 

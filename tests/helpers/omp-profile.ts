@@ -6,6 +6,9 @@ import { delimiter, dirname, join, resolve } from 'node:path';
 
 import { buildIsolatedPath, isContainedPath } from './public-artifact-identity.js';
 import { inheritedEnvironment, runRuntimeCommand } from './runtime-artifact.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
+const projectRoot = resolve(import.meta.dirname, '../..');
+const publishedSkillSha256 = '67634499d18d2603bad3318c7db4f06341c880bf9dee5fb0f5449256240f7a0f';
 
 type SharedSupportHome = Readonly<{
   readonly home: string;
@@ -26,8 +29,6 @@ type Digest = Readonly<
   | { readonly present: false }
   | { readonly present: true; readonly sha256: string; readonly entries: Readonly<Record<string, string>> }
 >;
-const projectRoot = resolve(import.meta.dirname, '../..');
-const publishedSkillSha256 = '8974c947bceaf2921fdd74ea900c8af6a85c1c9f94428f66f53eea923d630220';
 const providerAuthenticationVariables = [
   'ANTHROPIC_API_KEY',
   'ANTHROPIC_OAUTH_TOKEN',
@@ -245,18 +246,18 @@ function locateInstalledSkill(profile: ProfilePaths, installationCwd: string): s
   for (const root of candidates) {
     if (!existsSync(root)) continue;
     for (const entry of readdirSync(root, { recursive: true, withFileTypes: true })) {
-      if (!entry.isDirectory() || entry.name !== 'cumpa') continue;
+      if (!entry.isDirectory() || entry.name !== RENAME_MAP.slug) continue;
       const candidate = join(entry.parentPath, entry.name);
       if (existsSync(join(candidate, 'SKILL.md'))) return candidate;
     }
   }
-  fail('installed marketplace tree does not contain skills/cumpa/SKILL.md');
+  fail(`installed marketplace tree does not contain skills/${RENAME_MAP.slug}/SKILL.md`);
 }
 
 function assertInstalledSkill(skillDirectory: string): void {
   const skillRealpath = realpathSync(skillDirectory);
-  if (isContainedPath(skillRealpath, realpathSync(projectRoot))) fail('installed Cumpa skill resolves inside the Cumpa checkout');
-  if (sha256(join(skillRealpath, 'SKILL.md')) !== publishedSkillSha256) fail('installed Cumpa SKILL.md digest does not match the published marketplace copy');
+  if (isContainedPath(skillRealpath, realpathSync(projectRoot))) fail(`installed ${RENAME_MAP.displayName} skill resolves inside the ${RENAME_MAP.displayName} checkout`);
+  if (sha256(join(skillRealpath, 'SKILL.md')) !== publishedSkillSha256) fail(`installed ${RENAME_MAP.displayName} SKILL.md digest does not match the published marketplace copy`);
 }
 
 /** Runs only read-only OMP inspection inside a throwaway profile. */
@@ -271,7 +272,7 @@ export function discoverOmpIsolationCapability(): OmpIsolationCapability {
   if (omp === undefined) return unavailable();
   const version = spawnSync(omp, ['--version'], { encoding: 'utf8', shell: false });
   if (version.error !== undefined || version.status !== 0) return unavailable();
-  const root = mkdtempSync(join(tmpdir(), 'cumpa-omp-probe-'));
+  const root = mkdtempSync(join(tmpdir(), `${RENAME_MAP.slug}-omp-probe-`));
   const before = captureRealOmpProfileDigest();
   try {
     const paths = profilePaths(root);
@@ -358,7 +359,7 @@ export function createIsolatedOmpProfile(options: Readonly<{
   readonly extraPath?: readonly string[];
   readonly installationCwd?: string;
 }>): IsolatedOmpProfile {
-  const root = mkdtempSync(join(tmpdir(), 'cumpa-omp-profile-'));
+  const root = mkdtempSync(join(tmpdir(), `${RENAME_MAP.slug}-omp-profile-`));
   chmodRoot(root);
   const paths = profilePaths(root);
   let cleaned = false;

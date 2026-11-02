@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { captureOmpProfileDigest, changedOmpProfileEntries } from '../helpers/omp-profile.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 
 const homes: string[] = [];
 
@@ -13,7 +14,7 @@ afterEach(() => {
 });
 
 function temporaryHome(): string {
-  const home = mkdtempSync(join(tmpdir(), 'cumpa-omp-digest-'));
+  const home = mkdtempSync(join(tmpdir(), `${RENAME_MAP.slug}-omp-digest-`));
   homes.push(home);
   return home;
 }

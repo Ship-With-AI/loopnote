@@ -13,6 +13,7 @@ import { isContainedPath } from '../helpers/public-artifact-identity.js';
 import { assertRealOmpProfileUnchanged, canUseOmpIsolation, captureRealOmpProfileDigest, createIsolatedOmpProfile, discoverOmpIsolationCapability, provisionApprovedOmpModelAccess, type IsolatedOmpProfile } from '../helpers/omp-profile.js';
 import { createDirtyGitFixture } from '../helpers/git-fixture.js';
 import { assertSourceControlUnchanged, captureSourceControlSnapshot } from '../helpers/source-control-snapshot.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 
 const projectRoot = resolve(import.meta.dirname, '../..');
 const summary = 'Marketplace OMP browser review summary.';
@@ -85,7 +86,7 @@ function writeOpener(root: string): string {
   const bin = join(root, 'bin');
   mkdirSync(bin, { recursive: true, mode: 0o700 });
   const opener = join(bin, 'open');
-  writeFileSync(opener, "#!/usr/bin/env node\nconst { appendFileSync } = require('node:fs');\nappendFileSync(process.env.CUMPA_MARKETPLACE_URL_MARKER, `${JSON.stringify(process.argv.slice(2))}\\n`);\n", { encoding: 'utf8', mode: 0o700, flag: 'wx' });
+  writeFileSync(opener, `#!/usr/bin/env node\nconst { appendFileSync } = require('node:fs');\nappendFileSync(process.env.${RENAME_MAP.envPrefix}MARKETPLACE_URL_MARKER, \`\${JSON.stringify(process.argv.slice(2))}\\n\`);\n`, { encoding: 'utf8', mode: 0o700, flag: 'wx' });
   chmodSync(opener, 0o700);
   return opener;
 }
@@ -110,8 +111,8 @@ function writePlaywrightConfig(root: string): string {
   return config;
 }
 test('isolated OMP marketplace skill supervises the exact public CLI through Finish', { timeout: 10 * 60_000 }, async () => {
-  const report = process.env.CUMPA_MARKETPLACE_ACCEPTANCE_REPORT;
-  const supportHomePath = process.env.CUMPA_ACCEPTANCE_SUPPORT_HOME;
+  const report = process.env[`${RENAME_MAP.envPrefix}MARKETPLACE_ACCEPTANCE_REPORT`];
+  const supportHomePath = process.env[`${RENAME_MAP.envPrefix}ACCEPTANCE_SUPPORT_HOME`];
   const window = process.env.CUMPA_SUPPORT_STATE_WINDOW;
   if (!report || !supportHomePath || existsSync(report)) throw new Error('[marketplace-profile] a new report path and shared support HOME are required');
   if (window !== 'pre-restore' && window !== 'post-restore') throw new Error('[marketplace-profile] CUMPA_SUPPORT_STATE_WINDOW must be pre-restore or post-restore');
@@ -126,7 +127,7 @@ test('isolated OMP marketplace skill supervises the exact public CLI through Fin
     assertRealOmpProfileUnchanged(beforeOmp);
     await assertSourceControlUnchanged(beforeSource, await captureSourceControlSnapshot(projectRoot));
     publishEvidence(report, {
-      kind: 'cumpa.marketplace-acceptance/v2',
+      kind: `${RENAME_MAP.kindPrefix}.marketplace-acceptance/v2`,
       status: 'blocked',
       reason,
       substituted: false,
@@ -146,7 +147,7 @@ test('isolated OMP marketplace skill supervises the exact public CLI through Fin
   const supportHome = createSharedSupportHome(supportHomePath);
   const runtime = installPublicGlobalRuntime({ supportHome, installScripts: 'enabled' });
   const fixture = await createDirtyGitFixture('branch-to-worktree', 705);
-  const root = mkdtempSync(join(tmpdir(), 'cumpa-marketplace-driver-'));
+  const root = mkdtempSync(join(tmpdir(), `${RENAME_MAP.slug}-marketplace-driver-`));
   let profile: IsolatedOmpProfile | undefined;
   let evidence: Record<string, unknown> | undefined;
   try {
@@ -160,20 +161,20 @@ test('isolated OMP marketplace skill supervises the exact public CLI through Fin
     const base = fixture.git(['rev-parse', fixture.baseRef]).toString('utf8').trim();
     const head = fixture.git(['rev-parse', fixture.headRef]).toString('utf8').trim();
     const prompt = [
-      '/skill:cumpa',
-      'Use the installed marketplace Cumpa skill you discovered. First run that installed skill\'s bundled check-cumpa.mjs and stop if it fails.',
+      `/skill:${RENAME_MAP.slug}`,
+      `Use the installed marketplace ${RENAME_MAP.displayName} skill you discovered. First run that installed skill's bundled check-${RENAME_MAP.slug}.mjs and stop if it fails.`,
       `Review this repository only: base ${base}, head ${head}.`,
-      `After zero exit and canonical validation, write untouched canonical stdout bytes to ${join(profile.root, 'cumpa-result.json')} for the acceptance driver. Do not create this file before exit.`,
+      `After zero exit and canonical validation, write untouched canonical stdout bytes to ${join(profile.root, `${RENAME_MAP.slug}-result.json`)} for the acceptance driver. Do not create this file before exit.`,
       'Do not install, upgrade, use npx, use a source checkout or local tarball, apply feedback, or author feedback yourself.',
     ].join('\n');
     const environment: NodeJS.ProcessEnv = {
       ...profile.env,
       BROWSER: opener,
       PLAYWRIGHT_BROWSERS_PATH: process.env.PLAYWRIGHT_BROWSERS_PATH ?? join(homedir(), 'Library', 'Caches', 'ms-playwright'),
-      CUMPA_MARKETPLACE_URL_MARKER: marker,
+      [`${RENAME_MAP.envPrefix}MARKETPLACE_URL_MARKER`]: marker,
       CUMPA_AGENT_READY_EVIDENCE_REPORT: bridge,
       CUMPA_AGENT_READY_EVIDENCE_RUN_ID: randomUUID(),
-      CUMPA_ACCEPTANCE_SUPPORT_HOME: supportHome.home,
+      [`${RENAME_MAP.envPrefix}ACCEPTANCE_SUPPORT_HOME`]: supportHome.home,
       CUMPA_SUPPORT_STATE_WINDOW: window,
     };
     const readinessStarted = new Date().toISOString();
@@ -192,8 +193,9 @@ test('isolated OMP marketplace skill supervises the exact public CLI through Fin
     expect(completion > readinessStarted).toBe(true);
     expect(completion > readiness).toBe(true);
     const commandTrace = extractToolCallTrace(profile.agentDir);
-    const checker = commandTrace.indexOf('check-cumpa.mjs');
-    const launch = commandTrace.indexOf('cumpa', checker + 'check-cumpa.mjs'.length);
+    const checkerScript = `check-${RENAME_MAP.slug}.mjs`;
+    const checker = commandTrace.indexOf(checkerScript);
+    const launch = commandTrace.indexOf(RENAME_MAP.binCommand, checker + checkerScript.length);
     expect(checker).toBeGreaterThanOrEqual(0);
     expect(launch).toBeGreaterThan(checker);
     expect(commandTrace).not.toMatch(/\b(?:npm\s+(?:install|upgrade)|npx\b|git\s+clone|\.tgz)\b/u);
@@ -201,9 +203,9 @@ test('isolated OMP marketplace skill supervises the exact public CLI through Fin
       browser: { summarySha256: string; commentSha256: string; version: string };
       supportStates: Array<{ state: string; window: string; observed: boolean; status: 'passed' | 'blocked'; reason?: string }>;
     };
-    const resultFile = join(profile.root, 'cumpa-result.json');
+    const resultFile = join(profile.root, `${RENAME_MAP.slug}-result.json`);
     const result = parseCanonicalReviewExport(readFileSync(resultFile));
-    expect(result.kind).toBe('cumpa/export');
+    expect(result.kind).toBe(`${RENAME_MAP.kindPrefix}/export`);
     expect(result.summary.markdown).toBe(summary);
     expect(result.files.flatMap((file) => file.comments).map((entry) => entry.body)).toContain(comment);
     expect(scenario.browser.summarySha256).toBe(createHash('sha256').update(summary).digest('hex'));
@@ -220,7 +222,7 @@ test('isolated OMP marketplace skill supervises the exact public CLI through Fin
     expect(isContainedPath(realpathSync(profile.pluginTreeRoot), realpathSync(projectRoot))).toBe(false);
     const blocked = scenario.supportStates.find((state) => state.status === 'blocked');
     evidence = {
-      kind: 'cumpa.marketplace-acceptance/v2',
+      kind: `${RENAME_MAP.kindPrefix}.marketplace-acceptance/v2`,
       status: blocked === undefined ? 'passed' : 'blocked',
       ...(blocked === undefined ? {} : { reason: blocked.reason ?? 'marketplace-review-blocked', substituted: false }),
       path: 'marketplace',
@@ -231,7 +233,7 @@ test('isolated OMP marketplace skill supervises the exact public CLI through Fin
       sharedSupportIdentity: { shared: true, restoreCompleted: false, restoreObservedFromSharedIdentity: false },
       acc03: { status: 'passed', substituted: false },
       marketplace: { source: 'public', catalog: 'Ship-With-AI/skills', collection: 'ship-with-ai', collectionVersion: '0.3.0', commit: '984e28c5838176ec15d2af8b996d0307e45b28d5', scope: 'project' },
-      skill: { invocation: '/skill:cumpa', loadedFromInstalledTree: true, loadedFromCheckout: false, sha256: '8974c947bceaf2921fdd74ea900c8af6a85c1c9f94428f66f53eea923d630220' },
+      skill: { invocation: `/skill:${RENAME_MAP.slug}`, loadedFromInstalledTree: true, loadedFromCheckout: false, sha256: '67634499d18d2603bad3318c7db4f06341c880bf9dee5fb0f5449256240f7a0f' },
       separateInstall: { checkerRanFirst: true, executableInsideIsolatedPrefix: true, version: '1.5.0' },
       lifecycle: { readinessStarted, readiness, completion, terminalExit: 0 },
       canonical: { nonEmpty: true, parseable: true, kind: result.kind, summaryMatchesBrowser: true, commentMatchesBrowser: true },
