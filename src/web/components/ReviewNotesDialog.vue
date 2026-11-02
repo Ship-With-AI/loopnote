@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { AppendCumpaIgnoreResult, ExportDirectoryRevealResult, FinishReviewResult } from '../../contracts/api.js';
+import type { AppendLoopnoteIgnoreResult, ExportDirectoryRevealResult, FinishReviewResult } from '../../contracts/api.js';
 import { computed, nextTick, ref, watch } from 'vue';
 
 import type { ReviewExportState, ReviewPendingOperation } from '../model/review-draft-state.js';
@@ -41,7 +41,7 @@ const props = withDefaults(
     readonly failure: ReviewFailure | null;
     readonly retainedSummary: boolean;
     readonly exportState: ReviewExportState;
-    readonly appendIgnoreRule: () => Promise<AppendCumpaIgnoreResult>;
+    readonly appendIgnoreRule: () => Promise<AppendLoopnoteIgnoreResult>;
     readonly refreshIgnoreStatus: () => Promise<void>;
     readonly revealExportDirectory: () => Promise<ExportDirectoryRevealResult>;
     readonly attachedLifecycle?: AttachedLifecycle;

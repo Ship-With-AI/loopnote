@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue';
 
-import type { AppendCumpaIgnoreResult, ExportDirectoryRevealResult } from '../../contracts/api.js';
+import type { AppendLoopnoteIgnoreResult, ExportDirectoryRevealResult } from '../../contracts/api.js';
 import type { ReviewExportState } from '../model/review-draft-state.js';
 import type { WorkspaceComment } from '../model/workspace-state.js';
 import ExportReadinessSummary from './ExportReadinessSummary.vue';
@@ -23,7 +23,7 @@ const props = defineProps<{
   }>;
   commentBuffers: ReadonlyMap<string, string>;
   exportState: ReviewExportState;
-  appendIgnoreRule: () => Promise<AppendCumpaIgnoreResult>;
+  appendIgnoreRule: () => Promise<AppendLoopnoteIgnoreResult>;
   refreshIgnoreStatus: () => Promise<void>;
   revealExportDirectory: () => Promise<ExportDirectoryRevealResult>;
   attached?: boolean;

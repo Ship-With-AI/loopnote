@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
+import { RENAME_MAP } from '../domain/product-identity.js';
 
 import type {
   AttachedCompletionStatus,
@@ -612,16 +613,16 @@ function cancelExport(): void {
 
 async function refreshIgnoreStatus(): Promise<void> {
   if (sessionClient === undefined) return;
-  const status = await sessionClient.getCumpaIgnoreStatus();
+  const status = await sessionClient.getLoopnoteIgnoreStatus();
   reviewState?.setIgnoreStatus(status);
   refreshReviewSnapshot();
 }
 
-async function appendCumpaIgnoreRule() {
+async function appendLoopnoteIgnoreRule() {
   if (attachedMutationLocked.value || sessionClient === undefined) {
     throw new SessionClientError('draft', DRAFT_UNAVAILABLE_MESSAGE);
   }
-  const result = await sessionClient.appendCumpaIgnoreRule();
+  const result = await sessionClient.appendLoopnoteIgnoreRule();
   reviewState?.setIgnoreAppendResult(result);
   refreshReviewSnapshot();
   return result;
@@ -1223,7 +1224,7 @@ onBeforeUnmount(() => {
   <div v-else class="session-shell">
     <div class="session-shell__content" :inert="shellModalOpen">
     <a v-if="!isNarrow && !filesCollapsed" class="skip-link" href="#changed-files-heading">Skip to changed files</a>
-    <a class="skip-link" href="#cumpa-heading">Skip to diff</a>
+    <a class="skip-link" :href="`#${RENAME_MAP.cssPrefix}heading`">Skip to diff</a>
     <IdentityHeader
       ref="identityHeader"
       :session="session"
@@ -1286,7 +1287,7 @@ onBeforeUnmount(() => {
            strands the teleported tree and the sidebar comes back empty. -->
       <div v-show="!isNarrow && !filesCollapsed" id="changed-files" class="changed-files-sidebar"></div>
 
-      <main class="review-main" aria-labelledby="cumpa-heading">
+      <main class="review-main" :aria-labelledby="`${RENAME_MAP.cssPrefix}heading`">
         <ReviewToolbar
           :at-first-file="atFirstFile"
           :at-last-file="atLastFile"
@@ -1401,7 +1402,7 @@ onBeforeUnmount(() => {
       :failure="reviewFailure"
       :retained-summary="reviewDraft.retained.summary"
       :export-state="reviewDraft.export"
-      :append-ignore-rule="appendCumpaIgnoreRule"
+      :append-ignore-rule="appendLoopnoteIgnoreRule"
       :refresh-ignore-status="refreshIgnoreStatus"
       :reveal-export-directory="revealExportDirectory"
       :attached-lifecycle="isAttachedSession ? attachedLifecycle : undefined"

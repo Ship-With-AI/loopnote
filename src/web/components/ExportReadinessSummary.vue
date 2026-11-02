@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 
-import type { CumpaIgnoreStatus } from '../../contracts/api.js';
+import type { LoopnoteIgnoreStatus } from '../../contracts/api.js';
 import type { WorkspaceComment } from '../model/workspace-state.js';
+import { RENAME_MAP } from '../../domain/product-identity.js';
 import ReviewStateBadge from './ui/ReviewStateBadge.vue';
 import UiIcon from './ui/UiIcon.vue';
 
@@ -10,7 +11,7 @@ const props = defineProps<{
   revision: number;
   summary: string;
   comments: readonly WorkspaceComment[];
-  ignoreStatus: CumpaIgnoreStatus | null;
+  ignoreStatus: LoopnoteIgnoreStatus | null;
 }>();
 
 const actionableCount = computed(() => props.comments.filter((comment) => comment.state === 'open' && comment.status === 'verified').length);
@@ -20,8 +21,8 @@ const ignoreStatusPresentation = computed(() => {
   if (props.ignoreStatus === null) return { kind: 'pending' as const, label: 'Checking ignore status' };
 
   switch (props.ignoreStatus.kind) {
-    case 'ignored': return { kind: 'success' as const, label: '/.cumpa/ is ignored' };
-    case 'notIgnored': return { kind: 'warning' as const, label: '/.cumpa/ is not ignored' };
+    case 'ignored': return { kind: 'success' as const, label: `/${RENAME_MAP.repoStateDir} is ignored` };
+    case 'notIgnored': return { kind: 'warning' as const, label: `/${RENAME_MAP.repoStateDir} is not ignored` };
     case 'unavailable': return { kind: 'disabled' as const, label: 'Ignore status unavailable' };
   }
 });

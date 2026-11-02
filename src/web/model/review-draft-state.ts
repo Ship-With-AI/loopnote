@@ -1,4 +1,4 @@
-import type { AppendCumpaIgnoreResult, DraftLoadResponse, CumpaIgnoreStatus, ExportReviewResult, SelectorDriftResponse } from '../../contracts/api.js';
+import type { AppendLoopnoteIgnoreResult, DraftLoadResponse, LoopnoteIgnoreStatus, ExportReviewResult, SelectorDriftResponse } from '../../contracts/api.js';
 
 import {
   projectCommentGroups,
@@ -27,8 +27,8 @@ export type ReviewExportState = Readonly<{
   previousConfirmedReceipt: Extract<ExportReviewResult, { readonly kind: 'exported' }> | null;
   driftAcknowledgementToken: string | null;
   driftObservation: SelectorDriftResponse | null;
-  ignoreStatus: CumpaIgnoreStatus | null;
-  ignoreAppendResult: AppendCumpaIgnoreResult | null;
+  ignoreStatus: LoopnoteIgnoreStatus | null;
+  ignoreAppendResult: AppendLoopnoteIgnoreResult | null;
   driftStale: boolean;
 }>;
 
@@ -81,8 +81,8 @@ export interface ReviewDraftState {
   groups(inventory: readonly ChangedFileInventoryEntry[]): CommentGroupSections;
   reloadLatest(): void;
   setCommentBuffer(commentId: string, value: string): void;
-  setIgnoreStatus(status: CumpaIgnoreStatus): void;
-  setIgnoreAppendResult(result: AppendCumpaIgnoreResult): void;
+  setIgnoreStatus(status: LoopnoteIgnoreStatus): void;
+  setIgnoreAppendResult(result: AppendLoopnoteIgnoreResult): void;
   setSummaryBuffer(value: string): void;
   snapshot(): ReviewDraftSnapshot;
   startExport(driftAcknowledgementToken?: string): boolean;

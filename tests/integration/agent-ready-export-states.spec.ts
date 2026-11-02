@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 
 import { createSessionClient } from '../../src/web/api/client.js';
 import { createReviewDraftState } from '../../src/web/model/review-draft-state.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 
 const commentId = 'comment_00000000-0000-4000-8000-000000000001';
 const token = 'a'.repeat(43);
@@ -45,8 +46,8 @@ test('exports only the accepted revision and preserves unsaved buffers through a
 });
 
 test('rejects malformed exported receipt ordering and pairing in the browser client', async () => {
-  const firstDirectory = `.cumpa/exports/${'1'.repeat(40)}..${'2'.repeat(40)}`;
-  const secondDirectory = `.cumpa/exports/${'3'.repeat(40)}..${'4'.repeat(40)}`;
+  const firstDirectory = `${RENAME_MAP.repoStateDir}exports/${'1'.repeat(40)}..${'2'.repeat(40)}`;
+  const secondDirectory = `${RENAME_MAP.repoStateDir}exports/${'3'.repeat(40)}..${'4'.repeat(40)}`;
   const json = { path: `${firstDirectory}/review.json`, algorithm: 'sha256', sha256: 'a'.repeat(64), bytes: 128 };
   const markdown = { path: `${firstDirectory}/review.md`, algorithm: 'sha256', sha256: 'b'.repeat(64), bytes: 256 };
   for (const files of [
@@ -125,8 +126,8 @@ test('uses no-field fixed capabilities for ignore consent and export-directory r
   });
 
   await expect(client.revealExportDirectory()).resolves.toEqual({ kind: 'revealed' });
-  await expect(client.appendCumpaIgnoreRule()).resolves.toEqual({ kind: 'appended' });
-  await expect(client.getCumpaIgnoreStatus()).resolves.toEqual({ kind: 'ignored' });
+  await expect(client.appendLoopnoteIgnoreRule()).resolves.toEqual({ kind: 'appended' });
+  await expect(client.getLoopnoteIgnoreStatus()).resolves.toEqual({ kind: 'ignored' });
 
   expect(requests).toEqual([
     { path: '/api/export/reveal', method: 'POST', body: undefined },

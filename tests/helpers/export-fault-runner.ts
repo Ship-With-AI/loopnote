@@ -142,9 +142,9 @@ export async function runGeneratedIgnoreAppend(repositoryRoot: string): Promise<
     await writeFile(inputPath, JSON.stringify({ repositoryRoot }));
     await writeFile(runnerPath, `
       import { readFile, writeFile } from 'node:fs/promises';
-      import { appendCumpaIgnoreRule } from ${JSON.stringify(gitignoreCapabilityUrl)};
+      import { appendLoopnoteIgnoreRule } from ${JSON.stringify(gitignoreCapabilityUrl)};
       const input = JSON.parse(await readFile(process.argv[2], 'utf8'));
-      const result = await appendCumpaIgnoreRule({ repositoryRoot: input.repositoryRoot });
+      const result = await appendLoopnoteIgnoreRule({ repositoryRoot: input.repositoryRoot });
       await writeFile(process.argv[3], JSON.stringify(result));
     `);
     await childProcess(process.execPath, [runnerPath, inputPath, outputPath]);
