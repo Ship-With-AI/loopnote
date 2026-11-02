@@ -5,15 +5,15 @@ milestone_name: Artifact Review
 current_phase: 18
 current_phase_name: product-repositioning-copy
 status: executing
-stopped_at: Completed 18-03-PLAN.md
-last_updated: "2026-11-02T16:12:00.000Z"
+stopped_at: Completed 18-04-PLAN.md
+last_updated: "2026-11-02T15:59:59.000Z"
 last_activity: 2026-11-02
-last_activity_desc: Plan 18-03 complete — approved CLI --help description and UI-SPEC-locked DIRTY_EXPLANATION applied to run.ts/source.ts, picker.ts BASE_PROMPT confirmed unchanged; next is 18-04
+last_activity_desc: Plan 18-04 complete — repoName added end-to-end (api.ts/capabilities.ts) for the D-09 browser tab title; D-08 "Files" sidebar copy and POS-02 dirty-badge text applied; App.vue empty states rewritten to locked D-10 copy (uncommitted branch per Approval record item 10); npm test 853/853 green; next is 18-05 (Playwright spec updates, deferred from this plan)
 progress:
   total_phases: 7
   completed_phases: 6
   total_plans: 70
-  completed_plans: 67
+  completed_plans: 68
   percent: 87
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-09-09)
 ## Current Position
 
 Phase: 18 (product-repositioning-copy) — EXECUTING
-Plan: 4 of 5 (18-04-PLAN.md next; 18-01/18-02/18-03 complete)
+Plan: 5 of 5 (18-05-PLAN.md next; 18-01/18-02/18-03/18-04 complete)
 Status: Executing Phase 18
-Last activity: 2026-11-02 — Plan 18-03 complete (approved CLI --help description and UI-SPEC-locked DIRTY_EXPLANATION applied; BASE_PROMPT confirmed already compliant; tests/cli full suite + full npm test green)
+Last activity: 2026-11-02 — Plan 18-04 complete (repoName end-to-end for D-09 tab title; D-08 "Files" sidebar copy; POS-02 dirty-badge text; D-10 empty states rewritten per locked UI-SPEC + Approval record item 10; npm test 853/853 green; Playwright spec updates deferred to 18-05 per plan scope)
 
 ## Performance Metrics
 
@@ -216,6 +216,7 @@ None yet.
 - [Phase 5 owner decision] Plan a fresh CI-built stable candidate, actual new digest-bound approval and unchanged-byte publication in the same workflow run/attempt, per 05-CONTEXT.md. The old Phase 4 archive (SHA-256 e7766d43f7f804b138e694b298480cdec62ebfc16960f86d4c1e3c7959cf1dca, 3513998 bytes) and sealed evidence (3bf27f13de08b85527240c76ddc1e4df6c37dc06a5e1bbf006ab9d45f94fb379) remain immutable history. Do not publish that old artifact as a fallback or mutate any remote state under planning approval.
 - [Publication boundary] Phase 3 published commit ff72519969da8d2c0761c9533ccb27b809cd17bb. Later local evidence and completion commits are not automatically authorized for pushing.
 - Phase 14 verification: two confirmed gaps from 14-13's e2e coverage need remediation decisions — (1) registerUncommittedRefreshKeypress's TTY requirement blocks terminal r-keypress e2e verification (src/cli/run.ts, outside 14-13 scope); (2) performRefresh() never resyncs client-side comment status so StaleAnchorNotice never appears after Refresh (src/web/App.vue, outside 14-13 scope). See 14-13-SUMMARY.md Deviations for full detail and remediation options.
+- [Phase 18]: 18-04: Uncommitted empty-state copy (D-10) follows `18-COPY-DRAFT.md`'s Approval record item 10 (human-resolved 2026-11-02), not the plan's own pre-approval prose — all three uncommitted sources now render `No changes in {Staged|Unstaged|Working tree}. Edit files, then Refresh.` via one dynamic source-label computed, superseding `18-UI-SPEC.md`'s draft table's three distinct per-branch headings/messages.
 
 ### Roadmap Evolution
 
@@ -253,9 +254,10 @@ None yet.
 | Verification | Stabilise two nondeterministic Playwright specs that gate every push to `main`: `tests/e2e/responsive-session.spec.ts:773` and `tests/integration/anchored-workspace.spec.ts:1039` (both failed on the docs-only commit 4016226 and passed on rerun with no change) | Deferred | 260916-ide |
 | Verification | Stabilise `tests/e2e/agent-ready-export.spec.ts:1157` ('rejects an oversized uncommitted request'), which fails only when run as the last test in the full 16-test custody-gated file (likely a stderr-read-vs-exit-flush race in `waitForAttachedRejectionWithoutLoopbackUrl` under cumulative system load); passes cleanly alone or paired with its predecessor. See `.planning/phases/17-agent-protocol-extension-marketplace-skill/deferred-items.md`. | Deferred | 261031-q09 |
 | Verification | Fix `tests/integration/selector-drift-ui.spec.ts:422` and `:440` ('exact patch resumed drafts...' / 'exact patch retry stays snapshot-only...'), which fail on a malformed `exactPatchSession` fixture's `SessionResponseSchema.parse` call; confirmed pre-existing and unrelated to Phase 13/17 via `git stash` round-trip during 261031-q09. | Deferred | 261031-q09 |
+| Verification | Update seven Playwright e2e/integration specs (`tests/e2e/anchored-review.spec.ts`, `tests/e2e/file-tree.spec.ts`, `tests/e2e/pinned-session.spec.ts`, `tests/e2e/responsive-session.spec.ts`, `tests/integration/anchored-workspace.spec.ts`, `tests/integration/draft-recovery-ui.spec.ts`, `tests/integration/support-dialog.spec.ts`) that still assert the pre-18-04 "Changed files"/"PR-style"/dirty-badge copy this plan replaced; owned by `18-05-PLAN.md`, not part of `npm test`. | Deferred | 18-04 |
 
 ## Session Continuity
 
-Last session: 2026-11-02T16:12:00.000Z
-Stopped at: Completed 18-03-PLAN.md
+Last session: 2026-11-02T15:59:59.000Z
+Stopped at: Completed 18-04-PLAN.md
 Resume file: None
