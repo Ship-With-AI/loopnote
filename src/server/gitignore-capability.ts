@@ -2,12 +2,13 @@ import { constants } from 'node:fs';
 import { lstat, open, type FileHandle } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 
-import { inspectCumpaIgnore } from '../git/ignore-status.js';
+import { inspectLoopnoteIgnore } from '../git/ignore-status.js';
+import { RENAME_MAP } from '../domain/product-identity.js';
 
-const cumpaIgnoreRule = Buffer.from('/.cumpa/\n', 'ascii');
+const loopnoteIgnoreRule = Buffer.from(`/${RENAME_MAP.repoStateDir}\n`, 'ascii');
 const appendQueues = new Map<string, Promise<void>>();
 
-export type AppendCumpaIgnoreResult =
+export type AppendLoopnoteIgnoreResult =
   | Readonly<{ kind: 'appended' }>
   | Readonly<{ kind: 'alreadyIgnored' }>
   | Readonly<{ kind: 'unconfirmed' }>
@@ -15,11 +16,11 @@ export type AppendCumpaIgnoreResult =
   | Readonly<{ kind: 'appendUnconfirmed' }>
   | Readonly<{ kind: 'ambiguous' }>;
 
-export interface AppendCumpaIgnoreOptions {
+export interface AppendLoopnoteIgnoreOptions {
   readonly repositoryRoot: string;
 }
 
-export interface AppendCumpaIgnoreDependencies {
+export interface AppendLoopnoteIgnoreDependencies {
   readonly beforeAppend?: () => Promise<void>;
   readonly writeAddition?: (handle: FileHandle, addition: Buffer) => Promise<void>;
   readonly sync?: (handle: FileHandle) => Promise<void>;
@@ -32,11 +33,11 @@ function isMissingPath(error: unknown): boolean {
   return typeof error === 'object' && error !== null && 'code' in error && error.code === 'ENOENT';
 }
 
-function result(kind: AppendCumpaIgnoreResult['kind']): AppendCumpaIgnoreResult {
+function result(kind: AppendLoopnoteIgnoreResult['kind']): AppendLoopnoteIgnoreResult {
   return Object.freeze({ kind });
 }
 
-async function closeAsUnconfirmed(handle: FileHandle): Promise<AppendCumpaIgnoreResult> {
+async function closeAsUnconfirmed(handle: FileHandle): Promise<AppendLoopnoteIgnoreResult> {
   try {
     await handle.close();
   } catch {
@@ -50,9 +51,9 @@ async function inspectFailedMutation(
   identity: FileIdentity,
   original: Buffer,
   addition: Buffer,
-): Promise<AppendCumpaIgnoreResult> {
+): Promise<AppendLoopnoteIgnoreResult> {
   let confirmation: FileHandle | undefined;
-  let outcome: AppendCumpaIgnoreResult = result('ambiguous');
+  let outcome: AppendLoopnoteIgnoreResult = result('ambiguous');
   try {
     confirmation = await open(ignorePath, constants.O_RDONLY | constants.O_NOFOLLOW);
     const stat = await confirmation.stat();
@@ -78,10 +79,10 @@ async function inspectFailedMutation(
   return outcome;
 }
 
-export async function appendCumpaIgnoreRule(
-  options: AppendCumpaIgnoreOptions,
-  dependencies: AppendCumpaIgnoreDependencies = {},
-): Promise<AppendCumpaIgnoreResult> {
+export async function appendLoopnoteIgnoreRule(
+  options: AppendLoopnoteIgnoreOptions,
+  dependencies: AppendLoopnoteIgnoreDependencies = {},
+): Promise<AppendLoopnoteIgnoreResult> {
   const repositoryRoot = resolve(options.repositoryRoot);
   const previous = appendQueues.get(repositoryRoot) ?? Promise.resolve();
   let release!: () => void;
@@ -93,7 +94,7 @@ export async function appendCumpaIgnoreRule(
   await previous;
 
   try {
-    const status = await inspectCumpaIgnore({ repositoryRoot });
+    const status = await inspectLoopnoteIgnore({ repositoryRoot });
     if (status.kind === 'ignored') {
       return result('alreadyIgnored');
     }
@@ -171,8 +172,8 @@ export async function appendCumpaIgnoreRule(
     }
 
     const addition = original.byteLength === 0 || original.at(-1) === 0x0a
-      ? cumpaIgnoreRule
-      : Buffer.concat([Buffer.from('\n', 'ascii'), cumpaIgnoreRule]);
+      ? loopnoteIgnoreRule
+      : Buffer.concat([Buffer.from('\n', 'ascii'), loopnoteIgnoreRule]);
     let mutationFailed = false;
 
     try {
@@ -229,7 +230,7 @@ export async function appendCumpaIgnoreRule(
       return result('ambiguous');
     }
 
-    return (await inspectCumpaIgnore({ repositoryRoot })).kind === 'ignored'
+    return (await inspectLoopnoteIgnore({ repositoryRoot })).kind === 'ignored'
       ? result('appended')
       : result('appendUnconfirmed');
   } catch {

@@ -4,10 +4,10 @@ import {
   DraftLoadResponseSchema,
   DraftMutationResultSchema,
   DraftMutationRequestSchema,
-  AppendCumpaIgnoreResultSchema,
+  AppendLoopnoteIgnoreResultSchema,
   ExportDirectoryRevealResultSchema,
   DraftRecoveryRequestSchema,
-  CumpaIgnoreStatusSchema,
+  LoopnoteIgnoreStatusSchema,
   DraftRecoveryResultSchema,
   DraftRevealResultSchema,
   ExportReviewRequestSchema,
@@ -21,12 +21,12 @@ import {
   SupportStartResultSchema,
   SupportStatusSchema,
   type DraftLoadResponse,
-  type AppendCumpaIgnoreResult,
+  type AppendLoopnoteIgnoreResult,
   type DraftMutationRequest,
   type DraftMutationResult,
   type DraftRecoveryResult,
   type DraftRevealResult,
-  type CumpaIgnoreStatus,
+  type LoopnoteIgnoreStatus,
   type ExportDirectoryRevealResult,
   type ExportReviewRequest,
   type ExportReviewResult,
@@ -90,8 +90,8 @@ export interface SessionClient {
   finishReview(input: { readonly expectedRevision: number }): Promise<FinishReviewResult>;
   exportReview(request: ExportReviewRequest): Promise<ExportReviewResult>;
   getDraft(): Promise<DraftLoadResponse>;
-  appendCumpaIgnoreRule(): Promise<AppendCumpaIgnoreResult>;
-  getCumpaIgnoreStatus(): Promise<CumpaIgnoreStatus>;
+  appendLoopnoteIgnoreRule(): Promise<AppendLoopnoteIgnoreResult>;
+  getLoopnoteIgnoreStatus(): Promise<LoopnoteIgnoreStatus>;
   recoverDraft(expectedFingerprint: string): Promise<DraftRecoveryResult>;
   revealDraftFile(): Promise<DraftRevealResult>;
   revealExportDirectory(): Promise<ExportDirectoryRevealResult>;
@@ -244,8 +244,8 @@ export function createSessionClient(environment: SessionClientEnvironment = {}):
       }
       return result.data;
     },
-    async appendCumpaIgnoreRule() {
-      const result = AppendCumpaIgnoreResultSchema.safeParse(
+    async appendLoopnoteIgnoreRule() {
+      const result = AppendLoopnoteIgnoreResultSchema.safeParse(
         await requestJson('/api/export/gitignore', 'POST', 'draft'),
       );
       if (!result.success) {
@@ -253,8 +253,8 @@ export function createSessionClient(environment: SessionClientEnvironment = {}):
       }
       return result.data;
     },
-    async getCumpaIgnoreStatus() {
-      const result = CumpaIgnoreStatusSchema.safeParse(
+    async getLoopnoteIgnoreStatus() {
+      const result = LoopnoteIgnoreStatusSchema.safeParse(
         await requestJson('/api/export/gitignore', 'GET', 'draft'),
       );
       if (!result.success) {

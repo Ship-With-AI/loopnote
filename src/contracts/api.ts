@@ -233,7 +233,7 @@ export const ExportDirectoryRevealResultSchema = z
   ])
   .readonly();
 
-export const CumpaIgnoreStatusSchema = z
+export const LoopnoteIgnoreStatusSchema = z
   .discriminatedUnion('kind', [
     z.strictObject({ kind: z.literal('ignored') }).readonly(),
     z.strictObject({ kind: z.literal('notIgnored') }).readonly(),
@@ -241,7 +241,7 @@ export const CumpaIgnoreStatusSchema = z
   ])
   .readonly();
 
-export const AppendCumpaIgnoreResultSchema = z
+export const AppendLoopnoteIgnoreResultSchema = z
   .discriminatedUnion('kind', [
     z.strictObject({ kind: z.literal('appended') }).readonly(),
     z.strictObject({ kind: z.literal('alreadyIgnored') }).readonly(),
@@ -251,9 +251,9 @@ export const AppendCumpaIgnoreResultSchema = z
     z.strictObject({ kind: z.literal('ambiguous') }).readonly(),
   ])
   .readonly();
-export type CumpaIgnoreStatus = z.infer<typeof CumpaIgnoreStatusSchema>;
-export type AppendCumpaIgnoreResult = z.infer<
-  typeof AppendCumpaIgnoreResultSchema
+export type LoopnoteIgnoreStatus = z.infer<typeof LoopnoteIgnoreStatusSchema>;
+export type AppendLoopnoteIgnoreResult = z.infer<
+  typeof AppendLoopnoteIgnoreResultSchema
 >;
 
 export type ExportReviewRequest = z.infer<typeof ExportReviewRequestSchema>;
