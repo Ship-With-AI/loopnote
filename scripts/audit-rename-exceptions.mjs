@@ -82,11 +82,11 @@ const HISTORICAL_REAL_RUNTIME_FILE = 'tests/helpers/public-runtime.ts';
 // Category 5 — D-05-amendment upgrade notes (17.1-23's README.md "Upgrading from Cumpa"
 // section): the new section deliberately documents the old product name and the old
 // `.cumpa/` directory for 1.x users upgrading to 2.0.0 — it is user-facing upgrade
-// documentation, not a leftover rename artifact. Scoped to exactly this one file and a
-// narrow literal pattern, so it cannot mask a genuinely new leftover `cumpa` reference
-// anywhere else in the tree.
+// documentation, not a leftover rename artifact. Scoped to exactly this one file and to the
+// section's two anchors (its heading and its "renamed continuation of Cumpa" sentence), so a
+// stale bare "Cumpa" anywhere else in README.md — or anywhere else in the tree — still fails.
 const UPGRADE_NOTES_FILE = 'README.md';
-const UPGRADE_NOTES_PATTERN = /\.cumpa\/|\bCumpa\b/u;
+const UPGRADE_NOTES_PATTERN = /^## Upgrading from Cumpa$|^Loopnote is the renamed continuation of Cumpa\. /u;
 
 function gitListFiles(scanRoot, arguments_) {
   return execFileSync('git', arguments_, { cwd: scanRoot, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 })
