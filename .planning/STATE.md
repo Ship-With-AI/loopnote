@@ -5,15 +5,15 @@ milestone_name: Artifact Review
 current_phase: 17.1
 current_phase_name: full-project-rename
 status: executing
-stopped_at: Completed 17.1-15-PLAN.md
-last_updated: "2026-11-02T12:25:00.000Z"
+stopped_at: Completed 17.1-16-PLAN.md
+last_updated: "2026-11-02T13:35:00.000Z"
 last_activity: 2026-11-02
-last_activity_desc: 17.1-15 release-artifact test-helper rename complete (reverted PINNED_PUBLIC_ARTIFACT/real-registry-install literals to old form, matching 17.1-05 precedent)
+last_activity_desc: 17.1-16 package-acceptance and release-flow e2e rename complete (resolved CUMPA_SUPPORT_STATE_WINDOW/MARKETPLACE_URL_MARKER/RUNTIME_PROFILE/AGENT_READY_EVIDENCE cross-file contracts, fixed pre-existing rename-map.json fixture-copy bug)
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 69
-  completed_plans: 57
+  completed_plans: 58
   percent: 71
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-09-09)
 ## Current Position
 
 Phase: 17.1 (full-project-rename) — EXECUTING
-Plan: 16 of 22
+Plan: 17 of 22
 Status: Ready execute
-Last activity: 2026-11-02 — 17.1-15 release-artifact test-helper rename complete
+Last activity: 2026-11-02 — 17.1-16 package-acceptance and release-flow e2e rename complete
 
 ## Performance Metrics
 
@@ -194,6 +194,7 @@ Decisions are logged in PROJECT.md Key Decisions.
 - [Phase 17.1]: 17.1-13: Renamed `src/server/routes.ts`/`capabilities.ts` (including `capabilities.ts`'s `inspectCumpaIgnore` import/interface-member/4 implementations, not explicitly named in the plan's grep pattern but blocking the `ignore-status.js` import) and the 8 web-layer consumers to 17.1-12's renamed `LoopnoteIgnoreStatus`/`AppendLoopnoteIgnoreResult`/`appendLoopnoteIgnoreRule`/`getLoopnoteIgnoreStatus` forms; fixed App.vue's `cumpa-heading`/`loopnote-heading` desync (17.1-06) by deriving `aria-labelledby`/skip-link from `RENAME_MAP.cssPrefix`. `tsc --noEmit` now 0 diagnostics repo-wide (was 8); `tests/api/gitignore.test.ts` 5/5; `npm run build:node` succeeds; `tests/package/agent-ready-export-safety.test.ts` 8/8 including the previously-deferred ignore-append subtest.
 - [Phase 17.1]: 17.1-14: Renamed `src/server/support-store.ts`'s `resolveSupportStatePath` to `RENAME_MAP.xdgStateDirTitleCase`/`xdgStateDirLower` segments; added `resolveLegacySupportStatePath` (the one documented D-06 exception keeping literal old `Cumpa`/`cumpa` segments) and a guarded, atomic, mode-preserving one-time copy of a supporter's `support.json` from the legacy path to the new one on first run, proven by 4 real-temp-directory tests. Renamed `CUMPA_SUPPORT_STATE_WINDOW` to `${RENAME_MAP.envPrefix}SUPPORT_STATE_WINDOW` in both `tests/e2e/public-support-states.spec.ts` (owned) and `tests/package/marketplace-profile-acceptance.test.ts` (outside files_modified, explicitly authorized to keep 17.1-08's deferred cross-file contract consistent) — left the same var's other two producers/consumers (`tests/package/public-artifact-acceptance.test.ts`, `tests/e2e/marketplace-review.spec.ts`) for not-yet-run sibling 17.1-16, which independently derives the identical name. One pre-existing, unrelated `tests/api/support.test.ts` failure (confirmed via `git stash` round-trip) and ~46 pre-existing failures across 13 other files (owned by sibling plans, e.g. 17.1-18's deferred `.cumpa/`-path literals) left untouched per the mid-wave scope rule.
 - [Phase 17.1]: 17.1-15: Renamed release-artifact test-helper identity (packageName, evidence-kind literals, bin key/basename, four deferred `LOOPNOTE_RUNTIME_*` env vars, tmpdir prefixes, `LOOPNOTE_ACCEPTANCE_SUPPORT_HOME`/`LOOPNOTE_PUBLIC_INSTALL_SOURCE`) across `tests/helpers/{public-runtime,acceptance-runtime,runtime-artifact}.ts` and 3 unit tests. Reverted `public-artifact-identity.ts`'s `PINNED_PUBLIC_ARTIFACT` (net-zero diff) and every real-registry-install site in `public-runtime.ts` back to the old `@shipwithai/cumpa@1.5.0` form after empirically proving the rename breaks `write-acceptance-evidence.mjs`'s `assertNoPrivateValues`/`completeInstallProof` (17.1-05, same immutable-history precedent). Left `CUMPA_RUNTIME_PROFILE`/`CUMPA_AGENT_READY_EVIDENCE_REPORT`/`RUN_ID` unrenamed as live cross-file contracts owned by sibling plans 17.1-16/17.1-19, not yet run. Discovered `package.json`'s `bin` value still points at stale `dist/bin/cumpa.mjs` (owned by no current 17.1 plan).
+- [Phase 17.1]: 17.1-16: Renamed every current/local-build identity literal across `tests/package/{agent-ready-export,npm-release-verifier,public-artifact-acceptance,runtime-artifact-verifier,runtime-package-contract,runtime-producer}.test.ts` and `tests/e2e/{support-payment,support-restore,marketplace-review}.spec.ts` to `RENAME_MAP` forms. Left 3 pinned `@shipwithai/cumpa@1.5.0` literals old-form in `public-artifact-acceptance.test.ts`'s `publicProof` assertions (same immutable-history category 17.1-05/17.1-15 established). Resolved `CUMPA_SUPPORT_STATE_WINDOW`/`CUMPA_MARKETPLACE_URL_MARKER` against already-renamed senders (17.1-08/17.1-14). Resolved `CUMPA_RUNTIME_PROFILE`/`CUMPA_AGENT_READY_EVIDENCE_REPORT`/`RUN_ID` by also renaming `tests/helpers/runtime-artifact.ts` and `tests/unit/publish-scenario-record.test.ts` (owned by already-complete 17.1-15, which explicitly deferred this exact decision to "whichever of 17.1-16/17.1-19 runs first"); `tests/e2e/agent-ready-export.spec.ts` (17.1-19, not yet run) still reads the old form, a temporary documented mismatch. Fixed a pre-existing `scripts/rename-map.json` missing-copy bug (17.1-05 introduced the import dependency) in three test fixtures, found via live `vitest run`, restoring 21/21 + 18/18 passing tests. `runtime-artifact-verifier.test.ts`'s 7 real-`pack-runtime.mjs` tests remain blocked on the orchestrator-owned `package.json` `bin.loopnote` stale-path gap (unrelated to this plan's renames).
 
 ### Pending Todos
 
