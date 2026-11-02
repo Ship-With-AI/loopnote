@@ -1,21 +1,22 @@
 import { createGitRunner, GitRunnerError } from './runner.js';
 import type { GitRunner } from './runner.js';
+import { RENAME_MAP } from '../domain/product-identity.js';
 
-const cumpaIgnoreProbe = '.cumpa/.cumpa-ignore-probe';
-const cumpaIgnoreArguments = [
+const loopnoteIgnoreProbe = `${RENAME_MAP.repoStateDir}.${RENAME_MAP.slug}-ignore-probe`;
+const loopnoteIgnoreArguments = [
   'check-ignore',
   '--no-index',
   '--quiet',
   '--',
-  cumpaIgnoreProbe,
+  loopnoteIgnoreProbe,
 ] as const;
 
-export type CumpaIgnoreStatus =
+export type LoopnoteIgnoreStatus =
   | Readonly<{ kind: 'ignored' }>
   | Readonly<{ kind: 'not-ignored' }>
   | Readonly<{ kind: 'unavailable' }>;
 
-export interface InspectCumpaIgnoreOptions {
+export interface InspectLoopnoteIgnoreOptions {
   readonly repositoryRoot: string;
 }
 
@@ -23,13 +24,13 @@ export interface IgnoreStatusDependencies {
   readonly runner?: GitRunner;
 }
 
-export async function inspectCumpaIgnore(
-  options: InspectCumpaIgnoreOptions,
+export async function inspectLoopnoteIgnore(
+  options: InspectLoopnoteIgnoreOptions,
   dependencies: IgnoreStatusDependencies = {},
-): Promise<CumpaIgnoreStatus> {
+): Promise<LoopnoteIgnoreStatus> {
   const runner = dependencies.runner ?? createGitRunner();
   try {
-    await runner.run(cumpaIgnoreArguments, { cwd: options.repositoryRoot });
+    await runner.run(loopnoteIgnoreArguments, { cwd: options.repositoryRoot });
     return Object.freeze({ kind: 'ignored' });
   } catch (error) {
     if (error instanceof GitRunnerError && error.kind === 'exit' && error.exitCode === 1) {

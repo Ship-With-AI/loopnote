@@ -5,10 +5,11 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
-  inspectCumpaIgnore,
-  type CumpaIgnoreStatus,
+  inspectLoopnoteIgnore,
+  type LoopnoteIgnoreStatus,
 } from '../../src/git/ignore-status.js';
 import { GitRunnerError, type GitRunner } from '../../src/git/runner.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 
 const safeGitArguments = [
   '--no-optional-locks',
@@ -33,7 +34,7 @@ const gitEnvironment = {
 const fixtures: string[] = [];
 
 async function createRepository(): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), 'cumpa-ignore-status-'));
+  const root = await mkdtemp(join(tmpdir(), 'loopnote-ignore-status-'));
   fixtures.push(root);
   execFileSync('git', [...safeGitArguments, 'init', '--initial-branch=main'], {
     cwd: root,
@@ -47,40 +48,40 @@ afterEach(async () => {
   await Promise.all(fixtures.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
-describe('effective Cumpa ignore inspection', () => {
+describe('effective Loopnote ignore inspection', () => {
   it('uses Git effective-ignore semantics for root, nested, info, global, and negated rules', async () => {
     const rootRule = await createRepository();
-    await writeFile(join(rootRule, '.gitignore'), '/.cumpa/\n');
-    expect((await inspectCumpaIgnore({ repositoryRoot: rootRule })).kind).toBe('ignored');
+    await writeFile(join(rootRule, '.gitignore'), `/${RENAME_MAP.repoStateDir}\n`);
+    expect((await inspectLoopnoteIgnore({ repositoryRoot: rootRule })).kind).toBe('ignored');
 
     const nestedRule = await createRepository();
-    await mkdir(join(nestedRule, '.cumpa'));
+    await mkdir(join(nestedRule, RENAME_MAP.repoStateDir.replace(/\/$/, '')));
     await writeFile(
-      join(nestedRule, '.cumpa', '.gitignore'),
-      '/.cumpa-ignore-probe\n',
+      join(nestedRule, RENAME_MAP.repoStateDir.replace(/\/$/, ''), '.gitignore'),
+      `/.${RENAME_MAP.slug}-ignore-probe\n`,
     );
-    expect((await inspectCumpaIgnore({ repositoryRoot: nestedRule })).kind).toBe('ignored');
+    expect((await inspectLoopnoteIgnore({ repositoryRoot: nestedRule })).kind).toBe('ignored');
 
     const infoRule = await createRepository();
-    await writeFile(join(infoRule, '.git', 'info', 'exclude'), '/.cumpa/\n');
-    expect((await inspectCumpaIgnore({ repositoryRoot: infoRule })).kind).toBe('ignored');
+    await writeFile(join(infoRule, '.git', 'info', 'exclude'), `/${RENAME_MAP.repoStateDir}\n`);
+    expect((await inspectLoopnoteIgnore({ repositoryRoot: infoRule })).kind).toBe('ignored');
 
     const globalRule = await createRepository();
     const globalExclude = join(globalRule, 'global-excludes');
-    await writeFile(globalExclude, '/.cumpa/\n');
+    await writeFile(globalExclude, `/${RENAME_MAP.repoStateDir}\n`);
     execFileSync('git', ['config', '--local', 'core.excludesFile', globalExclude], {
       cwd: globalRule,
       env: gitEnvironment,
       stdio: 'ignore',
     });
-    expect((await inspectCumpaIgnore({ repositoryRoot: globalRule })).kind).toBe('ignored');
+    expect((await inspectLoopnoteIgnore({ repositoryRoot: globalRule })).kind).toBe('ignored');
 
     const negatedRule = await createRepository();
     await writeFile(
       join(negatedRule, '.gitignore'),
-      '/.cumpa/*\n!/.cumpa/.cumpa-ignore-probe\n',
+      `/${RENAME_MAP.repoStateDir}*\n!/${RENAME_MAP.repoStateDir}.${RENAME_MAP.slug}-ignore-probe\n`,
     );
-    expect((await inspectCumpaIgnore({ repositoryRoot: negatedRule })).kind).toBe('not-ignored');
+    expect((await inspectLoopnoteIgnore({ repositoryRoot: negatedRule })).kind).toBe('not-ignored');
   });
 
   it('exposes only fixed probe outcomes and fixed runner authority', async () => {
@@ -92,7 +93,7 @@ describe('effective Cumpa ignore inspection', () => {
       },
     };
 
-    const status: CumpaIgnoreStatus = await inspectCumpaIgnore(
+    const status: LoopnoteIgnoreStatus = await inspectLoopnoteIgnore(
       { repositoryRoot: '/fixed-repository-root' },
       { runner },
     );
@@ -105,7 +106,7 @@ describe('effective Cumpa ignore inspection', () => {
           '--no-index',
           '--quiet',
           '--',
-          '.cumpa/.cumpa-ignore-probe',
+          `${RENAME_MAP.repoStateDir}.${RENAME_MAP.slug}-ignore-probe`,
         ],
         cwd: '/fixed-repository-root',
       },
@@ -120,7 +121,7 @@ describe('effective Cumpa ignore inspection', () => {
     };
 
     await expect(
-      inspectCumpaIgnore({ repositoryRoot: '/fixed-repository-root' }, { runner }),
+      inspectLoopnoteIgnore({ repositoryRoot: '/fixed-repository-root' }, { runner }),
     ).resolves.toEqual({ kind: 'unavailable' });
   });
 });
