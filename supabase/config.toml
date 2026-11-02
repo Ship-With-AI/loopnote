@@ -1,4 +1,4 @@
-project_id = "cumpa"
+project_id = "loopnote"
 
 [api]
 enabled = false

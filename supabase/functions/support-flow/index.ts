@@ -26,9 +26,9 @@ type ClaimedIntent = Readonly<{ id: string; action: "support" | "restore"; insta
 type BrowserState = "complete" | "invalid" | "unavailable";
 
 const browserMessages: Record<BrowserState, string> = {
-  complete: "Support flow complete. You can return to Cumpa.",
-  invalid: "This support link is invalid or expired. Return to Cumpa and try again.",
-  unavailable: "Support is temporarily unavailable. Return to Cumpa and try again.",
+  complete: "Support flow complete. You can return to Loopnote.",
+  invalid: "This support link is invalid or expired. Return to Loopnote and try again.",
+  unavailable: "Support is temporarily unavailable. Return to Loopnote and try again.",
 };
 
 function browserResponse(state: BrowserState) {
