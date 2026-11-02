@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
+import { RENAME_MAP } from '../../domain/product-identity';
+
 import '../styles.css';
 
 type VariantId = 'quiet-rails' | 'signed-gutters' | 'layered-overlap';
@@ -203,7 +205,7 @@ onBeforeUnmount(() => {
     <header class="session-header phase6-prototype__header">
       <div class="phase6-prototype__header-copy">
         <p class="phase6-prototype__eyebrow">PHASE 6 THROWAWAY MOCKUP</p>
-        <h1>Cumpa: Monaco diff semantics cumpa board</h1>
+        <h1>{{ RENAME_MAP.displayName }}: Monaco diff semantics board</h1>
         <p>
           Development-only shell for comparing three possible Phase 6 visual treatments before real Monaco theming.
           The production review workflow, persistence, and API behavior stay untouched.

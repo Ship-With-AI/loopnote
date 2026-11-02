@@ -11,6 +11,7 @@ import {
   type ImmutableDiffFile,
 } from '../monaco/diff-adapter';
 import { configureMonacoWorkers, languageForPath } from '../monaco/configure';
+import { RENAME_MAP } from '../../domain/product-identity';
 
 const FILES: readonly ImmutableDiffFile[] = [
   {
@@ -18,7 +19,7 @@ const FILES: readonly ImmutableDiffFile[] = [
     base: {
       path: 'src/review.ts',
       text: `export function renderReview() {
-  const title = 'Cumpa';
+  const title = '${RENAME_MAP.displayName}';
   const stable00 = 'zero';
   const stable00a = 'zero a';
   const stable00b = 'zero b';
@@ -48,7 +49,7 @@ const FILES: readonly ImmutableDiffFile[] = [
     head: {
       path: 'src/review.ts',
       text: `export function renderReview() {
-  const title = 'Cumpa';
+  const title = '${RENAME_MAP.displayName}';
   const stable00 = 'zero';
   const stable00a = 'zero a';
   const stable00b = 'zero b';
@@ -84,7 +85,7 @@ const FILES: readonly ImmutableDiffFile[] = [
     base: {
       path: 'config/review.json',
       text: `{
-  "name": "cumpa",
+  "name": "${RENAME_MAP.slug}",
   "stable01": true,
   "stable02": true,
   "stable03": true,
@@ -109,7 +110,7 @@ const FILES: readonly ImmutableDiffFile[] = [
     head: {
       path: 'config/review.json',
       text: `{
-  "name": "cumpa",
+  "name": "${RENAME_MAP.slug}",
   "stable01": true,
   "stable02": true,
   "stable03": true,

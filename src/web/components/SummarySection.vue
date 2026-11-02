@@ -2,6 +2,7 @@
 import { computed, nextTick, ref, watch } from 'vue';
 
 import { renderMarkdownPreview } from '../model/markdown-preview.js';
+import { RENAME_MAP } from '../../domain/product-identity.js';
 import UiIcon from './ui/UiIcon.vue';
 import ReviewStateBadge from './ui/ReviewStateBadge.vue';
 
@@ -241,7 +242,7 @@ watch(() => props.failure, (failed) => {
         <UiIcon name="error" class="inline-notice__icon" />
         <div class="inline-notice__content">
           <h4 id="summary-save-failed-heading">Summary wasn’t saved</h4>
-          <p>Your text is still here in this tab. Try again after checking Cumpa is running.</p>
+          <p>Your text is still here in this tab. Try again after checking {{ RENAME_MAP.displayName }} is running.</p>
         </div>
       </section>
       <section

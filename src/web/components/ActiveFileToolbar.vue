@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 
 import type { SessionFile } from '../../contracts/api.js';
+import { RENAME_MAP } from '../../domain/product-identity.js';
 import { singlePaneSideFor, wasModeKind } from '../model/single-pane-layout.js';
 import PathDisplay from './PathDisplay.vue';
 import StatusBadge from './StatusBadge.vue';
@@ -78,7 +79,7 @@ function focusFilesToggle(): void {
 }
 
 function focusHeading(): void {
-  document.getElementById('cumpa-heading')?.focus();
+  document.getElementById(`${RENAME_MAP.cssPrefix}heading`)?.focus();
 }
 
 defineExpose({ focusFilesToggle, focusHeading });
@@ -86,7 +87,7 @@ defineExpose({ focusFilesToggle, focusHeading });
 
 <template>
   <div class="review-toolbar__active-file">
-    <h1 id="cumpa-heading" tabindex="-1" :title="effectivePath">
+    <h1 :id="`${RENAME_MAP.cssPrefix}heading`" tabindex="-1" :title="effectivePath">
       <PathDisplay v-if="selectedFile !== undefined" :file="selectedFile" basename />
       <template v-else>{{ selectedPath }}</template>
     </h1>

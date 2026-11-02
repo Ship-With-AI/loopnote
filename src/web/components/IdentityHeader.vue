@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 
 import type { SessionResponse } from '../../contracts/api';
+import { RENAME_MAP } from '../../domain/product-identity';
 import { controlSafeDisplay } from '../../domain/path-bytes';
 import UiIcon from './ui/UiIcon.vue';
 
@@ -101,9 +102,9 @@ defineExpose({ focusSupport });
 <template>
   <header class="session-header">
     <div class="session-header__identity">
-      <div class="session-header__brand" role="img" aria-label="Cumpa">
+      <div class="session-header__brand" :aria-label="RENAME_MAP.displayName" role="img">
         <span aria-hidden="true">‹/›</span>
-        <span>Cumpa</span>
+        <span>{{ RENAME_MAP.displayName }}</span>
       </div>
       <div class="session-header__comparison">
         <template v-if="isExactPatch">
@@ -184,7 +185,7 @@ defineExpose({ focusSupport });
         :aria-expanded="supportOpen"
         @click="emit('support')"
       >
-        Support Cumpa
+        Support {{ RENAME_MAP.displayName }}
       </button>
       <button
         type="button"

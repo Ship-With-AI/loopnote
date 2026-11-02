@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 
 import type { SelectorDriftResponse, SelectorDriftStatus } from '../../contracts/api.js';
+import { RENAME_MAP } from '../../domain/product-identity.js';
 import { controlSafeDisplay } from '../../domain/path-bytes.js';
 import UiIcon from './ui/UiIcon.vue';
 
@@ -69,7 +70,7 @@ function copyPinnedCommit(status: Exclude<SelectorDriftStatus, { readonly kind: 
         Launch new comparison
       </button>
       <p v-if="relaunchInstructionsOpen">
-        Return to the terminal and launch Cumpa again, then choose the current sources. This open review will remain pinned.
+        Return to the terminal and launch {{ RENAME_MAP.displayName }} again, then choose the current sources. This open review will remain pinned.
       </p>
     </div>
   </aside>
