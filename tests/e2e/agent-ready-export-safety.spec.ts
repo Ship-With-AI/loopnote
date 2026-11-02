@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { ReviewExportV1Schema } from '../../src/contracts/draft.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 import { canonicalizeReviewExport } from '../../src/export/review-export.js';
 import { renderReviewMarkdown } from '../../src/export/render-review-markdown.js';
 import { runGeneratedExport, runGeneratedRecovery, sampleGeneratedStablePair } from '../helpers/export-fault-runner.js';
@@ -119,7 +120,7 @@ test.afterAll(async () => {
 function pair(summary: string): Readonly<{ readonly json: Buffer; readonly markdown: Buffer }> {
   const json = Buffer.from(canonicalizeReviewExport(ReviewExportV1Schema.parse({
     schemaVersion: 1,
-    kind: 'cumpa/export',
+    kind: `${RENAME_MAP.kindPrefix}/export`,
     exportedAt: '2026-07-23T00:00:00.000Z',
     acceptedDraftRevision: 1,
     comparison: {

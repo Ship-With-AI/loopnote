@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 
 import { ReviewExportV1Schema, ReviewExportV3Schema, ReviewExportV4Schema } from '../../src/contracts/draft.js';
 import { canonicalizeReviewExport } from '../../src/export/review-export.js';
@@ -64,7 +65,7 @@ function bytes(
   };
   return canonicalizeReviewExport(ReviewExportV1Schema.parse({
     schemaVersion: 1,
-    kind: 'cumpa/export',
+    kind: `${RENAME_MAP.kindPrefix}/export`,
     exportedAt: '2026-07-23T08:02:00.000Z',
     acceptedDraftRevision: 4,
     comparison: {
@@ -151,7 +152,7 @@ describe('exact patch Markdown', () => {
   test('identifies frozen patch provenance with preimage/postimage terminology', () => {
     const document = ReviewExportV3Schema.parse({
       schemaVersion: 3,
-      kind: 'cumpa/export',
+      kind: `${RENAME_MAP.kindPrefix}/export`,
       exportedAt: '2026-07-23T08:02:00.000Z',
       acceptedDraftRevision: 4,
       patch: {
@@ -189,7 +190,7 @@ describe('standalone Markdown', () => {
     });
     const document = ReviewExportV4Schema.parse({
       schemaVersion: 4,
-      kind: 'cumpa/export',
+      kind: `${RENAME_MAP.kindPrefix}/export`,
       exportedAt: '2026-07-23T08:02:00.000Z',
       acceptedDraftRevision: 4,
       standalone: {

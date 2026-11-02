@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 import type { RangeReviewScope } from '../../src/contracts/comparison.js';
 
 
@@ -147,7 +148,7 @@ describe('ReviewExportV1 canonical contract', () => {
 
     expect(document).toMatchObject({
       schemaVersion: 1,
-      kind: 'cumpa/export',
+      kind: `${RENAME_MAP.kindPrefix}/export`,
       acceptedDraftRevision: 4,
       summary: { markdown: null },
       counts: { all: 1, openActionable: 1, openNeedsAttention: 0, resolved: 0 },
@@ -468,7 +469,7 @@ describe('ReviewExportV5 canonical contract', () => {
     expect(ReviewExportV5Schema.parse(document)).toEqual(document);
     expect(document).toMatchObject({
       schemaVersion: 5,
-      kind: 'cumpa/export',
+      kind: `${RENAME_MAP.kindPrefix}/export`,
       uncommitted,
       workingTreeChangedAfterFinalSnapshot: drift,
     });
@@ -540,7 +541,7 @@ describe('ReviewExportV6 canonical contract', () => {
     expect(ReviewExportV6Schema.parse(document)).toEqual(document);
     expect(document).toMatchObject({
       schemaVersion: 6,
-      kind: 'cumpa/export',
+      kind: `${RENAME_MAP.kindPrefix}/export`,
       standalone,
       workingTreeChangedAfterFinalSnapshot: drift,
     });

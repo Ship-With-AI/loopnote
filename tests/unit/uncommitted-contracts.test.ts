@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 
 import {
   AvailabilitySchema,
@@ -315,7 +316,7 @@ describe('ReviewExportV4Schema', () => {
   const standalonePath = { bytesBase64url: 'YS50eHQ', display: 'a.txt' };
   const validReviewExportV4 = {
     schemaVersion: 4 as const,
-    kind: 'cumpa/export' as const,
+    kind: `${RENAME_MAP.kindPrefix}/export` as const,
     exportedAt: '2026-01-01T00:00:00.000Z',
     acceptedDraftRevision: 1,
     standalone: {

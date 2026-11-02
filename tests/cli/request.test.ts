@@ -19,6 +19,7 @@ import type { AttachedCompletionOptions } from '../../src/server/capabilities.js
 import { createSessionApp as createRealSessionApp, type SessionApp } from '../../src/server/app.js';
 import type { PinnedComparison } from '../../src/contracts/comparison.js';
 import { LaunchError } from '../../src/domain/errors.js';
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 
 const encoder = new TextEncoder();
 
@@ -28,7 +29,7 @@ afterEach(() => {
 
 function request(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
-    kind: 'cumpa.review-request',
+    kind: `${RENAME_MAP.kindPrefix}.review-request`,
     schemaVersion: 1,
     mode: 'revisions',
     revisions: { base: 'main', head: 'feature' },
@@ -130,11 +131,11 @@ describe('agent review request protocol', () => {
   });
 
   it.each([
-    ['empty-request', chunks(), 'Request input is empty. Pipe one cumpa.review-request JSON document.'],
+    ['empty-request', chunks(), `Request input is empty. Pipe one ${RENAME_MAP.kindPrefix}.review-request JSON document.`],
     ['malformed-json', chunks(encoder.encode('{')), 'Request input must contain one JSON document.'],
     ['malformed-json', chunks(encoder.encode(`${JSON.stringify(request())}\n{} `)), 'Request input must contain one JSON document.'],
     ['invalid-utf8', chunks(Uint8Array.of(0xe2), Uint8Array.of(0x28, 0xa1)), 'Request input must be valid UTF-8 JSON.'],
-    ['invalid-request', chunks(encoder.encode('null')), 'Request is invalid. Use kind "cumpa.review-request", schemaVersion 1, and one supported source mode.'],
+    ['invalid-request', chunks(encoder.encode('null')), `Request is invalid. Use kind "${RENAME_MAP.kindPrefix}.review-request", schemaVersion 1, and one supported source mode.`],
   ] as const)('reports safe %s failures without request data', async (kind, input, message) => {
     await expectRequestError(input, kind, message);
   });
@@ -145,7 +146,7 @@ describe('agent review request protocol', () => {
     ['unsupported kind', request({ kind: 'cumpa.patch-request' }), 'invalid-request'],
     ['unsupported version', request({ schemaVersion: 2 }), 'unsupported-version'],
     ['unsupported mode', request({ mode: 'patch' }), 'invalid-request'],
-    ['missing revisions', { kind: 'cumpa.review-request', schemaVersion: 1, mode: 'revisions' }, 'invalid-request'],
+    ['missing revisions', { kind: `${RENAME_MAP.kindPrefix}.review-request`, schemaVersion: 1, mode: 'revisions' }, 'invalid-request'],
     ['second source mode', request({ patch: { content: 'diff --git' } }), 'invalid-request'],
   ] as const)('strictly rejects %s', async (_name, value, kind) => {
     await expectRequestError(
@@ -153,7 +154,23 @@ describe('agent review request protocol', () => {
       kind,
       kind === 'unsupported-version'
         ? 'Request schema version is unsupported. Use schemaVersion 1.'
-        : 'Request is invalid. Use kind "cumpa.review-request", schemaVersion 1, and one supported source mode.',
+        : `Request is invalid. Use kind "${RENAME_MAP.kindPrefix}.review-request", schemaVersion 1, and one supported source mode.`,
+    );
+  });
+
+  it('rejects the old literal kind "cumpa.review-request" with AgentRequestError kind "legacy-kind" naming the new kind', async () => {
+    await expectRequestError(
+      chunks(bytes(request({ kind: 'cumpa.review-request' }))),
+      'legacy-kind',
+      `Request kind is outdated. Use kind "${RENAME_MAP.kindPrefix}.review-request" instead.`,
+    );
+  });
+
+  it('rejects an unrelated garbage kind with the pre-existing "invalid-request" fallback, not "legacy-kind"', async () => {
+    await expectRequestError(
+      chunks(bytes(request({ kind: 'bogus.kind' }))),
+      'invalid-request',
+      `Request is invalid. Use kind "${RENAME_MAP.kindPrefix}.review-request", schemaVersion 1, and one supported source mode.`,
     );
   });
 
@@ -166,7 +183,7 @@ describe('agent review request protocol', () => {
     await expectRequestError(
       chunks(bytes(request({ revisions: { base: value, head: 'feature' } }))),
       'invalid-request',
-      'Request is invalid. Use kind "cumpa.review-request", schemaVersion 1, and one supported source mode.',
+      `Request is invalid. Use kind "${RENAME_MAP.kindPrefix}.review-request", schemaVersion 1, and one supported source mode.`,
     );
   });
 
@@ -184,7 +201,7 @@ describe('agent review request protocol', () => {
         ),
       ),
       'invalid-request',
-      'Request is invalid. Use kind "cumpa.review-request", schemaVersion 1, and one supported source mode.',
+      `Request is invalid. Use kind "${RENAME_MAP.kindPrefix}.review-request", schemaVersion 1, and one supported source mode.`,
     );
   });
 });
@@ -194,7 +211,7 @@ describe('exact patch request protocol', () => {
 
   function patchRequest(overrides: Record<string, unknown> = {}): Record<string, unknown> {
     return {
-      kind: 'cumpa.review-request',
+      kind: `${RENAME_MAP.kindPrefix}.review-request`,
       schemaVersion: 1,
       mode: 'patch',
       patch: { content: patch, target: { kind: 'repository' } },
@@ -230,7 +247,7 @@ describe('exact patch request protocol', () => {
     await expectRequestError(
       chunks(bytes(value)),
       'invalid-request',
-      'Request is invalid. Use kind "cumpa.review-request", schemaVersion 1, and one supported source mode.',
+      `Request is invalid. Use kind "${RENAME_MAP.kindPrefix}.review-request", schemaVersion 1, and one supported source mode.`,
     );
   });
 });
@@ -467,7 +484,7 @@ describe('ordinary action request ownership', () => {
         isTTY: false,
         input: chunks(),
         readRequest: async () => ExactPatchRequestSchema.parse({
-          kind: 'cumpa.review-request',
+          kind: `${RENAME_MAP.kindPrefix}.review-request`,
           schemaVersion: 1,
           mode: 'patch',
           patch: { content: 'diff --git a/a b/a', target: { kind: 'repository' } },
