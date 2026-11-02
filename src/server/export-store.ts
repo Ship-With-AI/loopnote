@@ -6,6 +6,7 @@ import type { Stats } from 'node:fs';
 import { hashExportBytes, parseCanonicalReviewExport } from '../export/review-export.js';
 import type { ExportHash, ReviewExport } from '../export/review-export.js';
 import { renderReviewMarkdown } from '../export/render-review-markdown.js';
+import { RENAME_MAP } from '../domain/product-identity.js';
 import { assertAttachedStorageScope } from './draft-loader.js';
 
 export class ReExportUnsupported extends Error {
@@ -55,9 +56,9 @@ type CompletePair = Readonly<{ readonly json: Buffer; readonly markdown: Buffer 
 type DirectoryIdentity = Readonly<{ readonly dev: number; readonly ino: number }>;
 
 export type ManagedExportsRoot = Readonly<{
-  readonly cumpaRoot: string;
+  readonly stateRoot: string;
   readonly exportsRoot: string;
-  readonly cumpaIdentity: DirectoryIdentity;
+  readonly stateIdentity: DirectoryIdentity;
   readonly exportsIdentity: DirectoryIdentity;
 }>;
 
@@ -163,8 +164,8 @@ function receipt(exportsRoot: string, stable: string, pair: CompletePair): Expor
   const json = hashExportBytes(pair.json);
   const markdown = hashExportBytes(pair.markdown);
   const files: ExportReceipt['files'] = [
-    Object.freeze({ path: `.cumpa/exports/${stableRelative}/review.json`, ...json }),
-    Object.freeze({ path: `.cumpa/exports/${stableRelative}/review.md`, ...markdown }),
+    Object.freeze({ path: `${RENAME_MAP.repoStateDir}exports/${stableRelative}/review.json`, ...json }),
+    Object.freeze({ path: `${RENAME_MAP.repoStateDir}exports/${stableRelative}/review.md`, ...markdown }),
   ];
   return Object.freeze({ files: Object.freeze(files) as ExportReceipt['files'] });
 }
@@ -198,20 +199,20 @@ export async function ensureManagedExportsRoot(
   create: boolean,
 ): Promise<ManagedExportsRoot | undefined> {
   const root = resolve(repositoryRoot);
-  const cumpaRoot = join(root, '.cumpa');
-  const cumpaIdentity = await managedDirectory(cumpaRoot, create);
-  if (cumpaIdentity === undefined) return undefined;
-  const exportsRoot = join(cumpaRoot, 'exports');
+  const stateRoot = join(root, RENAME_MAP.repoStateDir.replace(/\/$/, ''));
+  const stateIdentity = await managedDirectory(stateRoot, create);
+  if (stateIdentity === undefined) return undefined;
+  const exportsRoot = join(stateRoot, 'exports');
   const exportsIdentity = await managedDirectory(exportsRoot, create);
   if (exportsIdentity === undefined) return undefined;
-  return Object.freeze({ cumpaRoot, exportsRoot, cumpaIdentity, exportsIdentity });
+  return Object.freeze({ stateRoot, exportsRoot, stateIdentity, exportsIdentity });
 }
 
 export async function assertManagedExportsRoot(managedRoot: ManagedExportsRoot): Promise<void> {
-  const cumpaIdentity = await managedDirectory(managedRoot.cumpaRoot, false);
+  const stateIdentity = await managedDirectory(managedRoot.stateRoot, false);
   if (
-    cumpaIdentity === undefined
-    || !sameIdentity(cumpaIdentity, managedRoot.cumpaIdentity)
+    stateIdentity === undefined
+    || !sameIdentity(stateIdentity, managedRoot.stateIdentity)
   ) {
     throw new Error('Managed export directory identity changed.');
   }

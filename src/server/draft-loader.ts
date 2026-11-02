@@ -9,9 +9,10 @@ import {
   type ReviewDraftV1,
 } from '../contracts/draft.js';
 import { comparisonKey } from '../domain/comparison-key.js';
+import { RENAME_MAP } from '../domain/product-identity.js';
 import type { DraftComparison, DraftFileSystem } from './draft-store.js';
 
-const draftsDirectory = '.cumpa/drafts';
+const draftsDirectory = `${RENAME_MAP.repoStateDir}drafts`;
 const strictUtf8 = new TextDecoder('utf-8', { fatal: true });
 
 export function assertAttachedStorageScope(storageScope: string): string {

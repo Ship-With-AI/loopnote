@@ -12,6 +12,7 @@ import {
 } from '../contracts/draft.js';
 import type { DraftComparison as DraftComparisonContract } from '../contracts/draft.js';
 import { applyDraftMutation } from '../draft/mutate-draft.js';
+import { RENAME_MAP } from '../domain/product-identity.js';
 import { createDraftLoader, type DraftLoadState } from './draft-loader.js';
 
 export type DraftComparison = DraftComparisonContract;
@@ -394,7 +395,7 @@ export async function findUncommittedDraftCandidate(
   sourceKind: 'staged' | 'unstaged' | 'worktree',
   baseCommitOid: string | undefined,
 ): Promise<Readonly<{ readonly reviewKey: string; readonly path: string }> | undefined> {
-  const directory = join(repositoryRoot, '.cumpa', 'drafts');
+  const directory = join(repositoryRoot, RENAME_MAP.repoStateDir.replace(/\/$/, ''), 'drafts');
   let entries: string[];
   try {
     entries = await fs.readdir(directory);
