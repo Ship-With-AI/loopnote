@@ -29,6 +29,7 @@ import type {
   WorktreeCandidate,
 } from '../domain/source.js';
 import { isLaunchError, type LaunchError } from '../domain/errors.js';
+import { RENAME_MAP } from '../domain/product-identity.js';
 import { discoverSourceCandidates } from '../git/candidates.js';
 import type { SourceDiscovery } from '../git/candidates.js';
 import { discoverGitRepository } from '../git/repository.js';
@@ -79,7 +80,7 @@ import {
   type ShutdownSignalSource,
 } from '../server/lifecycle.js';
 
-const expectedPackageName = '@shipwithai/cumpa';
+const expectedPackageName = RENAME_MAP.npmPackage;
 const semanticVersionPattern =
   /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-(?:0|[1-9]\d*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/u;
 
@@ -278,7 +279,7 @@ function createLaunchRuntime(
     },
     setExitStatus: dependencies.setExitStatus,
     reportError: (error) => {
-      console.error('Cumpa shutdown failed.', error);
+      console.error(`${RENAME_MAP.displayName} shutdown failed.`, error);
     },
   });
 
@@ -307,7 +308,7 @@ function createLaunchRuntime(
         sessionToken: token,
         revealDraftFile,
         diagnostics: ({ correlationId, reason }) => {
-          console.error(`Cumpa request denied [${correlationId}]: ${reason}.`);
+          console.error(`${RENAME_MAP.displayName} request denied [${correlationId}]: ${reason}.`);
         },
       });
       await app.listen({ host: '127.0.0.1', port: 0 });
@@ -596,7 +597,7 @@ function registerUncommittedRefreshKeypress(
     const key = chunk.toString('utf8');
     if (key === '\u0003') {
       shutdown.shutdown(130).catch((error: unknown) => {
-        console.error('Cumpa shutdown failed.', error);
+        console.error(`${RENAME_MAP.displayName} shutdown failed.`, error);
       });
       return;
     }
@@ -665,7 +666,7 @@ async function launchUncommittedSession(
     },
     setExitStatus: dependencies.setExitStatus,
     reportError: (error) => {
-      console.error('Cumpa shutdown failed.', error);
+      console.error(`${RENAME_MAP.displayName} shutdown failed.`, error);
     },
   });
 
@@ -740,7 +741,7 @@ async function launchUncommittedSession(
       revealDraftFile,
       ...(recoveryCandidate === undefined ? {} : { uncommittedRecoveryCandidate: { path: recoveryCandidate.path } }),
       diagnostics: ({ correlationId, reason }) => {
-        console.error(`Cumpa request denied [${correlationId}]: ${reason}.`);
+        console.error(`${RENAME_MAP.displayName} request denied [${correlationId}]: ${reason}.`);
       },
     });
     await app.listen({ host: '127.0.0.1', port: 0 });
@@ -831,7 +832,7 @@ async function launchStandaloneSession(
     },
     setExitStatus: dependencies.setExitStatus,
     reportError: (error) => {
-      console.error('Cumpa shutdown failed.', error);
+      console.error(`${RENAME_MAP.displayName} shutdown failed.`, error);
     },
   });
 
@@ -887,7 +888,7 @@ async function launchStandaloneSession(
       sessionToken: token,
       revealDraftFile,
       diagnostics: ({ correlationId, reason }) => {
-        console.error(`Cumpa request denied [${correlationId}]: ${reason}.`);
+        console.error(`${RENAME_MAP.displayName} request denied [${correlationId}]: ${reason}.`);
       },
     });
     await app.listen({ host: '127.0.0.1', port: 0 });
@@ -1268,7 +1269,7 @@ export async function runOrdinaryAction(
           attachedCompletion,
           support,
           diagnostics: ({ correlationId, reason }) => {
-            output(`Cumpa request denied [${correlationId}]: ${reason}.`);
+            output(`${RENAME_MAP.displayName} request denied [${correlationId}]: ${reason}.`);
           },
         });
       },
@@ -1452,7 +1453,7 @@ export async function run(
   }
 
   await new Command()
-    .name('cumpa')
+    .name(RENAME_MAP.binCommand)
     .description('Local-first review of pinned Git comparisons')
     .version(await readPackageVersionFromManifest())
     .option('--staged', 'Review staged changes (HEAD→index) against a base')
@@ -1496,7 +1497,7 @@ export async function run(
         return;
       }
 
-      const serializedLaunchOptions = process.env.CUMPA_LAUNCH_OPTIONS;
+      const serializedLaunchOptions = process.env[`${RENAME_MAP.envPrefix}LAUNCH_OPTIONS`];
       if (serializedLaunchOptions === undefined) {
         await runOrdinaryAction({ cwd: process.cwd() });
         return;

@@ -1,5 +1,7 @@
 import { EventEmitter } from 'node:events';
 
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
+
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { Separator } from '@inquirer/search';
@@ -249,9 +251,9 @@ describe('ordered searchable source picker', () => {
     );
 
     expect(seen.map((config) => config.message)).toEqual([
-      'Choose base — changes will be cumpad from its merge base with head',
+      'Choose base — changes will be compared from its merge base with head',
       'Choose head — this committed state will be reviewed',
-      'Choose base — changes will be cumpad from its merge base with head',
+      'Choose base — changes will be compared from its merge base with head',
       'Choose head — this committed state will be reviewed',
     ]);
     expect(seen[0]?.default).toBeUndefined();
@@ -279,7 +281,7 @@ describe('pickSource / Uncommitted sources', () => {
   }
 
   it('shows the Uncommitted group ahead of Local branches on the Base prompt', async () => {
-    const { prompt, seen } = makePrompt(['cumpa:uncommitted:unstaged']);
+    const { prompt, seen } = makePrompt([`${RENAME_MAP.slug}:uncommitted:unstaged`]);
 
     await pickSource({ candidates, searchBranches: async () => [] }, { prompt });
 
@@ -292,25 +294,25 @@ describe('pickSource / Uncommitted sources', () => {
     );
     expect(labels.slice(0, 5)).toEqual([
       'Uncommitted',
-      'cumpa:uncommitted:staged',
-      'cumpa:uncommitted:unstaged',
-      'cumpa:uncommitted:worktree',
+      `${RENAME_MAP.slug}:uncommitted:staged`,
+      `${RENAME_MAP.slug}:uncommitted:unstaged`,
+      `${RENAME_MAP.slug}:uncommitted:worktree`,
       'Local branches',
     ]);
     const rows = items.filter(isPromptChoice);
     expect(
-      rows.find((item) => item.value === 'cumpa:uncommitted:staged'),
+      rows.find((item) => item.value === `${RENAME_MAP.slug}:uncommitted:staged`),
     ).toMatchObject({ name: 'Staged' });
     expect(
-      rows.find((item) => item.value === 'cumpa:uncommitted:unstaged'),
+      rows.find((item) => item.value === `${RENAME_MAP.slug}:uncommitted:unstaged`),
     ).toMatchObject({ name: 'Unstaged' });
     expect(
-      rows.find((item) => item.value === 'cumpa:uncommitted:worktree'),
+      rows.find((item) => item.value === `${RENAME_MAP.slug}:uncommitted:worktree`),
     ).toMatchObject({ name: 'Working tree' });
   });
 
   it('returns Unstaged immediately with no second prompt', async () => {
-    const { prompt, seen } = makePrompt(['cumpa:uncommitted:unstaged']);
+    const { prompt, seen } = makePrompt([`${RENAME_MAP.slug}:uncommitted:unstaged`]);
 
     const selected = await pickSource(
       { candidates, searchBranches: async () => [] },
@@ -323,7 +325,7 @@ describe('pickSource / Uncommitted sources', () => {
 
   it('advances Staged to a HEAD-preselected Base prompt and resolves the chosen base', async () => {
     const { prompt, seen } = makePrompt([
-      'cumpa:uncommitted:staged',
+      `${RENAME_MAP.slug}:uncommitted:staged`,
       'branch:refs/heads/main',
     ]);
 
@@ -361,7 +363,7 @@ describe('pickSource / Uncommitted sources', () => {
 
     expect(seen).toHaveLength(2);
     expect(seen[0]?.message).toBe(
-      'Choose base — changes will be cumpad from its merge base with head',
+      'Choose base — changes will be compared from its merge base with head',
     );
     expect(seen[1]?.message).toBe(
       'Choose head — this committed state will be reviewed',
@@ -727,7 +729,7 @@ describe('pinned comparison confirmation and CLI integration', () => {
 describe('exact patch CLI dispatch', () => {
   const request = {
     schemaVersion: 1 as const,
-    kind: 'cumpa.review-request' as const,
+    kind: `${RENAME_MAP.kindPrefix}.review-request` as const,
     mode: 'patch' as const,
     patch: {
       content: 'diff --git a/src/a.ts b/src/a.ts\n',

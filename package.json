@@ -1,21 +1,21 @@
 {
-  "name": "@shipwithai/cumpa",
+  "name": "@shipwithai/loopnote",
   "version": "1.6.1",
   "description": "Local-first review of pinned Git comparisons",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Ship-With-AI/cumpa.git"
+    "url": "git+https://github.com/Ship-With-AI/loopnote.git"
   },
   "bugs": {
-    "url": "https://github.com/Ship-With-AI/cumpa/issues"
+    "url": "https://github.com/Ship-With-AI/loopnote/issues"
   },
   "type": "module",
   "engines": {
     "node": ">=24"
   },
   "bin": {
-    "cumpa": "dist/bin/cumpa.mjs"
+    "loopnote": "dist/bin/cumpa.mjs"
   },
   "files": [
     "dist/",

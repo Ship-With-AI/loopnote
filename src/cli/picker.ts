@@ -1,5 +1,7 @@
 import search, { Separator } from '@inquirer/search';
 
+import { RENAME_MAP } from '../domain/product-identity.js';
+
 import {
   DIRTY_ROW_LABEL,
   PENDING_ROW_LABEL,
@@ -12,15 +14,15 @@ import {
 import type { SourceDiscovery } from '../git/candidates.js';
 
 const BASE_PROMPT =
-  'Choose base — changes will be cumpad from its merge base with head';
+  'Choose base — changes will be compared from its merge base with head';
 const HEAD_PROMPT =
   'Choose head — this committed state will be reviewed';
-const BACK_TO_BASE = 'cumpa:back-to-base';
+const BACK_TO_BASE = `${RENAME_MAP.slug}:back-to-base`;
 
 const UNCOMMITTED_ROW_IDS: Readonly<Record<UncommittedRowKind, string>> = {
-  staged: 'cumpa:uncommitted:staged',
-  unstaged: 'cumpa:uncommitted:unstaged',
-  worktree: 'cumpa:uncommitted:worktree',
+  staged: `${RENAME_MAP.slug}:uncommitted:staged`,
+  unstaged: `${RENAME_MAP.slug}:uncommitted:unstaged`,
+  worktree: `${RENAME_MAP.slug}:uncommitted:worktree`,
 };
 const UNCOMMITTED_ROW_KIND_BY_ID = new Map<string, UncommittedRowKind>([
   [UNCOMMITTED_ROW_IDS.staged, 'staged'],

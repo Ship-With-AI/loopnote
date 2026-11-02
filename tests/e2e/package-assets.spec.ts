@@ -19,6 +19,8 @@ import type { Page } from '@playwright/test';
 import { expect, test } from '@playwright/test';
 
 import { SessionResponseSchema } from '../../src/contracts/api.js';
+
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 import { createDirtyGitFixture } from '../helpers/git-fixture.js';
 import { openRuntimeSession } from '../helpers/open-runtime-session.js';
 import type { RuntimeSessionSupportObservation } from '../helpers/open-runtime-session.js';
@@ -133,13 +135,13 @@ test('resolved runtime serves its complete browser asset graph', async ({ page }
       readonly name: string;
       readonly version: string;
       readonly engines: { readonly node: string };
-      readonly bin: { readonly cumpa: string };
+      readonly bin: Readonly<Record<string, string>>;
     };
     expect(packageManifest).toEqual(expect.objectContaining({
-      name: '@shipwithai/cumpa',
+      name: RENAME_MAP.npmPackage,
       version: acceptance.expectedVersion,
       engines: { node: '>=24' },
-      bin: { cumpa: 'dist/bin/cumpa.mjs' },
+      bin: { [RENAME_MAP.binCommand]: 'dist/bin/cumpa.mjs' },
     }));
     for (const forbidden of ['src', 'tests', '.planning', '.cumpa', '.github', '.git', '.kimi-code']) {
       expect(existsSync(join(acceptance.packageRoot, forbidden))).toBe(false);
@@ -160,7 +162,7 @@ test('resolved runtime serves its complete browser asset graph', async ({ page }
   writeFileSync(opener, [
     '#!/usr/bin/env node',
     "const { appendFileSync } = require('node:fs');",
-    "appendFileSync(process.env.CUMPA_BROWSER_OPEN_MARKER, process.argv.slice(2).join(' '));",
+    `appendFileSync(process.env.${RENAME_MAP.envPrefix}BROWSER_OPEN_MARKER, process.argv.slice(2).join(' '));`,
     '',
   ].join('\n'), { mode: 0o700 });
   chmodSync(opener, 0o700);
@@ -171,8 +173,8 @@ test('resolved runtime serves its complete browser asset graph', async ({ page }
       ...acceptance.env,
       PATH: `${fakeBin}:${acceptance.env.PATH}`,
       BROWSER: opener,
-      CUMPA_BROWSER_OPEN_MARKER: browserMarker,
-      CUMPA_LAUNCH_OPTIONS: JSON.stringify({
+      [`${RENAME_MAP.envPrefix}BROWSER_OPEN_MARKER`]: browserMarker,
+      [`${RENAME_MAP.envPrefix}LAUNCH_OPTIONS`]: JSON.stringify({
         cwd: fixture.nestedCwd,
         base: { label: fixture.baseRef.slice('refs/heads/'.length), revision: fixture.baseRef },
         head: { label: fixture.headRef.slice('refs/heads/'.length), revision: fixture.headRef },
