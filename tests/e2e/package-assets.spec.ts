@@ -141,7 +141,7 @@ test('resolved runtime serves its complete browser asset graph', async ({ page }
       name: RENAME_MAP.npmPackage,
       version: acceptance.expectedVersion,
       engines: { node: '>=24' },
-      bin: { [RENAME_MAP.binCommand]: 'dist/bin/cumpa.mjs' },
+      bin: { [RENAME_MAP.binCommand]: `dist/bin/${RENAME_MAP.binCommand}.mjs` },
     }));
     for (const forbidden of ['src', 'tests', '.planning', '.cumpa', '.github', '.git', '.kimi-code']) {
       expect(existsSync(join(acceptance.packageRoot, forbidden))).toBe(false);

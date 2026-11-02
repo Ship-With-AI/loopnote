@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
 import { RENAME_MAP } from '../../src/domain/product-identity.js';
 
 const executablePath = fileURLToPath(
-  new URL('../../dist/bin/cumpa.mjs', import.meta.url),
+  new URL(`../../dist/bin/${RENAME_MAP.binCommand}.mjs`, import.meta.url),
 );
 
 describe(`${RENAME_MAP.binCommand} help`, () => {

@@ -15,7 +15,7 @@
     "node": ">=24"
   },
   "bin": {
-    "loopnote": "dist/bin/cumpa.mjs"
+    "loopnote": "dist/bin/loopnote.mjs"
   },
   "files": [
     "dist/",
