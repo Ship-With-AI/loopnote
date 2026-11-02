@@ -5,15 +5,15 @@ milestone_name: Artifact Review
 current_phase: 17.1
 current_phase_name: full-project-rename
 status: executing
-stopped_at: Completed 17.1-10-PLAN.md
-last_updated: "2026-11-02T10:20:34.000Z"
+stopped_at: Completed 17.1-11-PLAN.md
+last_updated: "2026-11-02T11:35:00.000Z"
 last_activity: 2026-11-02
-last_activity_desc: 17.1-10 git-layer dual-directory exclusion/rejection complete
+last_activity_desc: 17.1-11 server-layer draft/export storage path rename complete
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 69
-  completed_plans: 52
+  completed_plans: 53
   percent: 71
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-09-09)
 ## Current Position
 
 Phase: 17.1 (full-project-rename) — EXECUTING
-Plan: 11 of 22
+Plan: 12 of 22
 Status: Ready to execute
-Last activity: 2026-11-02 — 17.1-10 git-layer dual-directory exclusion/rejection complete
+Last activity: 2026-11-02 — 17.1-11 server-layer draft/export storage path rename complete
 
 ## Performance Metrics
 
@@ -98,6 +98,7 @@ Last activity: 2026-11-02 — 17.1-10 git-layer dual-directory exclusion/rejecti
 | Phase 17.1 P08 | 45min | 2 tasks | 9 files |
 | Phase 17.1 P09 | 15min | 2 tasks | 4 files |
 | Phase 17.1 P10 | 55min | 2 tasks | 8 files |
+| Phase 17.1 P11 | 50min | 2 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -186,6 +187,7 @@ Decisions are logged in PROJECT.md Key Decisions.
 - [Phase 17.1]: 17.1-08: Renamed every lowercase 'cumpa' literal in tests/package/marketplace-profile-acceptance.test.ts beyond the plan's three named env vars (two evidence-kind literals, the marketplace-driver tmpdir prefix, check-cumpa.mjs/cumpa command-trace assertions, cumpa-result.json, cumpa/export, a duplicate hardcoded SKILL.md sha256) — required by the plan's own case-sensitive lowercase grep acceptance criterion; left CUMPA_SUPPORT_STATE_WINDOW/CUMPA_OMP_PROFILE_AUTH_READY/CUMPA_AGENT_READY_EVIDENCE_REPORT/RUN_ID unrenamed as live cross-file contracts owned by sibling plans 17.1-14/17.1-16.
 - [Phase 17.1]: 17.1-09: Fixed scripts/verify-supabase-support.mjs:1002's stale 'return to Cumpa.' completion-text literal (deferred by already-complete 17.1-05) to match the renamed support-flow/index.ts message
 - [Phase 17.1]: 17.1-10: Renamed isCumpaInternalPath/filterCumpaInternal to isLoopnoteInternalPath/filterLoopnoteInternal (src/git/inventory.ts, worktree-inventory.ts), extended to match BOTH the legacy '.cumpa' byte prefix and RENAME_MAP.repoStateDir's new prefix per D-05; same dual-segment check added to exact-patch.ts/standalone-resolution.ts reserved-segment rejection, with the latter's error message naming all three reserved segments unconditionally.
+- [Phase 17.1]: 17.1-11: Renamed draft-store.ts/draft-loader.ts's `.cumpa/drafts` path and export-store.ts's `cumpaRoot`/`cumpaIdentity` fields (→ `stateRoot`/`stateIdentity`) and `.cumpa/exports/...` path literals to `RENAME_MAP.repoStateDir`-derived forms; `.gitignore` dual-lists new `.loopnote/` and preserved old `.cumpa/` entries per D-05/D-07. Left `tests/package/agent-ready-export-safety.test.ts`'s "allows the generated fixed ignore capability to append only the approved suffix" test red — depends on `src/server/gitignore-capability.ts`'s `cumpaIgnoreRule` constant, owned by sibling plan 17.1-12, not yet renamed.
 
 ### Pending Todos
 
@@ -239,6 +241,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-11-02T10:20:34.000Z
+Last session: 2026-11-02T11:35:00.000Z
 Stopped at: Completed 17.1-06-PLAN.md
 Resume file: None
