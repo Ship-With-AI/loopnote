@@ -5,15 +5,15 @@ milestone_name: Artifact Review
 current_phase: 17.1
 current_phase_name: full-project-rename
 status: ready_to_execute
-stopped_at: "Gap closure planned: 17.1-23 (package.json 2.0.0, support.json copy 0o600, README upgrade notes without .cumpa drafts carry-over). Next: /gsd-execute-phase 17.1 --gaps-only"
-last_updated: "2026-11-02T13:22:56.000Z"
+stopped_at: "Phase 17.1 (full-project-rename) complete: 23/23 plans. Gap closure 17.1-23 bumped package.json/package-lock.json to 2.0.0, hardcoded the D-06 support.json copy to mode 0o600, and added README.md's 'Upgrading from Cumpa' section with a fifth rename-audit exception category. Next: Phase 18 (Product Repositioning Copy)."
+last_updated: "2026-11-02T15:40:00.000Z"
 last_activity: 2026-11-02
-last_activity_desc: 17.1-22 wrote scripts/audit-rename-exceptions.mjs and tests/unit/rename-audit.test.ts (REN-01's final wave-3 gate), wired a new root `npm test` (vitest run) into package.json, and fixed 12 files' genuinely-leftover cumpa references the audit's own full-tree reconciliation surfaced; scanner confirms zero disallowed cumpa hits remain outside the four documented exception categories (109 correctly classified). Phase 17.1 (full-project-rename) is now complete (22/22 plans).
+last_activity_desc: 17.1-23 closed all 3 verification gaps (CR-01 version bump, WR-01 D-06 0o600 hardening via TDD, WR-02 README upgrade notes + audit Category 5); npm test (849/849), tsc --noEmit, and typecheck:tests all pass. Phase 17.1 is now complete (23/23 plans).
 progress:
   total_phases: 7
   completed_phases: 5
-  total_plans: 69
-  completed_plans: 64
+  total_plans: 70
+  completed_plans: 65
   percent: 93
 ---
 
@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-09-09)
 
 ## Current Position
 
-Phase: 17.1 (full-project-rename) — gap closure planned (22/23 plans executed)
-Plan: 23 of 23 (gap closure, wave 1)
-Status: Ready to execute — 17.1-23 closes the 3 gaps in 17.1-VERIFICATION.md. Next: /gsd-execute-phase 17.1 --gaps-only
-Last activity: 2026-11-02 — 17.1-22 wrote the rename-exceptions audit scanner + Vitest spec, wired a new root `npm test` into package.json, and fixed 12 files' genuinely-leftover cumpa references the audit's own reconciliation found; zero disallowed cumpa hits remain in the live tree.
+Phase: 17.1 (full-project-rename) — COMPLETE (23/23 plans)
+Plan: 23 of 23 (gap closure, all 3 verification gaps closed)
+Status: Phase 17.1 complete. Next: Phase 18 (Product Repositioning Copy)
+Last activity: 2026-11-02 — 17.1-23 closed the 3 gaps in 17.1-VERIFICATION.md (package.json/package-lock.json 2.0.0, support-store.ts D-06 copy hardcoded to 0o600, README.md "Upgrading from Cumpa" section + rename-audit Category 5)
 
 ## Performance Metrics
 
@@ -202,6 +202,7 @@ Decisions are logged in PROJECT.md Key Decisions.
 - [Phase 17.1]: 17.1-21: checked out the shipwithai-skills repo's cumpa-uncommitted-files-request-modes branch (not the checked-out branch at execution time) before any write, then renamed skills/cumpa/ to skills/loopnote/ and committed locally, unpushed — Plan assumed the branch was already checked out; a plain git checkout of the existing target branch (no -b, no force, no push) satisfies the plan's actual safety intent of never writing to the wrong branch
 - [Phase 17.1]: 17.1-22: Full-tree `grep -rliE cumpa` reconciliation (required by the plan, no more mid-wave deferral in wave 3) found 12 files with genuinely unrenamed `cumpa` leftovers that no prior plan (02-21) actually covered despite some being explicitly "deferred to sibling plan X" in that plan's SUMMARY — fixed all 12 in place rather than deferring (env var literals in `tests/cli/{request,selection}.test.ts`, `tests/e2e/public-support-states.spec.ts`, `tests/helpers/omp-profile.ts`, `tests/package/marketplace-profile-acceptance.test.ts`; stray fixture literals in `tests/git/{exact-patch,inventory}.test.ts`, `tests/e2e/package-assets.spec.ts`; missing `RENAME_MAP` import + tmpdir prefixes in `tests/helpers/export-fault-runner.ts`; a stale message-string env-var name in `scripts/write-acceptance-evidence.mjs`; a stale local-build binary path in `tests/performance/production-picker.mjs`).
 - [Phase 17.1]: 17.1-22: Scanner enumerates the live tree via `git ls-files` (tracked) + `git ls-files --others --exclude-standard` (untracked-not-ignored) instead of a hardcoded directory-exclusion walk, so it automatically tracks whatever `.gitignore` already excludes; added `package.json`'s first-ever root `"test": "vitest run"` script since none existed to wire the new spec into.
+- [Phase 17.1]: 17.1-23 (gap closure, 23/23): Bumped package.json/package-lock.json to 2.0.0 (D-03) with only the two root lockfile version fields changing, and added an explicit pre-publish version-verification step to 17.1-RELEASE-CHECKLIST.md Item 3. Amended D-06 (support-store.ts's copyLegacyIfNeeded now hardcodes writeAtomic(bytes, 0o600), never inheriting the legacy file's mode; removed the now-dead fileSystem.stat method) — proven RED→GREEN by two tests (0o640/0o644 legacy inputs). Amended D-05 (no `mv .cumpa .loopnote` instruction; README.md's new "Upgrading from Cumpa" section states 1.x `.cumpa/` drafts/exports are not migrated/readable by 2.0.0, are excluded from the review inventory, and can be deleted; src/domain/comparison-key.ts's renamed `loopnote-*-v1` hash domain tags were explicitly left untouched) and extended scripts/audit-rename-exceptions.mjs with a fifth, file-scoped exception category (UPGRADE_NOTES_FILE/UPGRADE_NOTES_PATTERN) so the live-tree audit still finds zero disallowed hits. Closes CR-01/WR-01/WR-02 from 17.1-VERIFICATION.md/17.1-REVIEW.md.
 
 ### Pending Todos
 
