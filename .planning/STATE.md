@@ -6,14 +6,14 @@ current_phase: 17.1
 current_phase_name: full-project-rename
 status: executing
 stopped_at: Completed 17.1-08-PLAN.md
-last_updated: "2026-11-02T10:02:00.000Z"
+last_updated: "2026-11-02T10:09:33.324Z"
 last_activity: 2026-11-02
-last_activity_desc: Phase 17.1 execution — 17.1-08 Kimi-Code skill directory rename complete
+last_activity_desc: 17.1-08 Kimi-Code skill directory rename complete
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 69
-  completed_plans: 49
+  completed_plans: 51
   percent: 71
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-09-09)
 ## Current Position
 
 Phase: 17.1 (full-project-rename) — EXECUTING
-Plan: 9 of 22
+Plan: 10 of 22
 Status: Ready to execute
 Last activity: 2026-11-02 — 17.1-08 Kimi-Code skill directory rename complete
 
@@ -96,6 +96,7 @@ Last activity: 2026-11-02 — 17.1-08 Kimi-Code skill directory rename complete
 | Phase 17.1 P06 | 30min | 1 tasks | 10 files |
 | Phase 17.1 P07 | 35min | 2 tasks | 13 files |
 | Phase 17.1 P08 | 45min | 2 tasks | 9 files |
+| Phase 17.1 P09 | 15min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -182,6 +183,7 @@ Decisions are logged in PROJECT.md Key Decisions.
 - [Phase 17.1]: 17.1-07: EVIDENCE.md's Claim column updated to Support Loopnote (matching 17.1-06's renamed SupportDialog.vue) and its prose-convention sentence to **Loopnote**, while the historical '@shipwithai/cumpa@1.5.0' version-pinned fact was preserved verbatim per RESEARCH.md's history exception.
 - [Phase 17.1]: 17.1-08: Fixed a pre-existing corrupted word ('cumpad' -> 'compared') in spike-findings-loopnote/sources/002-staged-source-discovery/README.md, left over from an earlier unrelated 'compare'->'cumpa' substitution bug, not a product-identity rename.
 - [Phase 17.1]: 17.1-08: Renamed every lowercase 'cumpa' literal in tests/package/marketplace-profile-acceptance.test.ts beyond the plan's three named env vars (two evidence-kind literals, the marketplace-driver tmpdir prefix, check-cumpa.mjs/cumpa command-trace assertions, cumpa-result.json, cumpa/export, a duplicate hardcoded SKILL.md sha256) — required by the plan's own case-sensitive lowercase grep acceptance criterion; left CUMPA_SUPPORT_STATE_WINDOW/CUMPA_OMP_PROFILE_AUTH_READY/CUMPA_AGENT_READY_EVIDENCE_REPORT/RUN_ID unrenamed as live cross-file contracts owned by sibling plans 17.1-14/17.1-16.
+- [Phase 17.1]: 17.1-09: Fixed scripts/verify-supabase-support.mjs:1002's stale 'return to Cumpa.' completion-text literal (deferred by already-complete 17.1-05) to match the renamed support-flow/index.ts message
 
 ### Pending Todos
 
@@ -235,6 +237,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-11-02T09:28:04.397Z
+Last session: 2026-11-02T10:09:19.120Z
 Stopped at: Completed 17.1-06-PLAN.md
 Resume file: None
