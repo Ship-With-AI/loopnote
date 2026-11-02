@@ -3,7 +3,7 @@
 **Status:** Draft, awaiting human approval (blocking checkpoint, 18-01 Task 2).
 **Scope note:** Phase 17.1 (full project rename) is complete. The product's display name is **Loopnote**, npm package `@shipwithai/loopnote`, bin command `loopnote`, repo-state dir `.loopnote/`. This draft therefore uses the literal name **Loopnote** everywhere (not a `<Name>` placeholder — 18-01-PLAN.md predates 17.1's execution; this draft applies its intent to current reality per the executor brief).
 **Voice (D-04):** product-neutral, third person/imperative, factual. No founder first-person, no jokes.
-**Claims boundary:** every proposed string below describes only capabilities shipped by Phases 13, 14, 15, 17, and 17.1 (single-pane rendering, uncommitted/standalone review with frozen snapshots + Refresh, the agent stdin protocol, the marketplace skill, the Loopnote rename). Phase 16 (Markdown source/rendered toggle, MDV-01..04) is still **Pending** per `.planning/REQUIREMENTS.md` — no proposed string claims a Markdown toggle. No proposed string contradicts PRODUCT.md's "Deliberate non-capabilities" (no hosted, cloud sync, multi-user, approvals, suggestions, replies, viewed state, authentication, pricing, customers, usage metrics, certifications, or binary review).
+**Claims boundary:** every proposed string below describes only capabilities shipped by Phases 13, 14, 15, 17, and 17.1 (single-pane rendering, uncommitted/standalone review with frozen snapshots + Refresh, the agent stdin protocol, the marketplace skill, the Loopnote rename). Phase 16 (Markdown source/rendered toggle, MDV-01..04) has **shipped and passed verification** (human-confirmed 2026-11-02; `.planning/REQUIREMENTS.md`'s MDV-01..04 checkboxes are stale/unticked, but Phase 16's commits and SUMMARYs confirm completion) — no proposed string in this draft claims the rendered-toggle UI beyond the `"markdown-review"` npm keyword, which is an accurate, shipped-capability keyword per the corrected note in "## npm keywords" below. No proposed string contradicts PRODUCT.md's "Deliberate non-capabilities" (no hosted, cloud sync, multi-user, approvals, suggestions, replies, viewed state, authentication, pricing, customers, usage metrics, certifications, or binary review).
 
 ---
 
@@ -48,7 +48,7 @@ Finalized array for a new `"keywords"` key in `package.json` (D-03; no `keywords
 ]
 ```
 
-Note: `"markdown-review"` is kept even though Phase 16 (Markdown rendering toggle) hasn't shipped — Loopnote already reviews Markdown files as plain UTF-8 text today, so the keyword is not a false capability claim, only a discoverability term. Flagged for human confirmation at the checkpoint since it's the one keyword whose literal reading could be over-read as "renders Markdown."
+Note: `"markdown-review"` is an accurate keyword — Phase 16 (rendered Markdown preview toggle, MDV-01..04) has **shipped and passed verification**, not merely "not yet shipped but not a false claim" as earlier drafted. Loopnote renders Markdown files with block-anchored commenting (source/rendered toggle), so this keyword directly matches a shipped capability. Human-confirmed 2026-11-02: keep as drafted.
 
 ---
 
@@ -87,12 +87,15 @@ For every `README.md` row touched by Phase 18, current text is quoted verbatim f
 
 (D-12: drops the pinned `1.5.0` claim; version-agnostic wording that doesn't rot as new stable versions ship. Keeps the "verified during release acceptance" claim — true of the release process itself, not tied to one version number.)
 
-### "Only `1.5.0` has independent release verification" sentence (inside "1. Install the CLI")
+### Skill version-acceptance range sentence (inside "1. Install the CLI")
 
 **Current:**
 > `The skill accepts stable versions in `>=1.5.0 <2.0.0` and rejects prereleases. Only `1.5.0` has independent release verification; acceptance of later stable 1.x versions is a compatibility policy, not a test claim.`
 
-**Flagged — uncertain, needs human decision:** this sentence documents the *skill's* version-acceptance range (`>=1.5.0 <2.0.0`), which is a 1.x-era compatibility fact, not prose about Loopnote's own current release. It may already be stale relative to 2.0.0 (the skill's accepted range likely needs updating by a sibling phase, not this copy phase). Proposed: leave this row's *wording pattern* unchanged under D-12 — don't invent a new range — but flag it in the Approval record for the human to confirm whether this sentence is still accurate post-2.0.0 or belongs to a different phase's scope (it reads like a skill-compatibility fact Phase 17.1 or 18's sibling plans should own, not new Phase 18 prose).
+**Proposed (human-approved 2026-11-02 — updates to the 2.x contract; supersedes the "leave unchanged under D-12" option originally drafted):**
+> `The skill accepts stable Loopnote versions `>=2.0.0 <3.0.0` and rejects prereleases.`
+
+(Matches the bundled skill's actual acceptance range, `.kimi-code/skills/loopnote/SKILL.md:13`: "a stable Loopnote version `>=2.0.0 <3.0.0`; prereleases are not accepted." Drops the "Only `1.5.0` has independent release verification" / "later stable 1.x" clause entirely — not replaced with a 2.0.0-specific verification claim, since `SKILL.md:15` itself states "no 2.x release has independent verification recorded in this file yet.")
 
 ### Keyboard shortcuts table row (`README.md`, "## Keyboard shortcuts")
 
@@ -447,32 +450,62 @@ Reproduced verbatim from `18-UI-SPEC.md`'s already-locked, already-approved Copy
 | Exact patch | `No files in this exact patch` | `This accepted patch contains no changed file entries. Relaunch with a non-empty already-applied patch.` | unchanged — already compliant (fact + imperative next action) | — | `App.vue:198-202` |
 | Pinned range, with scope | `No changes match this review scope` (same heading for both range branches today) | `The pinned commits contain no changed files selected by this scope.` | `No changes match this review scope.` | `Relaunch with a different scope or range.` | `App.vue:204-210` |
 | Pinned range, no scope | `No changes match this review scope` (same heading as above — code has one heading, two messages, not two headings as UI-SPEC's table implied) | `The pinned commits contain no changed files.` | `No changes match this review scope.` | `Relaunch with a different range.` | `App.vue:204-210` |
-| Uncommitted, staged | `No changes` | `There is nothing staged. Refresh after staging changes, or relaunch with a different source.` | `No changes` | unchanged — already fact + next-action | `App.vue:212-219` |
-| Uncommitted, unstaged | `No changes` | `The working tree matches the index. Refresh after editing files, or relaunch with a different source.` | `No changes` | unchanged — already fact + next-action | `App.vue:212-219` |
+| Uncommitted, staged | `No changes` | `There is nothing staged. Refresh after staging changes, or relaunch with a different source.` | `No changes in Staged.` | `Edit files, then Refresh.` | `App.vue:212-219` |
+| Uncommitted, unstaged | `No changes` | `The working tree matches the index. Refresh after editing files, or relaunch with a different source.` | `No changes in Unstaged.` | `Edit files, then Refresh.` | `App.vue:212-219` |
 | Uncommitted, worktree | `No changes` | `` `The working tree matches ${uncommittedBaseLabel}. Refresh after editing files, or relaunch with a different source.` `` | `No changes in Working tree.` | `Edit files, then Refresh.` | `App.vue:212-219` — matches `18-CONTEXT.md`'s own literal example verbatim |
 | Pinned comparison (default/else branch) | `No PR-style changes in this pinned comparison` | `The selected head has no changes from the displayed merge base.` | `No changes in comparison.` | `Relaunch with different Base/Head endpoints.` | `App.vue:220-223` — drops diff-specific "PR-style" jargon per POS-03; D-07 keeps "comparison" since Base/Head literally exist here |
 
-**Flagged — uncertain, needs human decision:** the "Uncommitted, worktree" row's proposed heading/message pair (`No changes in Working tree.` / `Edit files, then Refresh.`) reuses D-10/CONTEXT.md's literal example verbatim, but the current code's worktree branch dynamically names `${uncommittedBaseLabel}` (e.g. it could read "matches main" for a non-default base) — collapsing that to a static "Working tree" sentence drops the dynamic base name. Confirm whether the dynamic base name should be preserved (e.g. `No changes vs ${uncommittedBaseLabel}. Edit files, then Refresh.`) or the static CONTEXT.md example is intentionally preferred for simplicity.
+**Resolved 2026-11-02 (human-approved):** the D-10 pattern `No changes in {Working tree|Staged|Unstaged}. Edit files, then Refresh.` applies to **all three** uncommitted sources, each using the session's actual dynamic source label — not hardcoded to "Working tree" and not limited to the worktree branch alone. The three rows above reflect this: Staged → "No changes in Staged.", Unstaged → "No changes in Unstaged.", Working tree → "No changes in Working tree." — each paired with "Edit files, then Refresh."
 
 ---
 
 ## Approval record
 
-*(Left for Task 2 to fill in from the human's response at the blocking checkpoint. No decision is pre-filled.)*
+**Approved 2026-11-02.** These are the human's final decisions. Apply plans (18-02/18-03/18-04) read the verbatim strings below literally; they do not invent wording.
 
-- [ ] npm `description` variant picked: ____
-- [ ] npm `keywords` list: confirmed as drafted / edited to: ____
-- [ ] `BASE_PROMPT` rewording: confirmed unchanged (already compliant, no "cumpad" verb form exists in current code)
-- [ ] Browser tab-title phrasing — exact-patch segment (`Exact patch`): confirmed / adjusted to: ____
-- [ ] Browser tab-title phrasing — pinned-range/comparison segment (`{N} files`): confirmed / adjusted to: ____
-- [ ] Name story (D-13): no story drafted — confirmed no story wanted / human requests one drafted
-- [ ] README "1. Install the CLI" version-range sentence: confirmed in-scope for this phase / deferred to sibling plan
-- [ ] README "## v1 file limits" → "## File limits" heading rename: confirmed / rejected (keep "v1 file limits")
-- [ ] README "## Stop Loopnote" section: keep in README / move to docs/usage.md
-- [ ] docs/usage.md "## Keyboard shortcuts" duplication: omit (keep only in README, default) / include in docs/usage.md too
-- [ ] docs/usage.md "## File limits" duplication: omit (keep only in README, default) / include in docs/usage.md too
-- [ ] Uncommitted-worktree empty-state message: static CONTEXT.md example (default) / preserve dynamic `${uncommittedBaseLabel}` name
-- [ ] Any other edits to this draft's wording: ____
+- [x] npm `description` variant picked: **Variant A**, verbatim:
+  > `Local-first review for any agent-produced artifact: code, uncommitted work, or standalone files`
+
+- [x] npm `keywords` list: confirmed as drafted, verbatim:
+  ```json
+  "keywords": [
+    "code-review",
+    "ai-agents",
+    "claude-code",
+    "codex",
+    "markdown-review",
+    "local-first",
+    "git",
+    "diff-review"
+  ]
+  ```
+  `"markdown-review"` is accurate and not merely non-false: Phase 16's rendered Markdown preview toggle shipped and passed verification (see corrected note in "## npm keywords" above and the corrected "Claims boundary" at the top of this file).
+
+- [x] `BASE_PROMPT` rewording: confirmed unchanged — already compliant, no "cumpad" verb form exists in current code.
+
+- [x] Browser tab-title phrasing — exact-patch segment: confirmed, verbatim: `Exact patch`
+
+- [x] Browser tab-title phrasing — pinned-range/comparison segment: confirmed, verbatim: `{N} files` (i.e. `${session.files.length} files`), per the D-09 format.
+
+- [x] Name story (D-13): confirmed — none. No new name story drafted or wanted.
+
+- [x] README skill version-acceptance sentence (inside "1. Install the CLI"): confirmed in-scope for this phase, **updated** (not left unchanged) to the 2.x contract, verbatim:
+  > `The skill accepts stable Loopnote versions `>=2.0.0 <3.0.0` and rejects prereleases.`
+  The "Only `1.5.0` has independent release verification" / "later stable 1.x" clause is removed entirely (not replaced with a 2.0.0-specific verification claim). See "## README rewrite" → "Skill version-acceptance range sentence" above.
+
+- [x] README "## v1 file limits" → "## File limits" heading rename: confirmed.
+
+- [x] README "## Stop Loopnote" section: stays in README (not moved to docs/usage.md).
+
+- [x] docs/usage.md "## Keyboard shortcuts" duplication: omit — README owns Keyboard shortcuts, not duplicated in docs/usage.md.
+
+- [x] docs/usage.md "## File limits" duplication: omit — README owns File limits, not duplicated in docs/usage.md.
+
+- [x] Uncommitted empty-state message: confirmed the D-10 pattern, **extended to all three uncommitted sources** (staged, unstaged, worktree) — not only the worktree row as originally drafted. Each session's actual source name is used, not hardcoded to "Working tree." Verbatim pattern:
+  > `No changes in {Working tree|Staged|Unstaged}. Edit files, then Refresh.`
+  Concretely: Staged → `No changes in Staged.` / `Edit files, then Refresh.`; Unstaged → `No changes in Unstaged.` / `Edit files, then Refresh.`; Working tree → `No changes in Working tree.` / `Edit files, then Refresh.` See the updated empty-states table above.
+
+- [x] Any other edits to this draft's wording: none.
 
 ---
 
