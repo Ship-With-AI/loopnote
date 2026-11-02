@@ -652,7 +652,7 @@ describe('pinned comparison confirmation and CLI integration', () => {
       `Head: feature\n${headOid}`,
       `Merge base:\n${mergeBaseOid}`,
       'Head worktree: /repo',
-      "Dirty — committed HEAD only\nThe worktree's committed HEAD will be reviewed. Staged, unstaged, and untracked bytes are ignored.",
+      "Dirty — committed HEAD only\nThis worktree has uncommitted changes. This comparison reviews its committed HEAD only — use --worktree, --staged, or --unstaged to review the uncommitted changes directly.",
       'This session is pinned to the commits shown below and does not follow moving refs.',
     ]);
     expect(promptConfig).toEqual({

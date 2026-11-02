@@ -26,8 +26,8 @@ describe(`${RENAME_MAP.binCommand} help`, () => {
       expect(result.status).toBe(0);
       expect(result.stderr).toBe('');
       expect(result.stdout).toContain(`Usage: ${RENAME_MAP.binCommand} [options]`);
-      expect(result.stdout).toContain(
-        'Local-first review of pinned Git comparisons',
+      expect(result.stdout.replace(/\s+/g, ' ')).toContain(
+        'Local-first review for any agent-produced artifact: code, uncommitted work, or standalone files',
       );
       expect(result.stdout).toContain('-h, --help');
     } finally {
