@@ -2,6 +2,7 @@ import { resolve } from 'node:path';
 
 import type * as monaco from 'monaco-editor';
 
+import { RENAME_MAP } from '../../src/domain/product-identity.js';
 import { canonicalRoot } from '../helpers/canonical-root.js';
 import { resolveToken } from '../../src/web/theme/token-contract.js';
 import { describe, expect, it, vi } from 'vitest';
@@ -572,7 +573,7 @@ describe('PublicMonacoSinglePaneAdapter unpaired anchor and view-zone wiring', (
     }
   });
 
-  it('registers the cumpa.add-{side}-comment keybinding exactly once per instance', () => {
+  it(`registers the ${RENAME_MAP.kindPrefix}.add-{side}-comment keybinding exactly once per instance`, () => {
     mocks.createEditor.mockClear();
     createMonacoSinglePaneAdapter({} as HTMLElement, () => 'typescript', vi.fn(), 'base');
     const baseEditor = mocks.createEditor.mock.results.at(-1)?.value;
@@ -581,9 +582,9 @@ describe('PublicMonacoSinglePaneAdapter unpaired anchor and view-zone wiring', (
     const headEditor = mocks.createEditor.mock.results.at(-1)?.value;
 
     expect(baseEditor.addAction).toHaveBeenCalledOnce();
-    expect(baseEditor.addAction.mock.calls[0][0].id).toBe('cumpa.add-base-comment');
+    expect(baseEditor.addAction.mock.calls[0][0].id).toBe(`${RENAME_MAP.kindPrefix}.add-base-comment`);
     expect(headEditor.addAction).toHaveBeenCalledOnce();
-    expect(headEditor.addAction.mock.calls[0][0].id).toBe('cumpa.add-head-comment');
+    expect(headEditor.addAction.mock.calls[0][0].id).toBe(`${RENAME_MAP.kindPrefix}.add-head-comment`);
   });
 });
 

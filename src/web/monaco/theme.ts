@@ -1,7 +1,8 @@
 import * as monaco from 'monaco-editor';
 
-import { TOKEN_ROOT_CSS } from 'virtual:cumpa-tokens';
+import { TOKEN_ROOT_CSS } from 'virtual:loopnote-tokens';
 
+import { RENAME_MAP } from '../../domain/product-identity.js';
 import { parseTokenRoot, toMonacoHex } from '../theme/token-contract';
 
 const TOKENS = parseTokenRoot(TOKEN_ROOT_CSS);
@@ -11,9 +12,9 @@ function color(token: string): string {
   return toMonacoHex(TOKENS, token);
 }
 
-export const CUMPA_THEME_ID = 'cumpa-dark';
+export const Loopnote_THEME_ID = `${RENAME_MAP.cssPrefix}dark`;
 
-export const CUMPA_THEME = {
+export const Loopnote_THEME = {
   base: 'vs-dark',
   inherit: true,
   rules: [
@@ -105,7 +106,7 @@ export const CUMPA_THEME = {
   },
 } satisfies monaco.editor.IStandaloneThemeData;
 
-export function applyCumpaTheme(): void {
-  monaco.editor.defineTheme(CUMPA_THEME_ID, CUMPA_THEME);
-  monaco.editor.setTheme(CUMPA_THEME_ID);
+export function applyLoopnoteTheme(): void {
+  monaco.editor.defineTheme(Loopnote_THEME_ID, Loopnote_THEME);
+  monaco.editor.setTheme(Loopnote_THEME_ID);
 }

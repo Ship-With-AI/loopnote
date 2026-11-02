@@ -16,9 +16,9 @@ vi.mock('monaco-editor', () => ({
 }));
 
 import {
-  applyCumpaTheme,
-  CUMPA_THEME,
-  CUMPA_THEME_ID,
+  applyLoopnoteTheme,
+  Loopnote_THEME,
+  Loopnote_THEME_ID,
 } from '../../src/web/monaco/theme.js';
 
 type RootMapping = Readonly<{ token: string }>;
@@ -107,10 +107,10 @@ const TOKEN_ROOT_MAP: Readonly<Record<string, Readonly<{ token: string; fontStyl
   'invalid.*': { token: '--syntax-invalid-foreground', fontStyle: 'underline' },
 };
 
-describe('cumpa Monaco theme', () => {
+describe('Loopnote Monaco theme', () => {
   it('maps every semantic Monaco color and token foreground to the canonical root bytes', () => {
     const tokens = canonicalRoot(resolve(import.meta.dirname, '../..'));
-    const colors = CUMPA_THEME.colors;
+    const colors = Loopnote_THEME.colors;
     const mappedKeys = Object.keys(THEME_COLOR_ROOT_MAP).sort();
     expect(Object.keys(colors).filter((key) => !(key in UNPAINTED_THEME_COLORS)).sort()).toEqual(mappedKeys);
 
@@ -130,7 +130,7 @@ describe('cumpa Monaco theme', () => {
       expect(intraline).not.toBe(line);
     }
 
-    const rules = Object.fromEntries(CUMPA_THEME.rules.map((rule) => [rule.token, rule]));
+    const rules = Object.fromEntries(Loopnote_THEME.rules.map((rule) => [rule.token, rule]));
     expect(Object.keys(rules).sort()).toEqual(Object.keys(TOKEN_ROOT_MAP).sort());
     for (const [scope, mapping] of Object.entries(TOKEN_ROOT_MAP)) {
       const rule = rules[scope];
@@ -151,13 +151,13 @@ describe('cumpa Monaco theme', () => {
   });
 
   it('redefines then selects the stable theme on every invocation', () => {
-    applyCumpaTheme();
-    applyCumpaTheme();
+    applyLoopnoteTheme();
+    applyLoopnoteTheme();
 
-    expect(defineTheme).toHaveBeenNthCalledWith(1, CUMPA_THEME_ID, CUMPA_THEME);
-    expect(setTheme).toHaveBeenNthCalledWith(1, CUMPA_THEME_ID);
-    expect(defineTheme).toHaveBeenNthCalledWith(2, CUMPA_THEME_ID, CUMPA_THEME);
-    expect(setTheme).toHaveBeenNthCalledWith(2, CUMPA_THEME_ID);
+    expect(defineTheme).toHaveBeenNthCalledWith(1, Loopnote_THEME_ID, Loopnote_THEME);
+    expect(setTheme).toHaveBeenNthCalledWith(1, Loopnote_THEME_ID);
+    expect(defineTheme).toHaveBeenNthCalledWith(2, Loopnote_THEME_ID, Loopnote_THEME);
+    expect(setTheme).toHaveBeenNthCalledWith(2, Loopnote_THEME_ID);
     expect(defineTheme.mock.invocationCallOrder[0]).toBeLessThan(setTheme.mock.invocationCallOrder[0]);
     expect(defineTheme.mock.invocationCallOrder[1]).toBeLessThan(setTheme.mock.invocationCallOrder[1]);
   });

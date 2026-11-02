@@ -1,18 +1,20 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
+import renameMap from './rename-map.json' with { type: 'json' };
+
 import {
   assertCanonicalTokenSet,
   canonicalRootCss,
   parseTokenRoot,
 } from './css-token-contract.mjs';
 
-const VIRTUAL_ID = 'virtual:cumpa-tokens';
+const VIRTUAL_ID = `virtual:${renameMap.slug}-tokens`;
 const RESOLVED_ID = `\0${VIRTUAL_ID}`;
 
 export function tokenRootPlugin(repositoryRoot) {
   return {
-    name: 'cumpa-token-root',
+    name: `${renameMap.slug}-token-root`,
     resolveId(id) {
       return id === VIRTUAL_ID ? RESOLVED_ID : undefined;
     },

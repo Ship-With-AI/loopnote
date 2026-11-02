@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 
 import { createServer } from 'vite';
 import { describe, expect, it, vi } from 'vitest';
-import { TOKEN_ROOT_CSS } from 'virtual:cumpa-tokens';
+import { TOKEN_ROOT_CSS } from 'virtual:loopnote-tokens';
 
 import { CANONICAL_TOKENS } from '../../scripts/css-token-contract.mjs';
 import { tokenRootPlugin } from '../../scripts/token-root-plugin.mjs';
@@ -34,7 +34,7 @@ ${CANONICAL_TOKENS.map((token) => `  ${token}: ${overrides[token] ?? '#000000'};
 }`;
 
 function temporaryStyles(styles: string): Readonly<{ repositoryRoot: string; sourcePath: string }> {
-  const repositoryRoot = mkdtempSync(resolve(tmpdir(), 'cumpa-token-root-'));
+  const repositoryRoot = mkdtempSync(resolve(tmpdir(), 'loopnote-token-root-'));
   const sourcePath = resolve(repositoryRoot, 'src/web/styles.css');
   mkdirSync(resolve(repositoryRoot, 'src/web'), { recursive: true });
   writeFileSync(sourcePath, styles);
@@ -97,7 +97,7 @@ describe('token contract', () => {
       '\n  /* a multiline comment\n  } */',
     ));
     const plugin = tokenRootPlugin(fixture.repositoryRoot);
-    const load = plugin.load?.call({ addWatchFile: vi.fn() }, '\0virtual:cumpa-tokens');
+    const load = plugin.load?.call({ addWatchFile: vi.fn() }, '\0virtual:loopnote-tokens');
 
     try {
       expect(load).toBeTypeOf('string');
@@ -108,7 +108,7 @@ describe('token contract', () => {
       )));
       expect(parseTokenRoot(emitted).size).toBe(CANONICAL_TOKENS.length);
       expect(() => independentRootCss(':root { --surface-canvas: #000000;')).toThrow('unbalanced');
-      expect(() => plugin.load?.call({ addWatchFile: vi.fn() }, '\0virtual:cumpa-tokens')).not.toThrow();
+      expect(() => plugin.load?.call({ addWatchFile: vi.fn() }, '\0virtual:loopnote-tokens')).not.toThrow();
     } finally {
       rmSync(fixture.repositoryRoot, { recursive: true, force: true });
     }
@@ -119,8 +119,8 @@ describe('token contract', () => {
     const duplicate = temporaryStyles(fixtureRoot().replace('\n}', '\n  --surface-canvas: #111111;\n}'));
 
     try {
-      expect(() => tokenRootPlugin(missing.repositoryRoot).load?.call({ addWatchFile: vi.fn() }, '\0virtual:cumpa-tokens')).toThrow(CANONICAL_TOKENS[0]);
-      expect(() => tokenRootPlugin(duplicate.repositoryRoot).load?.call({ addWatchFile: vi.fn() }, '\0virtual:cumpa-tokens')).toThrow('duplicate token');
+      expect(() => tokenRootPlugin(missing.repositoryRoot).load?.call({ addWatchFile: vi.fn() }, '\0virtual:loopnote-tokens')).toThrow(CANONICAL_TOKENS[0]);
+      expect(() => tokenRootPlugin(duplicate.repositoryRoot).load?.call({ addWatchFile: vi.fn() }, '\0virtual:loopnote-tokens')).toThrow('duplicate token');
     } finally {
       rmSync(missing.repositoryRoot, { recursive: true, force: true });
       rmSync(duplicate.repositoryRoot, { recursive: true, force: true });
@@ -136,7 +136,7 @@ describe('token contract', () => {
     });
 
     try {
-      const before = await server.ssrLoadModule('virtual:cumpa-tokens') as { TOKEN_ROOT_CSS: string };
+      const before = await server.ssrLoadModule('virtual:loopnote-tokens') as { TOKEN_ROOT_CSS: string };
       const changed = new Promise<void>((done) => {
         server.watcher.once('change', (path) => {
           if (path === fixture.sourcePath) done();
@@ -144,7 +144,7 @@ describe('token contract', () => {
       });
       writeFileSync(fixture.sourcePath, fixtureRoot({ '--surface-canvas': '#010203' }));
       await changed;
-      const after = await server.ssrLoadModule('virtual:cumpa-tokens') as { TOKEN_ROOT_CSS: string };
+      const after = await server.ssrLoadModule('virtual:loopnote-tokens') as { TOKEN_ROOT_CSS: string };
 
       expect(before.TOKEN_ROOT_CSS).toContain('--surface-canvas: #000000;');
       expect(after.TOKEN_ROOT_CSS).toContain('--surface-canvas: #010203;');

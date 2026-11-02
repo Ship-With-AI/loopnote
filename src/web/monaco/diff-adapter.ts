@@ -1,10 +1,11 @@
 import * as monaco from 'monaco-editor';
 
-import { TOKEN_ROOT_CSS } from 'virtual:cumpa-tokens';
+import { TOKEN_ROOT_CSS } from 'virtual:loopnote-tokens';
 
 import { counterpartBoundary, type DiffSide } from './line-mapping';
 import { buildDiffDecorations } from './diff-semantics';
-import { applyCumpaTheme } from './theme';
+import { applyLoopnoteTheme } from './theme';
+import { RENAME_MAP } from '../../domain/product-identity.js';
 import { parseTokenRoot, resolveToken } from '../theme/token-contract';
 import type { WorkspaceCommand } from '../model/workspace-command.js';
 
@@ -122,7 +123,7 @@ class PublicMonacoDiffAdapter {
     private readonly languageForPath: (path: string) => string,
     private readonly onChange: () => void,
   ) {
-    applyCumpaTheme();
+    applyLoopnoteTheme();
     this.diffEditor = monaco.editor.createDiffEditor(host, {
       ariaLabel: 'Immutable base and head side-by-side diff',
       automaticLayout: false,
@@ -175,13 +176,13 @@ class PublicMonacoDiffAdapter {
       this.originalEditor.onDidScrollChange(() => this.refreshAnchorAffordance()),
       this.modifiedEditor.onDidScrollChange(() => this.refreshAnchorAffordance()),
       this.originalEditor.addAction({
-        id: 'cumpa.add-base-comment',
+        id: `${RENAME_MAP.kindPrefix}.add-base-comment`,
         label: 'Add comment to base line',
         keybindings: [monaco.KeyMod.Alt | monaco.KeyCode.Enter],
         run: () => this.activateFocusedAnchor('base'),
       }),
       this.modifiedEditor.addAction({
-        id: 'cumpa.add-head-comment',
+        id: `${RENAME_MAP.kindPrefix}.add-head-comment`,
         label: 'Add comment to head line',
         keybindings: [monaco.KeyMod.Alt | monaco.KeyCode.Enter],
         run: () => this.activateFocusedAnchor('head'),
@@ -214,12 +215,12 @@ class PublicMonacoDiffAdapter {
     this.originalModel = monaco.editor.createModel(
       file.base.text,
       this.languageForPath(file.base.path),
-      monaco.Uri.parse(`inmemory://cumpa/${encodeURIComponent(file.id)}/base/${file.base.path.split('/').map(encodeURIComponent).join('/')}`),
+      monaco.Uri.parse(`inmemory://${RENAME_MAP.slug}/${encodeURIComponent(file.id)}/base/${file.base.path.split('/').map(encodeURIComponent).join('/')}`),
     );
     this.modifiedModel = monaco.editor.createModel(
       file.head.text,
       this.languageForPath(file.head.path),
-      monaco.Uri.parse(`inmemory://cumpa/${encodeURIComponent(file.id)}/head/${file.head.path.split('/').map(encodeURIComponent).join('/')}`),
+      monaco.Uri.parse(`inmemory://${RENAME_MAP.slug}/${encodeURIComponent(file.id)}/head/${file.head.path.split('/').map(encodeURIComponent).join('/')}`),
     );
     const { promise: ready, resolve: resolveReady } = Promise.withResolvers<void>();
     const diffUpdateDisposable = this.diffEditor.onDidUpdateDiff(() => {
@@ -376,7 +377,7 @@ class PublicMonacoDiffAdapter {
   }
 
   getDiagnostics(): AdapterDiagnostics {
-    const liveModels = monaco.editor.getModels().filter((model) => model.uri.scheme === 'inmemory' && model.uri.authority === 'cumpa').length;
+    const liveModels = monaco.editor.getModels().filter((model) => model.uri.scheme === 'inmemory' && model.uri.authority === RENAME_MAP.slug).length;
     return {
       diffUpdates: this.diffUpdates,
       liveModels,
@@ -666,7 +667,7 @@ class PublicMonacoSinglePaneAdapter {
     side: DiffSide,
   ) {
     this.side = side;
-    applyCumpaTheme();
+    applyLoopnoteTheme();
     this.editor = monaco.editor.create(host, {
       ariaLabel: side === 'base' ? 'Immutable base only' : 'Immutable head only',
       automaticLayout: false,
@@ -690,7 +691,7 @@ class PublicMonacoSinglePaneAdapter {
       this.editor.onMouseDown((event) => this.captureAffordance(event.target.position?.lineNumber)),
       this.editor.onDidScrollChange(() => this.refreshAnchorAffordance()),
       this.editor.addAction({
-        id: `cumpa.add-${side}-comment`,
+        id: `${RENAME_MAP.kindPrefix}.add-${side}-comment`,
         label: `Add comment to ${side} line`,
         keybindings: [monaco.KeyMod.Alt | monaco.KeyCode.Enter],
         run: () => this.activateFocusedAnchor(),
@@ -718,7 +719,7 @@ class PublicMonacoSinglePaneAdapter {
     this.model = monaco.editor.createModel(
       sideFile.text,
       this.languageForPath(sideFile.path),
-      monaco.Uri.parse(`inmemory://cumpa/${encodeURIComponent(file.id)}/${this.side}/${encodedPath}`),
+      monaco.Uri.parse(`inmemory://${RENAME_MAP.slug}/${encodeURIComponent(file.id)}/${this.side}/${encodedPath}`),
     );
     this.editor.setModel(this.model);
     this.editor.restoreViewState(saved?.viewState ?? null);
@@ -842,7 +843,7 @@ class PublicMonacoSinglePaneAdapter {
   }
 
   getDiagnostics(): AdapterDiagnostics {
-    const liveModels = monaco.editor.getModels().filter((model) => model.uri.scheme === 'inmemory' && model.uri.authority === 'cumpa').length;
+    const liveModels = monaco.editor.getModels().filter((model) => model.uri.scheme === 'inmemory' && model.uri.authority === RENAME_MAP.slug).length;
     return {
       diffUpdates: 0,
       liveModels,
