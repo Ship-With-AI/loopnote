@@ -245,6 +245,7 @@ None yet.
 | 260916-ide | Deploy coupon support and publish 1.6.1 | 2026-09-16 | 2d3d71e | Verified | [260916-ide-release-1-6-1](./quick/260916-ide-release-1-6-1/) |
 | 261031-au0 | Fix complete-review-draft e2e regression from Phase 13 single-pane rendering | 2026-10-31 | 25eedc2 | Verified | [261031-au0-fix-complete-review-draft-e2e-regression](./quick/261031-au0-fix-complete-review-draft-e2e-regression/) |
 | 261031-q09 | Fix open-runtime-session helper stale .monaco-diff-editor assertion | 2026-10-31 | 5bde4cd | Verified | [261031-q09-fix-open-runtime-session-helper-stale-mo](./quick/261031-q09-fix-open-runtime-session-helper-stale-mo/) |
+| 261103-gl9 | Fix selector-drift-ui exact-patch fixture ZodError (spec :423/:441) | 2026-11-03 | 7d4fd07 | Verified | [261103-gl9-fix-selector-drift-ui-exact-patch-fixtur](./quick/261103-gl9-fix-selector-drift-ui-exact-patch-fixtur/) |
 
 ## Deferred Items
 
@@ -255,7 +256,6 @@ None yet.
 | Design | Align 7px icon-button padding with documented spacing when control geometry changes | Deferred | v1.1 close |
 | Verification | Stabilise two nondeterministic Playwright specs that gate every push to `main`: `tests/e2e/responsive-session.spec.ts:773` and `tests/integration/anchored-workspace.spec.ts:1039` (both failed on the docs-only commit 4016226 and passed on rerun with no change) | Deferred | 260916-ide |
 | Verification | Stabilise `tests/e2e/agent-ready-export.spec.ts:1157` ('rejects an oversized uncommitted request'), which fails only when run as the last test in the full 16-test custody-gated file (likely a stderr-read-vs-exit-flush race in `waitForAttachedRejectionWithoutLoopbackUrl` under cumulative system load); passes cleanly alone or paired with its predecessor. See `.planning/phases/17-agent-protocol-extension-marketplace-skill/deferred-items.md`. | Deferred | 261031-q09 |
-| Verification | Fix `tests/integration/selector-drift-ui.spec.ts:422` and `:440` ('exact patch resumed drafts...' / 'exact patch retry stays snapshot-only...'), which fail on a malformed `exactPatchSession` fixture's `SessionResponseSchema.parse` call; confirmed pre-existing and unrelated to Phase 13/17 via `git stash` round-trip during 261031-q09. | Deferred | 261031-q09 |
 | Verification | Update seven Playwright e2e/integration specs (`tests/e2e/anchored-review.spec.ts`, `tests/e2e/file-tree.spec.ts`, `tests/e2e/pinned-session.spec.ts`, `tests/e2e/responsive-session.spec.ts`, `tests/integration/anchored-workspace.spec.ts`, `tests/integration/draft-recovery-ui.spec.ts`, `tests/integration/support-dialog.spec.ts`) that still assert the pre-18-04 "Changed files"/"PR-style"/dirty-badge copy this plan replaced; owned by `18-05-PLAN.md`, not part of `npm test`. | Deferred | 18-04 |
 
 ## Session Continuity
