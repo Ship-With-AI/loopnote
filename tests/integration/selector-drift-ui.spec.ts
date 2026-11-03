@@ -64,6 +64,7 @@ function exactPatchSession(withTextFile = false): SessionResponse {
       ? [{
           fileId: patchFileId,
           status: { kind: 'modified' },
+          oldMode: '100644',
           newPath: patchPath,
           additions: 1,
           deletions: 1,
