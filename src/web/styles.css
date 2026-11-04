@@ -143,7 +143,7 @@
   --breadcrumb-height: 24px;
   --view-header-height: 35px;
   --font-size-label: 11px;
-  --letter-spacing-label: 0.04em;
+  --letter-spacing-label: .04em;
   --font-size-chrome: 13px;
   --line-height-chrome: 16px;
   /* Approved continuity — UI-SPEC:23 icon geometry. */
