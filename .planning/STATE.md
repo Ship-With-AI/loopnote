@@ -6,7 +6,7 @@ status: planning
 last_updated: "2026-11-04T11:57:34.335Z"
 last_activity: 2026-11-04
 progress:
-  total_phases: 0
+  total_phases: 7
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-11-04)
 
 **Core value:** A developer can accurately review repository-grounded changes chosen by a developer or coding agent and return precise, drift-detectable feedback the agent can act on.
-**Current focus:** v2.1 Workbench Redesign — defining requirements (design source: `.planning/sketches/WRAP-UP-SUMMARY.md`)
+**Current focus:** v2.1 Workbench Redesign — roadmap drafted (Phases 19–26), ready to plan Phase 19 (design source: `.planning/sketches/WRAP-UP-SUMMARY.md`, `.kimi-code/skills/sketch-findings-loopnote/`)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: Phase 19 (Typecheck Foundation) — ready to plan
 Plan: —
-Status: Defining requirements
-Last activity: 2026-11-04 — Milestone v2.1 started
+Status: Ready to plan
+Last activity: 2026-11-04 — Roadmap created for v2.1 (Phases 19–26), 44/44 requirements mapped
 
 ## Performance Metrics
 

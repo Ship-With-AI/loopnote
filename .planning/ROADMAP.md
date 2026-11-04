@@ -10,17 +10,42 @@
 - **[v1.5 MIT Distribution](./milestones/v1.5-ROADMAP.md)** — Phases 03–07, 23 plans, 69 tasks, 18/19 requirements (ACC-04 blocked), shipped 2026-09-15.
 - **[v1.6 Workspace Restyle](./milestones/v1.6-ROADMAP.md)** — Phases 08–12, 31 plans, 24/24 requirements, shipped 2026-09-14 (`tech_debt`: DEBT-01 accepted).
 - **[v2.0 Artifact Review](./milestones/v2.0-ROADMAP.md)** — Phases 13–18 (incl. 17.1), 70 plans, 196 tasks, 35/35 requirements, shipped 2026-11-04 (no milestone audit; 4 verification items deferred — see `STATE.md`).
+- 🚧 **v2.1 Workbench Redesign** — Phases 19–25, 45 requirements mapped (in progress, revised 2026-11-04).
 
 ## Overview
 
-No active milestone. Loopnote `2.0.0` is `latest` on npm as `@shipwithai/loopnote`.
+**Active milestone: v2.1 Workbench Redesign.** Loopnote `2.0.0` is `latest` on npm as
+`@shipwithai/loopnote`. v2.1 rebuilds the browser review workspace as a VS Code-inspired
+workbench — a title bar with a Base→Head identity pill, a resizable files-only side bar, an
+Explorer-density changed-files tree, icon-only editor-title actions with breadcrumbs, inline
+Monaco view-zone comment threads, and a ⌘J bottom panel (Comments / Summary / Export) — over the
+unchanged Loopnote colour palette, keeping every existing review, export, and support behaviour.
+Design source: sketches 001–004, skill `sketch-findings-loopnote`
+(`.kimi-code/skills/sketch-findings-loopnote/`).
 
-The next milestone is proposed as **v2.1 Workbench Redesign**: a VS Code-inspired shell over the
-existing Loopnote palette, validated by sketches 001–004 (`.planning/sketches/WRAP-UP-SUMMARY.md`,
-skill `sketch-findings-loopnote`). Start it with `/gsd:new-milestone`; integer phases continue
-from Phase 18, so it starts at Phase 19. The Backlog below remains its input.
+Integer phases continue from v2.0 (ended at Phase 18); v2.1 runs Phases 19–25 (Typecheck
+Foundation → Shell Frame → Changed-Files Tree → Identity & Status Bar → Inline Comment Threads →
+Bottom Panel & Export → Accessibility, Design Docs & Regression Sweep). Phase 19 is ready to plan
+— see `STATE.md` Current Position. **Cross-cutting constraint:** any Playwright/integration
+locator a phase's renames break must be updated within that same phase (tracked by A11Y-03,
+closed in Phase 25); DEBT-01 in the Backlog below is scheduled as A11Y-01 in Phase 25. Thread
+navigation (previous/next thread, collapse-all, ⌥F9/⇧⌥F9) ships with the thread phase (23), not
+the shell.
 
 ## Phases
+
+### 🚧 v2.1 Workbench Redesign
+
+**Phase Numbering:** Integer phases continue from v2.0 (ended at Phase 18); v2.1 starts at Phase 19.
+
+- [ ] **Phase 19: Typecheck Foundation** - One `typecheck:web` gate (vue-tsc 3.3.14 + TS 6/7 dual alias) covers every `.vue` component and web `.ts` module before any App.vue decomposition begins.
+- [ ] **Phase 20: Shell Frame** - Workbench geometry tokens land together with the existing toolbar/tree/diff/dialog components as they're re-plumbed into `WorkbenchShell.vue`'s five regions (title bar, side bar, editor with icon-only title/breadcrumbs, bottom panel, status bar) across all five session kinds.
+- [ ] **Phase 21: Changed-Files Tree** - The changed-files tree is restyled to VS Code Explorer density with hover counts, a path filter, a view-options menu, and full keyboard reachability.
+- [ ] **Phase 22: Identity & Status Bar** - Comparison identity and drift relocate into a title-bar pill/popover; the status bar carries snapshot/comment counts, one emphasized Export/Finish item, and the support entry.
+- [ ] **Phase 23: Inline Comment Threads** - A multi-zone Monaco adapter rework renders every comment as an expanded-by-default view-zone thread with its own editor-title navigation icons and ⌥F9/⇧⌥F9 shortcuts, gated by an explicit pointer/keyboard go/no-go spike.
+- [ ] **Phase 24: Bottom Panel & Export** - Comments/Summary/Export live in the ⌘J bottom panel, including the agent-attached Finish action behind the export readiness gate.
+- [ ] **Phase 25: Accessibility, Design Docs & Regression Sweep** - A toolbar role/name audit closes DEBT-01, every popover/menu/live-region is keyboard-accessible, the full suite passes with same-phase locator updates, and `DESIGN.md` describes the shipped workbench.
+
 
 <details>
 <summary>✅ v2.0 Artifact Review (Phases 13–18) — SHIPPED 2026-11-04</summary>
@@ -37,6 +62,116 @@ Full details: [`milestones/v2.0-ROADMAP.md`](./milestones/v2.0-ROADMAP.md).
 
 </details>
 
+## Phase Details
+
+### Phase 19: Typecheck Foundation
+
+**Goal**: Developer gets one working whole-codebase type-check gate before any `.vue` restructuring begins, so decomposition in later phases is caught by tooling instead of shipping untyped.
+**Depends on**: Nothing new (first phase of v2.1; extends the shipped v2.0 build)
+**Requirements**: TYPE-01, TYPE-02
+**Success Criteria** (what must be TRUE):
+
+  1. Developer runs `npm run typecheck:web` (vue-tsc 3.3.14 with the TS 6/7 dual alias) and it typechecks every `.vue` component and web `.ts` module, not just the prior seven-file allowlist.
+  2. CI fails the build when `typecheck:web` reports a type error, proven by deliberately introducing a bad prop type and confirming the gate fails rather than passing trivially.
+  3. The Node/CLI side still builds through the fast native `tsc` with unchanged output.
+
+**Plans**: TBD
+
+### Phase 20: Shell Frame
+
+**Goal**: Reviewers see the whole workspace recomposed into a VS Code-shaped shell — title bar, files-only side bar, editor (icon-only title actions and breadcrumbs), bottom panel, status bar — built directly on the new workbench geometry token root, with every existing capability preserved across all five session kinds, before thread, identity, or tree internals are restyled.
+**Depends on**: Phase 19
+**Requirements**: TOK-01, SHELL-01, SHELL-02, SHELL-03, SHELL-04, SHELL-05, SHELL-06, NAV-01, NAV-02, NAV-03, NAV-04
+**Success Criteria** (what must be TRUE):
+
+  1. Reviewer sees the workspace rendered with workbench geometry tokens (22px rows, 264px side bar, 32/35/24/22px title/editor-title/breadcrumb/status heights, 4px control and 6px overlay radius, 20px code line height) over unchanged colour roles, and `npm run verify:semantic-css` passes.
+  2. Reviewer sees a title bar, a files-only side bar, an editor area (file name/M/A/D/`+/−` counts plus icon-only actions — prev/next change, prev/next file, inline/side-by-side, and for Markdown a Source/Rendered toggle, each with a tooltip and accessible name naming its shortcut — and breadcrumbs above the diff), a bottom panel, and a status bar, with the old identity header band, review rail, footer copy, and activity bar gone.
+  3. Reviewer can hide/show and resize the side bar (⌘B / Ctrl+B, drag sash 170–520px, double-click reset) and open/close/resize the bottom panel (⌘J / Ctrl+J, closed when a session starts); both the side-bar width and panel height persist across sessions on the same machine.
+  4. A packaged-binary e2e check passes for each of the five session kinds — committed branch/worktree, exact patch, Staged/Unstaged/Working tree, standalone, and agent-attached — proving the new shell kept every current capability per kind.
+  5. No viewport width from 1050 to 1920px produces page-level horizontal scroll (only the diff canvas scrolls horizontally), and Loopnote's own F7/⇧F7 (change) and ⌥↓/⌥↑ (file) shortcuts fire both inside and outside the diff editor while Monaco's native Diff Review Pane and Move-Line bindings stay suppressed inside it; reviewer still sees the explanation for unsupported/unavailable/changed-during-capture files beneath the editor title.
+
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 21: Changed-Files Tree
+
+**Goal**: The changed-files tree reaches VS Code Explorer density while staying fully keyboard-reachable.
+**Depends on**: Phase 20
+**Requirements**: TREE-01, TREE-02, TREE-03, TREE-04, TREE-05, TREE-06, TREE-07
+**Success Criteria** (what must be TRUE):
+
+  1. Reviewer sees 22px rows with single-child folder chains compacted onto one row, a file-type mark, a status-coloured name, a right-aligned non-colour-only M/A/D letter (line-through for deleted), and an open-comment badge.
+  2. Reviewer sees `+N −N` counts on hover or selection by default and can change that behaviour — always / hover-or-selection / never, plus a comment-badge toggle — from a keyboard-reachable view-options menu.
+  3. Reviewer can open a path filter that highlights the matched substring, shows "N of M", supports Enter/↓/Esc, and shows an empty state, and can switch between the folder tree and a flat list with dimmed directories.
+  4. Reviewer sees file count and `+X −Y` totals under the tree.
+  5. Reviewer operates the entire tree by keyboard — ↑↓ preview, ←→ fold, Home/End, Enter/Space open — through a single tab stop, proven with real-browser Tab/Arrow-key evidence across compact-folder-chain rows.
+
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 22: Identity & Status Bar
+
+**Goal**: Already-shipped comparison-identity and drift-detection logic relocates into a title-bar pill/popover, and the status bar carries snapshot/comment-count/Export/support entry points, including the agent-attached Finish action in its one emphasized slot.
+**Depends on**: Phase 20
+**Requirements**: IDENT-01, IDENT-02, IDENT-03, IDENT-04, STAT-01, STAT-02, STAT-03
+**Success Criteria** (what must be TRUE):
+
+  1. Reviewer sees a centred title-bar pill reading Base→Head with ref names and short SHAs for committed sessions, "Staged" for staged sessions, "Exact patch" for exact-patch sessions, and "Standalone · N files" for standalone sessions, and can click it to open a details popover (Base, Head, merge base when present, snapshot with capture time, worktree, Copy; Esc closes and returns focus to the pill).
+  2. Reviewer sees a warning pill state when the reviewed Head or source moved since capture, with the popover explaining what moved and making Refresh its primary action, and no banner taking height from the diff.
+  3. Reviewer can refresh uncommitted and standalone snapshots from the title bar and the popover with visible progress; exact-patch sessions correctly state they cannot refresh.
+  4. Reviewer sees the snapshot ID and open-comment count (stale count in warning ink) in the status bar, where clicking the counts opens the Comments tab, and sees exactly one emphasized status-bar item — Export, or Finish review in agent-attached sessions — that opens the Export tab.
+  5. Reviewer can open the voluntary-support dialog from a plain, non-emphasized status-bar item, and support never gates any review action.
+
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 23: Inline Comment Threads
+
+**Goal**: Comments render as expanded-by-default Monaco view-zone threads directly under their anchored line, reachable by pointer, keyboard, and dedicated editor-title navigation icons/shortcuts, surviving draft reconciliation and Refresh without losing scroll position or in-progress edits — gated by an explicit go/no-go spike before the full multi-zone rework is built.
+**Depends on**: Phase 20
+**Requirements**: THREAD-01, THREAD-02, THREAD-03, THREAD-04, THREAD-05, THREAD-06, THREAD-07, THREAD-08, THREAD-09
+**Success Criteria** (what must be TRUE):
+
+  1. A go/no-go spike proves Monaco content widgets layered over view zones reliably receive both pointer clicks and keyboard input before any thread UI is built on top of the approach; if the spike fails, the interaction model is re-planned before further work proceeds.
+  2. Reviewer sees every comment on the current file as an inline thread directly under its anchored line, with the opposite side padded so Base and Head stay aligned, and a header showing side, line, and a non-colour-only Open/Resolved/Anchor-moved state.
+  3. Reviewer can resolve, reopen, and delete (with a few seconds of Undo) a thread, and edit a comment's text inline (⌘Enter/Ctrl+Enter save, Esc cancel), by mouse or keyboard.
+  4. Reviewer sees open threads expanded and resolved threads collapsed to a one-line snippet by default, and can collapse or expand one thread or every thread in the current file, with the choice kept for the session.
+  5. Reviewer sees previous/next-thread and collapse-all-threads icon actions in the editor title and can use ⌥F9/⇧⌥F9 both inside and outside the diff editor to jump across files in tree order; comments can be added from the gutter `+`, and threads keep their position, expanded state, and any in-progress edit text through draft reconciliation and snapshot Refresh, with durable anchors (including Markdown block ranges) staying byte-identical to the current model.
+
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 24: Bottom Panel & Export
+
+**Goal**: Comments, the overall summary, and export live in a ⌘J bottom panel that stays closed while reading, relocating already-shipped summary/export components and giving agent-attached sessions their Finish action behind the unchanged export-readiness gate.
+**Depends on**: Phase 20, Phase 23
+**Requirements**: PANEL-01, PANEL-02, PANEL-03, PANEL-04, PANEL-05
+**Success Criteria** (what must be TRUE):
+
+  1. Reviewer sees the Comments tab list every thread grouped by file with its state icon, first line, and side/line; clicking a row opens the file, expands the thread, and scrolls it into view.
+  2. Reviewer can edit the overall Markdown summary in the Summary tab with a Saving…/Saved indicator.
+  3. Reviewer sees an Export tab readiness checklist (open and resolved counts, summary state) that stays disabled until any comment with a moved anchor is acknowledged, and sees the post-export receipt (`review.md`/`review.json` paths, copy actions, "Copy agent prompt").
+  4. Reviewer in an agent-attached session can Finish review from the Export tab behind the same readiness/acknowledgement gate, and the agent still receives an unchanged canonical result.
+
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 25: Accessibility, Design Docs & Regression Sweep
+
+**Goal**: Every toolbar control group becomes reachable by role and name, every popover/menu/live-region is keyboard-accessible, the full packaged-binary suite passes with each phase's own locator updates already in place, and `DESIGN.md` is rewritten to describe the shipped workbench.
+**Depends on**: Phase 21, Phase 22, Phase 23, Phase 24
+**Requirements**: TOK-02, A11Y-01, A11Y-02, A11Y-03
+**Success Criteria** (what must be TRUE):
+
+  1. Assistive-technology users reach every toolbar control group — title bar, side bar, editor title, bottom panel, status bar — by `getByRole('toolbar' | 'group', { name })`, closing DEBT-01.
+  2. Keyboard users can operate every popover and menu, close it with Esc, and get focus returned; each dynamic change (panel tab, thread action, refresh result, export result) is announced by exactly one live region.
+  3. The full packaged-binary Playwright and integration suites pass against the finished workbench, with every locator any Phase 19–24 rename broke already updated within that same phase rather than deferred here.
+  4. Contributors read a `DESIGN.md` whose Composition, Geometry, and Components sections describe the shipped workbench, with no mention of the review rail or identity header band.
+
+**Plans**: TBD
+**UI hint**: yes
+
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -48,6 +183,13 @@ Full details: [`milestones/v2.0-ROADMAP.md`](./milestones/v2.0-ROADMAP.md).
 | 17. Agent Protocol Extension & Marketplace Skill | v2.0 | 5/5 | Complete | 2026-10-31 |
 | 17.1. Full Project Rename | v2.0 | 23/23 | Complete | 2026-11-02 |
 | 18. Product Repositioning Copy | v2.0 | 5/5 | Complete | 2026-11-02 |
+| 19. Typecheck Foundation | v2.1 | 0/TBD | Not started | - |
+| 20. Shell Frame | v2.1 | 0/TBD | Not started | - |
+| 21. Changed-Files Tree | v2.1 | 0/TBD | Not started | - |
+| 22. Identity & Status Bar | v2.1 | 0/TBD | Not started | - |
+| 23. Inline Comment Threads | v2.1 | 0/TBD | Not started | - |
+| 24. Bottom Panel & Export | v2.1 | 0/TBD | Not started | - |
+| 25. Accessibility, Design Docs & Regression Sweep | v2.1 | 0/TBD | Not started | - |
 
 ## Backlog
 
@@ -86,6 +228,7 @@ milestone can decide explicitly whether to adopt them:
   `12-UI-SPEC.md:182` deliberately scoped this fix out of Phase 12. Accepted at v1.6 close.
   **Re-scoped 2026-09-15:** was four containers; quick task `260915-jbv` deleted the fourth
   (`review-toolbar__group--actions`) along with the Review and Keyboard help buttons.
+  **Scheduled in v2.1 as A11Y-01** (Phase 25: Accessibility, Design Docs & Regression Sweep).
 
 ### Deferred from v1.6 scope
 

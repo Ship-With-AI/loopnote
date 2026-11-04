@@ -50,9 +50,9 @@
 
 ### Editor Title & Navigation
 
-- [ ] **NAV-01**: Reviewer sees the file name, M/A/D, and `+/−` counts in the editor title, followed by icon-only actions — previous/next change, previous/next file, inline/side-by-side, previous/next thread, collapse-all threads, and for Markdown files a Source/Rendered toggle — each with a tooltip and accessible name that include its shortcut.
+- [ ] **NAV-01**: Reviewer sees the file name, M/A/D, and `+/−` counts in the editor title, followed by icon-only actions — previous/next change, previous/next file, inline/side-by-side, and for Markdown files a Source/Rendered toggle — each with a tooltip and accessible name that include its shortcut.
 - [ ] **NAV-02**: Reviewer sees breadcrumbs for the current file path above the diff.
-- [ ] **NAV-03**: Reviewer can use F7 / ⇧F7 (change), ⌥↓ / ⌥↑ (file), and ⌥F9 / ⇧⌥F9 (thread) both with focus in the diff editor and outside it; Monaco's own Diff Review Pane and move-line bindings do not fire for these keys.
+- [ ] **NAV-03**: Reviewer can use F7 / ⇧F7 (change) and ⌥↓ / ⌥↑ (file) both with focus in the diff editor and outside it; Monaco's own Diff Review Pane and move-line bindings do not fire for these keys.
 - [ ] **NAV-04**: Reviewer still sees the explanation for unsupported, unavailable, and changed-during-capture files in the editor area beneath the normal editor title.
 
 ### Comment Threads
@@ -65,6 +65,7 @@
 - [ ] **THREAD-06**: Reviewer can add a comment by hovering a line number, clicking `+`, typing, and pressing ⌘Enter / Ctrl+Enter; durable anchors, including Markdown block ranges, stay byte-identical to the current model.
 - [ ] **THREAD-07**: Reviewer can jump to the next or previous thread across files in tree order; the target file opens and the thread scrolls into view.
 - [ ] **THREAD-08**: Reviewer's threads keep their position, expanded state, and any in-progress edit text through draft reconciliation and snapshot Refresh.
+- [ ] **THREAD-09**: Reviewer sees previous/next-thread and collapse-all-threads icon actions in the editor title, and can use ⌥F9 / ⇧⌥F9 both inside and outside the diff editor.
 
 ### Review Panel & Export
 
@@ -115,11 +116,56 @@ Deferred, tracked but not in the v2.1 roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
+| TYPE-01 | Phase 19 | Pending |
+| TYPE-02 | Phase 19 | Pending |
+| TOK-01 | Phase 20 | Pending |
+| TOK-02 | Phase 25 | Pending |
+| SHELL-01 | Phase 20 | Pending |
+| SHELL-02 | Phase 20 | Pending |
+| SHELL-03 | Phase 20 | Pending |
+| SHELL-04 | Phase 20 | Pending |
+| SHELL-05 | Phase 20 | Pending |
+| SHELL-06 | Phase 20 | Pending |
+| IDENT-01 | Phase 22 | Pending |
+| IDENT-02 | Phase 22 | Pending |
+| IDENT-03 | Phase 22 | Pending |
+| IDENT-04 | Phase 22 | Pending |
+| TREE-01 | Phase 21 | Pending |
+| TREE-02 | Phase 21 | Pending |
+| TREE-03 | Phase 21 | Pending |
+| TREE-04 | Phase 21 | Pending |
+| TREE-05 | Phase 21 | Pending |
+| TREE-06 | Phase 21 | Pending |
+| TREE-07 | Phase 21 | Pending |
+| NAV-01 | Phase 20 | Pending |
+| NAV-02 | Phase 20 | Pending |
+| NAV-03 | Phase 20 | Pending |
+| NAV-04 | Phase 20 | Pending |
+| THREAD-01 | Phase 23 | Pending |
+| THREAD-02 | Phase 23 | Pending |
+| THREAD-03 | Phase 23 | Pending |
+| THREAD-04 | Phase 23 | Pending |
+| THREAD-05 | Phase 23 | Pending |
+| THREAD-06 | Phase 23 | Pending |
+| THREAD-07 | Phase 23 | Pending |
+| THREAD-08 | Phase 23 | Pending |
+| THREAD-09 | Phase 23 | Pending |
+| PANEL-01 | Phase 24 | Pending |
+| PANEL-02 | Phase 24 | Pending |
+| PANEL-03 | Phase 24 | Pending |
+| PANEL-04 | Phase 24 | Pending |
+| PANEL-05 | Phase 24 | Pending |
+| STAT-01 | Phase 22 | Pending |
+| STAT-02 | Phase 22 | Pending |
+| STAT-03 | Phase 22 | Pending |
+| A11Y-01 | Phase 25 | Pending |
+| A11Y-02 | Phase 25 | Pending |
+| A11Y-03 | Phase 25 | Pending |
 
 **Coverage:**
 
-- v2.1 requirements: 44 total
-- Mapped to phases: 0 (filled by roadmap)
+- v2.1 requirements: 45 total
+- Mapped to phases: 45/45 (zero orphans, zero duplicates)
 
 ---
-*Last updated: 2026-11-04 at v2.1 requirements definition*
+*Last updated: 2026-11-04 at v2.1 roadmap revision (Phases 19–25; THREAD-09 split from NAV-01/NAV-03, TOK-01 merged into Shell Frame)*
