@@ -137,7 +137,7 @@ async function recover(): Promise<void> {
           <h1 id="draft-recovery-heading">Local review draft needs recovery</h1>
           <p>{{ RENAME_MAP.displayName }} could not safely read this draft. The existing file has not been changed.</p>
         </template>
-        <template v-else>
+        <template v-else-if="load.kind === 'newerUnsupported'">
           <h1 id="draft-recovery-heading">This draft needs a newer {{ RENAME_MAP.displayName }}</h1>
           <p>Draft schema version {{ load.foundVersion }} is newer than supported version {{ load.supportedVersion }}. Upgrade {{ RENAME_MAP.displayName }} to open it. The file has not been changed.</p>
         </template>
