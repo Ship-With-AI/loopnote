@@ -117,29 +117,31 @@ defineExpose({ focusFilesToggle, focusHeading });
       </template>
       <span v-if="counts !== undefined" class="review-toolbar__counts">{{ counts }}</span>
     </div>
-    <UiTooltip text="Previous change · Shift+F7">
-      <button
-        type="button"
-        class="ui-button ui-button--icon"
-        aria-label="Previous change"
-        :disabled="!hasActiveFile"
-        @click="emit('previousChange')"
-      >
-        <UiIcon name="previous-change" />
-      </button>
-    </UiTooltip>
-    <UiTooltip text="Next change · F7">
-      <button
-        type="button"
-        class="ui-button ui-button--icon"
-        aria-label="Next change"
-        :disabled="!hasActiveFile"
-        @click="emit('nextChange')"
-      >
-        <UiIcon name="next-change" />
-      </button>
-    </UiTooltip>
-    <span class="editor-title__separator" aria-hidden="true" />
+    <template v-if="!singlePane">
+      <UiTooltip text="Previous change · Shift+F7">
+        <button
+          type="button"
+          class="ui-button ui-button--icon"
+          aria-label="Previous change"
+          :disabled="!hasActiveFile"
+          @click="emit('previousChange')"
+        >
+          <UiIcon name="previous-change" />
+        </button>
+      </UiTooltip>
+      <UiTooltip text="Next change · F7">
+        <button
+          type="button"
+          class="ui-button ui-button--icon"
+          aria-label="Next change"
+          :disabled="!hasActiveFile"
+          @click="emit('nextChange')"
+        >
+          <UiIcon name="next-change" />
+        </button>
+      </UiTooltip>
+      <span class="editor-title__separator" aria-hidden="true" />
+    </template>
     <UiTooltip :text="atFirstFile ? 'Previous file · Alt+↑ · First changed file.' : 'Previous file · Alt+↑'">
       <button
         type="button"
@@ -238,6 +240,13 @@ defineExpose({ focusFilesToggle, focusHeading });
   padding-inline: var(--space-2);
   border-bottom: 1px solid var(--border-default);
   background: var(--surface-panel);
+}
+
+@media (max-width: 760px) {
+  .editor-title {
+    height: auto;
+    flex-wrap: wrap;
+  }
 }
 
 .editor-title__group {

@@ -226,7 +226,7 @@ body {
 .inline-comment-composer,
 .inline-accepted-comment,
 .diff-state,
-.review-main > .empty-state {
+.workbench-shell__editor > .empty-state {
   border: 1px solid var(--border-default);
   border-radius: var(--radius-control);
   background: var(--surface-panel);
@@ -245,7 +245,7 @@ body {
   height: 100vh;
   height: 100dvh;
   min-height: 0;
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-rows: 1fr;
   overflow: hidden;
 }
 
@@ -1824,7 +1824,7 @@ h3.conversation-card__identity {
 }
 
 .diff-state,
-.review-main > .empty-state {
+.workbench-shell__editor > .empty-state {
   align-self: start;
   margin: var(--space-6);
   padding: var(--space-6);

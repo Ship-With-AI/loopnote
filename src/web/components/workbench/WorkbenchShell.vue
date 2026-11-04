@@ -162,7 +162,14 @@ const sidebarGridTemplateColumns = computed(() => (props.sidebarVisible ? `${sid
 
 .workbench-shell__editor {
   flex: 1;
+  display: flex;
+  flex-direction: column;
   min-width: 0;
+  min-height: 0;
+}
+
+.workbench-shell__editor > :last-child {
+  flex: 1;
   min-height: 0;
 }
 
