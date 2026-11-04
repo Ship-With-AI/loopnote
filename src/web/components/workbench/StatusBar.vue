@@ -44,9 +44,9 @@ defineExpose({ focusSupport });
         {{ openCommentCount }} open comments
       </button>
       <button
+        v-if="exportSupported"
         type="button"
-        class="statusbar__item"
-        :class="{ 'statusbar__item--emphasis': exportSupported }"
+        class="statusbar__item statusbar__item--emphasis"
         @click="emit('openPanel')"
       >
         Export
