@@ -437,7 +437,7 @@ async function expectPhase08ReflowAtCurrentWidth(
   page: Page,
   width: Phase08Width,
 ): Promise<void> {
-  const context = page.locator('.review-toolbar');
+  const context = page.locator('.editor-title');
   await expect.poll(async () => await context.evaluate((element) => {
     const viewport = document.querySelector<HTMLElement>('.diff-workspace__viewport');
     const canvas = document.querySelector<HTMLElement>('.diff-workspace__canvas');
@@ -463,7 +463,7 @@ async function expectPhase08ReflowAtCurrentWidth(
         clientWidth: document.documentElement.clientWidth,
         scrollWidth: document.documentElement.scrollWidth,
       },
-      toolbarGroups: [...document.querySelectorAll<HTMLElement>('.review-toolbar__group')]
+      toolbarGroups: [...document.querySelectorAll<HTMLElement>('.editor-title [role="group"]')]
         .map((group) => group.getBoundingClientRect()),
       viewport: { clientWidth: viewport.clientWidth, scrollWidth: viewport.scrollWidth },
     };
@@ -473,7 +473,7 @@ async function expectPhase08ReflowAtCurrentWidth(
   expect(reflow.document.scrollWidth, `[responsive] ${width}px document fit`).toBeLessThanOrEqual(
     reflow.document.clientWidth,
   );
-  expect(reflow.toolbarGroups).toHaveLength(2);
+  expect(reflow.toolbarGroups).toHaveLength(1);
   for (const [index, group] of reflow.toolbarGroups.entries()) {
     expect(group.width, `[responsive] ${width}px toolbar group ${index}`).toBeGreaterThan(0);
     expect(group.height, `[responsive] ${width}px toolbar group ${index}`).toBeGreaterThan(0);
@@ -503,14 +503,14 @@ async function expectPhase08ReflowAtWidth(page: Page, width: Phase08Width): Prom
 
 async function expectTreeInteriorAtWidth(page: Page, width: number): Promise<void> {
   await page.setViewportSize({ width, height: 640 });
-  const filesButton = page.getByRole('button', { name: width <= 760 ? 'Open files' : 'Hide files sidebar', exact: true });
+  const filesButton = page.getByRole('button', { name: width <= 760 ? 'Open files' : 'Toggle side bar (⌘B)', exact: true });
   if (width <= 760) {
     await filesButton.click();
   }
 
   const filesPane = width <= 760
     ? page.getByRole('dialog', { name: 'Files', exact: true }).locator('.changed-files-dialog__results')
-    : page.locator('.changed-files-sidebar');
+    : page.locator('.workbench-shell__sidebar');
   const selected = filesPane.locator('.tree-row--selected');
   const lineCounts = selected.locator('.line-counts');
   const levelOne = filesPane.locator('[role="treeitem"][aria-level="1"]').first();
@@ -817,8 +817,6 @@ test('responsive keyboard and accessibility contract', async ({
     );
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('alpha.ts');
     await expect(page.locator(`#${RENAME_MAP.cssPrefix}heading`)).toHaveAttribute('title', '00-src/components/alpha.ts');
-    await expect(page.locator('.shell-footer__local-status')).toHaveText('Local review · pinned commits');
-    await expect(page.locator('.shell-footer__draft-status')).toHaveText('Draft stays local · export is explicit');
 
     await test.step('rendered real workspace contrast contract', async () => {
       await expectRenderedContrast(
@@ -984,7 +982,7 @@ test('responsive keyboard and accessibility contract', async ({
       await nextChange.focus();
       expect(await gutter.evaluate((element) => getComputedStyle(element, '::after').display)).toBe('none');
 
-      await expect(page.locator('.review-toolbar')).toHaveCSS('box-shadow', 'none');
+      await expect(page.locator('.editor-title')).toHaveCSS('box-shadow', 'none');
     });
     await test.step('keyboard-only 320px journey keeps existing destinations and discard flow reachable', async () => {
       await page.setViewportSize({ width: 320, height: 640 });
@@ -1014,9 +1012,9 @@ test('responsive keyboard and accessibility contract', async ({
       await expect(changedFiles).toHaveCount(0);
       await expect(page.locator(`#${RENAME_MAP.cssPrefix}heading`)).toBeFocused();
 
-      await page.keyboard.press('Alt+Shift+]');
+      await page.keyboard.press('Alt+ArrowDown');
       await expect(page.locator(`#${RENAME_MAP.cssPrefix}heading`)).toContainText('beta-after-a-very-long-rename.ts');
-      await page.keyboard.press('Alt+Shift+[');
+      await page.keyboard.press('Alt+ArrowUp');
       await expect(page.locator(`#${RENAME_MAP.cssPrefix}heading`)).toContainText('alpha.ts');
 
 
@@ -1028,7 +1026,7 @@ test('responsive keyboard and accessibility contract', async ({
 
     await test.step('desktop review toolbar exposes four controls in sequential Tab order', async () => {
       await page.setViewportSize({ width: 1440, height: 900 });
-      await page.keyboard.press('Alt+Shift+]');
+      await page.keyboard.press('Alt+ArrowDown');
       await expect(page.locator(`#${RENAME_MAP.cssPrefix}heading`)).toContainText('beta-after-a-very-long-rename.ts');
 
       const previousFile = page.getByRole('button', { name: 'Previous file', exact: true });
@@ -1051,7 +1049,7 @@ test('responsive keyboard and accessibility contract', async ({
       }
       await assertNoPageOverflow(page);
 
-      await page.keyboard.press('Alt+Shift+[');
+      await page.keyboard.press('Alt+ArrowUp');
       await expect(page.locator(`#${RENAME_MAP.cssPrefix}heading`)).toContainText('alpha.ts');
     });
 
@@ -1074,19 +1072,19 @@ test('responsive keyboard and accessibility contract', async ({
 
       await page.setViewportSize({ width: 1440, height: 640 });
       // 31.5px heading line-height + 4px top padding + 4px bottom padding + 1px bottom border.
-      expect(await page.locator('.review-toolbar').evaluate((element) => element.getBoundingClientRect().height)).toBeLessThanOrEqual(41);
-      await page.keyboard.press('Alt+Shift+[');
+      expect(await page.locator('.editor-title').evaluate((element) => element.getBoundingClientRect().height)).toBeLessThanOrEqual(41);
+      await page.keyboard.press('Alt+ArrowUp');
       await expect(page.locator(`#${RENAME_MAP.cssPrefix}heading`)).toContainText('alpha.ts');
       await page.setViewportSize({ width: 320, height: 640 });
-      await expect(page.locator('.changed-files-sidebar')).not.toBeVisible();
+      await expect(page.locator('.workbench-shell__sidebar')).not.toBeVisible();
       await files.focus();
       await page.keyboard.press('Enter');
       const filter = changedFiles.getByRole('searchbox', { name: 'Filter files', exact: true });
       await expect(changedFiles).toBeVisible();
       await expect(filter).toBeFocused();
       await expect(page.getByRole('navigation', { name: 'Files', exact: true })).toHaveCount(1);
-      await expect(page.locator('.review-shell')).toHaveAttribute('inert', '');
-      expect(await page.locator('.review-main').evaluate((main) => (
+      await expect(page.locator('.workbench-shell')).toHaveAttribute('inert', '');
+      expect(await page.locator('.workbench-shell__main').evaluate((main) => (
         [...main.querySelectorAll('input, textarea, select')]
           .filter((control) => control.closest('.diff-workspace') === null)
           .length
@@ -1138,21 +1136,20 @@ test('responsive keyboard and accessibility contract', async ({
 
 
     await test.step('changed-files drawers honor locked responsive geometry', async () => {
-      const treePane = page.locator('.changed-files-sidebar');
-      const reviewMain = page.locator('.review-main');
+      const treePane = page.locator('.workbench-shell__sidebar');
+      const reviewMain = page.locator('.workbench-shell__main');
       const stateCard = page.locator('[data-state-card-contract]');
-      const reviewShell = page.locator('.review-shell');
-      const sessionHeader = page.locator('.session-header');
+      const reviewShell = page.locator('.workbench-shell__body');
+      const sessionHeader = page.locator('.titlebar');
       const headerFacts = page.locator('.header-facts');
       const overlayShadow = await rootShadow(headerFacts);
       const assertFilesCollapse = async (width: number): Promise<void> => {
         await page.setViewportSize({ width, height: 560 });
-        const filesButton = page.getByRole('button', { name: 'Hide files sidebar', exact: true });
-        await expect(filesButton).toHaveAttribute('aria-controls', 'changed-files');
-        await expect(filesButton).toHaveAttribute('aria-expanded', 'true');
+        const filesButton = page.getByRole('button', { name: 'Toggle side bar (⌘B)', exact: true });
+        await expect(filesButton).toHaveAttribute('aria-pressed', 'true');
         const before = await reviewShell.evaluate((shell) => {
-          const files = shell.querySelector<HTMLElement>('.changed-files-sidebar')!;
-          const main = shell.querySelector<HTMLElement>('.review-main')!;
+          const files = shell.querySelector<HTMLElement>('.workbench-shell__sidebar')!;
+          const main = shell.querySelector<HTMLElement>('.workbench-shell__main')!;
           const filesBox = files.getBoundingClientRect();
           const mainBox = main.getBoundingClientRect();
           return {
@@ -1163,11 +1160,10 @@ test('responsive keyboard and accessibility contract', async ({
         expect(before.files.x + before.files.width).toBeCloseTo(before.main.x, 3);
 
         await filesButton.click();
-        const showFilesButton = page.getByRole('button', { name: 'Show files sidebar', exact: true });
-        await expect(showFilesButton).not.toHaveAttribute('aria-controls');
+        await expect(filesButton).toHaveAttribute('aria-pressed', 'false');
         await expect(page.locator('#changed-files')).not.toBeVisible();
         const collapsed = await reviewShell.evaluate((shell) => {
-          const main = shell.querySelector<HTMLElement>('.review-main')!;
+          const main = shell.querySelector<HTMLElement>('.workbench-shell__main')!;
           const shellBox = shell.getBoundingClientRect();
           const mainBox = main.getBoundingClientRect();
           return {
@@ -1179,13 +1175,13 @@ test('responsive keyboard and accessibility contract', async ({
         expect(collapsed.main.width).toBeGreaterThan(before.main.width);
         await assertNoPageOverflow(page);
 
-        await showFilesButton.click();
-        await expect(filesButton).toHaveAttribute('aria-expanded', 'true');
+        await filesButton.click();
+        await expect(filesButton).toHaveAttribute('aria-pressed', 'true');
         await expect(page.locator('#changed-files')).toBeVisible();
-        await expect(page.locator('.changed-files-sidebar [role="treeitem"]').first()).toBeVisible();
+        await expect(page.locator('.workbench-shell__sidebar [role="treeitem"]').first()).toBeVisible();
         const restored = await reviewShell.evaluate((shell) => {
-          const files = shell.querySelector<HTMLElement>('.changed-files-sidebar')!;
-          const main = shell.querySelector<HTMLElement>('.review-main')!;
+          const files = shell.querySelector<HTMLElement>('.workbench-shell__sidebar')!;
+          const main = shell.querySelector<HTMLElement>('.workbench-shell__main')!;
           const filesBox = files.getBoundingClientRect();
           const mainBox = main.getBoundingClientRect();
           return {
@@ -1207,7 +1203,7 @@ test('responsive keyboard and accessibility contract', async ({
         document.body.append(card);
       });
       await expect(stateCard).toHaveCSS('padding', '24px');
-      for (const staticSurface of [treePane, page.locator('.session-header'), reviewMain, stateCard]) {
+      for (const staticSurface of [treePane, page.locator('.titlebar'), reviewMain, stateCard]) {
         await expect(staticSurface).toHaveCSS('box-shadow', 'none');
       }
       await assertNoPageOverflow(page);
@@ -1228,12 +1224,11 @@ test('responsive keyboard and accessibility contract', async ({
       await assertNoPageOverflow(page);
 
       await page.setViewportSize({ width: 1050, height: 560 });
-      await expect(page.getByRole('button', { name: 'Hide files sidebar', exact: true })).toHaveAttribute('aria-expanded', 'true');
-      await expect(sessionHeader).toHaveCSS('flex-wrap', 'wrap');
+      await expect(page.getByRole('button', { name: 'Toggle side bar (⌘B)', exact: true })).toHaveAttribute('aria-pressed', 'true');
       await expect(headerFacts).toHaveCSS('flex-wrap', 'wrap');
       const desktopColumns = await reviewShell.evaluate((shell) => {
-        const files = shell.querySelector<HTMLElement>('.changed-files-sidebar')!;
-        const main = shell.querySelector<HTMLElement>('.review-main')!;
+        const files = shell.querySelector<HTMLElement>('.workbench-shell__sidebar')!;
+        const main = shell.querySelector<HTMLElement>('.workbench-shell__main')!;
         const filesBox = files.getBoundingClientRect();
         const mainBox = main.getBoundingClientRect();
         return {
@@ -1251,8 +1246,7 @@ test('responsive keyboard and accessibility contract', async ({
       await assertNoPageOverflow(page);
 
       await page.setViewportSize({ width: 761, height: 560 });
-      await expect(page.getByRole('button', { name: 'Hide files sidebar', exact: true })).toHaveAttribute('aria-expanded', 'true');
-      await expect(sessionHeader).toHaveCSS('flex-wrap', 'wrap');
+      await expect(page.getByRole('button', { name: 'Toggle side bar (⌘B)', exact: true })).toHaveAttribute('aria-pressed', 'true');
       await expect(headerFacts).toHaveCSS('flex-wrap', 'wrap');
       const wrappedHeaderGeometry = await sessionHeader.evaluate((header) => {
         const headerBox = header.getBoundingClientRect();
@@ -1294,8 +1288,8 @@ test('responsive keyboard and accessibility contract', async ({
         }
       }
       const wrappedColumns = await reviewShell.evaluate((shell) => {
-        const files = shell.querySelector<HTMLElement>('.changed-files-sidebar')!;
-        const main = shell.querySelector<HTMLElement>('.review-main')!;
+        const files = shell.querySelector<HTMLElement>('.workbench-shell__sidebar')!;
+        const main = shell.querySelector<HTMLElement>('.workbench-shell__main')!;
         const filesBox = files.getBoundingClientRect();
         const mainBox = main.getBoundingClientRect();
         return {
@@ -1327,7 +1321,7 @@ test('responsive keyboard and accessibility contract', async ({
       await expect(filesButton).toBeVisible();
       await expect(filesButton).not.toHaveAttribute('aria-controls');
       await expect(filesButton).not.toHaveAttribute('aria-expanded');
-      await expect(page.locator('.changed-files-sidebar')).not.toBeVisible();
+      await expect(page.locator('.workbench-shell__sidebar')).not.toBeVisible();
       await filesButton.focus();
       await page.keyboard.press('Enter');
       await expect(changedFiles).toBeVisible();

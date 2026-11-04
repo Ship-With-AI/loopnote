@@ -108,7 +108,7 @@ test('keeps anonymous review support-free when the session omits the capability'
 
 test('offers optional support without gating the review, preserving dialog accessibility and dismissal', async ({ page }) => {
   await openReview(page);
-  await expect(page.locator('.review-shell')).toHaveAttribute('inert', '');
+  await expect(page.locator('.workbench-shell')).toHaveAttribute('inert', '');
   await expect(page.getByRole('button', { name: `Support ${RENAME_MAP.displayName} — $49.99` })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Restore support' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Not now' })).toBeVisible();

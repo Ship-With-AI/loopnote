@@ -353,7 +353,7 @@ test('generated CLI opens immutable pinned session', async ({ browser, page }, t
 
     await proveLoadingTransition(page, url);
     await expect(page.getByRole('img', { name: RENAME_MAP.displayName })).toBeVisible();
-    await expect(page.locator('.session-header').getByRole('heading', { level: 1 })).toHaveCount(0);
+    await expect(page.locator('.titlebar').getByRole('heading', { level: 1 })).toHaveCount(0);
     await expect(page.locator('.session-header__comparison')).toContainText(
       `BASEBase fixture · ${expectedBase.slice(0, 7)}→HEADHead fixture · ${expectedHead.slice(0, 7)}`,
     );
@@ -802,9 +802,7 @@ test('complete packaged Phase 1 ordering matrix', async ({ browser }, testInfo) 
         await laterRow.click();
         await expect(laterRow).toHaveAttribute('aria-selected', 'true');
         await expect(
-          page.getByRole('main', {
-            name: laterFile.newPath?.display ?? laterFile.oldPath?.display ?? '',
-          }),
+          page.locator(`#${RENAME_MAP.cssPrefix}heading`),
         ).toContainText(laterFile.newPath?.display ?? laterFile.oldPath?.display ?? '');
 
 
@@ -859,7 +857,7 @@ test('identity session and empty states', async ({ browser, context, page }, tes
       origin: new URL(url).origin,
     });
     await proveLoadingTransition(page, url);
-    await expect(page.locator('.session-header').getByRole('heading', { level: 1 })).toHaveCount(0);
+    await expect(page.locator('.titlebar').getByRole('heading', { level: 1 })).toHaveCount(0);
     await expect(page.locator('.session-header__comparison')).toContainText(
       `BASEBase fixture · ${expectedBase.slice(0, 7)}→HEADHead fixture · ${expectedHead.slice(0, 7)}`,
     );
@@ -1000,8 +998,8 @@ test('identity session and empty states', async ({ browser, context, page }, tes
     ).toBeVisible();
     await expect(emptyPage.getByRole('alert')).toHaveCount(0);
     await expect(emptyPage.getByText('Opening pinned comparison…')).toHaveCount(0);
-    await expect(emptyPage.locator('.review-main > .empty-state')).toHaveCSS('background-color', toRootRgb('--surface-panel'));
-    await expect(emptyPage.locator('.review-main > .empty-state')).toHaveCSS('box-shadow', 'none');
+    await expect(emptyPage.locator('.workbench-shell__editor > .empty-state')).toHaveCSS('background-color', toRootRgb('--surface-panel'));
+    await expect(emptyPage.locator('.workbench-shell__editor > .empty-state')).toHaveCSS('box-shadow', 'none');
   } finally {
     await stopGeneratedCli(emptyRunning);
     await emptyRepository.cleanup();
@@ -1194,7 +1192,7 @@ test('availability states', async ({ browser, context, page }, testInfo) => {
     await expect(page.getByRole('status')).toHaveText('Opening local draft…');
     sessionGate.resolve();
 
-    const workspace = page.getByRole('main', { name: '00-src/new\\nname.ts' });
+    const workspace = page.locator('.workbench-shell__editor');
     const heading = workspace.getByRole('heading', { level: 1 });
     await expect(heading).toHaveText('old\\tname.ts→new\\nname.ts');
     await expect(heading).toHaveAccessibleName('renamed from 00-src/old\\tname.ts to 00-src/new\\nname.ts');
@@ -1217,7 +1215,7 @@ test('availability states', async ({ browser, context, page }, testInfo) => {
     ] as const;
     for (const [fileId, path, reason] of unavailableFiles) {
       await selectFile(fileId);
-      const unavailable = page.getByRole('main', { name: path });
+      const unavailable = page.locator('.workbench-shell__editor');
       await expect(unavailable.getByRole('heading', { level: 2 })).toHaveText(
         'Diff unavailable for this file',
       );
@@ -1225,7 +1223,7 @@ test('availability states', async ({ browser, context, page }, testInfo) => {
     }
 
     await expect(page.locator('.monaco-editor, iframe, [aria-label*="editor" i]')).toHaveCount(0);
-    await expect(page.locator('main.review-main').locator('input, textarea, select')).toHaveCount(0);
+    await expect(page.locator('.workbench-shell__main').locator('input, textarea, select')).toHaveCount(0);
     await expect(page.getByText(repository.root, { exact: false })).toHaveCount(0);
     expect(requestEvidence).toHaveLength(1);
     expect(requestEvidence[0]).toMatchObject({ method: 'GET', postData: null });
