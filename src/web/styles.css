@@ -130,6 +130,12 @@
   --dialog-width: min(560px, calc(100% - 24px));
   --dialog-max-height: 85dvh;
   --sidebar-width: 264px;
+  --sidebar-width-default: 264px;
+  --sidebar-width-max: 520px;
+  --sidebar-width-min: 170px;
+  --panel-height-default: 240px;
+  --panel-height-max: 520px;
+  --panel-height-min: 120px;
   --file-row-min-height: 22px;
   --titlebar-height: 32px;
   --statusbar-height: 22px;
