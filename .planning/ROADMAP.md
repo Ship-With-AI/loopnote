@@ -46,7 +46,6 @@ the shell.
 - [ ] **Phase 24: Bottom Panel & Export** - Comments/Summary/Export live in the ⌘J bottom panel, including the agent-attached Finish action behind the export readiness gate.
 - [ ] **Phase 25: Accessibility, Design Docs & Regression Sweep** - A toolbar role/name audit closes DEBT-01, every popover/menu/live-region is keyboard-accessible, the full suite passes with same-phase locator updates, and `DESIGN.md` describes the shipped workbench.
 
-
 <details>
 <summary>✅ v2.0 Artifact Review (Phases 13–18) — SHIPPED 2026-11-04</summary>
 
@@ -75,7 +74,19 @@ Full details: [`milestones/v2.0-ROADMAP.md`](./milestones/v2.0-ROADMAP.md).
   2. CI fails the build when `typecheck:web` reports a type error, proven by deliberately introducing a bad prop type and confirming the gate fails rather than passing trivially.
   3. The Node/CLI side still builds through the fast native `tsc` with unchanged output.
 
-**Plans**: TBD
+**Plans**: 0/4 plans executed
+**Wave 1**
+
+- [ ] 19-01-PLAN.md
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 19-02-PLAN.md
+- [ ] 19-03-PLAN.md
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 19-04-PLAN.md
 
 ### Phase 20: Shell Frame
 
@@ -171,7 +182,6 @@ Full details: [`milestones/v2.0-ROADMAP.md`](./milestones/v2.0-ROADMAP.md).
 **Plans**: TBD
 **UI hint**: yes
 
-
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -183,7 +193,7 @@ Full details: [`milestones/v2.0-ROADMAP.md`](./milestones/v2.0-ROADMAP.md).
 | 17. Agent Protocol Extension & Marketplace Skill | v2.0 | 5/5 | Complete | 2026-10-31 |
 | 17.1. Full Project Rename | v2.0 | 23/23 | Complete | 2026-11-02 |
 | 18. Product Repositioning Copy | v2.0 | 5/5 | Complete | 2026-11-02 |
-| 19. Typecheck Foundation | v2.1 | 0/TBD | Not started | - |
+| 19. Typecheck Foundation | v2.1 | 0/4 | Planned    |  |
 | 20. Shell Frame | v2.1 | 0/TBD | Not started | - |
 | 21. Changed-Files Tree | v2.1 | 0/TBD | Not started | - |
 | 22. Identity & Status Bar | v2.1 | 0/TBD | Not started | - |
