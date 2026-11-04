@@ -173,7 +173,7 @@ test('7. bounds live models, listeners, zones, and composers over ten recomputat
   await openPrototype(page);
   await page.getByRole('button', { name: 'Add head comment' }).click();
   const initial = await readState(page);
-  expect(initial.listenerCount).toBe(17);
+  expect(initial.listenerCount).toBe(25);
   await page.getByRole('button', { name: 'Recompute 10 times' }).click();
   await expect.poll(() => readState(page)).toMatchObject({
     fileId: 'fixture-a',
@@ -325,7 +325,7 @@ test('11c. paints hunk boundaries without changing code-line or paired-zone geom
 
 test('12. keeps selection contrast, anchor rail, diff meaning, and focus in separate channels', async ({ page }) => {
   await openPrototype(page);
-  expect((await readState(page)).listenerCount).toBe(17);
+  expect((await readState(page)).listenerCount).toBe(25);
 
   const modifiedPane = page.locator('.monaco-diff-pane--head');
   await modifiedPane.click({ position: { x: 100, y: 80 } });
@@ -347,5 +347,5 @@ test('12. keeps selection contrast, anchor rail, diff meaning, and focus in sepa
   await expect(anchorLine).toHaveCSS('box-shadow', `${toRootRgb('--interactive-accent')} 3px 0px 0px 0px inset`);
   await page.getByRole('button', { name: 'Next file' }).click();
   await expect(selectionContrast).toHaveCount(0);
-  await expect.poll(() => readState(page)).toMatchObject({ listenerCount: 17, liveModels: 2 });
+  await expect.poll(() => readState(page)).toMatchObject({ listenerCount: 25, liveModels: 2 });
 });

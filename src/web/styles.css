@@ -1401,6 +1401,12 @@ input:-webkit-autofill:focus {
   max-width: none;
 }
 
+.workbench-shell__sidebar > .file-tree-pane {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+}
+
 
 .review-main {
   display: grid;
