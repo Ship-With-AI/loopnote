@@ -107,6 +107,7 @@ Architecture not yet mapped. Follow existing patterns found in the codebase.
 ## Project Skills
 
 - **Spike findings for Loopnote** (implementation patterns, constraints, gotchas) → `Skill("spike-findings-loopnote")`
+- **Sketch findings for Loopnote** (design decisions, CSS patterns, visual direction) → `Skill("sketch-findings-loopnote")`
 <!-- GSD:skills-end -->
 
 <!-- GSD:workflow-start source:GSD defaults -->
