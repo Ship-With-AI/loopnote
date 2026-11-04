@@ -4,17 +4,16 @@ milestone: v2.1
 milestone_name: Workbench Redesign
 current_phase: 20
 current_phase_name: Shell Frame
-status: executing
-stopped_at: Completed 20-03-PLAN.md
-last_updated: "2026-11-04T19:57:30.487Z"
+stopped_at: Completed 20-04-PLAN.md
+last_updated: "2026-11-04T20:40:00.000Z"
 last_activity: 2026-11-04
-last_activity_desc: Phase 19 complete, transitioned to Phase 20
+last_activity_desc: Completed 20-04-PLAN.md (EditorTitle.vue + Breadcrumbs.vue)
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 14
-  completed_plans: 7
-  percent: 14
+  completed_plans: 8
+  percent: 57
 ---
 
 # Project State
@@ -29,9 +28,9 @@ See: .planning/PROJECT.md (updated 2026-11-04)
 ## Current Position
 
 Phase: 20 — Shell Frame
-Plan: 3 of 10
-Status: Ready to execute
-Last activity: 2026-11-04 — Phase 19 complete, transitioned to Phase 20
+Plan: 4 of 10
+Status: Executing
+Last activity: 2026-11-04 — Completed 20-04-PLAN.md (EditorTitle.vue + Breadcrumbs.vue)
 
 ## Performance Metrics
 
@@ -111,6 +110,7 @@ Last activity: 2026-11-04 — Phase 19 complete, transitioned to Phase 20
 | Phase 20-shell-frame P01 | 7min | 1 tasks | 2 files |
 | Phase 20 P02 | 25 min | 2 tasks | 3 files |
 | Phase 20 P03 | 35min | 3 tasks | 5 files |
+| Phase 20 P04 | 40min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -224,6 +224,8 @@ Decisions are logged in PROJECT.md Key Decisions.
 - [Phase 20]: 20-02: NAV-01/NAV-03 left Pending in REQUIREMENTS.md despite plan frontmatter listing them — Plan's own success_criteria states App.vue integration (20-07) and icon UI (20-04) still owe further work before the requirement is user-observable; 20-04/20-07/20-09 also list these IDs and are the correct plans to flip them complete
 - [Phase ?]: StatusBar's Export-item emphasis aliases directly to --interactive-accent-emphasis instead of a new --statusbar-emphasis-bg token — UI-SPEC Color section forbids new hex/color tokens this phase; the existing accent-emphasis token already satisfies the one-allowed-accent rule
 - [Phase ?]: Registered only the 5 TOK-01 tokens with a real consumer in 20-03 (titlebar/statusbar height, control-height-icon, font/line-height-chrome), deferring the remaining UI-SPEC new-token rows to 20-04..20-06 — verify-semantic-css.mjs fails on any canonical token without a var(...) consumer; pairing token registration with its first real consumer avoids inventing throwaway consumers
+- [Phase 20]: 20-04: Corrected the plan's inverted diff-split/diff-inline aria-pressed binding (plan prose said `!renderSideBySide`/`renderSideBySide` respectively) to `renderSideBySide`/`!renderSideBySide` respectively — matches Monaco's own renderSideBySide:true=side-by-side semantics (DiffWorkspace.vue/diff-adapter.ts) and UI-SPEC's Icon Inventory table (`aria-pressed = !inline`/`inline`)
+- [Phase 20]: 20-04: NAV-01/NAV-02 left Pending in REQUIREMENTS.md despite plan frontmatter listing them, following the 20-02 precedent — EditorTitle.vue/Breadcrumbs.vue are unwired until 20-07's App.vue integration makes them user-observable
 
 ### Pending Todos
 
