@@ -101,7 +101,17 @@ Full details: [`milestones/v2.0-ROADMAP.md`](./milestones/v2.0-ROADMAP.md).
   4. A packaged-binary e2e check passes for each of the five session kinds — committed branch/worktree, exact patch, Staged/Unstaged/Working tree, standalone, and agent-attached — proving the new shell kept every current capability per kind.
   5. No viewport width from 1050 to 1920px produces page-level horizontal scroll (only the diff canvas scrolls horizontally), and Loopnote's own F7/⇧F7 (change) and ⌥↓/⌥↑ (file) shortcuts fire both inside and outside the diff editor while Monaco's native Diff Review Pane and Move-Line bindings stay suppressed inside it; reviewer still sees the explanation for unsupported/unavailable/changed-during-capture files beneath the editor title.
 
-**Plans**: TBD
+**Plans:** 8 plans
+
+Plans:
+- [ ] 20-01-PLAN.md — `model/panel-state.ts`: clamped localStorage persistence for side-bar width/visibility and panel height (TDD)
+- [ ] 20-02-PLAN.md — Monaco `addAction` overrides for F7/⇧F7/⌥↑/⌥↓ on all three editor instances, plus a runtime `setRenderSideBySide` adapter method
+- [ ] 20-03-PLAN.md — Token root migration + `TitleBar.vue` + `StatusBar.vue`
+- [ ] 20-04-PLAN.md — `EditorTitle.vue` (folds ReviewToolbar/ActiveFileToolbar) + `Breadcrumbs.vue`
+- [ ] 20-05-PLAN.md — `useSash.ts` composable + `WorkbenchShell.vue` grid host (both sashes, Teleport host relocation)
+- [ ] 20-06-PLAN.md — `BottomPanel.vue` (un-wraps ReviewNotesDialog) + review-notes-dialog.spec.ts rewrite
+- [ ] 20-07-PLAN.md — `App.vue` integration: wires every new component, deletes superseded ones, rewrites handleKeydown, fixes all broken locators
+- [ ] 20-08-PLAN.md — packaged-binary shell smoke spec, one case per session kind (SHELL-05)
 **UI hint**: yes
 
 ### Phase 21: Changed-Files Tree
