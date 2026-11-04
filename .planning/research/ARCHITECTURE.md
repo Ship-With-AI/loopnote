@@ -1,308 +1,306 @@
 # Architecture Research
 
-**Domain:** Local-first CLI+browser review tool (Node/TypeScript/Fastify/Vue/Monaco) — extending committed-only Git review to uncommitted sources and standalone files
-**Researched:** 2026-10-30
-**Confidence:** HIGH (all claims grounded in current repo source, file:line evidence below)
+**Domain:** Browser-based local review workspace (Vue 3 + Vite + Monaco), VS Code-inspired workbench redesign
+**Researched:** 2026-11-04
+**Confidence:** HIGH — based on direct reading of `src/web/**`, `src/contracts/**`, `src/server/routes.ts`, `src/draft/mutate-draft.ts`, `scripts/css-token-contract.mjs`, `scripts/verify-semantic-css.mjs`, the four sketch-findings reference docs, and live `npm view` checks against the registry for `typescript`/`vue-tsc`/`typescript-native-bridge`.
 
 ## Standard Architecture
 
-### System Overview (current, v1.6)
+### System Overview
+
+Loopnote's browser workspace is a single Vue 3 SPA (`src/web/main.ts` → `App.vue`) served by the local Fastify API. `App.vue` is a 1,468-line orchestration root: it owns every piece of session/draft/UI state and threads it down through ~15 presentational components. There is no router, no store library (Pinia/Vuex) — state lives in `ref`/`shallowRef`/`computed` inside `App.vue`, plus two hand-rolled state machines (`workspace-state.ts`, `review-draft-state.ts`) that return `{ state, commands }` transitions consumed by an imperative `runCommands()` dispatcher.
 
 ```
-┌──────────────────────────────────────────────────────────────────────┐
-│  CLI (Commander)                    src/cli/run.ts                   │
-│  ┌────────────┐  ┌────────────────┐  ┌───────────────────────────┐   │
-│  │ picker.ts  │  │ request.ts     │  │ run.ts: runOrdinaryAction  │   │
-│  │ (interactive│  │ (stdin V1 agent│  │ launchAttachedSession      │   │
-│  │ base/head) │  │ request parse) │  │ launchExactPatchSession    │   │
-│  └─────┬──────┘  └───────┬────────┘  └──────────────┬──────────────┘  │
-├────────┴─────────────────┴───────────────────────────┴────────────────┤
-│  Git adapter (native CLI via spawn)      src/git/*.ts                 │
-│  runner.ts · repository.ts · candidates.ts · comparison.ts            │
-│  inventory.ts · objects.ts · availability.ts · exact-patch.ts         │
-│  selector-drift.ts · ignore-status.ts                                 │
-├──────────────────────────────────────────────────────────────────────┤
-│  Server (Fastify, 127.0.0.1)              src/server/*.ts             │
-│  app.ts: createSessionApp | createExactPatchSessionApp                │
-│  capabilities.ts (session/files/anchors/export/finish)                │
-│  draft-store.ts · draft-loader.ts · patch-snapshot.ts                 │
-│  attached-completion.ts · routes.ts                                   │
-├──────────────────────────────────────────────────────────────────────┤
-│  Contracts (Zod, shared)                  src/contracts/*.ts          │
-│  comparison.ts · draft.ts (V1/V2/V3 export) · request.ts · api.ts     │
-├──────────────────────────────────────────────────────────────────────┤
-│  Browser UI (Vue 3 + Vite + Monaco)        src/web/**                 │
-│  model/workspace-state.ts · model/draft-reconciliation.ts             │
-│  monaco/diff-adapter.ts (always side-by-side) · model/file-tree.ts    │
-│  model/markdown-preview.ts (renderer exists, unwired to UI toggle)    │
-└──────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────┐
+│ App.vue (orchestration root — session, draft, dialog, warning-stack state)│
+├───────────────┬───────────────────────────────┬───────────────────────────┤
+│ IdentityHeader│ review-shell                   │ ChangedFilesDialog         │
+│ (→ delete,    │ ┌───────────┬─────────────────┤ (Teleport host; narrow-   │
+│  replaced by  │ │#changed-  │ review-main      │  viewport only in v2.1)  │
+│  title bar)   │ │files div  │ ReviewToolbar +  │                           │
+│               │ │(Teleport  │ ActiveFileToolbar│ ReviewNotesDialog         │
+│               │ │ target)   │ DiffWorkspace    │ (→ delete, replaced by   │
+│               │ └───────────┘  └─ Monaco diff  │  BottomPanel tabs)        │
+│               │                  └─ CommentComposer (single active zone)  │
+├───────────────┴───────────────────────────────┴───────────────────────────┤
+│ ShellFooter (→ delete, no replacement — status bar absorbs its role)      │
+└──────────────────────────────────────────────────────────────────────────┘
+          ↓                              ↓                         ↓
+  model/workspace-state.ts      model/review-draft-state.ts   api/client.ts
+  (per-file composer/anchor     (summary/comment buffers,     (SessionClient:
+   focus, command emission)      export lifecycle, revision    typed fetch
+                                  conflict handling)            wrapper over
+          ↓                              ↓                      /api/* routes)
+  monaco/diff-adapter.ts                                              ↓
+  (single active-anchor view                                  src/server/routes.ts
+   zone pair per file)                                        src/draft/mutate-draft.ts
 ```
 
-### Component Responsibilities
+Target workbench frame (`workbench-shell.md`, sketch 001 S2 / 002 A):
 
-| Component | Responsibility | Current Implementation |
-|-----------|----------------|------------------------|
-| Source picker | Lets user choose ordered base/head from branches + worktrees | `src/domain/source.ts` (`SourceCandidate` = `BranchCandidate \| WorktreeCandidate`), `src/git/candidates.ts` (`discoverSourceCandidates`), `src/cli/picker.ts` (`pickOrderedSources`) |
-| Comparison/session model | Resolves selections to a frozen, committed-objects-only comparison | `src/git/comparison.ts` `createPinnedComparison` — resolves `base`/`head` to commit OIDs (`resolveCommit`), computes the single merge base, freezes result (`PinnedComparisonSchema`) |
-| Git adapter | Native Git CLI as source of truth for all repo facts | `src/git/runner.ts` (spawn wrapper), `src/git/repository.ts` (`discoverGitRepository`), `src/git/objects.ts` (`createObjectReader`, `git cat-file --batch`), `src/git/raw-diff.ts`/`numstat.ts` |
-| File inventory / opaque IDs | Converts `git diff --raw`+`--numstat` into `ChangedFile[]` with stable-per-session capability IDs | `src/git/inventory.ts` `createChangedFileInventory` — `opaqueFileId()` hashes diff-record identity against a per-process random namespace (`processFileIdNamespace`), producing `file_<43 base64url chars>` |
-| Exact-patch snapshot (v1.3) | Freezes agent-submitted patch preimage/postimage bytes outside live Git | `src/git/exact-patch.ts` `createGroundedExactPatch` (parses patch, computes synthetic blob OIDs via `blobOid()` without writing Git objects), `src/server/patch-snapshot.ts` `PatchSnapshot`/`materializePatchSnapshot` — on-disk manifest + per-file content files, each verified by sha256, with `observe()`/`targetDrift()` polling live Git/worktree for drift (fail-closed, no silent anchor movement) |
-| DiffWorkspace/Monaco adapter | Owns the Monaco diff editor instance and all diff-derived cues | `src/web/monaco/diff-adapter.ts` `PublicMonacoDiffAdapter` — constructs one `monaco.editor.createDiffEditor` with `renderSideBySide: true` hardcoded (line ~136); `setFile()` swaps `original`/`modified` models |
-| Anchors | Durable, immutable per-comment identity independent of line movement | `src/domain/anchor.ts` `buildDurableAnchor`/`verifyDurableAnchor` — hash of `(path bytes, side, blobOid, line, context lines)`; requires a real blob OID per side |
-| Draft persistence | Repository-local versioned JSON, keyed by comparison identity | `src/server/draft-store.ts`, `src/server/draft-loader.ts` `draftPaths()` — file name is `exact-patch ? reviewKey : range?.reviewKey ?? comparisonKey(base,head)`, stored at `.cumpa/drafts/<key>.json` |
-| Export | Canonical JSON (V1/V2/V3) + derived Markdown | `src/export/review-export.ts` `buildReviewExportV1/V2/V3`, schemas in `src/contracts/draft.ts:279-444` |
-| stdin agent protocol | Strict versioned JSON request on stdin, two modes today | `src/contracts/request.ts` `AgentReviewRequestSchema` = discriminated union on `mode`: `'revisions' \| 'patch'`; `src/cli/request.ts` `readAgentReviewRequest` |
-| Attached Finish | Server-authoritative, one-shot delivery of canonical result to the waiting agent | `src/server/attached-completion.ts` `AttachedCompletionCoordinator` (generic operation callback, comparison-agnostic); wired per-mode inside `src/server/capabilities.ts:398-463` |
+```
+┌ title bar 32px ─ brand ── [identity pill ▾] ──────── ⟳ ▯ ▭ ┐
+├ side bar 264 ┬ editor title 35px: name M +N −N  ◧◨ ⇆ ───── ┤
+│ CHANGED      │ breadcrumbs 24px: src › server › file.ts    │
+│ FILES tree   │ diff (Base | Head), inline thread zones     │
+│ (22px rows)  ├──────────────────────────────────────────── │
+│              │ bottom panel (closed while reading):        │
+│              │   COMMENTS · SUMMARY · EXPORT                │
+├ status bar 22px: 🔒 sha  💬 open/stale  👁 viewed  ⇪ Export ┤
+└──────────────────────────────────────────────────────────────┘
+```
 
-## Recommended Integration Approach for v2.0
+The redesign is a **restyle-and-recompose of the shell**, not a rewrite of the app. The state machines, the API client, the draft model, and the Monaco diff core stay. What moves is: (1) where chrome lives (title bar / side bar / bottom panel / status bar instead of header band / toolbar rows / modal dialogs / footer), and (2) how comments render inside Monaco (many expanded-by-default zones instead of one active zone).
 
-v2.0 does **not** replace any existing subsystem — it adds a **third and fourth provenance kind** alongside `range` (committed revisions) and `exact-patch` (v1.3), reusing every mechanism that is already provenance-agnostic (anchors, draft store, attached completion, Monaco adapter plumbing) and extending every mechanism that is currently hardwired to "committed Git objects only."
+### Component Responsibilities — Disposition Table
 
-### Integration Points (existing code, with evidence)
+| Existing component | Lines | Disposition | Target component(s) | Notes |
+|---|---|---|---|---|
+| `App.vue` | 1468 | **Decompose** | `App.vue` (shell composition + session bootstrap only) + new `WorkbenchShell.vue` layout host | Keep all state refs/computeds and the `workspace`/`reviewState` controllers in `App.vue` (or extract to a composable, see Patterns). Move the giant `<template>` tree into a `WorkbenchShell.vue` that lays out title bar / side bar / editor / bottom panel / status bar as `<slot>`-based regions, so App.vue stops being simultaneously "state owner" and "1000-line template." |
+| `IdentityHeader.vue` | 200 | **Replace** | `TitleBar.vue` + `IdentityPill.vue` + `IdentityPopover.vue` | `workbench-shell.md` explicitly rejects "a tall identity header band (current `IdentityHeader.vue`, ~78px)" as a losing sketch variant. Base/Head label logic (lines 29–83: exact-patch / standalone / uncommitted / pinned branches), `dirtyEndpoints`, `attachedFact`, Refresh button and Support button all carry over as *logic* into the new components; the 78px full-width band markup does not. |
+| `ReviewToolbar.vue` | 74 | **Replace** | `EditorTitle.vue` toolbar section | Previous/next-file and previous/next-change groups keep their click handlers and disabled-state logic; the labelled `<span class="review-toolbar__label">File</span>`/`Change` text groups become icon-only buttons with `title`/`aria-label` per `tokens-and-density.md`: *"Text-labelled toolbar buttons in editor title… Use icons + tooltips and shortcuts instead."* This directly closes DEBT-01 (toolbar groups reachable by role and name) if each icon button keeps a distinct accessible name. |
+| `ActiveFileToolbar.vue` | 129 | **Replace** | `EditorTitle.vue` (name/status/counts) + `Breadcrumbs.vue` | `effectivePath`/`layoutLabel`/`standaloneStateLabel`/`counts` computed logic carries over. The "Hide files"/"Show files" text button becomes the title-bar ⌘B toggle (moves out of this component entirely); Source/Rendered toggle becomes icon buttons (◧◨); breadcrumb segments (`src › server › file.ts`) are new — no current component renders path-segment breadcrumbs, `PathDisplay.vue`/`PathText.vue` only render a basename or full path string. |
+| `ShellFooter.vue` | 20 | **Delete** | *(status bar absorbs "local/pinned" + "draft stays local" facts, or they move into the identity popover footer)* | `workbench-shell.md`: *"No footer copy… leave persistent chrome."* This component's two static strings have no 1:1 home; fold `localStatus` into the identity popover and drop `"Draft stays local · export is explicit"` or relocate it into the Export tab's existing helper line (`ExportSection.vue:149` already says almost the same thing). |
+| `FileTree.vue` | 231 | **Restyle** | `ChangedFilesTree.vue` (same file, new template/CSS) | **Keep.** All keyboard nav (`handleKeydown`, `ArrowUp/Down/Left/Right/Home/End/Enter/Space`), filter-prune-not-rebuild (`updateQuery`/`model.setQuery`), roving tabindex (`tabbableRowId`), and selection-restore-on-file-change logic is reused as-is via `model/file-tree.ts`. Only the `<template>`/CSS (34px→22px rows, add M/A/D column, comment badges, hover-only counts, view-options menu, list⇄tree toggle) changes. |
+| `DirectoryRow.vue` | 97 | **Restyle** | `ChangedFilesTree.vue` internal row | Compact-folder chain collapsing ("`web/components`" single line) is new; `countDirectoryDescendants`/`directoryDescendantCounts` already exist in `model/file-tree.ts` and feed the existing `descendantCount` span — reuse, just restyle to the dimmed-dot/count convention in `changed-files-tree.md`. |
+| `FileRow.vue` | 89 | **Restyle** | `ChangedFilesTree.vue` internal row | `StatusBadge`/`PathDisplay` reused. New: file-type mark (`TS`/`V`/`#`/`M↓`/`IMG`), comment-open-count badge (needs a `fileId → openCommentCount` map threaded in as a prop — does not exist today, derive from `workspaceComments` similar to `comment-groups.ts`'s per-file grouping), `+N −N` hover/selected-only visibility (CSS `:hover`/`.selected` gating, counts already rendered unconditionally at `FileRow.vue:70-74`). |
+| `ChangedFilesDialog.vue` | 58 | **Keep (narrow only) / Restyle (default)** | `SideBar.vue` hosts `ChangedFilesTree` directly via the same `#changed-files` Teleport target for desktop; `ChangedFilesDialog` keeps its modal form only for the already-accepted-as-debt sub-1050px path. | The `v-show` (not `v-if`) comment at `App.vue:1321-1323` is load-bearing: Teleport resolves `#changed-files` once, so any `v-if` on the host strands the tree. Preserve this `Teleport defer` + stable-host-id pattern exactly when building `SideBar.vue`. |
+| `ReviewNotesDialog.vue` | 331 | **Replace** | `BottomPanel.vue` (Comments / Summary / Export tabs) | This is today's accidental "bottom panel" — a full-height `ModalDialog` that stacks `SummarySection`, an open/resolved count strip, `ExportSection`, and (for attached sessions) a Finish-review block, all in one scroll. v2.1 turns it into a non-modal, closable (⌘J) panel with three tabs instead of one scroll; `attachedLifecycle` state-machine branches (lines 194-315) and all `watch()`-driven focus management carry over verbatim, just re-homed outside `ModalDialog`. |
+| `SummarySection.vue` | — | **Keep** | `BottomPanel.vue` → Summary tab | No sketch changes to its save-indicator/debounce behavior beyond moving its host; `tokens-and-density.md` only asks for 11px uppercase panel-tab labels around it. |
+| `ExportSection.vue` + `ExportReadinessSummary.vue` + `DriftExportAcknowledgement.vue` + `ExportProgress.vue` + `ExportReceipt.vue` + `GitignoreStatus.vue` | — | **Keep** | `BottomPanel.vue` → Export tab | Entire export state machine (readiness → drift-gate → pending → exported/failed) and its 6 child components are reused unchanged; only the collapsible-`<section>` wrapper (`ExportSection.vue:83-180`, its own open/closed `<header>`) is redundant once a real tab exists and should be unwrapped. |
+| `DiffWorkspace.vue` | 525 | **Extend** | `DiffWorkspace.vue` (same file) + new `CommentThread.vue` | Keeps Monaco mount/layout/keyboard wiring. `renderAnnotation()` (lines 146-206) currently renders **one** view-zone body (either the accepted-comment card or the composer) for whatever `adapter.getActiveAnchor()` currently is. This must become "render one `CommentThread.vue` zone per commented line" — see Data Flow below. |
+| `CommentComposer.vue` | 102 | **Keep (as the add/reply input), wrap** | `CommentThread.vue`'s reply row for the "Open" case; standalone for new-comment case | Add/cancel/confirm-discard/confirm-move logic is unchanged; it becomes one state inside a thread widget that also renders prior comment(s), state chip, and resolve/reopen/delete actions. |
+| `comment-groups.ts` (`projectCommentGroups`) | 101 | **Keep** | `BottomPanel.vue` → Comments tab data source | Already groups comments by file + open/resolved, sorted by path then line (`groupsForState`, `orderComments`). This is exactly the Comments-tab-grouped-by-file structure in `comments-and-export.md`; no model change needed for the panel, only for inline zones (below). |
+| `IdentityHeader.vue` Support button / `SupportDialog.vue` | — | **Keep** | Unchanged modal, opened from title bar instead of header band | Support flow is explicitly out of scope for behavior changes; only its trigger button moves from the header band into the title bar's right-hand icon group. |
+| `ErrorState.vue`, `DraftRecovery.vue`, `InlineNotice.vue`, `SelectorDriftNotice.vue`, `StaleAnchorNotice.vue`, `RefreshSummaryPanel.vue` | — | **Keep** | Unchanged; warning-stack semantics preserved | These all sit inside the existing single `<section class="shell-warning-stack">` (App.vue:1278-1305), which is the one-live-region-owner pattern from v1.6. The workbench redesign does not touch this contract — drift/stale/capture/recovery notices keep their current positions above `review-shell`, independent of title-bar/status-bar additions for the same facts (the sketch deliberately keeps warning banners separate from the passive status-bar/pill cues). |
+| `ui/ModalDialog.vue`, `ui/UiIcon.vue`, `ui/PathText.vue`, `ui/ReviewStateBadge.vue`, `ui/UiPrimitives.vue` (`UiTooltip`) | — | **Keep** | Reused by every new component | `UiTooltip` already implements the hover/focus tooltip pattern `tokens-and-density.md` requires for every icon-only action ("Every icon button has `title`/accessible name includes shortcut"). |
 
-| # | Feature | Touches | Evidence | Why it must change |
-|---|---------|---------|----------|---------------------|
-| 1 | Single-pane full-width | `src/web/monaco/diff-adapter.ts` | `renderSideBySide: true` hardcoded in `PublicMonacoDiffAdapter` constructor (`diff-adapter.ts:123-139`); `setFile()` at `:199-229` always calls `setModel({ original, modified })` | Added/deleted files today render through the same diff editor as modified files, producing an empty gray pane on one side. There is no per-file-status branch anywhere in the adapter. |
-| 2 | Uncommitted sources as Head | `src/git/comparison.ts` `createPinnedComparison` (`:245-403`), `src/domain/source.ts`, `src/git/candidates.ts` `discoverSourceCandidates` | `comparison.ts:272-285` calls `resolveCommit()` for both base and head — there is no code path that compares against the index or worktree; `source.ts:8-38` has exactly two candidate kinds (`branch`, `worktree`), both resolve to a `commitOid` | PROJECT.md's own "Key Decisions" table: *"Resolve branches and worktrees to committed Git objects... exclude ambiguous dirty state"* — this is the decision v2.0 explicitly supersedes for worktree sources. The picker and comparison pipeline must gain a third selectable kind that does **not** resolve to a single commit OID. |
-| 3 | Frozen snapshot + Refresh | `src/server/patch-snapshot.ts` (pattern to reuse), `src/git/ignore-status.ts` (`check-ignore` CLI pattern), `src/web/model/draft-reconciliation.ts` | `patch-snapshot.ts:309-533` `PatchSnapshot` class already implements "materialize once, observe drift later, never silently relocate" for exact patches; `draft-reconciliation.ts:37-57` already implements stale/orphaned reclassification by re-indexing `SessionFile[]` against recorded anchors on every session load | The exact mechanics needed for "freeze at session start, Refresh re-observes" already exist for exact-patch review; v2.0 needs the equivalent for live index/worktree bytes, **plus** a new explicit mutation (`refresh`) that the exact-patch flow never needed (exact-patch sessions are immutable for their whole lifetime; worktree sessions are refreshed on demand). |
-| 4 | Standalone file review | `src/cli/run.ts` Commander wiring (`:754-769`), `src/domain/file-tree.ts`, `src/git/availability.ts` | `run.ts:754-769` — the `Command()` takes **zero** arguments/options today, `.action()` always calls `runOrdinaryAction` which always calls the picker; `availability.ts:50-124` classifies text/binary/oversized from `(mode, blobOid)` pairs read via `ObjectReader`, which assumes Git-object-backed content | CLI needs a `[paths...]` argument that bypasses the picker entirely; file classification logic (`classifyAvailability`) is reusable but needs a sibling entry point that reads worktree bytes directly rather than via blob OID, since standalone files are not necessarily tracked. |
-| 5 | Markdown preview toggle | `src/web/model/markdown-preview.ts` (renderer exists), `src/web/model/workspace-command.ts`, `src/web/model/workspace-state.ts` | `markdown-preview.ts:1-19` is a complete, safe (`validateLink`, no raw HTML) Markdown-to-HTML renderer that is **not referenced anywhere else in `src/web/`** (no `WorkspaceCommand` variant, no state field) — confirmed by its isolation from `workspace-command.ts:3-15`'s closed command union | The rendering engine is done; only the toggle state, the `WorkspaceCommand` plumbing, and a UI pane that overlays/replaces the Monaco pane while preserving line anchors are missing. |
-| 6 | Agent stdin protocol extension | `src/contracts/request.ts`, `src/cli/request.ts`, `src/cli/run.ts` `launchAttachedSession`/`launchExactPatchSession` (`:431-538`) | `request.ts:62-87` `AgentReviewRequestSchema` is a closed `discriminatedUnion('mode', [RevisionRequestSchema, ExactPatchRequestSchema])` | Two new `mode` branches needed (`'uncommitted'`, `'files'`), each routed to a new attached-session launcher mirroring `launchAttachedSession`/`launchExactPatchSession`. |
-| 7 | Draft/export identity for new sources | `src/domain/comparison-key.ts`, `src/server/draft-loader.ts` `draftPaths()` (`:96-106`), `src/contracts/draft.ts` `DraftComparisonSchema` (`:61-94`) | `draftPaths()` already branches on `'reviewKey' in comparison` vs `range?.reviewKey ?? comparisonKey(...)` — a clean extension point; `DraftComparisonSchema` is `z.union([PinnedDraftComparisonSchema, ExactPatchDraftComparisonSchema])` | New source kinds need their own review-key derivation (parallel to `rangeReviewKey()` in `comparison-key.ts:26-39`) and a third/fourth `DraftComparisonSchema` union member, otherwise drafts for uncommitted/standalone sessions have no persistence key. |
-| 8 | Export provenance | `src/contracts/draft.ts` `ReviewExportV1/V2/V3Schema` (`:279-444`), `src/export/review-export.ts` `buildReviewExportV1/V2/V3` | V1 carries `comparison` (committed endpoints); V2 adds `range` (CLI revision-request provenance); V3 replaces `comparison`+`drift` with `patch` (exact-patch provenance) — each version is a **strict superset test** of V1 via `superRefine` (`draft.ts:376-390`, `:418-442`) | Uncommitted and standalone-file exports need their own provenance shape (no stable `mergeBaseOid`/commit identity for worktree sources; no diff endpoints at all for standalone files) — this is a new `ReviewExportV4Schema` (uncommitted) and plausibly `V5` (standalone), each following the same "retains valid V1 feedback" superset pattern. |
-| 9 | Anchor identity for non-Git-object bytes | `src/domain/anchor.ts` `buildDurableAnchor` (`:115-151`), `src/git/objects.ts` `ObjectReader` (`:24-27`) | `buildDurableAnchor` requires a `blobOid`; `ObjectReader.read(oid, ...)` reads **by OID** via `git cat-file --batch`, which only resolves objects already in the object database | Staged content *is* blob-backed (`git add` writes objects), so `git diff --cached --raw` yields real OIDs readable via the existing `ObjectReader`. Unstaged and untracked content is **not** object-backed — anchors for those sides need a synthetic blob OID computed the same way `src/git/exact-patch.ts`'s `blobOid()` (`:427-429`, `createHash(format).update('blob <len>\0').update(bytes)`) already computes them for exact-patch preimages/postimages, reading bytes via `fs.readFile` instead of `git cat-file`. |
-| 10 | `.gitignore`-respecting untracked listing | `src/git/ignore-status.ts` | `inspectCumpaIgnore` (`:26-39`) already shells out to `git check-ignore --no-index --quiet` for a single, unrelated purpose (protecting `.cumpa/`) | The actual mechanism needed for "untracked files respecting `.gitignore`" is `git ls-files --others --exclude-standard`, a **different** native-Git call that already does the filtering — no new ignore-matching logic needs to be written, but it is a new call site, not a reuse of `ignore-status.ts` itself. |
+New components with no existing counterpart: `TitleBar.vue`, `IdentityPill.vue`, `IdentityPopover.vue`, `SideBar.vue` (resizable-sash host), `Breadcrumbs.vue`, `BottomPanel.vue` (tab host), `StatusBar.vue`, `CommentThread.vue` (zone widget), `ViewOptionsMenu.vue` (tree `⋯` menu).
 
-### New vs Modified Components
+## Recommended Project Structure
 
-**New components (do not exist today):**
+```
+src/web/
+├── App.vue                      # session bootstrap + state ownership only (shrinks from ~1470 → target ~500-700 lines)
+├── components/
+│   ├── workbench/                # NEW — shell chrome, replaces header/toolbar/footer
+│   │   ├── TitleBar.vue
+│   │   ├── IdentityPill.vue
+│   │   ├── IdentityPopover.vue
+│   │   ├── SideBar.vue
+│   │   ├── Breadcrumbs.vue
+│   │   ├── EditorTitle.vue       # replaces ReviewToolbar.vue + ActiveFileToolbar.vue
+│   │   ├── BottomPanel.vue       # tab host: Comments / Summary / Export
+│   │   ├── StatusBar.vue
+│   │   └── ViewOptionsMenu.vue
+│   ├── ChangedFilesTree.vue      # renamed/restyled FileTree.vue (keep file-tree.ts model as-is)
+│   ├── DirectoryRow.vue          # restyled in place
+│   ├── FileRow.vue               # restyled in place
+│   ├── DiffWorkspace.vue         # extended: multi-zone thread rendering
+│   ├── CommentThread.vue         # NEW — replaces the single-anchor card in DiffWorkspace
+│   ├── CommentComposer.vue       # unchanged, used inside CommentThread.vue
+│   ├── SummarySection.vue        # unchanged, rehosted under BottomPanel
+│   ├── ExportSection.vue         # unchanged (minus its own collapsible header), rehosted
+│   └── ui/                       # unchanged primitives
+├── model/
+│   ├── workspace-state.ts        # extend: per-file *set* of visible threads, not one active anchor
+│   ├── review-draft-state.ts     # unchanged (already carries resolve/reopen/delete pending ops)
+│   ├── comment-groups.ts         # unchanged (Comments-tab projection)
+│   ├── file-tree.ts              # unchanged (tree/keyboard/filter model)
+│   └── panel-state.ts            # NEW — bottom-panel open/closed + active tab (⌘J, status-bar triggers)
+├── monaco/
+│   └── diff-adapter.ts           # extend: Map<anchorKey, zone> per editor instead of one zone pair
+└── styles.css                    # :root gains workbench geometry tokens (see Token Architecture)
+```
 
-| Component | Location (suggested) | Purpose |
-|-----------|----------------------|---------|
-| Uncommitted source inventory | `src/git/worktree-inventory.ts` | Builds `ChangedFile[]`-shaped records for Staged (`git diff --cached --raw/--numstat` against chosen base), Unstaged (`git diff --raw/--numstat`, index→worktree), and Working tree incl. untracked (`git diff` HEAD/base→worktree for tracked, `git ls-files --others --exclude-standard` for untracked, unioned). Computes synthetic blob OIDs for non-indexed bytes via the `blobOid()` pattern from `git/exact-patch.ts`. |
-| Standalone file resolver | `src/git/standalone-files.ts` | Resolves CLI-supplied paths/globs (tracked or not) to single-sided `ChangedFile`-shaped records, reusing `git/availability.ts` classification logic against worktree bytes read directly. |
-| Worktree snapshot | `src/server/worktree-snapshot.ts` | Mirrors `PatchSnapshot` (`server/patch-snapshot.ts`): materializes frozen index/worktree/untracked bytes into a private on-disk manifest at session start; adds an explicit `refresh()` method (new — `PatchSnapshot` has no mutator, only `observe()`) that re-reads live state, updates the manifest, and reports per-file added/removed/changed deltas for comment reclassification. |
-| Uncommitted/standalone session app factories | `src/server/app.ts`: `createUncommittedSessionApp`, `createStandaloneFilesSessionApp` | Parallel to `createSessionApp`/`createExactPatchSessionApp` (`app.ts:133-184`); wire the new snapshot + a new/generalized capability registry. |
-| Uncommitted/standalone capability registries | `src/server/capabilities.ts`: `createUncommittedCapabilityRegistry`, `createStandaloneFilesCapabilityRegistry` (or a generalized registry parameterized over a `files()/readContent()/refresh?()` snapshot interface) | Parallel to `createCapabilityRegistry`/`createExactPatchCapabilityRegistry` (`capabilities.ts:297-879`); exposes a `refresh` capability only these registries have. |
-| `/api/refresh` route | `src/server/routes.ts` | New endpoint, registered only when `capabilities.refresh !== undefined`, following the existing `if (capabilities.patchStatus !== undefined)` conditional-registration pattern (`routes.ts:197`). |
-| Uncommitted/standalone review-key derivation | `src/domain/comparison-key.ts` | New functions parallel to `rangeReviewKey()` (`:26-39`), e.g. `uncommittedReviewKey(sourceKind, baseOid, repositoryRoot)` and `standaloneFilesReviewKey(paths)`, feeding `draftPaths()`. |
-| New contract schemas | `src/contracts/comparison.ts`, `src/contracts/draft.ts`, `src/contracts/request.ts` | `UncommittedScopeSchema` (kind: `'uncommitted'`, `sourceKind: 'staged'\|'unstaged'\|'worktree'`, `baseOid`, `reviewKey`), `StandaloneFilesScopeSchema` (kind: `'standalone-files'`, resolved paths, `reviewKey`); new `DraftComparisonSchema` union members; `ReviewExportV4Schema` (uncommitted provenance) and `ReviewExportV5Schema` (standalone-file provenance), each superset-tested against V1 like V2/V3 are today (`draft.ts:376-390`, `:418-442`); two new `mode` branches on `AgentReviewRequestSchema` (`request.ts:62-87`). |
-| Monaco single-pane adapter mode | `src/web/monaco/diff-adapter.ts` (new method/mode) or a sibling `src/web/monaco/single-pane-adapter.ts` | Renders one full-width read-only Monaco model for added/deleted/standalone files instead of the diff editor; anchors collapse to one side only (no `ILineChange` derivation needed, since there is no "other side"). |
-| Markdown preview pane + toggle | `src/web/model/workspace-command.ts` (new command variant), `src/web/model/workspace-state.ts` (toggle field), new Vue component | Wires the existing `renderMarkdownPreview()` (`markdown-preview.ts:17-19`) into the UI; comment creation continues to anchor to source lines regardless of which pane is visible. |
+### Structure Rationale
 
-**Modified components (existing, need changes):**
+- **`components/workbench/`** isolates every brand-new shell-chrome component from the diff/tree/panel components that already exist and are only being restyled — this makes the "restyle vs. replace" boundary from the disposition table visible in the file tree itself, and keeps `App.vue`'s import list legible during the transition.
+- **`model/panel-state.ts`** is new because today's dialog-open state (`shellDialog: 'changed-files' | 'review-notes' | 'support'`, `App.vue:78-96`) conflates "which modal is open" with what becomes "which bottom-panel tab is active, and is it open at all" — a different shape (persistent open/closed + tab selection, not a transient modal). Keeping it a separate tiny model file (mirroring the existing `selector-drift-state.ts`/`review-draft-state.ts` convention of one state machine per concern) avoids re-bloating `App.vue`.
+- **`monaco/diff-adapter.ts` stays one file.** It is already 1,044 lines and the single largest model/adapter file; the zone-management rework (see below) is additive to its existing `PublicMonacoDiffAdapter` class, not a new file, because zone lifecycle must stay co-located with `rebuildAnchoredLayout`/`removeZones`/model disposal to avoid leaking `IViewZone`s across file switches (the existing `stateByFileId` save/restore pattern at `setFile()` must extend to multi-zone state the same way).
 
-| Component | Change |
-|-----------|--------|
-| `src/domain/source.ts` | Add a third `SourceCandidate` variant (e.g. `UncommittedCandidate` with `sourceKind: 'staged'\|'unstaged'\|'worktree'`), distinct from `BranchCandidate`/`WorktreeCandidate` since it has no `commitOid`. |
-| `src/git/candidates.ts` `discoverSourceCandidates` | Emit the three fixed uncommitted entries unconditionally (no Git call needed — they always exist for any worktree) alongside discovered branches/worktrees. |
-| `src/cli/picker.ts` | Render the three new entries as selectable Head choices (`buildSourceSearchItems`, `candidateItem`); Base selection is unaffected (still branch/worktree/HEAD). |
-| `src/git/comparison.ts` | `createPinnedComparison`/`PinnedComparisonSchema`'s all-committed assumption stays correct for the *base* side; a new function (not a modification of `createPinnedComparison` itself, to avoid widening its committed-only contract) builds the uncommitted comparison using the new inventory module. |
-| `src/web/monaco/diff-adapter.ts` | `setFile()` and the constructor need a branch on `file`'s status kind (added/deleted/standalone ⇒ single-pane; modified/renamed/copied/type-changed ⇒ existing diff editor). |
-| `src/contracts/comparison.ts` `ChangedFileStatusKindSchema` | Needs a value for standalone (non-diff) files — current enum (`'added'\|'copied'\|'deleted'\|'modified'\|'renamed'\|'type-changed'\|'unsupported'`) has no "this file is not part of a comparison" kind. |
-| `src/cli/run.ts` | Commander gains a `[paths...]` argument; `runOrdinaryAction` branches to the standalone-file path before invoking the picker when arguments are present; `launchAttachedSession`/`launchExactPatchSession` get siblings for the two new stdin modes. |
-| `src/server/draft-loader.ts` `draftPaths()` | New `DraftComparison` branches for uncommitted/standalone keys, alongside the existing `'reviewKey' in comparison` / `range?.reviewKey` branches. |
-| `src/web/model/draft-reconciliation.ts` | Reused as-is for stale/orphaned classification (feature 3 explicitly states anchors are never relocated — this module's existing "exact path, present or not" logic is correct for Refresh too), but is **invoked from a new trigger**: today it only runs on session load; Refresh must re-run it against the updated `session.files` after a snapshot refresh. |
-| `src/server/capabilities.ts` `attachedCompletion.finish` (`:398-463`) | Its `comparison.range === undefined` guard (`:406`) currently rejects Finish for anything that isn't a range comparison; the equivalent guard for uncommitted/standalone Finish needs its own scope-validity check (there is no `range` object for these sources). |
-| README / CLI `--help` / marketplace skill `SKILL.md` | Product repositioning copy (feature 7) — no code dependency on the rest of the milestone, can land independently. |
+## Architectural Patterns
 
-## Patterns to Follow
+### Pattern 1: Multi-zone Monaco thread rendering (the core v2.1 adapter change)
 
-### Pattern 1: Provenance-parallel session app factories
+**What:** Today, `PublicMonacoDiffAdapter` tracks exactly one `activeComposer: ActiveComposer | undefined` and one paired `originalZone`/`modifiedZone` (`diff-adapter.ts:111,115-116`). `rebuildAnchoredLayout()` (`diff-adapter.ts:547-591`) removes all zones and creates at most one new pair, on the line of whichever anchor is currently "active" (clicked, via `activateAnchor`) or being revealed (`setActiveAnchor`/`revealAnchor`). `DiffWorkspace.vue`'s `renderAnnotation()` then mounts either an `inline-accepted-comment` card or a `CommentComposer` into that single zone's DOM node (`DiffWorkspace.vue:146-206`), found via `host.value?.querySelector('.monaco-anchor-zone--composer')` — a single, unkeyed selector, because there is only ever one such zone.
 
-**What:** Every distinct review-source kind gets its own `create*SessionApp()` in `src/server/app.ts` and its own `create*CapabilityRegistry()` in `src/server/capabilities.ts`, all sharing the generic `registerSessionRoutes`, `AttachedCompletionCoordinator`, `draft-store`, and anchor-verification machinery.
-**When to use:** Any time a new "what am I comparing/reviewing" concept is added.
-**Trade-offs:** Duplicates some wiring glue (as V3/exact-patch already duplicates V1/V2's session-building boilerplate), but keeps each provenance's invariants (committed-only vs frozen-snapshot vs live-worktree) explicit and independently testable rather than smuggled behind conditionals in one giant function.
+v2.1 requires every comment-bearing line to show an **expanded-by-default thread** simultaneously (Open/Resolved/Anchor-moved), not just the one the user last clicked. That needs:
+- `originalZone`/`modifiedZone` singular fields → `Map<string, { id: string; zone: IViewZone }>` per editor, keyed by `${side}:${line}` (or the comment's anchor `uniqueKey`).
+- `rebuildAnchoredLayout()` → iterate every distinct anchor with comments (plus the one active composer anchor, if different) and create a paired zone per anchor, each independently height-grown via a keyed variant of `growPairedZones`/`setAnchorZoneHeight` (currently unkeyed, single-pair — `diff-adapter.ts:375-377,631-639`).
+- `counterpartBoundary`-based pairing (already used to keep Base/Head zones line-aligned for one anchor, `diff-adapter.ts:570-575`) must run per-anchor, since each thread's Base line and Head line can differ independently.
+- `DiffWorkspace.vue`'s single `.monaco-anchor-zone--composer` query becomes a `querySelectorAll` keyed by `data-anchor-key`, rendering one `CommentThread.vue` (or `CommentComposer.vue` for the live-composer anchor) per zone via Vue's `render()`/`h()` — the existing manual-mount-into-view-zone-DOM technique (`render(h(...), zone)`) is reused per zone, just looped.
+- **Collapse-all** (session-scoped, per `comments-and-export.md`) is a thin UI toggle on top of this: a `collapsedThreadKeys: Set<string>` that the per-zone render consults before mounting, defaulting empty.
 
-**Example (existing pattern to extend):**
+**When:** This is required for Feature 3 regardless of any other sequencing choice — it's the only way to satisfy "expanded by default" + "cross-file thread navigation" (⌥F9/⇧⌥F9) at once, because cross-file navigation needs every thread's zone and DOM node to exist ahead of the user navigating to it, not materialize-on-click as today.
+
+**Trade-off:** More zones per file costs layout work on every `onDidUpdateDiff`/resize; the existing single-zone path is proven cheap. Mitigate by only materializing zones for files that are currently active (one file is ever mounted in Monaco at a time already, per `DiffWorkspace.vue`'s `setFile` lifecycle) — so the ceiling is "number of comments in the currently open file," which the product's own 10,000-ref/400-file performance gates (v1.2) suggest is small in practice, not file-count-wide.
+
+**Example (shape of the change, not literal code):**
 ```typescript
-// src/server/app.ts — existing dual pattern
-export function createSessionApp(comparison: PinnedComparison, options): SessionApp { /* range path */ }
-export async function createExactPatchSessionApp(grounded: GroundedExactPatch, options): Promise<SessionApp> { /* v1.3 path */ }
-// v2.0 adds:
-export async function createUncommittedSessionApp(scope: UncommittedScope, options): Promise<SessionApp> { /* new */ }
-export async function createStandaloneFilesSessionApp(scope: StandaloneFilesScope, options): Promise<SessionApp> { /* new */ }
+// diff-adapter.ts — today (single anchor)
+private activeComposer: ActiveComposer | undefined;
+private originalZone: { id: string; zone: monaco.editor.IViewZone } | undefined;
+private modifiedZone: { id: string; zone: monaco.editor.IViewZone } | undefined;
+
+// diff-adapter.ts — v2.1 shape (per-thread anchors + one live composer)
+private activeComposer: ActiveComposer | undefined; // unchanged: the one being typed into
+private threadZones = new Map<string, { original?: ZoneRef; modified?: ZoneRef }>(); // keyed by anchor
 ```
 
-### Pattern 2: Freeze-then-observe snapshot, never silently relocate
+### Pattern 2: Token geometry pipeline (source of truth → generated CSS → Monaco theme → verifier)
 
-**What:** `PatchSnapshot` materializes bytes once, verifies integrity on every read (`verifiedManifest()`, per-file sha256 in `readSide()`), and reports drift via `observe()` without ever moving an anchor.
-**When to use:** Any review surface backed by content that can change out from under the session (worktree, index, untracked files all qualify).
-**Trade-offs:** Requires disk space and an explicit cleanup (`dispose()`) path; in exchange, review state is reproducible and anchors stay drift-detectable instead of silently re-pointing at different bytes.
+**What:** `src/web/styles.css`'s `:root` block is the single canonical token source (2,704-line file; `:root` is lines 1-160). It feeds three independent consumers through one pipeline:
+1. **CSS itself** — every other selector in `styles.css` and every `.vue` `<style>` block must reference `var(--token-name)`, never a literal color (enforced by `assertAuthorStyle`/`assertDirectColorConfinement` in `scripts/verify-semantic-css.mjs`).
+2. **Monaco theme** (`src/web/monaco/theme.ts`) and **adapter sizing** (`src/web/monaco/diff-adapter.ts:76-81`, e.g. `CODE_FONT_SIZE`, `CODE_LINE_HEIGHT`) — these import `TOKEN_ROOT_CSS` from the Vite **virtual module** `virtual:loopnote-tokens` (declared in `src/web/theme/virtual-tokens.d.ts`, produced at build/dev time by `scripts/token-root-plugin.mjs`, wired in `vite.config.ts:6,11`), parse it with `parseTokenRoot()`/`resolveToken()`/`toMonacoHex()` (`src/web/theme/token-contract.ts`), and convert to Monaco's hex/rgb option shapes.
+3. **The verifier** (`scripts/verify-semantic-css.mjs`, run by `npm run verify:semantic-css`) — asserts the **exact** set of custom properties in `styles.css :root` matches `CANONICAL_TOKENS`, a hard-coded array in `scripts/css-token-contract.mjs` (currently ~115 entries), that every token value matches an allowed shape (hex or `rgb(R G B / A%)`), that every canonical token is referenced at least once outside the root (`assertDeclaredTokensConsumed`), and that no component file authors a literal color.
 
-**Example:**
-```typescript
-// server/patch-snapshot.ts:493-511 — reusable shape for the new worktree-snapshot.ts
-async observe(): Promise<'unchanged' | 'drifted' | 'snapshotUnavailable'> {
-  if (this.unavailable) return 'snapshotUnavailable';
-  const manifest = await this.verifiedManifest();
-  if (!this.drifted) this.drifted = await this.targetDrift(manifest);
-  return this.drifted ? 'drifted' : 'unchanged';
-}
-// v2.0's worktree-snapshot.ts needs the mutating counterpart PatchSnapshot never required:
-// async refresh(): Promise<{ added: string[]; removed: string[]; changed: string[] }>
-```
+**New workbench geometry tokens** (per `tokens-and-density.md`: `--sidebar-w`, row-height `22px`, `--tree-indent: 12px`, `--radius-control: 4px`, `--radius-file-row: 0`, `--radius-overlay: 6px`, `--control-height-compact: 22px`/`26px`, `--line-height-code: 20px`, `--font-size-body: 13px` for chrome, plus new titlebar/statusbar/panel-tab height and uppercase-label tokens) must be added at **four** coordinated points, in this order, or `verify:semantic-css` fails:
+1. `src/web/styles.css :root` — add/rename the custom property.
+2. `scripts/css-token-contract.mjs` `CANONICAL_TOKENS` — add the exact same name (the array is the allowlist; anything in `:root` not in this array fails `assertTokenRoot`'s exact-match check).
+3. At least one consuming declaration outside `:root` — a component's CSS, a `.vue` `<style>` block, or `monaco/theme.ts`/`diff-adapter.ts` (`assertDeclaredTokensConsumed` fails on any declared-but-unused token).
+4. If the token drives Monaco sizing (font/line-height) or a Monaco color, `diff-adapter.ts`/`theme.ts` must read it via `resolveToken`/`toMonacoHex`, not hardcode the geometry — this is how Monaco currently stays byte-identical to the CSS root (`tokens-and-density.md`: "Colors stay canonical… Do not add component-local hex values").
 
-### Pattern 3: Synthetic blob OIDs for non-object-backed bytes
+Several current tokens are **renamed, not just retuned** by the redesign (`--file-row-min-height` 34→22px, `--sidebar-width` 294→264px-with-resize-range, `--tree-indent` 20→12px, `--radius-control` 6→4px, `--radius-file-row` 5→0, `--radius-overlay` 10→6px, `--control-height-compact` 30→22/26px, `--line-height-code` 26→20px, `--font-size-body` 14→13px for chrome only — code stays 13px). Renaming (vs. just changing the value) matters because the old names are checked by `assertNoLegacy()`'s retired-vocabulary list in the verifier; if the team instead wants to retarget the *existing* token names to new values (simpler migration, no renames), that is a valid alternative but loses the "±value changed, not meaning changed" signal the verifier's `--sidebar-width` consumers (styles.css itself, and any `.vue` that reads it) would otherwise get for free. Either choice is a roadmap-phase decision; the fixed invariant is that `--file-row-min-height`/`--sidebar-width`/`--tree-indent`/`--radius-*`/`--control-height-compact`/`--line-height-code`/`--font-size-body` are consumed by both CSS and (for the code-affecting ones) `diff-adapter.ts`'s density/size constants, so a change to any of them is felt in Monaco immediately, with no separate Monaco-side edit required.
 
-**What:** Compute a Git-compatible blob OID (`blob <len>\0<bytes>` hashed with the repo's object format) without writing to `.git/objects`, so anchor/export identity stays uniform whether content came from the object database or raw worktree bytes.
-**When to use:** Any ChangedFile-shaped record whose bytes are not already in the Git object database (unstaged, untracked, standalone-file sides).
-**Trade-offs:** None functionally — it's the same hash Git itself would produce if the content were staged; it just avoids mutating the repository to obtain an identity.
+**Monaco theme tokens unaffected:** `theme.ts`'s syntax/diff/status color tokens (`--syntax-*`, `--diff-*`, `--status-*`) are untouched by the geometry pass — "colour roles… unchanged" per the milestone goal — only `theme.ts`'s few *size* reads in `diff-adapter.ts` (font/line-height) move with the geometry tokens.
 
-**Example:**
-```typescript
-// git/exact-patch.ts:427-429 — already exists, reusable as-is
-function blobOid(bytes: Buffer, format: 'sha1' | 'sha256'): string {
-  return createHash(format).update(`blob ${bytes.length}\0`, 'ascii').update(bytes).digest('hex');
-}
-```
+### Pattern 3: Single-live-region warning stack (keep, do not duplicate)
 
-### Pattern 4: Provenance-tagged export versions, each a strict superset of V1
+**What:** `App.vue:1278-1305` wraps every transient notice (patch drift, selector drift, stale anchors, capture-changed banner, recovery offer, refresh summary) in one `<section class="shell-warning-stack">` that is the sole owner of assistive announcements for these events (a v1.6 contract: "every warning class sits behind a single live-region owner"). The new title-bar drift cue (pill border turns warning color) and status-bar comment counts are **visual echoes** of state that already has its single announcement owner here — they must not become a second live region for the same event. `workbench-shell.md` itself notes this tension: *"Drift does not… raise toast"* at the pill level, and the refresh toast fires from the existing `announce()` plumbing (`App.vue:333-336`, `performRefresh()`).
 
-**What:** Every new export schema version keeps the full V1 feedback shape (`summary`, `files`, `counts`, comment verification) and adds one new provenance object; a `superRefine` round-trips the document back through a lower schema to prove nothing was lost.
-**When to use:** Any new review-source kind that needs its own provenance metadata in the canonical export.
-**Trade-offs:** Schema duplication (each version repeats `files`/`counts`/`summary`) in exchange for every version being independently parseable without migration logic — a downstream agent can `switch` on `schemaVersion` and know exactly what's guaranteed.
+**When:** Any new title-bar/status-bar element that mirrors drift/stale/refresh state must read the same computed flags (`patchDrifted`, `hasUnverifiedAnchors`, `selectorDriftStatus`, `worktreeChanged`) already in `App.vue` and stay presentation-only; it must not call `announce()` itself.
 
 ## Data Flow
 
-### Current data flow (committed comparison)
+### Comment thread lifecycle (draft → zones → mutation → reconciliation)
 
 ```
-pickOrderedSources() → ComparisonSelection (base, head)
-    ↓
-createPinnedComparison() → resolveCommit(base) + resolveCommit(head) → merge-base (single, exact)
-    ↓
-createChangedFileInventory() → git diff --raw/--numstat(mergeBase..head) → ChangedFile[] (opaque file_ ids)
-    ↓
-createSessionApp(comparison) → createCapabilityRegistry() → SessionResponse (files, mergeBaseOid, ...)
-    ↓
-Browser: GET /api/session → workspace-state.ts → Monaco diff-adapter (always side-by-side)
-    ↓
-addComment → draftStore.mutate() → .cumpa/drafts/<comparisonKey>.json (atomic replace)
-    ↓
-exportReview() → buildReviewExportV1/V2 → .cumpa/exports/<key>/{review.json, review.md}
+user clicks gutter "+chip" or an existing thread's reply box
+            ↓
+DiffWorkspace.vue emits 'activate'(side, line[, endLine])
+            ↓
+App.vue dispatchWorkspace({ type: 'activate-line' | 'activate-focused-line', side, line, endLine })
+            ↓
+model/workspace-state.ts activateLine() → WorkspaceTransition { state, commands }
+  - state.files[fileId].composer = { side, line, endLine, text: '', status: 'ready' }
+            ↓
+App.vue runCommands() interprets 'persist-comment' command (emitted on save/⌘Enter, not on activate)
+            ↓
+sessionClient.mutate({ type: 'addComment', expectedRevision, fileId, side, line, endLine, body })
+            ↓ (api/client.ts createSessionClient().mutate)
+POST /api/draft/mutate  →  src/server/routes.ts (generic mutation route, ~line 388-452)
+            ↓
+src/draft/mutate-draft.ts: addComment case
+  - rejects with { kind: 'invalidTarget' } if an existing comment already has the SAME anchor.uniqueKey  ← see note below
+  - otherwise appends comment, bumps revision, re-validates against ReviewDraftV1Schema (src/contracts/draft.ts)
+            ↓
+200/201 DraftMutationResult { kind: 'accepted', draft } | { kind: 'revisionConflict', latest } | ...
+            ↓
+App.vue mutateReview().then(): acceptReviewDraft(result.draft, ...)
+  - reviewState.accept(...)              → review-draft-state.ts canonical snapshot
+  - workspace.replaceComments(...)       → workspace-state.ts reconciles WorkspaceComment[] into per-file state
+            ↓
+workspaceState (shallowRef) changes → DiffWorkspace.vue's `comments` prop changes
+            ↓
+diff-adapter.ts rebuildAnchoredLayout() (v2.1: loops all comment anchors, not just the active one)
+            ↓
+one Monaco view-zone pair per anchor; DiffWorkspace.vue mounts a CommentThread.vue (or CommentComposer.vue
+for the live composer) into each zone's DOM node via Vue's render(h(...), zoneDom)
 ```
 
-### New data flow (uncommitted source, v2.0)
+Resolve/reopen/delete follow the identical `mutateReview()` → `POST /api/draft/mutate` → `acceptReviewDraft()` path with `{ type: 'resolveComment' | 'reopenComment' | 'deleteComment', commentId }` — **this path already exists and is fully wired** in `App.vue` (`mutationOperation()`/`mutationFailure()`, `App.vue:544-560`) and in `review-draft-state.ts` (`ReviewPendingOperation` already includes `'resolve' | 'reopen' | 'delete'`, line 18) and in the server (`DraftMutationRequestSchema` discriminated union, `src/contracts/api.ts:47-72`, and `routes.ts`'s single generic `/api/draft/mutate` handler routes all five mutation types through the same `capabilities.draftStore.mutate()` call). **Nothing server-side or in the state machines needs to change to restore resolve/reopen/delete** — quick task `260915-jbv` removed only the UI (the `ReviewToolbar`/comment-rail markup that called these), not the underlying capability. The v2.1 work here is purely: give `CommentThread.vue` resolve/reopen/delete buttons that call the already-existing `mutateReview()` function with the already-existing request shapes.
 
-```
-Picker: Staged | Unstaged | Working tree (incl. untracked) chosen as Head, any branch/worktree as Base
-    ↓
-worktree-inventory.ts:
-  staged   → git diff --cached --raw/--numstat (base..index)      [real blob OIDs]
-  unstaged → git diff --raw/--numstat (index..worktree)           [index OID + synthetic worktree OID]
-  worktree → git diff --raw/--numstat (base..worktree, tracked)
-             + git ls-files --others --exclude-standard (untracked, .gitignore-respecting)
-             [synthetic blob OIDs via blobOid() for all non-indexed bytes]
-    ↓
-worktree-snapshot.ts: materialize frozen copy of index/worktree/untracked bytes NOW (session start)
-    ↓
-createUncommittedSessionApp(scope, snapshot) → createUncommittedCapabilityRegistry()
-    ↓
-Browser renders from the FROZEN snapshot, not live Git — identical to exact-patch session semantics
-    ↓
-Explicit Refresh action → POST /api/refresh
-    ↓
-snapshot.refresh(): re-read live index/worktree/untracked bytes → diff manifest vs previous
-    ↓
-session.files updated → draft-reconciliation.ts re-run against new files → comments reclassified
-    stale (path still exists, content/line moved) / orphaned (path gone) — anchors themselves NEVER rewritten
-    ↓
-Finish / exportReview() → buildReviewExportV4 (new "uncommitted" provenance: sourceKind, baseOid, snapshot status)
-```
+**"Reply" is the one genuinely new primitive, and it needs a data-model decision before implementation, not just UI work:**
 
-### New data flow (standalone file review, v2.0)
+- `src/contracts/draft.ts` validates `ReviewDraftV1Schema` with a hard constraint: *"Comments must have unique anchors"* (lines 175-179) — a `superRefine` that rejects two comments sharing one `anchor.uniqueKey`.
+- `src/draft/mutate-draft.ts`'s `addComment` case enforces the same rule defensively before even reaching schema validation (lines 22-25): a second `addComment` at a line that already has a comment returns `{ kind: 'invalidTarget' }`.
+- `model/workspace-state.ts`'s `canonicalComment()` (lines 121-131) and `DiffWorkspace.vue`'s `currentComment()` (lines 121-127) both assume **at most one** verified comment per `(fileId, side, line)` and use `.find()` (first match).
 
-```
-cumpa src/foo.ts src/bar/*.md   (CLI paths/globs, no picker)
-    ↓
-standalone-files.ts: resolve globs against worktree → read bytes directly (tracked or not)
-    ↓
-classifyAvailability()-equivalent against raw bytes (no ObjectReader / blob OID needed up front)
-    ↓
-createStandaloneFilesSessionApp(scope) — single-pane only, no base side at all
-    ↓
-Browser: file tree + single-pane Monaco (or Markdown preview toggle for .md files) + commenting
-    ↓
-exportReview() → buildReviewExportV5 (new "standalone-files" provenance: resolved paths, no diff identity)
-```
+The sketch (`comments-and-export.md`: *"Open threads get one-row reply textarea; ⌘Enter saves"*, HTML shows `<textarea class="reply-input">` under a single `cmt-text`/`cmt-meta` pair) depicts a literal second message appended to the same thread — which today's schema forbids outright. This is not a UI gap like resolve/reopen/delete; it is a **schema-level invariant that blocks the sketched behavior**. Before Feature 3's "reply" sub-feature can be planned as an implementation task, the team needs one explicit decision, because the current one-comment-per-anchor invariant is load-bearing for export/anchor-drift machinery elsewhere (durable anchors, stale/orphaned classification) and should not be loosened blindly:
+- **Option A — relax uniqueness, add ordering.** Drop the anchor-uniqueness `superRefine`, let `addComment` append additional comments at an existing anchor, and give `WorkspaceComment`/`ReviewCommentProjection` an explicit ordering field (e.g. `createdAt` is already present and sortable) so a thread renders its comments chronologically. `comment-groups.ts`'s per-file/per-state grouping already tolerates multiple comments; only the anchor-uniqueness check and the "first match" assumptions in `workspace-state.ts`/`DiffWorkspace.vue` need to change to "all matches, sorted."
+- **Option B — single comment, richer body.** Treat "reply" as literally appending text to the existing comment's `body` (an edit via the already-wired `editComment` mutation) rather than a second comment entity. This needs zero schema change but diverges from the sketch's two-speaker-turn visual (`You · 4 min ago` repeated per reply) and loses per-reply timestamps/authorship.
+- Either way, this touches `ReviewDraftV1Schema` (if Option A) — a schema version bump is the kind of change that should get its own roadmap phase with migration tests (the project already has precedent: `src/contracts/draft.ts`'s versioned schema and the existing schema-version-mismatch `DraftLoadResponse` states `malformed`/`schemaInvalid`/`newerUnsupported` exist specifically to handle this kind of change safely).
 
-### Key Data Flow Changes vs v1.6
+## Token Architecture — gates summary
 
-1. **Snapshot capture of index/worktree/untracked bytes:** net-new. v1.6 never reads index or worktree bytes — `createPinnedComparison` only ever resolves to commit OIDs (`comparison.ts:272-285`). v2.0's uncommitted sessions read three distinct Git states (`git diff --cached`, `git diff`, `git ls-files --others --exclude-standard`) and freeze the result into a private snapshot directory (new, modeled on `patch-snapshot.ts`), exactly once per session start.
-2. **Refresh semantics:** net-new capability. Nothing in v1.6 mutates a frozen comparison after session start — `PatchSnapshot` only *observes* drift (`observe()`), it never updates itself. v2.0 needs an explicit, user-triggered mutation that re-snapshots and feeds the result back into `session.files`, which the browser already knows how to reconcile against existing comments (`draft-reconciliation.ts`), but which the server has never driven mid-session before.
-3. **New provenance kinds in export schema:** `ReviewExportV1`'s `comparison` (committed endpoints + mergeBase), V2's `range` (CLI revision-request), and V3's `patch` (exact-patch digest/validationTarget) are joined by V4's uncommitted scope (`sourceKind`, `baseOid`, snapshot status — no `mergeBaseOid` exists for an index/worktree comparison) and V5's standalone-files scope (resolved paths only — no comparison identity at all, since there is no second side).
+`npm run verify:semantic-css` (= `npm run build:web && node scripts/verify-semantic-css.mjs`) is the single gate for every CSS/token change in this milestone. It will fail the build, not just warn, on any of:
+- `:root` custom properties not exactly matching `CANONICAL_TOKENS` (`scripts/css-token-contract.mjs`) — add new geometry tokens here in lockstep with `styles.css`.
+- A canonical token declared in `:root` but never referenced elsewhere (`assertDeclaredTokensConsumed`) — every new token needs at least one consumer before merge.
+- A literal hex/`rgb()` color anywhere outside `:root` (`assertDirectColorConfinement`, with a narrow `forced-colors` media-query and shadow-token allowlist) — new workbench chrome CSS must use `var(--token)` exclusively, consistent with existing practice.
+- Retired/legacy token vocabulary reappearing (`assertNoLegacy`) — if the team renames tokens (recommended above) rather than retuning values in place, old names must be fully removed, not left as aliases.
+- `.vue` `<style>` blocks violating the same author-style rules (`assertVueStyleBlocks`, currently only checked against the two Monaco prototype files explicitly, but `assertAuthorStyle` itself scans the full generated CSS output, which includes all compiled `.vue` styles) — new components' scoped styles are covered automatically once built.
 
-## Scaling Considerations
+## Test Impact
 
-| Scale | Architecture Adjustments |
-|-------|--------------------------|
-| Typical repo, few uncommitted files | No adjustment — `worktree-inventory.ts` reuses the same bounded `git diff --raw/--numstat` calls as today; `git ls-files --others --exclude-standard` is a single native call. |
-| Large untracked tree (e.g. `node_modules` not gitignored) | `git ls-files --others --exclude-standard` already returns nothing for gitignored trees; an **unignored** large untracked tree is a real risk — the standalone-file/untracked inventory should apply the same bounded-count/bounded-size ceilings `patch-snapshot.ts` already enforces (`MAX_SNAPSHOT_FILES = 10_000`, `MAX_SNAPSHOT_BYTES = 64 MiB`, `MAX_SIDE_BYTES = 2 MiB` per file) rather than inventing new limits. |
-| 10,000-ref repositories (already gated, v1.2) | Unaffected — uncommitted-source discovery adds three static picker entries, not a Git enumeration; the existing packed-ref performance budget (`ROADMAP.md` Phase 11) is untouched. |
+Grouping by functional area, with spec-file counts and relative size (lines) as a proxy for how much pinned DOM/selector/copy the redesign will touch. "Touches" = the area the test exercises changes shape (selectors, element hierarchy, or visible copy) under the v2.1 plan above.
 
-### Scaling Priorities
+| Area | Files | Approx. size | Why it's affected |
+|---|---|---|---|
+| **Shell chrome (header/toolbar/footer → title bar/side bar/status bar)** | `tests/e2e/pinned-session.spec.ts`, `tests/e2e/responsive-session.spec.ts`, `tests/e2e/file-tree.spec.ts`, `tests/e2e/anchored-review.spec.ts` | 1380 + 1401 + 691 + 478 lines | These assert on `IdentityHeader`/`ReviewToolbar`/`ActiveFileToolbar`/`ShellFooter` markup, labels, and the `#changed-files` sidebar toggle flow — all replaced components. `responsive-session.spec.ts` is the largest single file and the most exposed, since it exercises breakpoint behavior that the milestone explicitly narrows to "desktop only, below 1050px may regress (debt)." |
+| **Changed-files tree** | `tests/e2e/file-tree.spec.ts`, `tests/unit/file-tree.test.ts` | 691 + large unit suite | `tests/unit/file-tree.test.ts` exercises `model/file-tree.ts` (kept as-is — low risk) while `tests/e2e/file-tree.spec.ts` exercises the rendered 34px-row DOM, counts-always-visible assumptions, and row class names that the Explorer-density restyle changes directly. |
+| **Comment lifecycle (compose/accept/resolve/reopen/delete/reply)** | `tests/integration/anchored-workspace.spec.ts`, `tests/integration/monaco-anchor.spec.ts`, `tests/e2e/anchored-review.spec.ts`, `tests/e2e/complete-review-draft.spec.ts`, `tests/unit/workspace-state.test.ts`, `tests/unit/monaco-diff-adapter.test.ts` | 1221 + 351 + 478 + 867 lines, plus unit suites | The largest-risk group. `monaco-anchor.spec.ts` and `monaco-diff-adapter.test.ts` assert the **single active-zone** behavior (one `.monaco-anchor-zone--composer`, `getDiagnostics().pairedZoneCount` capped at 1 per `diff-adapter.ts:385`/`AdapterDiagnostics`) that Pattern 1 above replaces with a multi-zone model — these are the tests most likely to need structural rewrites, not just selector updates, because the adapter's observable zone-count contract changes. `complete-review-draft.spec.ts` exercises the old single-scroll review-notes flow that becomes tabbed. |
+| **Review notes / bottom panel (summary, export, counts)** | `tests/e2e/review-notes-dialog.spec.ts`, `tests/integration/complete-review-panel.spec.ts`, `tests/integration/export-receipt-ui.spec.ts`, `tests/integration/draft-recovery-ui.spec.ts`, `tests/integration/agent-ready-export-states.spec.ts`, `tests/e2e/agent-ready-export.spec.ts`, `tests/e2e/agent-ready-export-safety.spec.ts` | 73 + 33 + 437 + 382 + 137 + 1193 + 270 lines | `ReviewNotesDialog` → `BottomPanel` is a container/host change; most of the inner `SummarySection`/`ExportSection` assertions should survive if those components' markup is reused verbatim inside the new tab host, but every test that asserts the dialog is `role="dialog"`/modal, or asserts open/close via the Review-notes button, needs updating for the non-modal ⌘J/status-bar-triggered panel. |
+| **Drift/stale notices** | `tests/integration/selector-drift-ui.spec.ts` | 517 lines | Low direct risk — Pattern 3 says these stay in the existing warning-stack section — but the new title-bar drift pill is an **additional** assertable surface these tests may want to extend to cover (pill border color / "Refresh 1b7e2aa" label), not just a surface that breaks. |
+| **Support dialog** | `tests/integration/support-dialog.spec.ts`, `tests/e2e/support-payment.spec.ts`, `tests/e2e/support-restore.spec.ts`, `tests/e2e/public-support-states.spec.ts` | 171 + 642 + 412 + 546 lines | Low risk — only the trigger button's host (header band → title bar) moves; the dialog itself, its `SupportDialog.vue` ref wiring (`App.vue` `supportDialog`/`identityHeader.value?.focusSupport()` focus-return target), needs its focus-return target updated to whatever hosts the new title-bar button. |
+| **Markdown preview, standalone/uncommitted session chrome, marketplace/package smoke** | `tests/e2e/rendered-markdown-preview.spec.ts`, `tests/e2e/rendered-markdown-security.spec.ts`, `tests/e2e/standalone-review.spec.ts`, `tests/e2e/uncommitted-review.spec.ts`, `tests/e2e/marketplace-review.spec.ts`, `tests/e2e/package-assets.spec.ts` | ~300+267+424+478+196+246 lines | Low-to-moderate — these mostly exercise behavior unaffected by the shell redesign (per scope: session kinds unchanged), but any test that locates the Source/Rendered toggle or the files-toggle button via today's text labels will need the new icon-button selectors. |
+| **Monaco theme / token contract (non-DOM)** | `tests/unit/monaco-theme.test.ts`, `tests/unit/token-contract.test.ts` | 3 + 10 tests | Needs new assertions for the added geometry tokens, not rewrites of existing ones (color tokens are untouched). |
 
-1. **First bottleneck:** An unignored, very large untracked directory inflating snapshot size/time. Mitigate by reusing `patch-snapshot.ts`'s existing byte/file ceilings and failing closed (same `PatchSnapshotError` pattern) rather than silently truncating.
-2. **Second bottleneck:** Refresh latency on large working trees (re-running `git diff` + `git ls-files` on every explicit Refresh). Bounded by user-triggered frequency (not automatic/polling per PROJECT.md), so no background-polling cost exists; no further mitigation needed at v2.0 scope.
+**Net read:** the two highest-cost groups to update are **Shell chrome** (large files, near-total selector/structure churn) and **Comment lifecycle** (the Monaco adapter's zone-count contract genuinely changes, not just its styling) — both should get dedicated UAT/verification passes in the roadmap rather than being swept into a generic "update snapshots" step.
+
+## Build Order (dependency-ordered phases)
+
+Each phase lists what it unblocks and what can be verified before moving on.
+
+1. **Typecheck foundation.** Resolve the TypeScript/vue-tsc pairing (target feature 7) *before* any `.vue` restructuring, so every subsequent phase gets type-checked as it's written instead of accumulating a second debt pile. Current state: `tsconfig.web.json` is a 7-file allowlist (`files: [...]`) that covers almost none of `src/web` — not just `.vue` files, but most of `src/web/**/*.ts` (App.vue's imports, `api/client.ts`, `model/workspace-state.ts`, `model/review-draft-state.ts`, `model/file-tree.ts`, every component) have **zero** compiler coverage today, and `vue-tsc` is an installed-but-unused devDependency (only referenced by `scripts/verify-prerequisites.mjs`'s version check, never invoked by any script). Confirmed live: `vue-tsc@3.3.7`/`3.3.14` cannot run against `typescript@7.0.2` (pinned exact in `package.json`) — `Error [ERR_PACKAGE_PATH_NOT_EXPORTED]: Package subpath './lib/tsc' is not defined` ([vuejs/language-tools#6121](https://github.com/vuejs/language-tools/discussions/6121), confirmed still broken as of [#6156](https://github.com/vuejs/language-tools/issues/6156), closed as "use `typescript-native-bridge` instead" since official TS7 plugin support needs TS 7.1). The maintainer-endorsed fix is aliasing the `typescript` package to [`typescript-native-bridge`](https://www.npmjs.com/package/typescript-native-bridge) (published `6.0.3-bridge.19.tsgo.7.0.2`, i.e. a TS6-API-compatible bridge over the real tsgo/TS7 checker) — `"typescript": "npm:typescript-native-bridge@^6.0.3-bridge"` — which keeps `tsc`/`tsserver` working for the Node build (`build:node`) while making `vue-tsc` functional again; bump `vue-tsc` to latest (`3.3.14`) at the same time. Then replace `tsconfig.web.json`'s `files` allowlist with a real `include: ["src/web/**/*.ts", "src/web/**/*.vue"]`, add a `typecheck:web` script that runs `vue-tsc --noEmit --project tsconfig.web.json` instead of plain `tsc`, and fix whatever the newly-covered 100+ files surface. *Verify:* `npm run typecheck:web` passes clean against the **current** (pre-redesign) component tree before any workbench component is written — this proves the tool pairing works independent of the redesign's own correctness.
+2. **Token architecture + `DESIGN.md` rewrite.** Add/rename geometry tokens in `styles.css :root` + `CANONICAL_TOKENS`, update `DESIGN.md` §Geometry/§Composition, add a first consumer for each new token (can be a no-op placeholder rule) so `verify:semantic-css` passes before any chrome component exists. *Verify:* `npm run verify:semantic-css` green with zero behavioral/visual change yet (tokens exist and are consumed, nothing renders differently).
+3. **Shell frame.** Build `WorkbenchShell.vue`/`TitleBar.vue`/`SideBar.vue`/`StatusBar.vue` as a layout skeleton around the *existing* `ReviewToolbar`/`ActiveFileToolbar`/`FileTree`/`DiffWorkspace`/`ReviewNotesDialog` (i.e., re-plumb the existing components into the new regions before restyling their internals). *Verify:* existing Playwright "Shell chrome" group still passes if selectors are kept stable at this step (defer selector churn to steps 4-6), proving the layout swap alone doesn't regress behavior.
+4. **Changed-files tree restyle.** 22px rows, M/A/D column, comment badges (needs the new `fileId → openCommentCount` derivation), hover-only counts, view-options menu, filter highlighting. *Verify:* `tests/unit/file-tree.test.ts` unchanged (model untouched); `tests/e2e/file-tree.spec.ts` updated and green.
+5. **Identity/status bar.** `IdentityPill.vue` + `IdentityPopover.vue` replacing `IdentityHeader.vue`; `StatusBar.vue` wiring snapshot/comment-counts/viewed/Export/support. *Verify:* drift/refresh/support-trigger flows re-pass against `tests/integration/selector-drift-ui.spec.ts` and `tests/integration/support-dialog.spec.ts` with updated focus-return targets.
+6. **Comment threads (the adapter rework).** Multi-zone `diff-adapter.ts`, `CommentThread.vue`, resolve/reopen/delete wiring (restoring already-existing `mutateReview()` call sites into new UI), and the reply data-model decision (Option A or B above) implemented. This is the largest and riskiest phase — sequence it after the shell exists so thread zones render inside a stable layout, but before final a11y/e2e sweep since it changes the most DOM. *Verify:* `tests/unit/monaco-diff-adapter.test.ts` rewritten for multi-zone diagnostics; `tests/integration/monaco-anchor.spec.ts`/`anchored-workspace.spec.ts` rewritten; new coverage for resolve/reopen/delete/reply flows that `260915-jbv` left untested since v1.6.
+7. **Bottom panel / export.** `BottomPanel.vue` tab host wrapping existing `SummarySection`/`ExportSection`; ⌘J toggle, status-bar triggers, session-scoped collapse-all for threads lives here too (cross-cutting with phase 6). *Verify:* `tests/e2e/review-notes-dialog.spec.ts`, `tests/integration/complete-review-panel.spec.ts`, `tests/integration/export-receipt-ui.spec.ts`, export-gate e2e suites green.
+8. **Toolbar role/name audit (DEBT-01) + accessibility/e2e sweep.** Once every icon-only action exists, do the "reachable by role and name" pass across title bar, side bar, editor title, bottom panel, status bar as one coordinated check (this is cheap to defer to the end precisely because it's a cross-cutting audit of surfaces built in 3-7, not new functionality). *Verify:* full Playwright suite green, plus a dedicated keyboard-only and screen-reader-label pass across the new chrome (shortcuts: ⌘B, ⌘J, F7/⇧F7, ⌥↑/⌥↓, ⌥F9/⇧⌥F9).
 
 ## Anti-Patterns to Avoid
 
-### Anti-Pattern 1: Widening `createPinnedComparison`'s contract to accept worktree bytes
+### Anti-Pattern 1: Second live-region owner for drift/stale state
 
-**What people might do:** Add an `includeDirty` flag to the existing `createPinnedComparison`/`PinnedComparisonSchema` to special-case uncommitted sources.
-**Why it's wrong:** `PinnedComparisonSchema` and every consumer of `PinnedComparison` (export V1/V2, `createCapabilityRegistry`, `createSelectorDriftObserver`) is built on the invariant that `base`/`head` are frozen commit OIDs forever (`hasCommittedChanges` field, `mergeBaseOid` as a `GitObjectIdSchema`). Smuggling worktree bytes through the same type silently breaks every piece of code that currently assumes `oid` means "immutable Git object."
-**Instead:** A parallel `UncommittedScope` type (Pattern 1 above) with its own session app factory. Keep `PinnedComparison` exactly as committed-only as its name says.
+**What people do:** Add a `aria-live` region to the new title-bar pill or status-bar comment count because it visually echoes drift/stale state.
+**Why it's wrong:** v1.6 fixed exactly this class of bug — duplicate assistive announcements on state transitions — by funneling every warning through one `shell-warning-stack` owner (`App.vue:1278-1305`). A second region re-announcing the same transition regresses a shipped, tested invariant.
+**Instead:** New chrome reads the same computed flags (`patchDrifted`, `hasUnverifiedAnchors`, `selectorDriftStatus`) purely for visual styling; only the existing `announce()` call sites fire live-region text.
 
-### Anti-Pattern 2: Auto-refreshing uncommitted sessions on a timer or file-watcher
+### Anti-Pattern 2: Treating "resolve/reopen/delete/reply" as one undifferentiated backlog item
 
-**What people might do:** Poll the filesystem or use `fs.watch` to keep the worktree session "live," since that feels more useful than a stale snapshot.
-**Why it's wrong:** PROJECT.md is explicit: *"Working-tree snapshot frozen at session start + explicit Refresh action"* and *"anchors are immutable, never relocated silently."* Automatic refresh would silently change `session.files` mid-review, reclassifying or re-anchoring comments without the developer's knowledge — exactly the ambiguity the "committed Git objects only" decision existed to prevent in v1.
-**Instead:** Only the server route triggered by the UI's explicit Refresh control calls `snapshot.refresh()`. Never on a timer, never on WebSocket/SSE push from a file watcher.
+**What people do:** Plan all four comment actions as equivalent "restore the removed UI" work.
+**Why it's wrong:** Resolve/reopen/delete are **already fully wired** end-to-end (schema, server route, state machine, even the `ReviewPendingOperation` union) — restoring them is UI work only. Reply requires a schema-level decision (anchor-uniqueness relaxation or body-append) that the other three don't, and has correctness implications for anchor-drift classification that need their own review before implementation starts.
+**Instead:** Sequence reply's schema decision as an explicit, separately-reviewed sub-task inside phase 6, not folded silently into "wire the four buttons."
 
-### Anti-Pattern 3: Reusing `ObjectReader`/blob-OID lookups for worktree bytes
+### Anti-Pattern 3: Component-local hex colors or inline geometry in new workbench chrome
 
-**What people might do:** Try to make unstaged/untracked content "look like" tracked content by writing it to the object database (`git hash-object -w`) just so the existing `ObjectReader.read(oid)` path works unmodified.
-**Why it's wrong:** `git hash-object -w` mutates `.git/objects` — a side effect on disk the product has never had (every Key Decision in PROJECT.md stresses "without modifying Git state" / "no mutating Git apply path"). It would also leave orphaned blobs behind after every review session.
-**Instead:** Compute the synthetic OID in memory (Pattern 3 above, already implemented for exact-patch) and read bytes directly from the filesystem; never write to the object database.
+**What people do:** Hardcode `22px`/`#1c232c` directly in a new `TitleBar.vue`'s `<style>` block "just for this component" during rapid prototyping, planning to tokenize later.
+**Why it's wrong:** `verify:semantic-css`'s `assertDirectColorConfinement`/`assertAuthorStyle` will fail the build the moment this lands in `main` (it scans the full generated CSS, including compiled `.vue` styles) — "later" tokenization becomes a required pre-merge step regardless, so skipping it first just adds a failed-CI round-trip.
+**Instead:** Add the token to `styles.css :root` + `CANONICAL_TOKENS` in the same change that introduces its first consumer (Pattern 2's four-point checklist).
 
 ## Integration Points
-
-### External Services
-
-None relevant to v2.0 — all target features are local Git/filesystem/CLI/browser integration; no new external service (the existing optional Stripe/Supabase support path is untouched).
 
 ### Internal Boundaries
 
 | Boundary | Communication | Notes |
-|----------|---------------|-------|
-| CLI picker ↔ Git adapter | Direct function calls (`discoverSourceCandidates`, new uncommitted-entry emission) | New entries are static (no Git call), unlike branch/worktree discovery. |
-| Git adapter ↔ Server snapshot | `worktree-inventory.ts`/`standalone-files.ts` produce `ChangedFile[]`-shaped data consumed by `worktree-snapshot.ts` at session start | Mirrors the existing `exact-patch.ts` → `patch-snapshot.ts` boundary exactly. |
-| Server capabilities ↔ Browser | Fastify JSON routes, Zod-validated both directions (`contracts/api.ts`) | New `/api/refresh` route follows the existing conditional-registration pattern (`routes.ts:197`, gated on `capabilities.patchStatus !== undefined` today, `capabilities.refresh !== undefined` for v2.0). |
-| Browser workspace-state ↔ Monaco adapter | `WorkspaceCommand` union dispatched imperatively (`applyMonacoWorkspaceCommand`, `diff-adapter.ts:608-626`) | New single-pane mode and Markdown-preview toggle both need new `WorkspaceCommand` variants; neither replaces existing diff-editor commands for modified files. |
-| stdin protocol ↔ session app factories | `cli/request.ts` parses, `cli/run.ts` dispatches to the matching `create*SessionApp` | Two new `mode` branches each need their own `launch*Session` function mirroring `launchAttachedSession`/`launchExactPatchSession` (`run.ts:431-538`). |
-
-## Suggested Build Order
-
-Respecting dependencies (schema → git adapter → server/session wiring → CLI surface → stdin protocol → browser UI → copy), roughly five layers, each buildable/testable before the next depends on it:
-
-1. **Contracts first** (`contracts/comparison.ts`, `contracts/draft.ts`, `contracts/request.ts`): `UncommittedScopeSchema`, `StandaloneFilesScopeSchema`, new `DraftComparisonSchema` union members, `ReviewExportV4Schema`/`V5Schema`, new `ChangedFileStatusKindSchema` value for standalone files, two new `AgentReviewRequestSchema` modes. Nothing downstream can be typed correctly without these.
-2. **Git adapter** (`git/worktree-inventory.ts`, `git/standalone-files.ts`, review-key derivation in `domain/comparison-key.ts`): pure functions over Git/filesystem, testable in isolation with Vitest fixtures exactly like `inventory.ts`/`exact-patch.ts` are today. Depends only on layer 1's types.
-3. **Server/session wiring** (`server/worktree-snapshot.ts`, `server/app.ts` new factories, `server/capabilities.ts` new registries, `server/routes.ts` `/api/refresh`, `server/draft-loader.ts` key branches, Finish/export wiring): depends on layer 2's inventory shape being stable. This is where "frozen snapshot + explicit Refresh + reclassify, never relocate" gets proven with Fastify `inject()` tests, same as the exact-patch flow was.
-4. **CLI surface, two parallel tracks** (can run concurrently once layer 3 exists):
-   - Interactive: `domain/source.ts` new candidate kind, `git/candidates.ts` static emission, `cli/picker.ts` new entries, wired to `createUncommittedSessionApp`.
-   - Standalone: `cli/run.ts` Commander `[paths...]` argument, wired to `createStandaloneFilesSessionApp`.
-5. **stdin agent protocol** (`cli/request.ts` dispatch, new `launchUncommittedSession`/`launchStandaloneFilesSession` in `cli/run.ts`): depends on layer 3's session factories and layer 4's CLI patterns existing, since agent-attached launches reuse the same session apps as interactive launches.
-6. **Browser UI, two independent tracks** (can run concurrently, each depends only on layer 1's schemas plus its own slice of layer 3's session data):
-   - Monaco single-pane mode (`web/monaco/diff-adapter.ts`), consuming the new standalone status kind from layer 1 and files from layers 3/4.
-   - Markdown preview toggle (`web/model/workspace-command.ts`, `workspace-state.ts`, new Vue component), independent of source kind — applies to any `.md` file in any session type, including today's committed comparisons.
-7. **Product repositioning copy** (README, CLI `--help` strings, marketplace `SKILL.md`): no code dependency on any other layer; sequence last so copy reflects the shipped feature set rather than the plan.
+|---|---|---|
+| `App.vue` ↔ `WorkbenchShell.vue`/new chrome components | Props down, events up (standard Vue) | `App.vue` keeps owning `session`, `workspaceState`, `reviewDraft`, dialog/panel-open state; new components are purely presentational, same contract as today's `IdentityHeader`/`ReviewToolbar`. |
+| `App.vue` ↔ `sessionClient` (`api/client.ts`) | Typed async methods (`getSession`, `mutate`, `exportReview`, …) over `fetch` to `/api/*` | Unchanged by this milestone; every new UI action (resolve/reopen/delete/reply, panel export) reuses existing or (for reply) one new `SessionClient` method plus one new `DraftMutationRequest` variant. |
+| `DiffWorkspace.vue` ↔ `diff-adapter.ts` | Imperative method calls (`setFile`, `activateAnchor`, `setActiveAnchor`, `revealAnchor`, `goToChange`, `layout`) + `onChange` callback polled via `syncAdapterState()` | The adapter remains the sole Monaco-diff authority (an explicit existing invariant: "Derive Base/Head cues only from public `ILineChange` ranges… preserve Monaco as diff authority"); multi-zone support extends this surface, it does not bypass it. |
+| `styles.css :root` ↔ `monaco/theme.ts` + `monaco/diff-adapter.ts` | Build-time Vite virtual module (`virtual:loopnote-tokens`) + `theme/token-contract.ts` parse/resolve helpers | One-directional: CSS is authored, Monaco reads it at module-load time via the virtual module; there is no reverse flow. |
+| `scripts/verify-semantic-css.mjs` ↔ everything above | Build-output + source-file static analysis, run via `npm run verify:semantic-css` | The only automated gate that spans both the CSS and the Monaco theme/adapter consumers; treat it as CI-blocking for every token-touching change in this milestone, not just a lint suggestion. |
 
 ## Sources
 
-- Direct repository inspection: `src/domain/source.ts`, `src/git/candidates.ts`, `src/git/comparison.ts`, `src/git/inventory.ts`, `src/git/exact-patch.ts`, `src/git/objects.ts`, `src/git/availability.ts`, `src/git/ignore-status.ts`, `src/git/repository.ts`, `src/git/selector-drift.ts`, `src/server/app.ts`, `src/server/capabilities.ts`, `src/server/routes.ts`, `src/server/draft-store.ts`, `src/server/draft-loader.ts`, `src/server/patch-snapshot.ts`, `src/server/attached-completion.ts`, `src/server/gitignore-capability.ts`, `src/contracts/comparison.ts`, `src/contracts/draft.ts`, `src/contracts/request.ts`, `src/contracts/api.ts`, `src/export/review-export.ts`, `src/domain/anchor.ts`, `src/domain/file-tree.ts`, `src/web/monaco/diff-adapter.ts`, `src/web/model/workspace-state.ts`, `src/web/model/workspace-command.ts`, `src/web/model/draft-reconciliation.ts`, `src/web/model/markdown-preview.ts`, `src/web/model/file-tree.ts`, `src/cli/run.ts`, `src/cli/picker.ts`, `src/cli/request.ts` (all read directly, line numbers cited inline).
-- `.planning/PROJECT.md` — milestone intent, prior Key Decisions table, reversal statement for "committed Git objects only."
+- Direct reads: `src/web/App.vue`, `src/web/components/*.vue`, `src/web/model/*.ts`, `src/web/monaco/diff-adapter.ts`, `src/web/monaco/theme.ts`, `src/web/theme/token-contract.ts`, `src/web/api/client.ts`, `src/web/styles.css`, `src/contracts/api.ts`, `src/contracts/draft.ts`, `src/draft/mutate-draft.ts`, `src/server/routes.ts`, `scripts/css-token-contract.mjs`, `scripts/verify-semantic-css.mjs`, `vite.config.ts`, `tsconfig.web.json`, `tsconfig.json`, `package.json` (HIGH confidence — primary source, this repository).
+- `.kimi-code/skills/sketch-findings-loopnote/references/workbench-shell.md`, `changed-files-tree.md`, `comments-and-export.md`, `tokens-and-density.md` — the design decision record this milestone is built from (HIGH confidence — curated team artifact, cited verbatim where quoted).
+- `.planning/PROJECT.md` — current milestone scope, constraints, key decisions, DEBT-01/typecheck-gap history (HIGH confidence — primary project record).
+- `npm view typescript`, `npm view vue-tsc`, `npm view typescript-native-bridge` (registry queries, 2026-11-04) — version/dist-tag facts (HIGH confidence — live registry data).
+- [vuejs/language-tools discussion #6121 "vue-tsc support for TypeScript 7"](https://github.com/vuejs/language-tools/discussions/6121) and [issue #6156 "vue-tsc does not work with Typescript 7"](https://github.com/vuejs/language-tools/issues/6156) — confirms the `ERR_PACKAGE_PATH_NOT_EXPORTED` failure mode and the maintainer-stated `typescript-native-bridge` workaround pending TS 7.1 plugin support (HIGH confidence — primary upstream issue tracker, directly reproduces this repo's pinned-version failure).
 
 ---
-*Architecture research for: Cumpa v2.0 Artifact Review*
-*Researched: 2026-10-30*
+*Architecture research for: Loopnote v2.1 Workbench Redesign*
+*Researched: 2026-11-04*
