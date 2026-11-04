@@ -6,14 +6,14 @@ let serverUrl: string;
 
 const harnessModule = `
 import { createApp, h, ref } from 'vue';
-import ReviewNotesDialog from '/components/ReviewNotesDialog.vue';
+import BottomPanel from '/components/workbench/BottomPanel.vue';
 import '/styles.css';
 
 export function mountReviewNotesHarness() {
   const open = ref(true);
   const summaryBuffer = ref('');
   createApp({
-    render: () => h(ReviewNotesDialog, {
+    render: () => h(BottomPanel, {
       open: open.value,
       comments: [],
       inventory: [],
@@ -54,7 +54,7 @@ test.afterAll(async () => {
   await server.close();
 });
 
-test('Review notes owns the summary editor and local Escape handling', async ({ page }) => {
+test('Review panel owns the summary editor and closes via its close button', async ({ page }) => {
   await page.goto(serverUrl, { waitUntil: 'domcontentloaded' });
   await page.evaluate(async () => {
     document.body.innerHTML = '<div id="review-notes-harness"></div>';
@@ -62,12 +62,11 @@ test('Review notes owns the summary editor and local Escape handling', async ({ 
     mountReviewNotesHarness();
   });
 
-  const dialog = page.getByRole('dialog', { name: 'Review notes' });
-  await expect(dialog.getByRole('region', { name: 'Summary Saved' })).toBeVisible();
-  await dialog.getByRole('tab', { name: 'Edit' }).click();
-  const summary = dialog.getByLabel('Review summary (Markdown)');
+  const panel = page.getByRole('region', { name: 'Review', exact: true });
+  await expect(panel.getByRole('region', { name: 'Summary Saved' })).toBeVisible();
+  await panel.getByRole('tab', { name: 'Edit' }).click();
+  const summary = panel.getByLabel('Review summary (Markdown)');
   await summary.fill('Unsaved review note');
-  await dialog.getByRole('button', { name: 'Close review notes' }).focus();
-  await page.keyboard.press('Escape');
-  await expect(dialog).toHaveCount(0);
+  await panel.getByRole('button', { name: 'Close panel' }).click();
+  await expect(panel).toHaveCount(0);
 });
