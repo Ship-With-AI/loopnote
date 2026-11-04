@@ -148,10 +148,10 @@ async function activateSinglePaneLine(
 }
 
 async function openReviewNotes(page: Page): Promise<void> {
-  const button = page.getByRole('button', { name: 'Review notes', exact: true });
+  const button = page.getByRole('button', { name: 'Toggle panel (⌘J)', exact: true });
   await expect(button).toBeVisible();
   await button.click();
-  await expect(page.getByRole('dialog', { name: 'Review notes' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Review', exact: true })).toBeVisible();
 }
 
 test.beforeAll(() => {
@@ -328,7 +328,7 @@ test('the Export section is absent for an uncommitted session', async ({ browser
     await openGeneratedUncommittedReview(page, url);
 
     await openReviewNotes(page);
-    const dialog = page.getByRole('dialog', { name: 'Review notes' });
+    const dialog = page.getByRole('region', { name: 'Review', exact: true });
     await expect(dialog.getByRole('button', { name: 'Export review', exact: true })).toHaveCount(0);
     await expect(dialog.getByRole('button', { name: 'Export review again', exact: true })).toHaveCount(0);
 

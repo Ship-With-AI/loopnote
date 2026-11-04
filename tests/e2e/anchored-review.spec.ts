@@ -354,7 +354,7 @@ test('packaged files dialog returns to the diff heading', async ({ browser, page
     await expect(page.getByRole('dialog', { name: 'Files', exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Close files' }).click();
     await expect(filesToggle).toBeFocused();
-    await expect(page.locator('.changed-files-sidebar')).not.toBeVisible();
+    await expect(page.locator('.workbench-shell__sidebar')).not.toBeVisible();
 
     await page.setViewportSize({ width: 1440, height: 900 });
     await expect(page.getByRole('heading', { level: 1, name: 'src/changed.ts' })).toBeVisible();

@@ -141,10 +141,10 @@ async function stopGeneratedCli(running: RunningCli): Promise<void> {
 
 
 async function openReviewNotes(page: Page): Promise<void> {
-  const button = page.getByRole('button', { name: 'Review notes', exact: true });
+  const button = page.getByRole('button', { name: 'Toggle panel (⌘J)', exact: true });
   await expect(button).toBeVisible();
   await button.click();
-  await expect(page.getByRole('dialog', { name: 'Review notes' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Review', exact: true })).toBeVisible();
 }
 
 async function openGeneratedReview(page: Page, url: string): Promise<void> {
@@ -383,7 +383,7 @@ test('two-tab conflict retains the summary buffer and requires fresh explicit CA
     const accepted = page.waitForResponse((response) => response.url().includes('/api/draft/mutations'));
     await page.getByRole('button', { name: 'Save summary' }).click();
     expect((await accepted).status()).toBe(200);
-    await page.getByRole('button', { name: 'Close review notes' }).click();
+    await page.getByRole('button', { name: 'Close panel' }).click();
 
     const draftsDirectory = join(fixture.root, RENAME_MAP.repoStateDir.replace(/\/$/, ''), 'drafts');
     const draftFilename = readdirSync(draftsDirectory).find((candidate) => candidate.endsWith('.json'));
@@ -415,7 +415,7 @@ test('two-tab conflict retains the summary buffer and requires fresh explicit CA
     await otherTab.getByRole('button', { name: 'Reload latest' }).click();
     await expect(otherTab.getByText('Conflict — unsaved text retained', { exact: true })).toHaveCount(0);
     await expect(otherSummary).toHaveValue(attemptedSummary);
-    await otherTab.getByRole('button', { name: 'Close review notes' }).click();
+    await otherTab.getByRole('button', { name: 'Close panel' }).click();
     const afterDeleteRevision = JSON.parse(readFileSync(draftPath).toString('utf8')).revision;
 
     const occupiedResult = await page.evaluate(async ({ token, expectedRevision }) => {

@@ -287,10 +287,10 @@ async function stopGeneratedCli(running: RunningCli): Promise<void> {
 
 
 async function openReviewNotes(page: Page): Promise<void> {
-  const button = page.getByRole('button', { name: 'Review notes', exact: true });
+  const button = page.getByRole('button', { name: 'Toggle panel (⌘J)', exact: true });
   await expect(button).toBeVisible();
   await button.click();
-  await expect(page.getByRole('dialog', { name: 'Review notes' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Review', exact: true })).toBeVisible();
 }
 
 async function addHeadComment(page: Page, body: string, lineNumber = 10, selectedText = 'export const stableContext10 = 10;'): Promise<void> {
@@ -352,7 +352,7 @@ async function saveSummary(page: Page, summary: string): Promise<void> {
   const accepted = page.waitForResponse((response) => response.url().includes('/api/draft/mutations'));
   await page.getByRole('button', { name: 'Save summary' }).click();
   expect((await accepted).status()).toBe(200);
-  await page.getByRole('button', { name: 'Close review notes' }).click();
+  await page.getByRole('button', { name: 'Close panel' }).click();
 }
 
 
@@ -632,7 +632,7 @@ test('attached review blocks Finish while an inline composer has unsaved text', 
     await expect(completion).toContainText('has unsaved text. Save or discard it before finishing.');
     await expect(reviewDraft).toBeVisible();
     await reviewDraft.click();
-    await page.getByRole('button', { name: 'Close review notes' }).click();
+    await page.getByRole('button', { name: 'Close panel' }).click();
     const restoredComposer = page.locator('.monaco-anchor-zone--composer textarea');
     await expect(restoredComposer).toBeVisible();
     await expect(restoredComposer).toHaveValue('Unsaved inline feedback');

@@ -189,10 +189,10 @@ async function activateSinglePaneLine(
 }
 
 async function openReviewNotes(page: Page): Promise<void> {
-  const button = page.getByRole('button', { name: 'Review notes', exact: true });
+  const button = page.getByRole('button', { name: 'Toggle panel (⌘J)', exact: true });
   await expect(button).toBeVisible();
   await button.click();
-  await expect(page.getByRole('dialog', { name: 'Review notes' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Review', exact: true })).toBeVisible();
 }
 
 test.beforeAll(() => {
@@ -276,7 +276,7 @@ test(`packaged ${RENAME_MAP.binCommand} <path> opens a standalone file, accepts 
     expect((await addResponse).status()).toBe(201);
 
     await openReviewNotes(page);
-    const dialog = page.getByRole('dialog', { name: 'Review notes' });
+    const dialog = page.getByRole('region', { name: 'Review', exact: true });
     const exported = page.waitForResponse((response) => response.url().includes('/api/export'));
     await dialog.getByRole('button', { name: 'Export review', exact: true }).click();
     const exportResponse = await exported;

@@ -182,8 +182,8 @@ async function startAppServer(): Promise<string> {
 
 async function openReview(page: Page): Promise<void> {
   await page.goto(`${origin}#token=${token}`);
-  await page.getByRole('button', { name: 'Review notes', exact: true }).click();
-  await expect(page.getByRole('dialog', { name: 'Review notes' }).getByRole('button', { name: 'Export review' })).toBeVisible();
+  await page.getByRole('button', { name: 'Toggle panel (⌘J)', exact: true }).click();
+  await expect(page.getByRole('region', { name: 'Review', exact: true }).getByRole('button', { name: 'Export review' })).toBeVisible();
 }
 
 test.beforeAll(async () => {
