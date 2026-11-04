@@ -104,16 +104,34 @@ Full details: [`milestones/v2.0-ROADMAP.md`](./milestones/v2.0-ROADMAP.md).
 **Plans:** 10 plans
 
 Plans:
+**Wave 1**
+
 - [ ] 20-01-PLAN.md — `model/panel-state.ts`: clamped localStorage persistence for side-bar width/visibility and panel height (TDD)
 - [ ] 20-02-PLAN.md — Monaco `addAction` overrides for F7/⇧F7/⌥↑/⌥↓ on all three editor instances, plus a runtime `setRenderSideBySide` adapter method
 - [ ] 20-03-PLAN.md — Token root migration + `TitleBar.vue` + `StatusBar.vue`
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 20-04-PLAN.md — `EditorTitle.vue` (folds ReviewToolbar/ActiveFileToolbar) + `Breadcrumbs.vue`
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 20-05-PLAN.md — `useSash.ts` composable + `WorkbenchShell.vue` grid host (both sashes, Teleport host relocation)
 - [ ] 20-06-PLAN.md — `BottomPanel.vue` (un-wraps ReviewNotesDialog) + review-notes-dialog.spec.ts rewrite
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 20-07-PLAN.md — `App.vue` integration: wires every new component, deletes superseded ones, rewrites handleKeydown
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 20-08-PLAN.md — packaged-binary shell smoke spec, one case per session kind (SHELL-05)
 - [ ] 20-09-PLAN.md — fixes every broken Playwright/integration locator across the six affected spec files 20-07's draft enumerated (A11Y-03)
+
+**Wave 6** *(blocked on Wave 5 completion)*
+
 - [ ] 20-10-PLAN.md — fixes the remaining Review-notes/BottomPanel and .changed-files-sidebar locator breakage an exhaustive repo-wide grep sweep found across six more spec files, including the custody-gated agent-ready-export.spec.ts (A11Y-03)
+
 **UI hint**: yes
 
 ### Phase 21: Changed-Files Tree
