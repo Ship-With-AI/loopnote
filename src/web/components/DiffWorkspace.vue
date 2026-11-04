@@ -11,6 +11,7 @@ import RenderedMarkdownView from './RenderedMarkdownView.vue';
 import {
   createMonacoDiffAdapter,
   createMonacoSinglePaneAdapter,
+  type AdapterNavigation,
   type AnchorAffordanceTarget,
   type DiffSide,
   type MonacoDiffAdapter,
@@ -30,9 +31,11 @@ const props = withDefaults(defineProps<{
   singlePaneSide?: DiffSide;
   sourceKind?: 'range' | 'exact-patch';
   mode?: 'source' | 'rendered';
+  renderSideBySide?: boolean;
 }>(), {
   sourceKind: 'range',
   mode: 'source',
+  renderSideBySide: true,
 });
 
 const emit = defineEmits<{
@@ -44,7 +47,18 @@ const emit = defineEmits<{
   keepWriting: [];
   ready: [fileId: string];
   updateText: [text: string];
+  'next-change': [];
+  'previous-change': [];
+  'next-file': [];
+  'previous-file': [];
 }>();
+
+const navigate: AdapterNavigation = {
+  nextChange: () => emit('next-change'),
+  previousChange: () => emit('previous-change'),
+  nextFile: () => emit('next-file'),
+  previousFile: () => emit('previous-file'),
+};
 
 const host = ref<HTMLElement>();
 const basePaneRef = ref<InstanceType<typeof RenderedMarkdownView>>();
@@ -116,6 +130,10 @@ function syncCodeDensity(): void {
   adapter?.setCodeDensity(
     wideCodeMedia?.matches ? 'wide' : compactCodeMedia?.matches ? 'compact' : 'default',
   );
+}
+
+function syncRenderSideBySide(): void {
+  adapter?.setRenderSideBySide(props.renderSideBySide);
 }
 
 function currentComment() {
@@ -314,6 +332,7 @@ watch(() => [props.composer, props.comments] as const, () => {
 }, { deep: true });
 
 watch(visibleSides, syncSideNames);
+watch(() => props.renderSideBySide, syncRenderSideBySide);
 watch(() => props.mode, () => {
   // v-show toggles the Monaco container's display between none/block; Monaco never
   // observes that transition on its own (ResizeObserver timing is not reliable enough
@@ -351,10 +370,11 @@ watch(editorKind, () => {
   void nextTick(() => {
     if (host.value === undefined) return;
     adapter = props.singlePaneSide !== undefined
-      ? createMonacoSinglePaneAdapter(host.value, languageForPath, syncAdapterState, props.singlePaneSide)
-      : createMonacoDiffAdapter(host.value, languageForPath, syncAdapterState);
+      ? createMonacoSinglePaneAdapter(host.value, languageForPath, syncAdapterState, navigate, props.singlePaneSide)
+      : createMonacoDiffAdapter(host.value, languageForPath, syncAdapterState, navigate);
     syncCodeDensity();
     syncSideNames();
+    syncRenderSideBySide();
     void loadContent();
   });
 });
@@ -363,14 +383,15 @@ onMounted(() => {
   if (host.value === undefined) return;
   configureMonacoWorkers();
   adapter = props.singlePaneSide !== undefined
-    ? createMonacoSinglePaneAdapter(host.value, languageForPath, syncAdapterState, props.singlePaneSide)
-    : createMonacoDiffAdapter(host.value, languageForPath, syncAdapterState);
+    ? createMonacoSinglePaneAdapter(host.value, languageForPath, syncAdapterState, navigate, props.singlePaneSide)
+    : createMonacoDiffAdapter(host.value, languageForPath, syncAdapterState, navigate);
   wideCodeMedia = window.matchMedia('(min-width: 1650px)');
   compactCodeMedia = window.matchMedia('(max-width: 760px)');
   syncCodeDensity();
   wideCodeMedia.addEventListener('change', syncCodeDensity);
   compactCodeMedia.addEventListener('change', syncCodeDensity);
   syncSideNames();
+  syncRenderSideBySide();
   resizeObserver = new ResizeObserver(() => {
     adapter?.layout();
     const zone = host.value?.querySelector<HTMLElement>('.monaco-anchor-zone--composer');
