@@ -284,6 +284,10 @@ Validated in v2.0 Phases 14–18 (Artifact Review):
 - [x] The product, package, CLI, protocol kinds, and state directories are named Loopnote, with one-time migration of existing state. — v2.0 (Phase 17.1)
 - [x] Product copy positions Loopnote as review for any agent-produced artifact. — v2.0 (Phase 18)
 
+Validated in v2.1 Phase 19: Typecheck Foundation — `vue-tsc@3.3.14` paired with the `typescript`/`@typescript/native` dual-alias scheme typechecks the whole `src/web/` tree (`tsconfig.web.json` widened from a seven-file allowlist to a full-tree `include` glob); the 19-error/4-file backlog is fixed; `npm run typecheck:web` is wired into CI's `repository-gates` job and exits 0 with no baseline/allowlist; `build:node`'s native TypeScript 7 output is proven byte-identical across the swap.
+
+- [x] `.vue` components are typechecked. — v2.1 (Phase 19)
+
 ### Active
 
 - [ ] VS Code-inspired workbench shell replaces the identity header band, review rail, toolbars, and footer.
@@ -292,7 +296,6 @@ Validated in v2.0 Phases 14–18 (Artifact Review):
 - [ ] Reviewers can resolve, reopen, delete, and reply to comment threads inline (removed by quick task `260915-jbv`).
 - [ ] Comments, summary, and export live in a bottom panel closed while reading.
 - [ ] Assistive technology reaches toolbar control groups by role and name (DEBT-01).
-- [ ] `.vue` components are typechecked.
 - [ ] `DESIGN.md` describes the workbench.
 
 ### Out of Scope
@@ -417,4 +420,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with the current product state and feedback.
 
 ---
-*Last updated: 2026-11-04 at v2.1 Workbench Redesign milestone start*
+*Last updated: 2026-11-04 — v2.1 Phase 19 (Typecheck Foundation) complete*
