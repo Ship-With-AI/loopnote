@@ -12,6 +12,8 @@ export type UiIconName =
   | 'selected'
   | 'lock'
   | 'refresh'
+  | 'sidebar'
+  | 'panel'
   | 'disabled';
 
 defineProps<{
@@ -78,6 +80,14 @@ defineProps<{
     <template v-else-if="name === 'refresh'">
       <path d="M5.75 4.1a4.5 4.5 0 1 1 4.5 0" />
       <path d="M8.9 2.1 10.25 4.1 12.25 3.4" />
+    </template>
+    <template v-else-if="name === 'sidebar'">
+      <rect x="2.5" y="3" width="11" height="10" rx="1.5" />
+      <path d="M6.25 3v10" />
+    </template>
+    <template v-else-if="name === 'panel'">
+      <rect x="2.5" y="3" width="11" height="10" rx="1.5" />
+      <path d="M2.5 9.75h11" />
     </template>
     <template v-else>
       <circle cx="8" cy="8" r="5.5" />
