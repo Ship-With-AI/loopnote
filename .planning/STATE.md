@@ -4,16 +4,16 @@ milestone: v2.1
 milestone_name: Workbench Redesign
 current_phase: 20
 current_phase_name: Shell Frame
-stopped_at: Completed 20-04-PLAN.md
-last_updated: "2026-11-04T20:40:00.000Z"
+stopped_at: Completed 20-05-PLAN.md
+last_updated: "2026-11-04T21:30:00.000Z"
 last_activity: 2026-11-04
-last_activity_desc: Completed 20-04-PLAN.md (EditorTitle.vue + Breadcrumbs.vue)
+last_activity_desc: Completed 20-05-PLAN.md (useSash.ts composable + WorkbenchShell.vue grid host)
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 14
-  completed_plans: 8
-  percent: 57
+  completed_plans: 9
+  percent: 64
 ---
 
 # Project State
@@ -28,9 +28,9 @@ See: .planning/PROJECT.md (updated 2026-11-04)
 ## Current Position
 
 Phase: 20 — Shell Frame
-Plan: 4 of 10
+Plan: 5 of 10
 Status: Executing
-Last activity: 2026-11-04 — Completed 20-04-PLAN.md (EditorTitle.vue + Breadcrumbs.vue)
+Last activity: 2026-11-04 — Completed 20-05-PLAN.md (useSash.ts composable + WorkbenchShell.vue grid host)
 
 ## Performance Metrics
 
@@ -111,6 +111,7 @@ Last activity: 2026-11-04 — Completed 20-04-PLAN.md (EditorTitle.vue + Breadcr
 | Phase 20 P02 | 25 min | 2 tasks | 3 files |
 | Phase 20 P03 | 35min | 3 tasks | 5 files |
 | Phase 20 P04 | 40min | 3 tasks | 5 files |
+| Phase 20 P05 | 30min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -226,6 +227,9 @@ Decisions are logged in PROJECT.md Key Decisions.
 - [Phase ?]: Registered only the 5 TOK-01 tokens with a real consumer in 20-03 (titlebar/statusbar height, control-height-icon, font/line-height-chrome), deferring the remaining UI-SPEC new-token rows to 20-04..20-06 — verify-semantic-css.mjs fails on any canonical token without a var(...) consumer; pairing token registration with its first real consumer avoids inventing throwaway consumers
 - [Phase 20]: 20-04: Corrected the plan's inverted diff-split/diff-inline aria-pressed binding (plan prose said `!renderSideBySide`/`renderSideBySide` respectively) to `renderSideBySide`/`!renderSideBySide` respectively — matches Monaco's own renderSideBySide:true=side-by-side semantics (DiffWorkspace.vue/diff-adapter.ts) and UI-SPEC's Icon Inventory table (`aria-pressed = !inline`/`inline`)
 - [Phase 20]: 20-04: NAV-01/NAV-02 left Pending in REQUIREMENTS.md despite plan frontmatter listing them, following the 20-02 precedent — EditorTitle.vue/Breadcrumbs.vue are unwired until 20-07's App.vue integration makes them user-observable
+- [Phase 20]: 20-05: `.workbench-shell__body`'s grid-template-columns is driven by a reactive `:style` binding (not a static token-only rule) — a static 2-column track (`var(--sidebar-width-default) 1fr`) left the sidebar's own inline-width override free to overflow past the track boundary into the editor column once dragged wider than 264px (CSS Grid `stretch` degrades to `start` alignment for any item with a definite, non-auto size), which the plan's own closing qualifier ("as long as sidebarWidth's live value visually drives the column width") rules out; the vertical sash is `position: absolute` (excluded from the grid) so the body's 2-column track count never depends on whether the sash is rendered.
+- [Phase 20]: 20-05: Added `min-width: var(--sidebar-width-min)` to `.workbench-shell__sidebar` — the plan's action text gave explicit CSS consumers for 5 of the 6 new tokens but omitted one for `--sidebar-width-min`; this plan's own `<done>` criterion requires all six consumed, so added the symmetric defensive floor alongside the plan's literal `max-width: min(var(--sidebar-width-max), calc(100vw - 480px))` ceiling.
+- [Phase 20]: 20-05: SHELL-06 left Pending in REQUIREMENTS.md despite this plan's frontmatter listing it, following the 20-02/20-04 precedent — `WorkbenchShell.vue` is unwired until 20-07's `App.vue` integration makes the no-horizontal-scroll behavior user-observable.
 
 ### Pending Todos
 
