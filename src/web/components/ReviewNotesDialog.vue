@@ -194,7 +194,7 @@ watch(reviewFailure, (failed) => {
 
       <template v-if="attachedLifecycle === 'completed'">
         <div class="inline-notice inline-notice--success" role="status">
-          <UiIcon name="success" class="inline-notice__icon" />
+          <UiIcon name="check" class="inline-notice__icon" />
           <div class="inline-notice__content">
             <h4 ref="completionSuccess" tabindex="-1">Review finished</h4>
             <p>The accepted review was returned to the requesting agent from revision {{ revision }}. You can close this tab.</p>
