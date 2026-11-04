@@ -15,7 +15,7 @@
         aria-valuemax="520"
         tabindex="-1"
         class="workbench-shell__sash workbench-shell__sash--vertical"
-        :style="{ left: sidebarWidth - 2 + 'px' }"
+        :style="{ left: `calc(${clampedSidebarWidth} - 2px)` }"
         @pointerdown="sidebarSash.handlers.onPointerdown"
         @dblclick="sidebarSash.reset"
       />
@@ -98,7 +98,12 @@ const panelSash = useSash({
 // `sidebarWidth` value (not just the sidebar element's own inline width) so
 // dragging the sash never overflows the sidebar item past its track into the
 // editor column; hiding the sidebar collapses the column entirely.
-const sidebarGridTemplateColumns = computed(() => (props.sidebarVisible ? `${sidebarWidth.value}px 1fr` : '1fr'));
+const clampedSidebarWidth = computed(
+  () => `min(${sidebarWidth.value}px, var(--sidebar-width-max), calc(100vw - 480px))`,
+);
+const sidebarGridTemplateColumns = computed(
+  () => (props.sidebarVisible ? `${clampedSidebarWidth.value} 1fr` : '1fr'),
+);
 </script>
 
 <style scoped>
