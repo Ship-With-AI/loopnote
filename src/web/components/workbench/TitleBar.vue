@@ -225,28 +225,6 @@ const attachedFact = computed(() => {
   margin-left: auto;
 }
 
-.icon-btn {
-  display: inline-flex;
-  min-width: var(--control-height-icon);
-  min-height: var(--control-height-icon);
-  align-items: center;
-  justify-content: center;
-  border: none;
-  border-radius: var(--radius-control);
-  background: transparent;
-  color: var(--text-muted);
-}
-
-.icon-btn:hover {
-  background: var(--surface-interactive-hover);
-  color: var(--text-primary);
-}
-
-.icon-btn[aria-pressed="true"] {
-  background: var(--surface-interactive-active);
-  color: var(--text-primary);
-}
-
 .titlebar .identity-disclosure {
   min-width: 0;
   min-height: 0;
