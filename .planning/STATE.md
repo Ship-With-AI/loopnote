@@ -5,16 +5,16 @@ milestone_name: Workbench Redesign
 current_phase: 20
 current_phase_name: Shell Frame
 status: executing
-stopped_at: Completed 20-08-PLAN.md
-last_updated: "2026-11-04T22:11:04.220Z"
+stopped_at: Completed 20-10-PLAN.md
+last_updated: "2026-11-04T22:23:57.930Z"
 last_activity: 2026-11-04
 last_activity_desc: Completed 20-05-PLAN.md (useSash.ts composable + WorkbenchShell.vue grid host)
 progress:
   total_phases: 7
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 14
-  completed_plans: 13
-  percent: 14
+  completed_plans: 14
+  percent: 29
 ---
 
 # Project State
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-11-04)
 ## Current Position
 
 Phase: 20 — Shell Frame
-Plan: 9 of 10
+Plan: 10 of 10
 Status: Ready to execute
 Last activity: 2026-11-04 — Completed 20-05-PLAN.md (useSash.ts composable + WorkbenchShell.vue grid host)
 
@@ -117,6 +117,7 @@ Last activity: 2026-11-04 — Completed 20-05-PLAN.md (useSash.ts composable + W
 | Phase 20-shell-frame P07 | 45 min | 2 tasks | 7 files |
 | Phase 20-shell-frame P08 | 15min | 2 tasks | 1 files |
 | Phase 20-shell-frame P09 | 180 | - tasks | - files |
+| Phase 20-shell-frame P10 | 35min | 2 tasks | 0 files |
 
 ## Accumulated Context
 
@@ -243,6 +244,7 @@ Decisions are logged in PROJECT.md Key Decisions.
 - [Phase 20-shell-frame]: 20-07: Task 1 pruned only the genuinely dead .session-header/.review-toolbar/.shell-footer selector branches from styles.css, keeping .review-toolbar__active-file/__status/__counts, .session-header__brand/__comparison/__endpoint*, .header-facts, .pin-cue, .dirty-badge, .identity-disclosure, .change-indicator — EditorTitle.vue/TitleBar.vue/StatusBar.vue (20-03/20-04) literally reuse those classnames in their templates; the plan's selector-prefix list in Task 1's action text would have deleted live CSS if applied verbatim — confirmed via grep across the six new workbench components before each deletion
 - [Phase 20-shell-frame]: 20-08: agent-attached kind reuses plain stdin review-request mechanism, no custody-gated harness needed — Read src/cli/run.ts/capabilities.ts directly: every non-interactive stdin review-request (revisions/uncommitted/files/patch) always wires attachedCompletion server-side, so a plain revisions request over stdin (same mechanism pinned-session.spec.ts's existing 'generated range request' test already uses) reaches attachedLifecycle='waiting' without any custody-gated playwright.runtime-artifact.config.ts registration
 - [Phase ?]: 20-09: Verified locator mappings against actual source; fixed 3 production CSS bugs (editor flex context, session-shell grid-rows, EditorTitle narrow-width/single-pane) surfaced by required full-suite run
+- [Phase 20-shell-frame]: 20-10 confirmed c0c755c (20-09's deviation commit) already satisfied every A11Y-03 locator gap this plan targeted; zero new code changes needed. — Resolved the test:runtime-artifact custody-gate locally via pack:runtime-artifact's development-check/deployment-check purposes with a synthetic supabase-shaped support origin; no source change required.
 
 ### Pending Todos
 
@@ -301,8 +303,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-11-04T22:10:58.634Z
-Stopped at: Completed 20-08-PLAN.md
+Last session: 2026-11-04T22:23:47.131Z
+Stopped at: Completed 20-10-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
