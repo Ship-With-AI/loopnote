@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Workbench Redesign
-current_phase: 20
-current_phase_name: Shell Frame
+current_phase: 21
+current_phase_name: Changed-Files Tree
 status: executing
 stopped_at: Completed 20-10-PLAN.md
-last_updated: "2026-11-04T22:23:57.930Z"
+last_updated: "2026-11-04T23:22:03.684Z"
 last_activity: 2026-11-04
-last_activity_desc: Completed 20-05-PLAN.md (useSash.ts composable + WorkbenchShell.vue grid host)
+last_activity_desc: Phase 20 complete, transitioned to Phase 21
 progress:
   total_phases: 7
   completed_phases: 2
@@ -28,16 +28,16 @@ See: .planning/PROJECT.md (updated 2026-11-04)
 
 ## Current Position
 
-Phase: 20 — Shell Frame
-Plan: 10 of 10
+Phase: 21 — Changed-Files Tree
+Plan: Not started
 Status: Ready to execute
-Last activity: 2026-11-04 — Completed 20-05-PLAN.md (useSash.ts composable + WorkbenchShell.vue grid host)
+Last activity: 2026-11-04 — Phase 20 complete, transitioned to Phase 21
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 159
+- Total plans completed: 169
 - Average duration: 23 min
 - Total execution time: 4.7 hours
 
