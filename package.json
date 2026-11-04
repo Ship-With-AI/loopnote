@@ -44,6 +44,7 @@
     "verify:prerequisites": "node scripts/verify-prerequisites.mjs && npm run build:runtime",
     "verify:production-artifacts": "node scripts/verify-production-artifacts.mjs",
     "verify:semantic-css": "npm run build:web && node scripts/verify-semantic-css.mjs",
+    "verify:typecheck-negative-gate": "node scripts/verify-typecheck-negative-gate.mjs",
     "test": "vitest run",
     "test:unit": "node scripts/run-focused-vitest.mjs tests/unit",
     "test:git": "node scripts/run-focused-vitest.mjs tests/git",
