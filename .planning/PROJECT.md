@@ -308,6 +308,7 @@ Validated in v2.1 Phase 19: Typecheck Foundation — `vue-tsc@3.3.14` paired wit
 - Full GitHub review mechanics such as replies, suggestion patches, approvals, and pending-review submission — v1 provides line comments, resolution, and an overall summary.
 - Publishing credentials, confidential operational material, or content without publication rights — public-source release requires review of tracked content and history; destructive remediation needs separate approval.
 - Shipping TypeScript source, source maps, tests, planning files, or repository history in npm artifacts — consumers receive the compiled runtime-only distribution.
+- ~~User-configurable unified/split diff layout~~ — reversed in Phase 20 (Shell Frame, NAV-01); the editor title's side-by-side/inline toggle is session-scoped, defaults to side-by-side, not persisted across sessions, and disabled for single-pane (added/deleted/type-changed) files.
 
 ## Context
 

@@ -24,18 +24,19 @@ import {
 import type { DraftView, RefreshResult, SessionClient } from './api/client';
 import DiffWorkspace from './components/DiffWorkspace.vue';
 import DraftRecovery from './components/DraftRecovery.vue';
-import ReviewNotesDialog from './components/ReviewNotesDialog.vue';
 import ErrorState from './components/ErrorState.vue';
 import ChangedFilesDialog from './components/ChangedFilesDialog.vue';
-import IdentityHeader from './components/IdentityHeader.vue';
 import SupportDialog from './components/SupportDialog.vue';
 import InlineNotice from './components/InlineNotice.vue';
 import SelectorDriftNotice from './components/SelectorDriftNotice.vue';
 import StaleAnchorNotice from './components/StaleAnchorNotice.vue';
 import RefreshSummaryPanel from './components/RefreshSummaryPanel.vue';
-import ReviewToolbar from './components/ReviewToolbar.vue';
-import ActiveFileToolbar from './components/ActiveFileToolbar.vue';
-import ShellFooter from './components/ShellFooter.vue';
+import WorkbenchShell from './components/workbench/WorkbenchShell.vue';
+import TitleBar from './components/workbench/TitleBar.vue';
+import EditorTitle from './components/workbench/EditorTitle.vue';
+import Breadcrumbs from './components/workbench/Breadcrumbs.vue';
+import BottomPanel from './components/workbench/BottomPanel.vue';
+import StatusBar from './components/workbench/StatusBar.vue';
 import type { WorkspaceCommand, WorkspaceEvent } from './model/workspace-state.js';
 import { createWorkspaceState, type WorkspaceController } from './model/workspace-state.js';
 import { reconcileDraftComments } from './model/draft-reconciliation.js';
@@ -56,6 +57,7 @@ import {
 import { singlePaneSideFor } from './model/single-pane-layout.js';
 import { controlSafeDisplay } from '../domain/path-bytes.js';
 import type { DraftMutationRequest } from '../contracts/api.js';
+import { createPanelState } from './model/panel-state.js';
 
 type CanonicalReviewDraft = Readonly<{
   revision: number;
@@ -74,7 +76,7 @@ type ReviewFailure = Readonly<{
   commentId?: string;
 }>;
 
-type ShellDialog = 'changed-files' | 'review-notes' | 'support';
+type ShellDialog = 'changed-files' | 'support';
 
 const session = shallowRef<SessionResponse>();
 const sessionToken = ref('');
@@ -88,16 +90,17 @@ const isNarrow = ref(false);
 const changedFilesOpen = computed(() => shellDialog.value === 'changed-files');
 const changedFilesRestoreFocus = ref(true);
 const focusActiveFileAfterDialog = ref(false);
-const filesCollapsed = ref(false);
+const panelState = createPanelState();
+const panelOpen = ref(false);
+const renderSideBySide = ref(true);
 const fileModeByFileId = shallowRef<Map<string, 'source' | 'rendered'>>(new Map());
 const activeFileMode = computed(() => fileModeByFileId.value.get(selectedContent.value?.fileId ?? '') ?? 'source');
-const reviewNotesOpen = computed(() => shellDialog.value === 'review-notes');
 const shellModalOpen = computed(() => shellDialog.value !== null);
 const liveMessage = ref('');
 const liveMessageVersion = ref(0);
-const activeFileToolbar = ref<InstanceType<typeof ActiveFileToolbar>>();
+const editorTitle = ref<InstanceType<typeof EditorTitle>>();
 const diffWorkspace = ref<InstanceType<typeof DiffWorkspace>>();
-const identityHeader = ref<InstanceType<typeof IdentityHeader>>();
+const statusBar = ref<InstanceType<typeof StatusBar>>();
 const workspaceState = shallowRef<WorkspaceState>();
 const draftRevision = ref(0);
 const reviewDraft = shallowRef<ReviewDraftSnapshot>();
@@ -175,6 +178,16 @@ const uncommittedSourceLabel = computed(() => {
     case 'worktree': return 'Working tree';
     default: return '';
   }
+});
+const snapshotLabel = computed(() => {
+  if (isExactPatchSession.value) return 'Frozen patch';
+  if (isStandaloneSession.value) {
+    return `Standalone · snapshot ${controlSafeDisplay(uncommittedSession.value?.reviewKey.slice(0, 7) ?? '')}`;
+  }
+  if (isUncommittedSession.value) {
+    return `${uncommittedSourceLabel.value} · snapshot ${controlSafeDisplay(uncommittedSession.value?.reviewKey.slice(0, 7) ?? '')}`;
+  }
+  return `${controlSafeDisplay(pinnedSession.value?.base.oid.slice(0, 7) ?? '')} → ${controlSafeDisplay(pinnedSession.value?.head.oid.slice(0, 7) ?? '')}`;
 });
 const singlePaneSide = computed(() =>
   selectedFile.value === undefined
@@ -281,6 +294,7 @@ const unsavedInlineComposerFile = computed(() => {
       };
 });
 const workspaceComments = computed(() => workspaceState.value?.comments ?? []);
+const openCommentCount = computed(() => workspaceComments.value.filter((comment) => comment.state === 'open').length);
 const hasUnverifiedAnchors = computed(() =>
   workspaceComments.value.some((comment) => comment.status === 'stale' || comment.status === 'orphaned'),
 );
@@ -342,15 +356,37 @@ function closeShellDialog(dialog: ShellDialog): void {
   if (shellDialog.value === dialog) shellDialog.value = null;
 }
 
-function toggleFiles(): void {
+function toggleSidebar(): void {
   if (isNarrow.value) {
     openShellDialog('changed-files');
     return;
   }
-  filesCollapsed.value = !filesCollapsed.value;
+  panelState.sidebarVisible.value = !panelState.sidebarVisible.value;
+  panelState.persist();
   dispatchWorkspace({ type: 'resize' });
   diffWorkspace.value?.layout();
-  void nextTick(() => activeFileToolbar.value?.focusFilesToggle());
+}
+
+function togglePanel(): void {
+  panelOpen.value = !panelOpen.value;
+}
+
+function closePanel(): void {
+  panelOpen.value = false;
+}
+
+function openPanel(): void {
+  panelOpen.value = true;
+}
+
+function commitSidebarWidth(value: number): void {
+  panelState.sidebarWidth.value = value;
+  panelState.persist();
+}
+
+function commitPanelHeight(value: number): void {
+  panelState.panelHeight.value = value;
+  panelState.persist();
 }
 
 function setFileMode(fileId: string, mode: 'source' | 'rendered'): void {
@@ -859,7 +895,7 @@ function selectFile(fileId: string): void {
     selectedFile.value = file;
     selectedContent.value = undefined;
     diffError.value = '';
-    if (focusHeading) void nextTick(() => activeFileToolbar.value?.focusHeading());
+    if (focusHeading) void nextTick(() => editorTitle.value?.focusHeading());
     return;
   }
   if (focusHeading) focusActiveFileAfterDialog.value = true;
@@ -891,7 +927,7 @@ function handleDiffReady(fileId: string): void {
   if (loadedContentMessageVersion === liveMessageVersion.value) announce(`Loaded ${selectedPath.value}.`);
   if (focusActiveFileAfterDialog.value) {
     focusActiveFileAfterDialog.value = false;
-    void nextTick(() => activeFileToolbar.value?.focusHeading());
+    void nextTick(() => editorTitle.value?.focusHeading());
   }
 }
 
@@ -901,17 +937,17 @@ function retryDiff(): void {
   }
 }
 
-
-function openReviewNotes(): void {
-  openShellDialog('review-notes');
-}
-
-function closeReviewNotes(): void {
-  closeShellDialog('review-notes');
-}
-
-
 function handleKeydown(event: KeyboardEvent): void {
+  if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'b') {
+    event.preventDefault();
+    toggleSidebar();
+    return;
+  }
+  if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'j') {
+    event.preventDefault();
+    togglePanel();
+    return;
+  }
   const target = event.target;
   if (target instanceof HTMLTextAreaElement && target.closest('.inline-comment-composer') !== null) {
     if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
@@ -924,10 +960,10 @@ function handleKeydown(event: KeyboardEvent): void {
     return;
   }
   if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) return;
-  if (event.altKey && event.shiftKey && event.key === '[') {
+  if (event.altKey && event.key === 'ArrowUp') {
     event.preventDefault();
     previousFile();
-  } else if (event.altKey && event.shiftKey && event.key === ']') {
+  } else if (event.altKey && event.key === 'ArrowDown') {
     event.preventDefault();
     nextFile();
   } else if (event.key === 'F7') {
@@ -1046,7 +1082,7 @@ function openSupportDialog(): void {
 }
 function closeSupportDialog(): void {
   closeShellDialog('support');
-  void nextTick(() => (supportOpener === undefined ? identityHeader.value?.focusSupport() : supportOpener.focus()));
+  void nextTick(() => (supportOpener === undefined ? statusBar.value?.focusSupport() : supportOpener.focus()));
   stopSupportWaiting();
 }
 
@@ -1256,148 +1292,200 @@ onBeforeUnmount(() => {
   </main>
 
   <div v-else class="session-shell">
-    <div class="session-shell__content" :inert="shellModalOpen">
-    <a v-if="!isNarrow && !filesCollapsed" class="skip-link" href="#changed-files-heading">Skip to files</a>
+    <a v-if="panelState.sidebarVisible.value && !isNarrow" class="skip-link" href="#changed-files-heading">Skip to files</a>
     <a class="skip-link" :href="`#${RENAME_MAP.cssPrefix}heading`">Skip to diff</a>
-    <IdentityHeader
-      ref="identityHeader"
-      :session="session"
-      :support-enabled="supportEnabled"
-      :support-open="supportDialogOpen"
-      :support-inert="supportDialogOpen"
-      :attached-lifecycle="isAttachedSession ? (attachedLifecycle === 'finishing' || attachedLifecycle === 'completed' ? attachedLifecycle : 'waiting') : undefined"
+    <WorkbenchShell
+      :sidebar-visible="panelState.sidebarVisible.value"
+      :sidebar-width="panelState.sidebarWidth.value"
+      :panel-open="panelOpen"
+      :panel-height="panelState.panelHeight.value"
+      :is-narrow="isNarrow"
       :inert="shellModalOpen"
-      :show-refresh="isUncommittedSession"
-      :refresh-busy="refreshBusy"
-      :worktree-changed="worktreeChanged"
-      @support="openSupportDialog"
-      @review-notes="openReviewNotes"
-      @refresh="performRefresh"
-    />
-    <section
-      v-if="patchDrifted || hasUnverifiedAnchors || selectorDriftStatus?.base.kind !== 'unchanged' || selectorDriftStatus?.head.kind !== 'unchanged' || (capturedFilesChanged > 0 && !dismissedCaptureBanner) || refreshSummary !== undefined || (recoveryAvailable && !recoveryOfferDismissed)"
-      class="shell-warning-stack"
+      @update:sidebar-width="commitSidebarWidth"
+      @update:panel-height="commitPanelHeight"
     >
-      <InlineNotice v-if="patchDrifted" tone="error">
-        <h2>Implemented content changed</h2>
-        <p>{{ `The repository or worktree no longer matches this exact patch. The frozen review remains readable, but ${RENAME_MAP.displayName} will not substitute current content. Relaunch with a patch that matches the current implementation.` }}</p>
-      </InlineNotice>
-      <SelectorDriftNotice :drift="selectorDriftStatus" />
-      <StaleAnchorNotice v-if="hasUnverifiedAnchors" />
-      <InlineNotice
-        v-if="capturedFilesChanged > 0 && !dismissedCaptureBanner"
-        tone="warning"
-        role="note"
-        dismissible
-        :dismiss-label='`Dismiss "${capturedFilesChanged} files changed during capture" notice`'
-        @dismiss="dismissedCaptureBanner = true"
-      >
-        {{ capturedFilesChanged }} file{{ capturedFilesChanged === 1 ? '' : 's' }} changed during capture — Refresh to recapture
-      </InlineNotice>
-      <InlineNotice v-if="recoveryAvailable && !recoveryOfferDismissed" tone="information" role="note" dismissible dismiss-label='Dismiss "Resume previous uncommitted review?" notice' @dismiss="recoveryOfferDismissed = true"><h2>Resume previous uncommitted review?</h2><p>A previous draft exists for this source. Resuming copies its comments into this review, reclassified against the current snapshot. The previous draft is left untouched.</p><button type="button" class="ui-button ui-button--primary" :disabled="recoveryBusy" :aria-busy="recoveryBusy" @click="acceptUncommittedRecovery">{{ recoveryBusy ? 'Resuming…' : 'Resume' }}</button></InlineNotice>
-      <RefreshSummaryPanel
-        v-if="refreshSummary !== undefined"
-        v-bind="refreshSummary"
-        @dismiss="refreshSummary = undefined"
-        @select-file="selectFile"
-      />
-    </section>
-
-    <DraftRecovery
-      v-if="recoveryLoad !== undefined && primarySurface !== 'workspace'"
-      :load="recoveryLoad"
-      :reveal-draft-file="revealDraftFile"
-      :recover-draft="recoverDraft"
-      @recovered="acceptRecoveredDraft"
-      @open-new-draft="openRecoveredDraft"
-    />
-    <div
-      v-else
-      class="review-shell"
-      :class="{ 'review-shell--files-collapsed': !isNarrow && filesCollapsed }"
-      :inert="reviewNotesOpen || supportDialogOpen || changedFilesOpen"
-    >
-      <!-- v-show, not v-if: Teleport resolves `#changed-files` once, so destroying the host
-           strands the teleported tree and the sidebar comes back empty. -->
-      <div v-show="!isNarrow && !filesCollapsed" id="changed-files" class="changed-files-sidebar"></div>
-
-      <main class="review-main" :aria-labelledby="`${RENAME_MAP.cssPrefix}heading`">
-        <ReviewToolbar
-          :at-first-file="atFirstFile"
-          :at-last-file="atLastFile"
-          :has-active-file="selectedFile?.availability.kind === 'text'"
-          :single-pane="singlePaneSide !== undefined"
-          @previous-file="previousFile"
-          @next-file="nextFile"
-          @previous-change="previousChange"
-          @next-change="nextChange"
-        >
-          <ActiveFileToolbar
-            ref="activeFileToolbar"
-            :files-collapsed="filesCollapsed"
+      <template #titlebar>
+        <TitleBar
+          :session="session"
+          :attached-lifecycle="isAttachedSession ? (attachedLifecycle === 'finishing' || attachedLifecycle === 'completed' ? attachedLifecycle : 'waiting') : undefined"
+          :refresh-busy="refreshBusy"
+          :show-refresh="isUncommittedSession"
+          :worktree-changed="worktreeChanged"
+          :sidebar-visible="panelState.sidebarVisible.value"
+          :panel-open="panelOpen"
+          @refresh="performRefresh"
+          @toggle-sidebar="toggleSidebar"
+          @toggle-panel="togglePanel"
+        />
+      </template>
+      <template #editor>
+        <DraftRecovery
+          v-if="recoveryLoad !== undefined && primarySurface !== 'workspace'"
+          :load="recoveryLoad"
+          :reveal-draft-file="revealDraftFile"
+          :recover-draft="recoverDraft"
+          @recovered="acceptRecoveredDraft"
+          @open-new-draft="openRecoveredDraft"
+        />
+        <template v-else>
+          <EditorTitle
+            ref="editorTitle"
+            :files-collapsed="!panelState.sidebarVisible.value"
             :files-drawer="isNarrow"
             :mode="activeFileMode"
             :selected-file="selectedFile"
             :selected-path="selectedPath"
-            @toggle-files="toggleFiles"
+            :at-first-file="atFirstFile"
+            :at-last-file="atLastFile"
+            :has-active-file="selectedFile?.availability.kind === 'text'"
+            :single-pane="singlePaneSide !== undefined"
+            :render-side-by-side="renderSideBySide"
+            @toggle-files="toggleSidebar"
             @toggle-mode="(mode) => selectedContent !== undefined && setFileMode(selectedContent.fileId, mode)"
+            @previous-file="previousFile"
+            @next-file="nextFile"
+            @previous-change="previousChange"
+            @next-change="nextChange"
+            @toggle-layout="(value) => (renderSideBySide = value)"
           />
-        </ReviewToolbar>
-
-        <section v-if="session.files.length === 0" class="empty-state">
-          <h2>{{ emptyFilesCopy.heading }}</h2>
-          <p>{{ emptyFilesCopy.message }}</p>
-        </section>
-        <section v-else-if="selectedFile?.availability.kind !== 'text'" class="empty-state">
-          <h2>Diff unavailable for this file</h2>
-          <p>{{ selectedFile?.availability.kind === 'unsupported' && selectedFile.availability.reason === 'changed-during-capture' ? `This file changed while ${RENAME_MAP.displayName} was capturing the snapshot and could not be read consistently. Refresh to recapture it.` : `${selectedFile?.availability.kind === 'unsupported' ? `unsupported: ${selectedFile.availability.reason}` : 'unavailable: missing-object'}. Select another changed file to continue reviewing.` }}</p>
-        </section>
-        <section v-else-if="diffLoading" class="diff-state">Loading diff…</section>
-        <section v-else-if="diffError !== ''" class="empty-state" :role="isRangeSession || isExactPatchSession ? 'alert' : undefined">
-          <template v-if="isExactPatchSession">
-            <h2>Frozen patch file unavailable</h2>
-            <p>{{ `${RENAME_MAP.displayName} could not read this file from the frozen patch snapshot. Try the same snapshot again; current repository or worktree bytes will not be substituted.` }}</p>
-            <button type="button" class="ui-button" @click="retryDiff">Try frozen snapshot again</button>
-          </template>
-          <template v-else-if="isRangeSession">
-            <h2>Pinned range unavailable</h2>
-            <p>{{ `${RENAME_MAP.displayName} could not load the pinned commits or scoped file inventory. Relaunch the same request; this review will not substitute current refs.` }}</p>
-            <button type="button" class="ui-button" @click="retryDiff">Try loading pinned diff again</button>
-          </template>
-          <template v-else>
-            <h2>Diff couldn’t be loaded</h2>
-            <p>{{ `The pinned file content is unavailable. Try again, or relaunch ${RENAME_MAP.displayName} if the session ended.` }}</p>
-            <button type="button" class="ui-button" @click="retryDiff">Try loading diff again</button>
-          </template>
-        </section>
-        <DiffWorkspace
-          v-else-if="selectedContent !== undefined"
-          ref="diffWorkspace"
+          <section
+            v-if="patchDrifted || hasUnverifiedAnchors || selectorDriftStatus?.base.kind !== 'unchanged' || selectorDriftStatus?.head.kind !== 'unchanged' || (capturedFilesChanged > 0 && !dismissedCaptureBanner) || refreshSummary !== undefined || (recoveryAvailable && !recoveryOfferDismissed)"
+            class="shell-warning-stack"
+          >
+            <InlineNotice v-if="patchDrifted" tone="error">
+              <h2>Implemented content changed</h2>
+              <p>{{ `The repository or worktree no longer matches this exact patch. The frozen review remains readable, but ${RENAME_MAP.displayName} will not substitute current content. Relaunch with a patch that matches the current implementation.` }}</p>
+            </InlineNotice>
+            <SelectorDriftNotice :drift="selectorDriftStatus" />
+            <StaleAnchorNotice v-if="hasUnverifiedAnchors" />
+            <InlineNotice
+              v-if="capturedFilesChanged > 0 && !dismissedCaptureBanner"
+              tone="warning"
+              role="note"
+              dismissible
+              :dismiss-label='`Dismiss "${capturedFilesChanged} files changed during capture" notice`'
+              @dismiss="dismissedCaptureBanner = true"
+            >
+              {{ capturedFilesChanged }} file{{ capturedFilesChanged === 1 ? '' : 's' }} changed during capture — Refresh to recapture
+            </InlineNotice>
+            <InlineNotice v-if="recoveryAvailable && !recoveryOfferDismissed" tone="information" role="note" dismissible dismiss-label='Dismiss "Resume previous uncommitted review?" notice' @dismiss="recoveryOfferDismissed = true"><h2>Resume previous uncommitted review?</h2><p>A previous draft exists for this source. Resuming copies its comments into this review, reclassified against the current snapshot. The previous draft is left untouched.</p><button type="button" class="ui-button ui-button--primary" :disabled="recoveryBusy" :aria-busy="recoveryBusy" @click="acceptUncommittedRecovery">{{ recoveryBusy ? 'Resuming…' : 'Resume' }}</button></InlineNotice>
+            <RefreshSummaryPanel
+              v-if="refreshSummary !== undefined"
+              v-bind="refreshSummary"
+              @dismiss="refreshSummary = undefined"
+              @select-file="selectFile"
+            />
+          </section>
+          <Breadcrumbs :path="selectedPath" />
+          <section v-if="session.files.length === 0" class="empty-state">
+            <h2>{{ emptyFilesCopy.heading }}</h2>
+            <p>{{ emptyFilesCopy.message }}</p>
+          </section>
+          <section v-else-if="selectedFile?.availability.kind !== 'text'" class="empty-state">
+            <h2>Diff unavailable for this file</h2>
+            <p>{{ selectedFile?.availability.kind === 'unsupported' && selectedFile.availability.reason === 'changed-during-capture' ? `This file changed while ${RENAME_MAP.displayName} was capturing the snapshot and could not be read consistently. Refresh to recapture it.` : `${selectedFile?.availability.kind === 'unsupported' ? `unsupported: ${selectedFile.availability.reason}` : 'unavailable: missing-object'}. Select another changed file to continue reviewing.` }}</p>
+          </section>
+          <section v-else-if="diffLoading" class="diff-state">Loading diff…</section>
+          <section v-else-if="diffError !== ''" class="empty-state" :role="isRangeSession || isExactPatchSession ? 'alert' : undefined">
+            <template v-if="isExactPatchSession">
+              <h2>Frozen patch file unavailable</h2>
+              <p>{{ `${RENAME_MAP.displayName} could not read this file from the frozen patch snapshot. Try the same snapshot again; current repository or worktree bytes will not be substituted.` }}</p>
+              <button type="button" class="ui-button" @click="retryDiff">Try frozen snapshot again</button>
+            </template>
+            <template v-else-if="isRangeSession">
+              <h2>Pinned range unavailable</h2>
+              <p>{{ `${RENAME_MAP.displayName} could not load the pinned commits or scoped file inventory. Relaunch the same request; this review will not substitute current refs.` }}</p>
+              <button type="button" class="ui-button" @click="retryDiff">Try loading pinned diff again</button>
+            </template>
+            <template v-else>
+              <h2>Diff couldn’t be loaded</h2>
+              <p>{{ `The pinned file content is unavailable. Try again, or relaunch ${RENAME_MAP.displayName} if the session ended.` }}</p>
+              <button type="button" class="ui-button" @click="retryDiff">Try loading diff again</button>
+            </template>
+          </section>
+          <DiffWorkspace
+            v-else-if="selectedContent !== undefined"
+            ref="diffWorkspace"
+            :comments="workspaceComments"
+            :composer="activeComposer"
+            :content="selectedContent"
+            :mode="activeFileMode"
+            :path="selectedPath"
+            :session-token="sessionToken"
+            :source-kind="isExactPatchSession ? 'exact-patch' : 'range'"
+            :single-pane-side="singlePaneSide"
+            :base-oid="singlePaneBaseOid"
+            :head-oid="singlePaneHeadOid"
+            :mutations-locked="attachedMutationLocked"
+            :render-side-by-side="renderSideBySide"
+            @activate="(side, line, endLine) => dispatchWorkspace({ type: 'activate-line', side, line, endLine })"
+            @add="dispatchWorkspace({ type: 'add-comment' })"
+            @cancel="dispatchWorkspace({ type: 'cancel-composer' })"
+            @confirm-discard="dispatchWorkspace({ type: 'confirm-discard' })"
+            @confirm-move="dispatchWorkspace({ type: 'confirm-move' })"
+            @keep-writing="dispatchWorkspace({ type: 'keep-writing' })"
+            @ready="handleDiffReady"
+            @update-text="(text) => dispatchWorkspace({ type: 'composer-text-changed', text })"
+            @next-change="nextChange"
+            @previous-change="previousChange"
+            @next-file="nextFile"
+            @previous-file="previousFile"
+          />
+        </template>
+      </template>
+      <template #panel>
+        <BottomPanel
+          v-if="reviewDraft !== undefined && session !== undefined"
+          :open="panelOpen"
           :comments="workspaceComments"
-          :composer="activeComposer"
-          :content="selectedContent"
-          :mode="activeFileMode"
-          :path="selectedPath"
-          :session-token="sessionToken"
-          :source-kind="isExactPatchSession ? 'exact-patch' : 'range'"
-          :single-pane-side="singlePaneSide"
-          :base-oid="singlePaneBaseOid"
-          :head-oid="singlePaneHeadOid"
-          :mutations-locked="attachedMutationLocked"
-          @activate="(side, line, endLine) => dispatchWorkspace({ type: 'activate-line', side, line, endLine })"
-          @add="dispatchWorkspace({ type: 'add-comment' })"
-          @cancel="dispatchWorkspace({ type: 'cancel-composer' })"
-          @confirm-discard="dispatchWorkspace({ type: 'confirm-discard' })"
-          @confirm-move="dispatchWorkspace({ type: 'confirm-move' })"
-          @keep-writing="dispatchWorkspace({ type: 'keep-writing' })"
-          @ready="handleDiffReady"
-          @update-text="(text) => dispatchWorkspace({ type: 'composer-text-changed', text })"
+          :summary="reviewDraft.canonical.summary"
+          :summary-buffer="reviewDraft.summaryBuffer"
+          :revision="reviewDraft.canonical.revision"
+          :pinned-endpoints="pinnedSession"
+          :comment-buffers="reviewDraft.commentBuffers"
+          :pending="reviewDraft.pending"
+          :conflict="reviewDraft.conflict === null ? null : { expectedRevision: reviewDraft.conflict.expectedRevision, actualRevision: reviewDraft.conflict.latest.revision }"
+          :failure="reviewFailure"
+          :retained-summary="reviewDraft.retained.summary"
+          :export-state="reviewDraft.export"
+          :append-ignore-rule="appendLoopnoteIgnoreRule"
+          :refresh-ignore-status="refreshIgnoreStatus"
+          :reveal-export-directory="revealExportDirectory"
+          :attached-lifecycle="isAttachedSession ? attachedLifecycle : undefined"
+          :attached-ready="attachedFinishReady"
+          :unsaved-inline-composer-file="unsavedInlineComposerFile"
+          :attached-failure="attachedResult"
+          :mutation-locked="attachedMutationLocked"
+          :is-exact-patch="isExactPatchSession"
+          :export-supported="!isUncommittedSession || isStandaloneSession"
+          @close="closePanel"
+          @cancel-summary="if (!attachedMutationLocked) { reviewState?.setSummaryBuffer(reviewDraft?.canonical.summary ?? ''); refreshReviewSnapshot(); }"
+          @reload-latest="reloadLatestReview"
+          @save-summary="saveSummary"
+          @update:summary-buffer="(value) => { if (!attachedMutationLocked) { reviewState?.setSummaryBuffer(value); refreshReviewSnapshot(); } }"
+          @cancel-export="cancelExport"
+          @export="exportReview"
+          @review-unsaved-text="reviewUnsavedText"
+          @review-inline-composer="reviewInlineComposer"
+          @finish-review="finishAttachedReview"
+          @reload-attached="reloadPage"
         />
-
-      </main>
-    </div>
-    <ShellFooter :session="session" />
-    </div>
+      </template>
+      <template #statusbar>
+        <StatusBar
+          ref="statusBar"
+          :session="session"
+          :snapshot-label="snapshotLabel"
+          :export-supported="!isUncommittedSession || isStandaloneSession"
+          :open-comment-count="openCommentCount"
+          :support-enabled="supportEnabled"
+          :support-inert="supportDialogOpen"
+          :support-open="supportDialogOpen"
+          @open-panel="openPanel"
+          @support="openSupportDialog"
+        />
+      </template>
+    </WorkbenchShell>
     <ChangedFilesDialog
       :open="changedFilesOpen"
       :restore-focus="changedFilesRestoreFocus"
@@ -1421,42 +1509,6 @@ onBeforeUnmount(() => {
       @restore="restoreSupport"
       @dismiss="dismissSupportDialog"
       @close="closeSupportDialog"
-    />
-    <ReviewNotesDialog
-      v-if="reviewDraft !== undefined && session !== undefined"
-      :open="reviewNotesOpen"
-      :comments="workspaceComments"
-      :summary="reviewDraft.canonical.summary"
-      :summary-buffer="reviewDraft.summaryBuffer"
-      :revision="reviewDraft.canonical.revision"
-      :pinned-endpoints="pinnedSession"
-      :comment-buffers="reviewDraft.commentBuffers"
-      :pending="reviewDraft.pending"
-      :conflict="reviewDraft.conflict === null ? null : { expectedRevision: reviewDraft.conflict.expectedRevision, actualRevision: reviewDraft.conflict.latest.revision }"
-      :failure="reviewFailure"
-      :retained-summary="reviewDraft.retained.summary"
-      :export-state="reviewDraft.export"
-      :append-ignore-rule="appendLoopnoteIgnoreRule"
-      :refresh-ignore-status="refreshIgnoreStatus"
-      :reveal-export-directory="revealExportDirectory"
-      :attached-lifecycle="isAttachedSession ? attachedLifecycle : undefined"
-      :attached-ready="attachedFinishReady"
-      :unsaved-inline-composer-file="unsavedInlineComposerFile"
-      :attached-failure="attachedResult"
-      :mutation-locked="attachedMutationLocked"
-      :is-exact-patch="isExactPatchSession"
-      :export-supported="!isUncommittedSession || isStandaloneSession"
-      @close="closeReviewNotes"
-      @cancel-summary="if (!attachedMutationLocked) { reviewState?.setSummaryBuffer(reviewDraft?.canonical.summary ?? ''); refreshReviewSnapshot(); }"
-      @reload-latest="reloadLatestReview"
-      @save-summary="saveSummary"
-      @update:summary-buffer="(value) => { if (!attachedMutationLocked) { reviewState?.setSummaryBuffer(value); refreshReviewSnapshot(); } }"
-      @cancel-export="cancelExport"
-      @export="exportReview"
-      @review-unsaved-text="reviewUnsavedText"
-      @review-inline-composer="reviewInlineComposer"
-      @finish-review="finishAttachedReview"
-      @reload-attached="reloadPage"
     />
     <p class="visually-hidden" aria-live="polite">
       <span :key="liveMessageVersion" :data-announcement-version="liveMessageVersion">{{ liveMessage }}</span>
