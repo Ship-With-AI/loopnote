@@ -14,6 +14,10 @@ export type UiIconName =
   | 'refresh'
   | 'sidebar'
   | 'panel'
+  | 'diff-split'
+  | 'diff-inline'
+  | 'markdown-source'
+  | 'markdown-preview'
   | 'disabled';
 
 defineProps<{
@@ -88,6 +92,20 @@ defineProps<{
     <template v-else-if="name === 'panel'">
       <rect x="2.5" y="3" width="11" height="10" rx="1.5" />
       <path d="M2.5 9.75h11" />
+    </template>
+    <template v-else-if="name === 'diff-split'">
+      <rect x="2" y="3" width="5" height="10" rx="1" />
+      <rect x="9" y="3" width="5" height="10" rx="1" />
+    </template>
+    <template v-else-if="name === 'diff-inline'">
+      <rect x="2.5" y="3" width="11" height="10" rx="1.5" />
+      <path d="M2.5 8h11" />
+    </template>
+    <template v-else-if="name === 'markdown-source'">
+      <path d="M6 5 3.25 8 6 11M10 5l2.75 3L10 11M9 4l-2 8" />
+    </template>
+    <template v-else-if="name === 'markdown-preview'">
+      <path d="M3.5 5h9M3.5 8h9M3.5 11h6" />
     </template>
     <template v-else>
       <circle cx="8" cy="8" r="5.5" />
