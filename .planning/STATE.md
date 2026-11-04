@@ -5,15 +5,15 @@ milestone_name: Workbench Redesign
 current_phase: 19
 current_phase_name: Typecheck Foundation
 status: executing
-stopped_at: Completed 19-02-PLAN.md
-last_updated: "2026-11-04T16:14:42.568Z"
+stopped_at: Completed 19-03-PLAN.md
+last_updated: "2026-11-04T16:21:39.067Z"
 last_activity: 2026-11-04
 last_activity_desc: Phase 19 execution started
 progress:
   total_phases: 7
   completed_phases: 0
   total_plans: 4
-  completed_plans: 2
+  completed_plans: 3
   percent: 0
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-11-04)
 ## Current Position
 
 Phase: 19 (Typecheck Foundation) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-11-04 — Phase 19 execution started
 
@@ -106,6 +106,7 @@ Last activity: 2026-11-04 — Phase 19 execution started
 | Phase 18 P05 | 50min | 2 tasks | 7 files |
 | Phase 19 P01 | 5min | 3 tasks | 3 files |
 | Phase 19 P02 | 20min | 2 tasks | 2 files |
+| Phase 19 P03 | 25min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -211,6 +212,8 @@ Decisions are logged in PROJECT.md Key Decisions.
 - [Phase 19]: Pinned vue-tsc to exact 3.3.14 (not npm's default ^3.3.14 caret range) via npm pkg set, matching project's existing exact-pin convention.
 - [Phase 19]: Task 3's byte-identical build proof used git checkout <rev> -- package.json package-lock.json revert/restore instead of git stash, since task_commit_protocol commits Task 2 before Task 3 runs, leaving nothing for git stash to capture.
 - [Phase ?]: 19-02: Widened onMounted ResizeObserver callback's zone guard (zone === null -> zone === null || zone === undefined) alongside renderAnnotation(), since both query the identical nullable .monaco-anchor-zone--composer DOM ref
+- [Phase 19-03]: AttachedLifecycle consolidation uses App.vue's broader 7-member union as the single exported source of truth — ReviewNotesDialog.vue's narrower 6-member local type was a strict subset and 'ordinary' is provably unreachable at that call site, so widening the consumer's prop type changes zero runtime behaviour
+- [Phase 19-03]: App.vue's session-shell v-else branch narrowed to v-else-if="session !== undefined" to fix all 4 remaining session.value errors in one change — All four error sites live in the same subtree; vue-tsc's template control-flow analysis propagates the discriminant check through it, mirroring 19-02's DraftRecovery.vue v-else-if fix
 
 ### Pending Todos
 
@@ -269,8 +272,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-11-04T16:14:42.556Z
-Stopped at: Completed 19-02-PLAN.md
+Last session: 2026-11-04T16:21:39.062Z
+Stopped at: Completed 19-03-PLAN.md
 Resume file: None
 
 ## Operator Next Steps

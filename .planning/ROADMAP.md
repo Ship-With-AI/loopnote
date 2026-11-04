@@ -74,7 +74,7 @@ Full details: [`milestones/v2.0-ROADMAP.md`](./milestones/v2.0-ROADMAP.md).
   2. CI fails the build when `typecheck:web` reports a type error, proven by deliberately introducing a bad prop type and confirming the gate fails rather than passing trivially.
   3. The Node/CLI side still builds through the fast native `tsc` with unchanged output.
 
-**Plans**: 2/4 plans executed
+**Plans**: 3/4 plans executed
 **Wave 1**
 
 - [x] 19-01-PLAN.md
@@ -82,7 +82,7 @@ Full details: [`milestones/v2.0-ROADMAP.md`](./milestones/v2.0-ROADMAP.md).
 **Wave 2** *(blocked on Wave 1 completion)*
 
 - [x] 19-02-PLAN.md
-- [ ] 19-03-PLAN.md
+- [x] 19-03-PLAN.md
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -193,7 +193,7 @@ Full details: [`milestones/v2.0-ROADMAP.md`](./milestones/v2.0-ROADMAP.md).
 | 17. Agent Protocol Extension & Marketplace Skill | v2.0 | 5/5 | Complete | 2026-10-31 |
 | 17.1. Full Project Rename | v2.0 | 23/23 | Complete | 2026-11-02 |
 | 18. Product Repositioning Copy | v2.0 | 5/5 | Complete | 2026-11-02 |
-| 19. Typecheck Foundation | v2.1 | 2/4 | In Progress|  |
+| 19. Typecheck Foundation | v2.1 | 3/4 | In Progress|  |
 | 20. Shell Frame | v2.1 | 0/TBD | Not started | - |
 | 21. Changed-Files Tree | v2.1 | 0/TBD | Not started | - |
 | 22. Identity & Status Bar | v2.1 | 0/TBD | Not started | - |
