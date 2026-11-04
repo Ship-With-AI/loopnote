@@ -6,14 +6,14 @@ current_phase: 20
 current_phase_name: Shell Frame
 status: executing
 stopped_at: Completed 20-08-PLAN.md
-last_updated: "2026-11-04T21:15:08.349Z"
+last_updated: "2026-11-04T22:11:04.220Z"
 last_activity: 2026-11-04
 last_activity_desc: Completed 20-05-PLAN.md (useSash.ts composable + WorkbenchShell.vue grid host)
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 14
-  completed_plans: 11
+  completed_plans: 13
   percent: 14
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-11-04)
 ## Current Position
 
 Phase: 20 — Shell Frame
-Plan: 8 of 10
+Plan: 9 of 10
 Status: Ready to execute
 Last activity: 2026-11-04 — Completed 20-05-PLAN.md (useSash.ts composable + WorkbenchShell.vue grid host)
 
@@ -116,6 +116,7 @@ Last activity: 2026-11-04 — Completed 20-05-PLAN.md (useSash.ts composable + W
 | Phase 20-shell-frame P06 | 25min | 2 tasks | 3 files |
 | Phase 20-shell-frame P07 | 45 min | 2 tasks | 7 files |
 | Phase 20-shell-frame P08 | 15min | 2 tasks | 1 files |
+| Phase 20-shell-frame P09 | 180 | - tasks | - files |
 
 ## Accumulated Context
 
@@ -241,6 +242,7 @@ Decisions are logged in PROJECT.md Key Decisions.
 - [Phase 20-shell-frame]: 20-07: added two new unconditional Cmd/Ctrl+B / Cmd/Ctrl+J branches at the very top of handleKeydown, before even the .inline-comment-composer textarea guard — must_haves truth states these fire 'from anywhere, including with focus inside the Monaco editor'; the plan named only 'before line 926' (the generic input/textarea/select guard), but the composer-specific guard at line 916 returns unconditionally first and would otherwise swallow the chord inside composer textareas
 - [Phase 20-shell-frame]: 20-07: Task 1 pruned only the genuinely dead .session-header/.review-toolbar/.shell-footer selector branches from styles.css, keeping .review-toolbar__active-file/__status/__counts, .session-header__brand/__comparison/__endpoint*, .header-facts, .pin-cue, .dirty-badge, .identity-disclosure, .change-indicator — EditorTitle.vue/TitleBar.vue/StatusBar.vue (20-03/20-04) literally reuse those classnames in their templates; the plan's selector-prefix list in Task 1's action text would have deleted live CSS if applied verbatim — confirmed via grep across the six new workbench components before each deletion
 - [Phase 20-shell-frame]: 20-08: agent-attached kind reuses plain stdin review-request mechanism, no custody-gated harness needed — Read src/cli/run.ts/capabilities.ts directly: every non-interactive stdin review-request (revisions/uncommitted/files/patch) always wires attachedCompletion server-side, so a plain revisions request over stdin (same mechanism pinned-session.spec.ts's existing 'generated range request' test already uses) reaches attachedLifecycle='waiting' without any custody-gated playwright.runtime-artifact.config.ts registration
+- [Phase ?]: 20-09: Verified locator mappings against actual source; fixed 3 production CSS bugs (editor flex context, session-shell grid-rows, EditorTitle narrow-width/single-pane) surfaced by required full-suite run
 
 ### Pending Todos
 
@@ -299,7 +301,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-11-04T21:15:08.344Z
+Last session: 2026-11-04T22:10:58.634Z
 Stopped at: Completed 20-08-PLAN.md
 Resume file: None
 
