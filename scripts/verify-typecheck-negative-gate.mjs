@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process';
+import { writeFileSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
@@ -26,6 +27,13 @@ function runTypecheck() {
 
 const original = await readFile(targetPath, 'utf8');
 if (!original.includes(originalBinding)) fail(`expected binding not found in PathDisplay.vue: ${originalBinding}`);
+
+function restoreOnSignal(signal) {
+  writeFileSync(targetPath, original, 'utf8');
+  process.kill(process.pid, signal);
+}
+process.once('SIGINT', restoreOnSignal);
+process.once('SIGTERM', restoreOnSignal);
 
 try {
   await writeFile(targetPath, original.replace(originalBinding, mutatedBinding), 'utf8');
