@@ -324,6 +324,24 @@ watch(reviewFailure, (failed) => {
 </template>
 
 <style scoped>
+.bottom-panel {
+  display: flex;
+  min-height: 0;
+  height: 100%;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.bottom-panel__header {
+  display: flex;
+  min-width: 0;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+}
+
 .bottom-panel__label {
   font-size: var(--font-size-label);
   letter-spacing: var(--letter-spacing-label);
