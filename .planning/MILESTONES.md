@@ -1,5 +1,43 @@
 # Milestones
 
+## v2.0 Artifact Review (Shipped: 2026-11-04)
+
+**Delivered:** Review grounded in any agent-produced artifact, not only committed ranges: single-pane added/deleted files, Staged/Unstaged/Working-tree review from frozen, explicitly refreshable snapshots, standalone file/glob review, rendered Markdown preview with block-anchored comments, and an agent stdin protocol carrying all of it — shipped as Loopnote 2.0.0 after the full Cumpa → Loopnote rename.
+
+**Phases completed:** 7 phases (13–18, incl. inserted 17.1), 70 plans, 196 tasks (sum of `**Tasks:**` across the 70 SUMMARY files; the CLI's automated count read 148)
+**Timeline:** 2026-09-12 → 2026-11-02
+**Git range:** `8cd83a5` → `728a75b` — 482 commits, 554 files changed, +72,704 / -3,798
+**Requirements:** 35/35 (MDV-01…04 marked Complete at close on `16-VERIFICATION.md` `status: passed`, 34/34 — the traceability table had not been updated after Phase 16 executed)
+
+**Key accomplishments:**
+
+- Entirely added/deleted/type-changed files render as one full-width commentable Monaco pane, marked as single-pane in the tree, header, and screen-reader label without relying on colour.
+- Staged, Unstaged, and Working-tree changes review against HEAD or any base from a content-addressed snapshot frozen at launch: torn-file detection during capture, explicit Refresh (button, Alt+Shift+R, terminal `r`) that reclassifies every comment, and "Resume previous uncommitted review?" relaunch recovery.
+- Standalone review: `loopnote <path|glob>…` opens named files full width without choosing Base/Head, with Git's own pathspec engine as the only traversal defence and schemaVersion-4 exports carrying byte-exact sha256 provenance.
+- Rendered Markdown preview: Source/Rendered toggle in single-pane and side-by-side layouts, comments anchored to rendered blocks' source line ranges, synced side-by-side scroll, a path-safe image route — all proven inert against scripts, raw HTML, and dangerous links under the unmodified production CSP.
+- Agent stdin protocol and marketplace skill extended with `uncommitted` and `files` modes, typed validation errors returned before any Git or browser work, and V5/V6 exports carrying a working-tree drift flag.
+- Full Cumpa → Loopnote rename (package, CLI, protocol `kind`s, env vars, state dirs, docs) derived from one `RENAME_MAP`, guarded by a rename-audit test across 353 files, with a one-time migration of existing support state; copy repositioned from "code review" to agent artifact review.
+
+### Known Deferred Items at Close
+
+Known deferred items at close: 4 (see STATE.md Deferred Items). Milestone closed without a `/gsd:audit-milestone` pass, by operator choice.
+
+- Phase 14 UAT (`14-UAT.md`, status `testing`, 1 pending scenario) and `14-VERIFICATION.md` `human_needed`: terminal `r` refresh in a real TTY must produce the same effect as the browser Refresh — no harness can supply a TTY to the spawned CLI.
+- `17-VERIFICATION.md` `human_needed` (14/15): `workingTreeChangedAfterFinalSnapshot.paths` lacks a test with 2+ dirty files; code reading (`collectWorkingTreeDrift`, `continue` not early return) indicates correct behaviour.
+- Quick task `260915-jbv` (remove Details/Review keyboard help): SUMMARY exists, status unknown to the audit.
+
+### Retained Technical Debt
+
+- DEBT-01 (toolbar containers without a queryable `role`) and the v1.5 carry-forward items remain in `ROADMAP.md` Backlog; the planned VS Code workbench redesign (sketches 001–004, `sketch-findings-loopnote` skill) gives toolbar groups `role="toolbar"`/`group`.
+
+### Archives
+
+- Roadmap: `.planning/milestones/v2.0-ROADMAP.md`
+- Requirements: `.planning/milestones/v2.0-REQUIREMENTS.md`
+- Phases: `.planning/milestones/v2.0-phases/`
+
+---
+
 ## v1.6 Workspace Restyle (Shipped: 2026-09-14)
 
 **Delivered:** One mockup-derived visual system across the workspace and Monaco — dense changed-file tree, quieter Base/Head diff surface, mockup-equivalent shell with Details and Review-notes dialogs — with review behaviour, exports, and support mechanics unchanged.
@@ -56,13 +94,16 @@ The archive alone no longer describes the running app. Four items landed on `res
 - `80c3b92` — the Files toggle emptied the sidebar permanently: Vue resolves a Teleport target
   once, so `v-if` on `#changed-files` stranded the single file tree in a detached element. Host
   now hidden with `v-show`; filter text and selection survive hide/show as a side benefit.
+
 - `8b2a050` — the Review rail rendered transparent over Monaco. Bisected to `5599805`
   (Phase 11-05), which deleted its only `background` declaration while retiring drawer styles.
+
 - Quick task `260915-gxg` — removed the active-file context bar; filename, status/counts and the
   Files toggle moved onto the navigation bar. Two bars became one 41px bar. Caught mid-task: the
   plan's `flex: 1 1 auto` slid navigation under the open Review rail (pointer-intercept at
   `anchored-workspace.spec.ts:1037`), and the merged bar rendered 61px because inherited label
   wrapping — both fixed and pinned by assertions.
+
 - Quick task `260915-jbv` — removed the Details dialog, the Review comments rail, and Keyboard
   help outright at the owner's instruction, no relocation. Net −2,991 lines, six files deleted.
   Accepted losses: comment resolve/reopen/edit/delete, stale and orphaned anchor records, the

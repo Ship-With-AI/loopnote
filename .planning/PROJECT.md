@@ -1,14 +1,33 @@
-# Cumpa
+# Loopnote
 
 ## What This Is
 
-Cumpa is a local-first review workspace for anything a coding agent produces: code, plans, decisions, and documentation. A CLI launched inside a Git repository opens a browser workspace where the developer reviews a change set between two local branches or registered worktrees, uncommitted work (staged, unstaged, or the whole working tree including untracked files) against HEAD or any chosen base, or a named set of files. Modified files render side by side; added, deleted, and standalone files render full width; Markdown can be read rendered. The developer leaves line comments and an overall summary, then exports Markdown plus canonical JSON a coding agent can apply. Agents can request the same review over stdin and receive the canonical result.
+Loopnote (renamed from Cumpa in v2.0) is a local-first review workspace for anything a coding agent produces: code, plans, decisions, and documentation. A CLI launched inside a Git repository opens a browser workspace where the developer reviews a change set between two local branches or registered worktrees, uncommitted work (staged, unstaged, or the whole working tree including untracked files) against HEAD or any chosen base, or a named set of files. Modified files render side by side; added, deleted, and standalone files render full width; Markdown can be read rendered. The developer leaves line comments and an overall summary, then exports Markdown plus canonical JSON a coding agent can apply. Agents can request the same review over stdin and receive the canonical result.
 
 ## Core Value
 
 A developer can accurately review repository-grounded changes chosen by a developer or coding agent and return precise, drift-detectable feedback the agent can act on.
 
 ## Current State
+
+**Shipped:** v2.0 Artifact Review on 2026-11-04 (closed without a milestone audit, by
+operator choice). `@shipwithai/loopnote@2.0.0` is `latest` on npm; the `loopnote` command
+replaces `cumpa`, and existing support state migrates once from the old Cumpa path.
+
+v2.0 delivered 35/35 requirements across 7 phases (13–18 plus inserted 17.1), 70 plans:
+single-pane added/deleted files; Staged/Unstaged/Working-tree review from a content-addressed
+snapshot frozen at launch with explicit, comment-reclassifying Refresh and relaunch recovery;
+standalone file/glob review; rendered Markdown preview with block-anchored comments under the
+production CSP; agent stdin `uncommitted`/`files` modes with V5/V6 exports; the full
+Cumpa → Loopnote rename from one `RENAME_MAP`; and copy repositioned to agent artifact review.
+
+Known deferred at close (STATE.md Deferred Items): the terminal `r` refresh needs a real-TTY
+human check (Phase 14), and multi-file `workingTreeChangedAfterFinalSnapshot.paths` lacks a
+test (Phase 17).
+
+<details>
+<summary>State at v1.6 / v1.5 close (2026-09-15)</summary>
+
 
 **Shipped:** v1.6 Workspace Restyle on 2026-09-14 (workspace surface) and v1.5 MIT
 Distribution on 2026-09-15 (distribution). The two milestones were closed on separate
@@ -61,7 +80,36 @@ The repository gate runs the full Playwright suite (94 tests) on every push to `
 it found and forced fixes for a composer draft-loss race and a roving-tabindex defect
 within hours of being widened.
 
-## Current Milestone: v2.0 Artifact Review
+</details>
+
+## Next Milestone Goals: v2.1 (proposed — Workbench Redesign)
+
+Defined by `/gsd:new-milestone`; inputs already validated by sketches 001–004
+(`.planning/sketches/WRAP-UP-SUMMARY.md`, skill `sketch-findings-loopnote`):
+
+- VS Code-inspired workbench: files-only side bar, title-bar Base→Head identity pill with a
+  details/drift/refresh popover, icon-only editor-title actions, bottom panel (Comments /
+  Summary / Export) closed while reading, 22px status bar. Loopnote palette kept.
+- VS Code Explorer-density changed-files tree (22px rows, compact folders, M/A/D decorations).
+- Inline Monaco view-zone comment threads with Open / Resolved / Anchor-moved states,
+  restoring resolve/reopen/delete removed by quick task `260915-jbv`.
+- Close backlog DEBT-01 through real `role="toolbar"`/`group` containers.
+- Open design questions to resolve in `/gsd:ui-phase`: narrow/phone widths, thread default
+  state, support entry point, `DESIGN.md` Composition/Geometry rewrite.
+
+Candidates carried forward from v1.5 (still unscheduled):
+
+- Make Restore propagate a false or failed RPC result into a non-completion response, then
+  obtain a permitted genuine live entitlement and close ACC-04 by rerunning only the
+  verified-state portions for the global, npx, and marketplace paths.
+- Correct `SKILL.md`, which still installs `@1.5.0` and claims only 1.5.0 has independent
+  release verification; this needs a separate marketplace publication.
+- Bring `.vue` files under typechecking (blocked on a TypeScript/vue-tsc pairing decision).
+
+<details>
+<summary>v2.0 Artifact Review (shipped 2026-11-04)</summary>
+
+**Name at the time:** Cumpa (renamed to Loopnote in inserted Phase 17.1).
 
 **Goal:** Make Cumpa a local review workspace for any artifact a coding agent produces (code, plans, decisions, docs), including uncommitted work, while keeping feedback precise and drift-detectable.
 
@@ -76,15 +124,10 @@ within hours of being widened.
 
 **Reversals:** v2.0 brings working-tree review into scope (previously Out of Scope) and supersedes the "committed Git objects only" decision for worktree sources; frozen session snapshots keep the drift-detectable guarantee.
 
-Candidates carried forward from v1.5 (not in v2.0 scope):
+**Delivered:** all seven target features plus the inserted full rename; see
+`.planning/milestones/v2.0-ROADMAP.md`.
 
-- Make Restore propagate a false or failed RPC result into a non-completion response, then
-  obtain a permitted genuine live entitlement and close ACC-04 by rerunning only the
-  verified-state portions for the global, npx, and marketplace paths.
-- Correct `SKILL.md`, which still installs `@1.5.0` and claims only 1.5.0 has independent
-  release verification; this needs a separate marketplace publication.
-- Bring `.vue` files under typechecking with `vue-tsc`.
-
+</details>
 <details>
 <summary>v1.5 MIT Distribution (shipped)</summary>
 
@@ -229,41 +272,52 @@ Validated in v2.0 Phase 13: Single-Pane File Rendering:
 
 - [x] Added and deleted files render as a single full-width pane.
 
+Validated in v2.0 Phases 14–18 (Artifact Review):
+
+- [x] User can choose Staged, Unstaged, or Working tree (with untracked files) as the Head source, against HEAD or any chosen branch/worktree base. — v2.0 (Phase 14)
+- [x] Working-tree sessions review a frozen snapshot and offer an explicit Refresh that reclassifies existing comments. — v2.0 (Phase 14; terminal `r` refresh awaiting real-TTY human check)
+- [x] User can review named files or globs outside any diff, full width and commentable. — v2.0 (Phase 15)
+- [x] User can toggle a rendered Markdown preview without losing source-line comment anchoring. — v2.0 (Phase 16)
+- [x] Coding agents can request uncommitted and standalone-file review over stdin and receive canonical JSON. — v2.0 (Phase 17)
+- [x] The product, package, CLI, protocol kinds, and state directories are named Loopnote, with one-time migration of existing state. — v2.0 (Phase 17.1)
+- [x] Product copy positions Loopnote as review for any agent-produced artifact. — v2.0 (Phase 18)
+
 ### Active
 
-- [ ] User can choose Staged, Unstaged, or Working tree (with untracked files) as the Head source, against HEAD or any chosen branch/worktree base.
-- [ ] Working-tree sessions review a frozen snapshot and offer an explicit Refresh that reclassifies existing comments.
-- [ ] User can review named files or globs outside any diff, full width and commentable.
-- [ ] User can toggle a rendered Markdown preview without losing source-line comment anchoring.
-- [ ] Coding agents can request uncommitted and standalone-file review over stdin and receive canonical JSON.
-- [ ] Product copy positions Cumpa as review for any agent-produced artifact.
+- [ ] VS Code-inspired workbench shell replaces the identity header band, review rail, and footer (proposed v2.1).
+- [ ] Reviewers can resolve, reopen, and delete comment threads inline again (removed by quick task `260915-jbv`; proposed v2.1).
+- [ ] Assistive technology reaches toolbar control groups by role and name (DEBT-01; proposed v2.1).
 
 ### Out of Scope
 
-- ~~Automatic review of staged, unstaged, untracked worktree state~~ — **moved into scope for v2.0** (Artifact Review); sessions review a frozen snapshot with explicit Refresh.
+- ~~Automatic review of staged, unstaged, untracked worktree state~~ — **shipped in v2.0** (Artifact Review); sessions review a frozen snapshot with explicit Refresh rather than live state.
 - Hosting reviews remotely or supporting multiple simultaneous reviewers — the product is a single-developer local tool.
 - Posting reviews to GitHub, GitLab, or another forge — export files are the integration boundary for v1.
 - Applying requested changes from inside the application — a separate coding agent consumes the export.
-- Image, notebook, binary diff rendering — Cumpa reviews text; Markdown gains a rendered preview in v2.0, other unsupported files are identified but not rendered inline.
+- Image, notebook, binary diff rendering — Loopnote reviews text; Markdown has a rendered preview since v2.0 and Markdown images resolve through a path-safe route, while other unsupported files are identified but not rendered inline.
 - Full GitHub review mechanics such as replies, suggestion patches, approvals, and pending-review submission — v1 provides line comments, resolution, and an overall summary.
 - Publishing credentials, confidential operational material, or content without publication rights — public-source release requires review of tracked content and history; destructive remediation needs separate approval.
 - Shipping TypeScript source, source maps, tests, planning files, or repository history in npm artifacts — consumers receive the compiled runtime-only distribution.
 
 ## Context
 
-Cumpa has shipped five milestones: the complete local browser-review-to-agent loop, a GitHub-dark accessible review workspace, scalable local source discovery, strict agent review handoff, and optional voluntary support.
+Loopnote has shipped eight milestones: the complete local browser-review-to-agent loop, a GitHub-dark accessible review workspace, scalable local source discovery, strict agent review handoff, optional voluntary support, MIT public distribution, a canonical-token workspace restyle, and artifact review beyond committed ranges.
 
-Each comparison remains ordered and frozen to full commit IDs. The displayed change is the merge base of those commits compared with the selected head; selected worktrees resolve to committed `HEAD` values and dirty bytes never enter the review.
+Committed comparisons remain ordered and frozen to full commit IDs: the displayed change is the merge base of those commits compared with the selected head. Since v2.0, uncommitted (Staged/Unstaged/Working tree) and standalone sessions review a content-addressed snapshot captured at launch instead; dirty bytes enter the review only through that frozen snapshot, and Refresh appends a new snapshot and reclassifies every comment.
 
 The browser workspace provides an exact changed-file tree, Monaco side-by-side text diffs, expandable context, keyboard navigation, durable line comments, review summary and comment lifecycle, conflict recovery, selector-drift reporting, and explicit unsupported, stale, and orphaned states.
 
-Exports are versioned and machine-validated. Canonical JSON owns comparison identities, accepted summary and comments, timestamps, blob identities, and context anchors; Markdown is derived from that validated model. Publication is an atomic pair beneath `.cumpa/exports/`, with hashes and a bounded receipt.
+Exports are versioned and machine-validated (schema versions 1–6; V4 standalone, V5/V6 agent-driven uncommitted/standalone with a working-tree drift flag). Canonical JSON owns comparison identities, accepted summary and comments, timestamps, blob identities, and context anchors; Markdown is derived from that validated model. Publication is an atomic pair beneath `.loopnote/exports/`, with hashes and a bounded receipt.
 
 Coding agents can submit strict range or exact-patch review requests and receive one validated canonical result after the developer finishes the normal browser review. Interactive TTY review remains unchanged.
 
 v1.4 shipped 12/12 requirements across two phases, 22 plans, and 30 tasks. Its audit verified 8/8 cross-phase connections and 8/8 end-to-end flows. The active hosted implementation is a Supabase private schema plus three Edge Functions; GitHub OAuth binds support or restoration intent, while signature-verified Stripe webhook fulfillment alone establishes paid status.
 
 Accepted v1.4 debt is bounded to a stale deleted-suite filename in the deployment verifier contract and one unused local support-status endpoint/client wrapper. Neither affects the verified release flow.
+
+Workspace surface since quick task `260915-jbv` (2026-09-15) has no Details dialog, Review comments rail, or keyboard help; comment resolve/reopen/edit/delete and stale/orphaned anchor records are not reachable in the UI. The proposed v2.1 workbench redesign restores inline thread actions.
+
+Accepted debt carried into v2.1: DEBT-01 toolbar roles, `.vue` files outside typechecking, two nondeterministic Playwright specs and one order-sensitive agent-export spec (STATE.md Deferred Items).
 ## Constraints
 
 - **Runtime**: Node.js 24 LTS with TypeScript end to end — one language across CLI, server, shared contracts, and UI, using the current supported LTS baseline.
@@ -272,8 +326,9 @@ Accepted v1.4 debt is bounded to a stale deleted-suite filename in the deploymen
 - **Server**: Fastify bound only to `127.0.0.1` on an ephemeral port — the default browser opens automatically and no LAN service is exposed.
 - **UI**: Vue 3 with Vite and Monaco Diff Editor — side-by-side diff rendering, line mapping, syntax highlighting, and inline review controls run in the browser.
 - **Contracts**: Zod schemas shared by API, draft persistence, and export generation — incompatible or corrupt data fails explicitly.
-- **Persistence**: Versioned JSON files in a gitignored repository-local `.cumpa/` directory — no database or browser-only source of truth.
-- **Content**: Text files only in v1 — binary, generated, oversized, or unsupported files remain visible as non-reviewable entries.
+- **Persistence**: Versioned JSON files in a gitignored repository-local `.loopnote/` directory (migrated from `.cumpa/` in v2.0) — no database or browser-only source of truth.
+- **Content**: Text files only — binary, generated, oversized, or unsupported files remain visible as non-reviewable entries; Markdown additionally renders through the hardened single-instance `markdown-it` pipeline.
+- **Snapshots**: Uncommitted and standalone sessions capture a content-addressed snapshot at launch and never substitute live repository or worktree bytes for it.
 - **Testing**: Vitest for Git, diff, persistence, and export contracts; Playwright for the browser review flow.
 - **Support**: Voluntary support never gates review features; hosted payment authority is optional, credential-free from the local app, and enabled only in the canonical configured release package.
 - **Distribution**: Publish the existing `Ship-With-AI/cumpa` repository and reviewed history only after approval gates; ship MIT-licensed `@shipwithai/cumpa@1.5.0` as a compiled-runtime-only npm package exposing `cumpa`. Trusted publishing uses GitHub OIDC without a long-lived token and preserves eligible automatic provenance.
@@ -284,7 +339,7 @@ Accepted v1.4 debt is bounded to a stale deleted-suite filename in the deploymen
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
 | Use PR-style merge-base-to-head comparison | Match the mental model and visible change set of hosted pull-request reviews | Good — native-Git fixtures verify frozen merge-base-to-head semantics across branch/worktree orderings |
-| Resolve branches and worktrees to committed Git objects | Produce stable, reproducible comparisons and exclude ambiguous dirty state | Good — sessions, drafts, anchors, and exports remain pinned while selectors drift |
+| Resolve branches and worktrees to committed Git objects | Produce stable, reproducible comparisons and exclude ambiguous dirty state | Good for committed comparisons; superseded for worktree sources in v2.0 by frozen content-addressed snapshots, which keep the drift-detectable guarantee |
 | Use the installed Git CLI rather than a Git library | Preserve native Git behavior for merge bases, worktrees, renames, blobs, and diff metadata | Good — byte-safe native protocols cover discovery, inventory, availability, and object reads |
 | Use TypeScript, Node.js, Fastify, Vue 3, Vite, and Monaco | Keep shared contracts in one language while supporting a capable browser diff workspace | Good — one packaged runtime serves strict shared contracts and the real browser workspace |
 | Store drafts as repository-local versioned JSON | Keep reviews resumable, portable within the local repository, and independent of browser storage | Good — comparison-keyed atomic drafts survive relaunch and fail explicitly on corruption or newer schemas |
@@ -304,7 +359,7 @@ Accepted v1.4 debt is bounded to a stale deleted-suite filename in the deploymen
 | Keep responsive visual placement separate from semantic source order | Preserve file → Base → Head reading order while matching the desktop composition and narrow reflow | Good — exact-width and keyboard browser evidence passed without duplicate controls or state paths |
 | Keep the 640px side-by-side comparison floor inside one localized viewport | Prevent page-wide overflow without reflowing Monaco or changing Base/Head geometry | Good — 320px and true 400% zoom evidence retained a 640px locally scrollable canvas with document fit |
 | Measure composited rendered contrast and focus geometry against actual browser states | Token-only checks cannot prove translucent diff, selection, status, or clipping behavior | Good — completed UAT accepted the full contrast, focus-inventory, and true-zoom gates |
-| Keep the review sidebar at 288px and compact rows within it | Preserve diff space while keeping status, path, counts, and exceptional availability readable | Good — wide and narrow browser evidence shows contained rows without page overflow |
+| Keep the review sidebar at 288px and compact rows within it | Preserve diff space while keeping status, path, counts, and exceptional availability readable | ⚠️ Revisit — v2.1 workbench sketches choose a 264px resizable side bar with 22px rows |
 | Pair Base/Head identity with explicit removed/added text, signed gutters, and structural bars | Make diff meaning clear without relying on red and green | Good — stronger line/intraline fills and CSP-safe Monaco positioning passed focused browser and theme checks |
 | Record shipped product facts and visual rules in root contracts | Prevent future copy and styling work from inventing a second product or design language | Good — final designer checks report no contract, display-scale, numeric-claim, or contact-detail blockers |
 
@@ -330,6 +385,13 @@ Accepted v1.4 debt is bounded to a stale deleted-suite filename in the deploymen
 | Reuse existing GitHub production configuration in memory | Avoid a duplicate local configuration source while retaining canonical validation and fingerprint-only evidence | Good — the actual release candidate used the existing production variable; no local configuration file was created |
 | Approve one immutable runtime archive rather than a reproducible recipe | Bind inspection, installation, human assent and publication to the same bytes | Good — Phase 04 verified and approved its read-only candidate; the later owner-selected CI cycle changes the publication designation, not that historical artifact or approval |
 | Build and approve the stable publication candidate in its attested CI workflow run | Avoid representing the earlier local build as a later CI build while preserving exact inspected/installed/published bytes | Selected by owner during Phase 5 planning; requires a fresh actual-digest approval, same-run/attempt publication, and immutable retention of the Phase 4 artifact/history |
+| Freeze uncommitted sources into a content-addressed snapshot at launch with explicit Refresh | Bring working-tree review into scope without losing drift-detectable, reproducible feedback | Good — torn-file detection, index-identity race guard, and Refresh reclassification shipped and e2e-tested (terminal `r` path awaits a real-TTY check) |
+| Derive uncommitted and standalone draft identity from the first snapshot digest | A sentinel "head" value cannot distinguish two different uncommitted reviews | Good — `uncommittedReviewKey`/`standaloneReviewKey` are domain-separated sha256 framed hashes alongside `comparisonKey`/`rangeReviewKey` |
+| Use Git's own pathspec engine as the only traversal defence for standalone paths | Reimplementing glob/symlink/outside-repository checks in JS risks diverging from Git | Good — all six pre-launch rejection classes proven against the packaged CLI |
+| Anchor rendered-Markdown comments to the block's source line range via an optional `endLine` | Keep one anchor model for Source and Rendered views | Good — single-line anchors stay byte-identical (golden-hash pinned); block ranges highlight fully in Source view |
+| Derive every product-identity form from one `RENAME_MAP` | A literal-by-literal rename silently misses forms | Good — rename-audit test finds zero disallowed `cumpa` hits across 353 tracked files; 12 leftovers caught only by that full-tree scan |
+| Keep the published `@shipwithai/cumpa@1.5.0` identity immutable in historical fixtures | Released artifacts and their evidence cannot be retroactively renamed | Good — pinned public-artifact tests still validate the real 1.5.0 bytes |
+| Close v2.0 without a milestone audit, acknowledging four open verification items | Owner prioritised starting the workbench redesign | — Pending — deferred items tracked in STATE.md |
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
@@ -348,4 +410,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with the current product state and feedback.
 
 ---
-*Last updated: 2026-10-30 after Phase 13: Single-Pane File Rendering validated added/deleted files as a single full-width Monaco pane (PANE-01/02/03).*
+*Last updated: 2026-11-04 after v2.0 Artifact Review milestone close*

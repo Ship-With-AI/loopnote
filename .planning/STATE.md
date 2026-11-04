@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Artifact Review
-current_phase: 18
-status: completed
+current_phase: 0
+status: Awaiting next milestone
 stopped_at: Completed 18-04-PLAN.md
-last_updated: "2026-11-02T16:35:12.977Z"
-last_activity: 2026-11-02
-last_activity_desc: Phase 18 complete
+last_updated: "2026-11-04T11:27:59.101Z"
+last_activity: 2026-11-04
+last_activity_desc: Milestone v2.0 completed and archived
 progress:
   total_phases: 7
   completed_phases: 7
@@ -21,17 +21,17 @@ current_phase_name: product-repositioning-copy
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-09-09)
+See: .planning/PROJECT.md (updated 2026-11-04)
 
 **Core value:** A developer can accurately review repository-grounded changes chosen by a developer or coding agent and return precise, drift-detectable feedback the agent can act on.
-**Current focus:** Phase 18 — product-repositioning-copy
+**Current focus:** Planning next milestone (v2.1: VS Code-inspired workbench redesign — see `.planning/sketches/WRAP-UP-SUMMARY.md`)
 
 ## Current Position
 
-Phase: 18
-Plan: Not started
-Status: Phase 18 complete — all 5 plans done
-Last activity: 2026-11-02 — Phase 18 complete
+Phase: Milestone v2.0 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-11-04 — Milestone v2.0 completed and archived
 
 ## Performance Metrics
 
@@ -255,11 +255,18 @@ None yet.
 | Verification | Instantiate unsupported/unavailable rows in responsive fixture coverage if that path changes | Deferred | v1.1 close |
 | Design | Align 7px icon-button padding with documented spacing when control geometry changes | Deferred | v1.1 close |
 | Verification | Stabilise two nondeterministic Playwright specs that gate every push to `main`: `tests/e2e/responsive-session.spec.ts:773` and `tests/integration/anchored-workspace.spec.ts:1039` (both failed on the docs-only commit 4016226 and passed on rerun with no change) | Deferred | 260916-ide |
-| Verification | Stabilise `tests/e2e/agent-ready-export.spec.ts:1157` ('rejects an oversized uncommitted request'), which fails only when run as the last test in the full 16-test custody-gated file (likely a stderr-read-vs-exit-flush race in `waitForAttachedRejectionWithoutLoopbackUrl` under cumulative system load); passes cleanly alone or paired with its predecessor. See `.planning/phases/17-agent-protocol-extension-marketplace-skill/deferred-items.md`. | Deferred | 261031-q09 |
-| Verification | Update seven Playwright e2e/integration specs (`tests/e2e/anchored-review.spec.ts`, `tests/e2e/file-tree.spec.ts`, `tests/e2e/pinned-session.spec.ts`, `tests/e2e/responsive-session.spec.ts`, `tests/integration/anchored-workspace.spec.ts`, `tests/integration/draft-recovery-ui.spec.ts`, `tests/integration/support-dialog.spec.ts`) that still assert the pre-18-04 "Changed files"/"PR-style"/dirty-badge copy this plan replaced; owned by `18-05-PLAN.md`, not part of `npm test`. | Deferred | 18-04 |
+| Verification | Stabilise `tests/e2e/agent-ready-export.spec.ts:1157` ('rejects an oversized uncommitted request'), which fails only when run as the last test in the full 16-test custody-gated file (likely a stderr-read-vs-exit-flush race in `waitForAttachedRejectionWithoutLoopbackUrl` under cumulative system load); passes cleanly alone or paired with its predecessor. See `.planning/milestones/v2.0-phases/17-agent-protocol-extension-marketplace-skill/deferred-items.md`. | Deferred | 261031-q09 |
+| uat | Phase 14 `14-UAT.md`: 1 scenario pending (status `testing`) — terminal `r` refresh in a real TTY | Acknowledged | v2.0 close |
+| verification | Phase 14 `14-VERIFICATION.md`: `human_needed` — terminal `r` keypress must match browser Refresh; no harness supplies a TTY | Acknowledged | v2.0 close |
+| verification | Phase 17 `17-VERIFICATION.md`: `human_needed` (14/15) — no test with 2+ dirty files for `workingTreeChangedAfterFinalSnapshot.paths` | Acknowledged | v2.0 close |
+| quick_task | `260915-jbv-remove-details-review-keyboard-help`: status unknown | Acknowledged | v2.0 close |
 
 ## Session Continuity
 
-Last session: 2026-11-02T15:59:59.000Z
-Stopped at: Completed 18-04-PLAN.md
+Last session: 2026-11-04
+Stopped at: Milestone v2.0 archived
 Resume file: None
+
+## Operator Next Steps
+
+- Start the next milestone with `/gsd:new-milestone` (v2.1 workbench redesign; inputs: `.planning/sketches/MANIFEST.md`, `sketch-findings-loopnote` skill, ROADMAP Backlog DEBT-01)
