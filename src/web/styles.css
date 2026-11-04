@@ -100,7 +100,7 @@
   --font-size-metadata: 12px;
   --line-height-metadata: 18px;
   --font-size-code: 13px;
-  --line-height-code: 26px;
+  --line-height-code: 20px;
   --font-size-body: 14px;
   --line-height-body: 21px;
   --font-size-page-heading: 21px;
@@ -114,11 +114,10 @@
   /* Approved continuity — UI-SPEC:92 retained two-weight contract. */
   --font-weight-semibold: 600;
 
-  --radius-control: 6px;
-  --radius-file-row: 5px;
-  /* Approved continuity — existing file-tree nesting geometry. */
-  --tree-indent: 20px;
-  --radius-overlay: 10px;
+  --radius-control: 4px;
+  --radius-file-row: 0;
+  --tree-indent: 12px;
+  --radius-overlay: 6px;
   /* Approved continuity — D-INFORMATION retains the existing badge radius. */
   --radius-pill: 999px;
   --radius-scrollbar: 8px;
@@ -130,8 +129,13 @@
   --control-height-standard: 36px;
   --dialog-width: min(560px, calc(100% - 24px));
   --dialog-max-height: 85dvh;
-  --sidebar-width: 294px;
-  --file-row-min-height: 34px;
+  --sidebar-width: 264px;
+  --file-row-min-height: 22px;
+  --titlebar-height: 32px;
+  --statusbar-height: 22px;
+  --control-height-icon: 22px;
+  --font-size-chrome: 13px;
+  --line-height-chrome: 16px;
   /* Approved continuity — UI-SPEC:23 icon geometry. */
   --icon-size: 16px;
   /* Approved continuity — styles.css:73 overlay separation. */
@@ -932,16 +936,16 @@ input:-webkit-autofill:focus {
   min-height: var(--file-row-min-height);
   align-items: center;
   gap: 0 var(--space-2);
-  padding-block: 5px;
+  padding-block: 3px;
   padding-right: 10px;
   padding-left: var(--tree-indent);
   border: var(--border-width-default) solid transparent;
   border-radius: var(--radius-file-row);
   color: var(--text-primary);
   cursor: pointer;
-  font-size: var(--font-size-body);
+  font-size: var(--font-size-chrome);
   font-weight: var(--font-weight-regular);
-  line-height: var(--line-height-body);
+  line-height: var(--line-height-chrome);
 }
 
 
@@ -2269,10 +2273,6 @@ h3.conversation-card__identity {
 
 
 @media (min-width: 761px) and (max-width: 1050px) {
-  .review-shell {
-    --sidebar-width: 248px;
-  }
-
   .session-header,
   .header-facts {
     flex-wrap: wrap;
@@ -2283,12 +2283,6 @@ h3.conversation-card__identity {
   }
 
 
-}
-
-@media (min-width: 1650px) {
-  .review-shell {
-    --sidebar-width: 320px;
-  }
 }
 
 @media (max-width: 760px) {
