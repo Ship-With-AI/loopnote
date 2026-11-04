@@ -342,3 +342,51 @@ test('exact patch: Repository object → Implemented content identity, no Refres
     await repository.cleanup();
   }
 });
+
+test('agent-attached: attachedFact overlay and Finish review entry point in the bottom panel', async ({ browser }) => {
+  const repository = await createGitFixture();
+  // Any non-interactive stdin `review-request` always resolves server-side to an
+  // `agent-review`-attached session (`runOrdinaryAction` -> `launchAttachedSession`
+  // always wires `attachedCompletion`, confirmed by reading `src/cli/run.ts:977-1294`
+  // and `src/server/capabilities.ts:426`). A plain `revisions` request is the
+  // minimal fixture for this orthogonal "agent-attached" overlay, reusing exactly
+  // the same stdin-request mechanism `pinned-session.spec.ts`'s "generated range
+  // request" test already exercises — no custody-gated harness is required.
+  const request = {
+    kind: reviewRequestKind,
+    schemaVersion: 1,
+    mode: 'revisions',
+    revisions: { base: repository.baseRef, head: repository.headRef },
+  };
+  const running = spawnCli(repository, { request });
+  try {
+    const url = await waitForLoopbackUrl(running);
+    const page = await browser.newPage();
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(url, { waitUntil: 'domcontentloaded' });
+
+    await assertShellRegionsPresent(page);
+
+    // `TitleBar.vue`'s `attachedFact` computed, surfaced once `attachedLifecycle`
+    // resolves to 'waiting' (IdentityHeader.vue's former copy, now in TitleBar.vue).
+    await expect(page.locator('.attached-fact')).toHaveText('Agent attached · waiting for Finish review');
+
+    // Phase 20 keeps the Finish-review entry point inside the bottom panel's
+    // attached-completion block (`BottomPanel.vue`, unchanged from the former
+    // `ReviewNotesDialog.vue`) — the status bar's one emphasized slot move is
+    // out of scope until Phase 22, per this plan's own task instructions.
+    await openPanel(page);
+    const panel = page.locator('.workbench-shell__panel');
+    await expect(panel.getByRole('heading', { name: 'Finish attached review' })).toBeVisible();
+    const finishButton = panel.getByRole('button', { name: 'Finish review', exact: true });
+    await expect(finishButton).toBeVisible();
+    // No pending draft mutations/conflicts/unsaved text on a fresh load, so
+    // `attachedFinishReady` is true and the button is enabled.
+    await expect(finishButton).toBeEnabled();
+
+    await page.close();
+  } finally {
+    await stopGeneratedCli(running);
+    await repository.cleanup();
+  }
+});
