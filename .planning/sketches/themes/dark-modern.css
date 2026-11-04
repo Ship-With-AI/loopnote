@@ -1,0 +1,94 @@
+/*
+ * Reference theme: approximation of VS Code "Dark Modern" colors, same
+ * variable names and geometry as default.css. For comparison only — the
+ * chosen direction is VS Code-inspired with Loopnote's own palette.
+ */
+:root {
+  color-scheme: dark;
+
+  --surface-canvas: #1f1f1f;
+  --surface-sidebar: #181818;
+  --surface-panel: #181818;
+  --surface-raised: #2b2b2b;
+  --surface-empty: #1a1a1a;
+  --surface-gap: #222a33;
+  --surface-hunk: #1e2a38;
+  --surface-hover: #2a2d2e;
+  --surface-active: #37373d;
+  --surface-scrim: rgb(0 0 0 / 55%);
+
+  --text-primary: #cccccc;
+  --text-muted: #9d9d9d;
+  --text-line-number: #6e7681;
+  --text-hunk: #9cdcfe;
+  --text-on-emphasis: #ffffff;
+
+  --border-default: #2b2b2b;
+  --border-control: #3c3c3c;
+  --border-overlay: #454545;
+  --border-hunk: #2b3a4a;
+
+  --accent: #0078d4;
+  --accent-emphasis: #0078d4;
+  --accent-emphasis-hover: #026ec1;
+  --focus-ring: #0078d4;
+  --selection-background: #04395e;
+  --selection-border: #0078d4;
+
+  --status-added: #81b88b;
+  --status-modified: #e2c08d;
+  --status-deleted: #c74e39;
+  --status-warning: #cca700;
+  --status-warning-background: #352a05;
+  --status-resolved: #b180d7;
+  --status-error: #f85149;
+
+  --diff-add-bg: rgb(155 185 85 / 20%);
+  --diff-add-intra: rgb(155 185 85 / 35%);
+  --diff-del-bg: rgb(255 0 0 / 20%);
+  --diff-del-intra: rgb(255 0 0 / 35%);
+  --diff-empty-bg: #262626;
+
+  --syntax-keyword: #569cd6;
+  --syntax-string: #ce9178;
+  --syntax-number: #b5cea8;
+  --syntax-type: #4ec9b0;
+  --syntax-comment: #6a9955;
+
+  --statusbar-bg: #181818;
+  --statusbar-fg: #cccccc;
+  --statusbar-emphasis-bg: #0078d4;
+  --statusbar-emphasis-fg: #ffffff;
+
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: Menlo, Monaco, "Courier New", monospace;
+  --font-size-ui: 13px;
+  --line-height-ui: 22px;
+  --font-size-label: 11px;
+  --font-size-meta: 12px;
+  --font-size-code: 12px;
+  --line-height-code: 18px;
+
+  --titlebar-h: 32px;
+  --activitybar-w: 48px;
+  --sidebar-w: 264px;
+  --view-header-h: 35px;
+  --pane-header-h: 22px;
+  --row-h: 22px;
+  --tree-indent: 8px;
+  --editor-title-h: 35px;
+  --breadcrumb-h: 22px;
+  --panel-h: 240px;
+  --statusbar-h: 22px;
+
+  --radius-control: 4px;
+  --radius-overlay: 6px;
+  --shadow-overlay: 0 8px 24px rgb(0 0 0 / 50%);
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+}
