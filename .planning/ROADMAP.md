@@ -38,7 +38,7 @@ the shell.
 
 **Phase Numbering:** Integer phases continue from v2.0 (ended at Phase 18); v2.1 starts at Phase 19.
 
-- [ ] **Phase 19: Typecheck Foundation** - One `typecheck:web` gate (vue-tsc 3.3.14 + TS 6/7 dual alias) covers every `.vue` component and web `.ts` module before any App.vue decomposition begins.
+- [x] **Phase 19: Typecheck Foundation** - One `typecheck:web` gate (vue-tsc 3.3.14 + TS 6/7 dual alias) covers every `.vue` component and web `.ts` module before any App.vue decomposition begins. (completed 2026-11-04)
 - [ ] **Phase 20: Shell Frame** - Workbench geometry tokens land together with the existing toolbar/tree/diff/dialog components as they're re-plumbed into `WorkbenchShell.vue`'s five regions (title bar, side bar, editor with icon-only title/breadcrumbs, bottom panel, status bar) across all five session kinds.
 - [ ] **Phase 21: Changed-Files Tree** - The changed-files tree is restyled to VS Code Explorer density with hover counts, a path filter, a view-options menu, and full keyboard reachability.
 - [ ] **Phase 22: Identity & Status Bar** - Comparison identity and drift relocate into a title-bar pill/popover; the status bar carries snapshot/comment counts, one emphasized Export/Finish item, and the support entry.
@@ -193,7 +193,7 @@ Full details: [`milestones/v2.0-ROADMAP.md`](./milestones/v2.0-ROADMAP.md).
 | 17. Agent Protocol Extension & Marketplace Skill | v2.0 | 5/5 | Complete | 2026-10-31 |
 | 17.1. Full Project Rename | v2.0 | 23/23 | Complete | 2026-11-02 |
 | 18. Product Repositioning Copy | v2.0 | 5/5 | Complete | 2026-11-02 |
-| 19. Typecheck Foundation | v2.1 | 4/4 | Complete   | 2026-11-04 |
+| 19. Typecheck Foundation | v2.1 | 4/4 | Complete    | 2026-11-04 |
 | 20. Shell Frame | v2.1 | 0/TBD | Not started | - |
 | 21. Changed-Files Tree | v2.1 | 0/TBD | Not started | - |
 | 22. Identity & Status Bar | v2.1 | 0/TBD | Not started | - |
