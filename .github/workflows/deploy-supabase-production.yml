@@ -25,6 +25,7 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm run typecheck:tests
+      - run: npm run typecheck:web
       - run: npx playwright install --with-deps chromium
       - run: npx vitest run --no-file-parallelism
       - run: npx playwright test

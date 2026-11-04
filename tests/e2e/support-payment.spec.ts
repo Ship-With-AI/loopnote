@@ -219,6 +219,7 @@ test('workflow verification rejects toolchain, database-order, and retired-input
     ['deno', 'deno-version: v2.7.14', 'deno-version: v2.7.13', 'workflow is missing required'],
     ['install', 'npm ci', 'npm install', 'workflow is missing required'],
     ['test typecheck', 'npm run typecheck:tests', 'npm run typecheck:tests:web', 'workflow is missing required'],
+    ['web typecheck', 'npm run typecheck:web', 'npm run typecheck:tests:web', 'workflow is missing required'],
     ['build', 'npm run build', 'npm run build:runtime', 'workflow is missing required'],
     ['browser install', 'npx playwright install --with-deps chromium', 'npx playwright install chromium', 'workflow is missing required'],
     ['vitest', 'npx vitest run --no-file-parallelism', 'npx vitest run --no-file-parallelism tests/unit', 'workflow is missing required'],
