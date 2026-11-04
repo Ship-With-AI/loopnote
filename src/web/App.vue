@@ -1245,7 +1245,7 @@ onBeforeUnmount(() => {
     </section>
   </main>
 
-  <main v-else-if="errorMessage !== '' || patchSnapshotUnavailable" class="unavailable-shell">
+  <main v-else-if="errorMessage !== '' || patchSnapshotUnavailable || session === undefined" class="unavailable-shell">
     <h1 v-if="!isExactPatchSession">Review unavailable</h1>
     <ErrorState
       :alert="!patchSnapshotUnavailable"
@@ -1255,7 +1255,7 @@ onBeforeUnmount(() => {
     />
   </main>
 
-  <div v-else-if="session !== undefined" class="session-shell">
+  <div v-else class="session-shell">
     <div class="session-shell__content" :inert="shellModalOpen">
     <a v-if="!isNarrow && !filesCollapsed" class="skip-link" href="#changed-files-heading">Skip to files</a>
     <a class="skip-link" :href="`#${RENAME_MAP.cssPrefix}heading`">Skip to diff</a>
