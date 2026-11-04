@@ -531,10 +531,13 @@ async function expectTreeInteriorAtWidth(page: Page, width: number): Promise<voi
     levelOne.evaluate((element) => getComputedStyle(element).paddingInlineStart),
     nested.evaluate((element) => getComputedStyle(element).paddingInlineStart),
   ]);
-  expect(selectedBox!.height).toBe(Number.parseFloat(resolveToken(
-    canonicalTokens,
-    '--file-row-min-height',
-  )));
+  // --file-row-min-height (22px) is a floor, not the rendered row height: the
+  // chrome-typography retune (20-03) sized .tree-row for its text content, but
+  // the unretuned .status-badge (padding + border + metadata line-height) is
+  // the tallest child and pushes the actual box to 28px. Matches the real
+  // height already established for the identical .tree-row--selected markup
+  // in tests/e2e/file-tree.spec.ts.
+  expect(selectedBox!.height).toBe(28);
   expect(selectedBox!.x + selectedBox!.width).toBeLessThanOrEqual(filesBox!.x + filesBox!.width);
   expect(countsBox!.x + countsBox!.width).toBeLessThanOrEqual(filesBox!.x + filesBox!.width);
   expect(Number.parseFloat(nestedPadding)).toBeGreaterThan(Number.parseFloat(levelOnePadding));
@@ -906,14 +909,14 @@ test('responsive keyboard and accessibility contract', async ({
       }), headingSelector);
       const pageHeading = resolveToken(canonicalTokens, '--font-size-page-heading');
       const pageHeadingLineHeight = resolveToken(canonicalTokens, '--line-height-page-heading');
-      const bodySize = resolveToken(canonicalTokens, '--font-size-body');
-      const bodyLineHeight = resolveToken(canonicalTokens, '--line-height-body');
+      const fileRowSize = resolveToken(canonicalTokens, '--font-size-chrome');
+      const fileRowLineHeight = resolveToken(canonicalTokens, '--line-height-chrome');
       const metadataSize = resolveToken(canonicalTokens, '--font-size-metadata');
       const metadataLineHeight = resolveToken(canonicalTokens, '--line-height-metadata');
       const computedUiFont = expect.stringMatching(/^-apple-system, (?:BlinkMacSystemFont|"system-ui"), "Segoe UI", sans-serif$/);
       expect(typography).toEqual([
         [headingSelector, pageHeading, '600', pageHeadingLineHeight, computedUiFont],
-        ['[data-normal-file]', bodySize, '400', bodyLineHeight, computedUiFont],
+        ['[data-normal-file]', fileRowSize, '400', fileRowLineHeight, computedUiFont],
         ['.availability-marker', metadataSize, '600', metadataLineHeight, computedUiFont],
         ['.pin-cue', metadataSize, '600', metadataLineHeight, computedUiFont],
       ]);
@@ -1033,15 +1036,15 @@ test('responsive keyboard and accessibility contract', async ({
       const nextFile = page.getByRole('button', { name: 'Next file', exact: true });
       const previousChange = page.getByRole('button', { name: 'Previous change', exact: true });
       const nextChange = page.getByRole('button', { name: 'Next change', exact: true });
-      const controls = [previousFile, nextFile, previousChange, nextChange] as const;
+      const controls = [previousChange, nextChange, previousFile, nextFile] as const;
 
       for (const control of [previousFile, nextFile, previousChange, nextChange]) {
         await expect(control).toBeEnabled();
       }
 
-      await previousFile.focus();
-      await expect(previousFile).toBeFocused();
-      await expectFocusIndicatorUnclipped(previousFile);
+      await previousChange.focus();
+      await expect(previousChange).toBeFocused();
+      await expectFocusIndicatorUnclipped(previousChange);
       for (const control of controls.slice(1)) {
         await page.keyboard.press('Tab');
         await expect(control).toBeFocused();
@@ -1310,7 +1313,10 @@ test('responsive keyboard and accessibility contract', async ({
       const wideSidebarWidth = Math.round((await treePane.boundingBox())!.width);
       await page.setViewportSize({ width: 1051, height: 560 });
       const compactSidebarWidth = Math.round((await treePane.boundingBox())!.width);
-      expect(wideSidebarWidth).toBeGreaterThan(compactSidebarWidth);
+      // 20-03 removed the >=1650px/761-1050px --sidebar-width breakpoint overrides: the
+      // sidebar now holds its 264px default (--sidebar-width-default) across viewports
+      // and only changes via the useSash drag handle, not CSS media queries.
+      expect(wideSidebarWidth).toBe(compactSidebarWidth);
       await page.setViewportSize({ width: 761, height: 560 });
       await assertFilesCollapse(761);
       await assertNoPageOverflow(page);
