@@ -5,8 +5,8 @@ milestone_name: Workbench Redesign
 current_phase: 20
 current_phase_name: Shell Frame
 status: executing
-stopped_at: Completed 20-01-PLAN.md
-last_updated: "2026-11-04T19:39:18.950Z"
+stopped_at: Completed 20-02-PLAN.md
+last_updated: "2026-11-04T19:47:34.513Z"
 last_activity: 2026-11-04
 last_activity_desc: Phase 19 complete, transitioned to Phase 20
 progress:
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-11-04)
 ## Current Position
 
 Phase: 20 — Shell Frame
-Plan: 1 of 10
+Plan: 2 of 10
 Status: Ready to execute
 Last activity: 2026-11-04 — Phase 19 complete, transitioned to Phase 20
 
@@ -109,6 +109,7 @@ Last activity: 2026-11-04 — Phase 19 complete, transitioned to Phase 20
 | Phase 19 P03 | 25min | 3 tasks | 3 files |
 | Phase 19 P04 | 3min | 2 tasks | 5 files |
 | Phase 20-shell-frame P01 | 7min | 1 tasks | 2 files |
+| Phase 20 P02 | 25 min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -218,6 +219,8 @@ Decisions are logged in PROJECT.md Key Decisions.
 - [Phase 19-03]: App.vue's session-shell v-else branch narrowed to v-else-if="session !== undefined" to fix all 4 remaining session.value errors in one change — All four error sites live in the same subtree; vue-tsc's template control-flow analysis propagates the discriminant check through it, mirroring 19-02's DraftRecovery.vue v-else-if fix
 - [Phase 19-04]: Updated verify-supabase-support.mjs's required and gateCommands arrays only (not the separate whole-workflow commands Set loop), matching the plan's literal grep -c == 2 acceptance criterion for npm run typecheck:web
 - [Phase 20-shell-frame]: 20-01: No REFACTOR commit needed — the GREEN implementation already factored the shared clamp(value, min, max) helper behind clampSidebarWidth/clampPanelHeight — No further duplication existed to remove without changing behavior or hurting readability; the three independent per-field typeof ternaries in parsePanelState cover three different field types and aren't worth abstracting further.
+- [Phase 20]: 20-02: Fixed MonacoStabilityPrototype.vue call site broken by new navigate constructor param — Rule 3 blocking-issue fix caused directly by this task's signature change to createMonacoDiffAdapter; file is outside files_modified but build would fail without it
+- [Phase 20]: 20-02: NAV-01/NAV-03 left Pending in REQUIREMENTS.md despite plan frontmatter listing them — Plan's own success_criteria states App.vue integration (20-07) and icon UI (20-04) still owe further work before the requirement is user-observable; 20-04/20-07/20-09 also list these IDs and are the correct plans to flip them complete
 
 ### Pending Todos
 
@@ -276,8 +279,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-11-04T19:38:24.810Z
-Stopped at: Completed 20-01-PLAN.md
+Last session: 2026-11-04T19:47:34.508Z
+Stopped at: Completed 20-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
