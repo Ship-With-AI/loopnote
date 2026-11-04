@@ -320,13 +320,23 @@ onMounted(async () => {
   }
   configureMonacoWorkers();
   beginFirstFrameCapture();
-  adapter = createMonacoDiffAdapter(host.value, languageForPath, () => {
-    markFileReady();
-    rendered.value = true;
-    renderComposer();
-    updateVersion.value += 1;
-    publishContract();
-  });
+  adapter = createMonacoDiffAdapter(
+    host.value,
+    languageForPath,
+    () => {
+      markFileReady();
+      rendered.value = true;
+      renderComposer();
+      updateVersion.value += 1;
+      publishContract();
+    },
+    {
+      nextChange: () => navigateChange('next'),
+      previousChange: () => navigateChange('previous'),
+      nextFile: () => {},
+      previousFile: () => {},
+    },
+  );
   adapter.layout();
   resizeObserver = new ResizeObserver(() => adapter?.layout());
   resizeObserver.observe(host.value);

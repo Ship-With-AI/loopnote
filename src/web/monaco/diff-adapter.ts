@@ -47,6 +47,13 @@ export type AdapterDiagnostics = Readonly<{
   contextMode: 'collapsed' | 'all-revealed';
 }>;
 
+export type AdapterNavigation = Readonly<{
+  nextChange: () => void;
+  previousChange: () => void;
+  nextFile: () => void;
+  previousFile: () => void;
+}>;
+
 export type MonacoDiffAdapter = Readonly<{
   activateAnchor: (side: DiffSide, line: number, endLine?: number) => void;
   clearAnchor: () => void;
@@ -63,6 +70,7 @@ export type MonacoDiffAdapter = Readonly<{
   setActiveAnchor: (anchor: Anchor | undefined) => void;
   setSideNames: (names: { readonly original: string; readonly modified: string }) => void;
   setCodeDensity: (density: 'wide' | 'default' | 'compact') => void;
+  setRenderSideBySide: (renderSideBySide: boolean) => void;
   setFile: (file: ImmutableDiffFile) => Promise<void>;
 }>;
 
@@ -122,6 +130,7 @@ class PublicMonacoDiffAdapter {
     private readonly host: HTMLElement,
     private readonly languageForPath: (path: string) => string,
     private readonly onChange: () => void,
+    private readonly navigate: AdapterNavigation,
   ) {
     applyLoopnoteTheme();
     this.diffEditor = monaco.editor.createDiffEditor(host, {
@@ -187,6 +196,54 @@ class PublicMonacoDiffAdapter {
         keybindings: [monaco.KeyMod.Alt | monaco.KeyCode.Enter],
         run: () => this.activateFocusedAnchor('head'),
       }),
+      this.originalEditor.addAction({
+        id: `${RENAME_MAP.kindPrefix}.next-change-base`,
+        label: 'Next change',
+        keybindings: [monaco.KeyCode.F7],
+        run: () => this.navigate.nextChange(),
+      }),
+      this.modifiedEditor.addAction({
+        id: `${RENAME_MAP.kindPrefix}.next-change-head`,
+        label: 'Next change',
+        keybindings: [monaco.KeyCode.F7],
+        run: () => this.navigate.nextChange(),
+      }),
+      this.originalEditor.addAction({
+        id: `${RENAME_MAP.kindPrefix}.previous-change-base`,
+        label: 'Previous change',
+        keybindings: [monaco.KeyMod.Shift | monaco.KeyCode.F7],
+        run: () => this.navigate.previousChange(),
+      }),
+      this.modifiedEditor.addAction({
+        id: `${RENAME_MAP.kindPrefix}.previous-change-head`,
+        label: 'Previous change',
+        keybindings: [monaco.KeyMod.Shift | monaco.KeyCode.F7],
+        run: () => this.navigate.previousChange(),
+      }),
+      this.originalEditor.addAction({
+        id: `${RENAME_MAP.kindPrefix}.next-file-base`,
+        label: 'Next file',
+        keybindings: [monaco.KeyMod.Alt | monaco.KeyCode.DownArrow],
+        run: () => this.navigate.nextFile(),
+      }),
+      this.modifiedEditor.addAction({
+        id: `${RENAME_MAP.kindPrefix}.next-file-head`,
+        label: 'Next file',
+        keybindings: [monaco.KeyMod.Alt | monaco.KeyCode.DownArrow],
+        run: () => this.navigate.nextFile(),
+      }),
+      this.originalEditor.addAction({
+        id: `${RENAME_MAP.kindPrefix}.previous-file-base`,
+        label: 'Previous file',
+        keybindings: [monaco.KeyMod.Alt | monaco.KeyCode.UpArrow],
+        run: () => this.navigate.previousFile(),
+      }),
+      this.modifiedEditor.addAction({
+        id: `${RENAME_MAP.kindPrefix}.previous-file-head`,
+        label: 'Previous file',
+        keybindings: [monaco.KeyMod.Alt | monaco.KeyCode.UpArrow],
+        run: () => this.navigate.previousFile(),
+      }),
     );
   }
 
@@ -198,6 +255,10 @@ class PublicMonacoDiffAdapter {
     const ariaLabel = `Immutable ${original} and ${modified} side-by-side diff`;
     this.originalEditor.updateOptions({ ariaLabel });
     this.modifiedEditor.updateOptions({ ariaLabel });
+  }
+
+  setRenderSideBySide(renderSideBySide: boolean): void {
+    this.diffEditor.updateOptions({ renderSideBySide });
   }
 
   async setFile(file: ImmutableDiffFile): Promise<void> {
@@ -664,6 +725,7 @@ class PublicMonacoSinglePaneAdapter {
     private readonly host: HTMLElement,
     private readonly languageForPath: (path: string) => string,
     private readonly onChange: () => void,
+    private readonly navigate: AdapterNavigation,
     side: DiffSide,
   ) {
     this.side = side;
@@ -696,6 +758,30 @@ class PublicMonacoSinglePaneAdapter {
         keybindings: [monaco.KeyMod.Alt | monaco.KeyCode.Enter],
         run: () => this.activateFocusedAnchor(),
       }),
+      this.editor.addAction({
+        id: `${RENAME_MAP.kindPrefix}.next-change-${side}`,
+        label: 'Next change',
+        keybindings: [monaco.KeyCode.F7],
+        run: () => this.navigate.nextChange(),
+      }),
+      this.editor.addAction({
+        id: `${RENAME_MAP.kindPrefix}.previous-change-${side}`,
+        label: 'Previous change',
+        keybindings: [monaco.KeyMod.Shift | monaco.KeyCode.F7],
+        run: () => this.navigate.previousChange(),
+      }),
+      this.editor.addAction({
+        id: `${RENAME_MAP.kindPrefix}.next-file-${side}`,
+        label: 'Next file',
+        keybindings: [monaco.KeyMod.Alt | monaco.KeyCode.DownArrow],
+        run: () => this.navigate.nextFile(),
+      }),
+      this.editor.addAction({
+        id: `${RENAME_MAP.kindPrefix}.previous-file-${side}`,
+        label: 'Previous file',
+        keybindings: [monaco.KeyMod.Alt | monaco.KeyCode.UpArrow],
+        run: () => this.navigate.previousFile(),
+      }),
     );
   }
 
@@ -707,6 +793,8 @@ class PublicMonacoSinglePaneAdapter {
     const picked = this.side === 'base' ? original : modified;
     this.editor.updateOptions({ ariaLabel: `Immutable ${picked} only` });
   }
+
+  setRenderSideBySide(): void {}
 
   async setFile(file: ImmutableDiffFile): Promise<void> {
     this.saveOutgoingState();
@@ -1030,15 +1118,17 @@ export function createMonacoDiffAdapter(
   host: HTMLElement,
   languageForPath: (path: string) => string,
   onChange: () => void,
+  navigate: AdapterNavigation,
 ): MonacoDiffAdapter {
-  return new PublicMonacoDiffAdapter(host, languageForPath, onChange);
+  return new PublicMonacoDiffAdapter(host, languageForPath, onChange, navigate);
 }
 
 export function createMonacoSinglePaneAdapter(
   host: HTMLElement,
   languageForPath: (path: string) => string,
   onChange: () => void,
+  navigate: AdapterNavigation,
   side: DiffSide,
 ): MonacoDiffAdapter {
-  return new PublicMonacoSinglePaneAdapter(host, languageForPath, onChange, side);
+  return new PublicMonacoSinglePaneAdapter(host, languageForPath, onChange, navigate, side);
 }
