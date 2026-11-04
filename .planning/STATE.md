@@ -4,16 +4,17 @@ milestone: v2.1
 milestone_name: Workbench Redesign
 current_phase: 20
 current_phase_name: Shell Frame
-stopped_at: Completed 20-05-PLAN.md
-last_updated: "2026-11-04T21:30:00.000Z"
+status: executing
+stopped_at: Completed 20-06-PLAN.md
+last_updated: "2026-11-04T20:36:45.521Z"
 last_activity: 2026-11-04
 last_activity_desc: Completed 20-05-PLAN.md (useSash.ts composable + WorkbenchShell.vue grid host)
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 14
-  completed_plans: 9
-  percent: 64
+  completed_plans: 10
+  percent: 14
 ---
 
 # Project State
@@ -28,8 +29,8 @@ See: .planning/PROJECT.md (updated 2026-11-04)
 ## Current Position
 
 Phase: 20 — Shell Frame
-Plan: 5 of 10
-Status: Executing
+Plan: 6 of 10
+Status: Ready to execute
 Last activity: 2026-11-04 — Completed 20-05-PLAN.md (useSash.ts composable + WorkbenchShell.vue grid host)
 
 ## Performance Metrics
@@ -112,6 +113,7 @@ Last activity: 2026-11-04 — Completed 20-05-PLAN.md (useSash.ts composable + W
 | Phase 20 P03 | 35min | 3 tasks | 5 files |
 | Phase 20 P04 | 40min | 3 tasks | 5 files |
 | Phase 20 P05 | 30min | 2 tasks | 5 files |
+| Phase 20-shell-frame P06 | 25min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -230,6 +232,8 @@ Decisions are logged in PROJECT.md Key Decisions.
 - [Phase 20]: 20-05: `.workbench-shell__body`'s grid-template-columns is driven by a reactive `:style` binding (not a static token-only rule) — a static 2-column track (`var(--sidebar-width-default) 1fr`) left the sidebar's own inline-width override free to overflow past the track boundary into the editor column once dragged wider than 264px (CSS Grid `stretch` degrades to `start` alignment for any item with a definite, non-auto size), which the plan's own closing qualifier ("as long as sidebarWidth's live value visually drives the column width") rules out; the vertical sash is `position: absolute` (excluded from the grid) so the body's 2-column track count never depends on whether the sash is rendered.
 - [Phase 20]: 20-05: Added `min-width: var(--sidebar-width-min)` to `.workbench-shell__sidebar` — the plan's action text gave explicit CSS consumers for 5 of the 6 new tokens but omitted one for `--sidebar-width-min`; this plan's own `<done>` criterion requires all six consumed, so added the symmetric defensive floor alongside the plan's literal `max-width: min(var(--sidebar-width-max), calc(100vw - 480px))` ceiling.
 - [Phase 20]: 20-05: SHELL-06 left Pending in REQUIREMENTS.md despite this plan's frontmatter listing it, following the 20-02/20-04 precedent — `WorkbenchShell.vue` is unwired until 20-07's `App.vue` integration makes the no-horizontal-scroll behavior user-observable.
+- [Phase 20-shell-frame]: 20-06: Adjusted BottomPanel.vue's relative import paths for the extra workbench/ directory depth versus ReviewNotesDialog.vue (contracts/domain/model + sibling imports all gained one extra ../ level) — Required for typecheck to pass from the new file location; the plan's 'nothing else in the script changes' covers logic, not resolvable import paths
+- [Phase 20-shell-frame]: 20-06: Added exact:true to the rewritten spec's page.getByRole('region', { name: 'Review' }) locator — Playwright's default substring name matching otherwise also matches the nested 'Review comment counts' implicit region, producing a strict-mode ambiguous-locator failure
 
 ### Pending Todos
 
@@ -288,8 +292,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-11-04T19:57:30.483Z
-Stopped at: Completed 20-03-PLAN.md
+Last session: 2026-11-04T20:36:45.509Z
+Stopped at: Completed 20-06-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
