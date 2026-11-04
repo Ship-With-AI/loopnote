@@ -14,8 +14,8 @@
 
 ### Typecheck Foundation
 
-- [ ] **TYPE-01**: Developer runs one `typecheck:web` script that typechecks every `.vue` component and web `.ts` module (vue-tsc 3.3.14 with the TS 6/7 dual alias), and CI fails on a type error.
-- [ ] **TYPE-02**: Developer still builds the Node/CLI side with the fast native `tsc`, with unchanged output.
+- [x] **TYPE-01**: Developer runs one `typecheck:web` script that typechecks every `.vue` component and web `.ts` module (vue-tsc 3.3.14 with the TS 6/7 dual alias), and CI fails on a type error.
+- [x] **TYPE-02**: Developer still builds the Node/CLI side with the fast native `tsc`, with unchanged output.
 
 ### Design Tokens & Contract
 
@@ -116,8 +116,8 @@ Deferred, tracked but not in the v2.1 roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| TYPE-01 | Phase 19 | Pending |
-| TYPE-02 | Phase 19 | Pending |
+| TYPE-01 | Phase 19 | Complete |
+| TYPE-02 | Phase 19 | Complete |
 | TOK-01 | Phase 20 | Pending |
 | TOK-02 | Phase 25 | Pending |
 | SHELL-01 | Phase 20 | Pending |

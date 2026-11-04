@@ -6,14 +6,14 @@ current_phase: 19
 current_phase_name: Typecheck Foundation
 status: executing
 stopped_at: Milestone v2.0 archived
-last_updated: "2026-11-04T15:53:07.466Z"
+last_updated: "2026-11-04T16:08:09.169Z"
 last_activity: 2026-11-04
-last_activity_desc: Roadmap created for v2.1 (Phases 19–26), 44/44 requirements mapped
+last_activity_desc: Phase 19 execution started
 progress:
   total_phases: 7
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 4
+  completed_plans: 1
   percent: 0
 ---
 
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-11-04)
 
 **Core value:** A developer can accurately review repository-grounded changes chosen by a developer or coding agent and return precise, drift-detectable feedback the agent can act on.
-**Current focus:** v2.1 Workbench Redesign — roadmap drafted (Phases 19–26), ready to plan Phase 19 (design source: `.planning/sketches/WRAP-UP-SUMMARY.md`, `.kimi-code/skills/sketch-findings-loopnote/`)
+**Current focus:** Phase 19 — Typecheck Foundation
 
 ## Current Position
 
-Phase: Phase 19 (Typecheck Foundation) — ready to plan
-Plan: —
+Phase: 19 (Typecheck Foundation) — EXECUTING
+Plan: 2 of 4
 Status: Ready to execute
-Last activity: 2026-11-04 — Roadmap created for v2.1 (Phases 19–26), 44/44 requirements mapped
+Last activity: 2026-11-04 — Phase 19 execution started
 
 ## Performance Metrics
 
@@ -104,6 +104,7 @@ Last activity: 2026-11-04 — Roadmap created for v2.1 (Phases 19–26), 44/44 r
 | Phase 17.1 P21 | 25min | 2 tasks | 4 files |
 | Phase 17.1 P22 | 70min | 2 tasks | 14 files |
 | Phase 18 P05 | 50min | 2 tasks | 7 files |
+| Phase 19 P01 | 5min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -205,6 +206,9 @@ Decisions are logged in PROJECT.md Key Decisions.
 - [Phase 17.1]: 17.1-22: Scanner enumerates the live tree via `git ls-files` (tracked) + `git ls-files --others --exclude-standard` (untracked-not-ignored) instead of a hardcoded directory-exclusion walk, so it automatically tracks whatever `.gitignore` already excludes; added `package.json`'s first-ever root `"test": "vitest run"` script since none existed to wire the new spec into.
 - [Phase 17.1]: 17.1-23 (gap closure, 23/23): Bumped package.json/package-lock.json to 2.0.0 (D-03) with only the two root lockfile version fields changing, and added an explicit pre-publish version-verification step to 17.1-RELEASE-CHECKLIST.md Item 3. Amended D-06 (support-store.ts's copyLegacyIfNeeded now hardcodes writeAtomic(bytes, 0o600), never inheriting the legacy file's mode; removed the now-dead fileSystem.stat method) — proven RED→GREEN by two tests (0o640/0o644 legacy inputs). Amended D-05 (no `mv .cumpa .loopnote` instruction; README.md's new "Upgrading from Cumpa" section states 1.x `.cumpa/` drafts/exports are not migrated/readable by 2.0.0, are excluded from the review inventory, and can be deleted; src/domain/comparison-key.ts's renamed `loopnote-*-v1` hash domain tags were explicitly left untouched) and extended scripts/audit-rename-exceptions.mjs with a fifth, file-scoped exception category (UPGRADE_NOTES_FILE/UPGRADE_NOTES_PATTERN) so the live-tree audit still finds zero disallowed hits. Closes CR-01/WR-01/WR-02 from 17.1-VERIFICATION.md/17.1-REVIEW.md.
 - [Phase 18]: 18-05: Left file-tree.spec.ts's three DirectoryRow.vue descendant-count locators (`collision/.*2 changed files`, `control/.*1 changed file`, `kept/.*2 changed files`) unrenamed — that per-folder count label is a distinct concept from D-08's sidebar/dialog/toggle noun rename and is outside `18-UI-SPEC.md`'s D-08 Apply-to list; 18-04 never touched DirectoryRow.vue. Also fixed a second stale pinned-comparison empty-state message assertion (`pinned-session.spec.ts:999`) the plan's read_first did not name, found via full-suite verification; full `npx playwright test` run now shows only the 2 pre-existing `selector-drift-ui.spec.ts:423/441` failures (confirmed pre-existing on commit 3196e96, unrelated to this plan's files).
+- [Phase 19]: Task 1 (package-legitimacy checkpoint) was pre-approved by the user on 2026-11-04 in the orchestrating session; vue-tsc@3.3.14 install proceeded without an interactive pause per that authorization.
+- [Phase 19]: Pinned vue-tsc to exact 3.3.14 (not npm's default ^3.3.14 caret range) via npm pkg set, matching project's existing exact-pin convention.
+- [Phase 19]: Task 3's byte-identical build proof used git checkout <rev> -- package.json package-lock.json revert/restore instead of git stash, since task_commit_protocol commits Task 2 before Task 3 runs, leaving nothing for git stash to capture.
 
 ### Pending Todos
 
@@ -263,7 +267,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-11-04
+Last session: 2026-11-04T16:08:09.163Z
 Stopped at: Milestone v2.0 archived
 Resume file: None
 
