@@ -190,6 +190,56 @@
 
 ---
 
+## Milestone: v2.0 — Artifact Review
+
+**Shipped:** 2026-11-04
+**Phases:** 7 (13–18, incl. inserted 17.1) | **Plans:** 70 | **Executed tasks:** 196
+
+### What Was Built
+
+- Single full-width commentable Monaco pane for entirely added/deleted/type-changed files.
+- Staged/Unstaged/Working-tree review from a content-addressed snapshot frozen at launch, with torn-file detection, explicit Refresh that reclassifies every comment, and relaunch draft recovery.
+- Standalone `loopnote <path|glob>…` review outside any diff, with schemaVersion-4 sha256 provenance.
+- Rendered Markdown preview with block-anchored comments, synced scroll, and a path-safe image route, inert under the unmodified production CSP.
+- Agent stdin `uncommitted`/`files` modes with typed pre-launch validation errors and V5/V6 exports carrying a working-tree drift flag.
+- The full Cumpa → Loopnote rename from one `RENAME_MAP`, shipped as `@shipwithai/loopnote@2.0.0`, and copy repositioned to agent artifact review.
+
+### What Worked
+
+- Packaged-binary Playwright specs found real product bugs: Phase 16's acceptance tests exposed three, and 17.1's live runs found `Cumpa` prose still hardcoded in four production files no plan owned.
+- Deriving every identity form from `RENAME_MAP` plus a full-tree rename-audit test made the 23-plan rename verifiable; the scan caught 12 leftovers that individual plans had marked "deferred to sibling".
+- Additive schema evolution held: V1–V4 exports stayed byte-identical while V5/V6 were proven supersets, and the optional `endLine` kept single-line anchors golden-hash identical.
+- Reusing Phase 14's frozen-snapshot engine for Phase 15 standalone review avoided a second capture path.
+
+### What Was Inefficient
+
+- The rename was not planned: inserting 17.1 cost 23 plans, a third of the milestone, and plans repeatedly deferred work "to sibling plan X" that no sibling owned.
+- Bookkeeping drifted from disk: ROADMAP still listed Phase 16 as 0/6 Planned and Phase 14 as 15/16 after both executed, and REQUIREMENTS left MDV-01…04 Pending despite a passed verification.
+- Two phases ended `human_needed` with no harness to close them (real TTY for terminal Refresh; multi-file drift paths), and the milestone closed without an audit.
+- 101 `fix` commits across the range, plus three post-phase quick tasks repairing e2e regressions (`261031-au0`, `261031-q09`, `261103-gl9`).
+
+### Patterns Established
+
+- Uncommitted and standalone identity is a domain-separated hash of the first snapshot digest, never a sentinel "head".
+- Git's pathspec engine is the only traversal and outside-repository defence for user-supplied paths.
+- Published artifact identities stay immutable in historical fixtures even through a product rename.
+- Rename completeness is enforced by a live-tree scan with an explicit exception list, not by per-plan claims.
+
+### Key Lessons
+
+1. A product rename is a milestone-sized cross-cutting change; schedule it as its own phase up front with a full-tree audit as plan 01, not as the last gate.
+2. "Deferred to sibling plan" must name an owning plan that actually lists the item, or the deferral is a silent drop.
+3. Update ROADMAP progress and REQUIREMENTS traceability in the same commit that records phase verification; otherwise milestone close inherits contradictory status.
+4. Behaviour that needs a real TTY or other unharnessed environment needs either a harness or an explicit human-UAT step planned in the phase, not discovered at verification.
+
+### Cost Observations
+
+- Model mix: Not measured.
+- Sessions: Not measured in planning artifacts.
+- Notable: 482 commits, 554 files changed (+72,704 / -3,798) from 2026-09-12 to 2026-11-02; verification scores 17/17, 11/12, 5/5, 34/34, 14/15, 8/8, 3/3.
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -201,6 +251,7 @@
 | v1.2 | 3 | 4 | Established eager source discovery, bounded search, and a compiled 10,000-ref performance gate |
 | v1.3 | 4 | 14 | Established strict agent handoff, immutable range/patch grounding, explicit Finish, and invocation isolation |
 | v1.4 | 2 | 22 | Established optional capability absence, Supabase webhook authority, immutable live-promotion evidence, and provider-runtime retirement |
+| v2.0 | 7 | 70 | Established frozen content-addressed snapshots for uncommitted/standalone review, additive export-schema supersets, and `RENAME_MAP`-derived identity with a live-tree rename audit |
 
 ### Cumulative Quality
 
@@ -211,6 +262,7 @@
 | v1.2 | Focused release gates passed | 5/5 | 12/12 | 5/5 |
 | v1.3 | Focused Git/API/CLI/package gates passed | 17/17 | 10/10 | 10/10 |
 | v1.4 | Focused Vitest, Deno, and database gates passed | Not applicable | 10/10 local support API | Local and hosted support flows passed | 12/12 | 8/8 | 8/8 |
+| v2.0 | `npm test` incl. rename audit | Fixture-verified worktree inventory | Snapshot/refresh/recovery routes | Packaged-binary e2e per phase (2 pre-existing selector-drift failures fixed by `261103-gl9`) | 35/35 | Not audited | Not audited |
 
 ### Top Lessons (Verified Across Milestones)
 
@@ -221,3 +273,4 @@
 4. Attached agent workflows must prove both immutable provenance and per-invocation mutable-state isolation at the generated-package boundary.
 5. Optional hosted functionality should disappear completely when unconfigured rather than expose dormant routes or arbitrary-origin seams.
 6. A superseded phase needs explicit audit disposition even when a later phase removes its runtime and verifies every requirement.
+7. Contradictory planning status (ROADMAP progress, REQUIREMENTS traceability, verification) accumulates silently within a milestone; reconcile it at each phase close, not at milestone close.
