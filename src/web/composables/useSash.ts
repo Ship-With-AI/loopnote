@@ -54,7 +54,11 @@ export function useSash(options: UseSashOptions): UseSashResult {
 
   function onPointermove(event: PointerEvent): void {
     const delta = coordinateOf(event) - startCoordinate;
-    options.value.value = clampAxisValue(startValue + delta, options.min, options.max);
+    // The side bar sits left of its vertical sash, so a rightward drag grows it.
+    // The bottom panel sits below its horizontal sash with a pinned bottom edge,
+    // so a downward drag must shrink it.
+    const signedDelta = options.axis === 'vertical' ? delta : -delta;
+    options.value.value = clampAxisValue(startValue + signedDelta, options.min, options.max);
   }
 
   function onPointerup(event: PointerEvent): void {
