@@ -135,6 +135,7 @@ const sidebarGridTemplateColumns = computed(
 
 .workbench-shell__sash {
   background: transparent;
+  touch-action: none;
   transition: background 0.15s;
 }
 

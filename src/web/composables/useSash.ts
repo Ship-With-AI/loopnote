@@ -61,21 +61,31 @@ export function useSash(options: UseSashOptions): UseSashResult {
     options.value.value = clampAxisValue(startValue + signedDelta, options.min, options.max);
   }
 
-  function onPointerup(event: PointerEvent): void {
-    if (activeTarget !== undefined && activePointerId !== undefined) {
-      activeTarget.releasePointerCapture(activePointerId);
+  function teardown(): void {
+    if (activeTarget !== undefined) {
+      if (activePointerId !== undefined) activeTarget.releasePointerCapture(activePointerId);
       activeTarget.removeEventListener('pointermove', onPointermove);
       activeTarget.removeEventListener('pointerup', onPointerup);
+      activeTarget.removeEventListener('pointercancel', onPointercancel);
     }
     activeTarget = undefined;
     activePointerId = undefined;
     isDragging.value = false;
+  }
+
+  function onPointerup(): void {
+    teardown();
     options.onCommit(options.value.value);
-    void event;
+  }
+
+  function onPointercancel(): void {
+    teardown();
+    options.onCommit(options.value.value);
   }
 
   function onPointerdown(event: PointerEvent): void {
     const target = event.currentTarget as HTMLElement;
+    event.preventDefault();
     startCoordinate = coordinateOf(event);
     startValue = options.value.value;
     target.setPointerCapture(event.pointerId);
@@ -84,6 +94,7 @@ export function useSash(options: UseSashOptions): UseSashResult {
     isDragging.value = true;
     target.addEventListener('pointermove', onPointermove);
     target.addEventListener('pointerup', onPointerup);
+    target.addEventListener('pointercancel', onPointercancel);
   }
 
   function reset(): void {
