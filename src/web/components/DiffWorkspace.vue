@@ -146,7 +146,7 @@ function resizeAnchorZoneToContent(zone: HTMLElement): void {
 function renderAnnotation(): void {
   const zone = host.value?.querySelector<HTMLElement>('.monaco-anchor-zone--composer');
   const anchor = adapter?.getActiveAnchor();
-  if (zone === undefined || anchor === undefined || anchor.fileId !== props.content.fileId) {
+  if (zone === undefined || zone === null || anchor === undefined || anchor.fileId !== props.content.fileId) {
     unmountZone();
     return;
   }
@@ -374,7 +374,7 @@ onMounted(() => {
   resizeObserver = new ResizeObserver(() => {
     adapter?.layout();
     const zone = host.value?.querySelector<HTMLElement>('.monaco-anchor-zone--composer');
-    if (zone === null) return;
+    if (zone === null || zone === undefined) return;
     const contentHeight = zone.firstElementChild?.scrollHeight ?? zone.scrollHeight;
     const height = Math.max(280, contentHeight + 16);
     if (Math.abs(zone.clientHeight - height) > 1) resizeAnchorZoneToContent(zone);
