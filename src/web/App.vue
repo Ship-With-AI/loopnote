@@ -43,6 +43,7 @@ import type { WorkspaceComment, WorkspaceState } from './model/workspace-state.j
 import {
   createReviewDraftState,
   reviewPrimarySurface,
+  type AttachedLifecycle,
   type ReadOnlyDraftLoad,
   type ReviewDraftState,
   type ReviewDraftSnapshot,
@@ -72,8 +73,6 @@ type ReviewFailure = Readonly<{
   operation: ReviewPendingOperation;
   commentId?: string;
 }>;
-
-type AttachedLifecycle = 'ordinary' | 'waiting' | 'waitingDisconnected' | 'finishing' | 'completed' | 'retryableFailure' | 'terminalFailure';
 
 type ShellDialog = 'changed-files' | 'review-notes' | 'support';
 

@@ -3,7 +3,7 @@ import type { AppendLoopnoteIgnoreResult, ExportDirectoryRevealResult, FinishRev
 import { RENAME_MAP } from '../../domain/product-identity.js';
 import { computed, nextTick, ref, watch } from 'vue';
 
-import type { ReviewExportState, ReviewPendingOperation } from '../model/review-draft-state.js';
+import type { AttachedLifecycle, ReviewExportState, ReviewPendingOperation } from '../model/review-draft-state.js';
 import type { WorkspaceComment } from '../model/workspace-state.js';
 import ExportSection from './ExportSection.vue';
 import SummarySection from './SummarySection.vue';
@@ -16,14 +16,6 @@ type ReviewFailure = Readonly<{
   operation: ReviewPendingOperation;
   commentId?: string;
 }>;
-
-type AttachedLifecycle =
-  | 'waiting'
-  | 'waitingDisconnected'
-  | 'finishing'
-  | 'completed'
-  | 'retryableFailure'
-  | 'terminalFailure';
 
 const props = withDefaults(
   defineProps<{

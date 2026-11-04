@@ -47,6 +47,8 @@ export type ReadOnlyDraftLoad = Extract<
   { readonly kind: 'malformed' | 'schemaInvalid' | 'newerUnsupported' }
 >;
 
+export type AttachedLifecycle = 'ordinary' | 'waiting' | 'waitingDisconnected' | 'finishing' | 'completed' | 'retryableFailure' | 'terminalFailure';
+
 export type ReviewPrimarySurface = 'loading' | 'workspace' | 'recovery' | 'upgrade';
 
 export function reviewPrimarySurface(load: DraftLoadResponse | undefined): ReviewPrimarySurface {
