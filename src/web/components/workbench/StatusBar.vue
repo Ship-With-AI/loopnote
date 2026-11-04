@@ -97,6 +97,14 @@ defineExpose({ focusSupport });
   font: inherit;
 }
 
+.statusbar__item,
+.statusbar .identity-disclosure {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  padding-block: 0;
+}
+
 .statusbar__item--emphasis {
   padding-inline: var(--space-2);
   border-radius: var(--radius-control);

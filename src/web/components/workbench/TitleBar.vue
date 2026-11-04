@@ -246,4 +246,11 @@ const attachedFact = computed(() => {
   background: var(--surface-interactive-active);
   color: var(--text-primary);
 }
+
+.titlebar .identity-disclosure {
+  min-width: 0;
+  min-height: 0;
+  height: var(--control-height-icon);
+  padding-block: 0;
+}
 </style>
