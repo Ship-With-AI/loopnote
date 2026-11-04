@@ -101,7 +101,7 @@ Full details: [`milestones/v2.0-ROADMAP.md`](./milestones/v2.0-ROADMAP.md).
   4. A packaged-binary e2e check passes for each of the five session kinds — committed branch/worktree, exact patch, Staged/Unstaged/Working tree, standalone, and agent-attached — proving the new shell kept every current capability per kind.
   5. No viewport width from 1050 to 1920px produces page-level horizontal scroll (only the diff canvas scrolls horizontally), and Loopnote's own F7/⇧F7 (change) and ⌥↓/⌥↑ (file) shortcuts fire both inside and outside the diff editor while Monaco's native Diff Review Pane and Move-Line bindings stay suppressed inside it; reviewer still sees the explanation for unsupported/unavailable/changed-during-capture files beneath the editor title.
 
-**Plans:** 9 plans
+**Plans:** 10 plans
 
 Plans:
 - [ ] 20-01-PLAN.md — `model/panel-state.ts`: clamped localStorage persistence for side-bar width/visibility and panel height (TDD)
@@ -112,7 +112,8 @@ Plans:
 - [ ] 20-06-PLAN.md — `BottomPanel.vue` (un-wraps ReviewNotesDialog) + review-notes-dialog.spec.ts rewrite
 - [ ] 20-07-PLAN.md — `App.vue` integration: wires every new component, deletes superseded ones, rewrites handleKeydown
 - [ ] 20-08-PLAN.md — packaged-binary shell smoke spec, one case per session kind (SHELL-05)
-- [ ] 20-09-PLAN.md — fixes every broken Playwright/integration locator across all six affected spec files (A11Y-03)
+- [ ] 20-09-PLAN.md — fixes every broken Playwright/integration locator across the six affected spec files 20-07's draft enumerated (A11Y-03)
+- [ ] 20-10-PLAN.md — fixes the remaining Review-notes/BottomPanel and .changed-files-sidebar locator breakage an exhaustive repo-wide grep sweep found across six more spec files, including the custody-gated agent-ready-export.spec.ts (A11Y-03)
 **UI hint**: yes
 
 ### Phase 21: Changed-Files Tree
