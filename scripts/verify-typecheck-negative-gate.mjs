@@ -13,13 +13,14 @@ function fail(message) {
 
 function runTypecheck() {
   try {
-    return execFileSync('npx', ['vue-tsc', '--noEmit', '--project', 'tsconfig.web.json'], {
+    const stdout = execFileSync('npx', ['vue-tsc', '--noEmit', '--project', 'tsconfig.web.json'], {
       cwd: repositoryRoot,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
     });
+    return { status: 0, output: stdout };
   } catch (error) {
-    return `${error.stdout ?? ''}${error.stderr ?? ''}`;
+    return { status: error.status ?? 1, output: `${error.stdout ?? ''}${error.stderr ?? ''}` };
   }
 }
 
@@ -28,8 +29,9 @@ if (!original.includes(originalBinding)) fail(`expected binding not found in Pat
 
 try {
   await writeFile(targetPath, original.replace(originalBinding, mutatedBinding), 'utf8');
-  const mutatedOutput = runTypecheck();
-  const mutatedPathDisplayLines = mutatedOutput.split('\n').filter((line) => line.includes('PathDisplay.vue'));
+  const mutated = runTypecheck();
+  if (mutated.status === 0) fail('vue-tsc exited 0 with a numeric literal injected into the display prop — the typecheck gate is a no-op');
+  const mutatedPathDisplayLines = mutated.output.split('\n').filter((line) => line.includes('PathDisplay.vue'));
   if (!mutatedPathDisplayLines.some((line) => line.includes('TS2322'))) {
     fail('injecting a numeric literal into the display prop did not produce a PathDisplay.vue TS2322 error — the typecheck gate is a no-op');
   }
@@ -37,8 +39,9 @@ try {
   await writeFile(targetPath, original, 'utf8');
 }
 
-const revertedOutput = runTypecheck();
-const revertedPathDisplayLines = revertedOutput.split('\n').filter((line) => line.includes('PathDisplay.vue'));
+const reverted = runTypecheck();
+if (reverted.status !== 0) fail(`reverting PathDisplay.vue did not return the gate to a zero exit — status ${reverted.status}: ${reverted.output}`);
+const revertedPathDisplayLines = reverted.output.split('\n').filter((line) => line.includes('PathDisplay.vue'));
 if (revertedPathDisplayLines.length > 0) {
   fail(`reverting PathDisplay.vue did not return to zero errors — ${revertedPathDisplayLines.length} line(s) remain: ${revertedPathDisplayLines.join(' | ')}`);
 }
