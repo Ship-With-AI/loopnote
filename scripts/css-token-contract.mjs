@@ -1,6 +1,6 @@
 export const CANONICAL_TOKENS = [
   '--border-control', '--border-default', '--border-gap', '--border-hunk', '--border-overlay', '--border-width-default', '--breadcrumb-height',
-  '--control-height-compact', '--control-height-icon', '--control-height-standard', '--destructive-emphasis', '--destructive-foreground',
+  '--control-height-icon', '--control-height-standard', '--destructive-emphasis', '--destructive-foreground',
   '--dialog-max-height', '--dialog-width', '--diff-addition-background', '--diff-addition-foreground', '--diff-addition-intraline-background',
   '--diff-deletion-background', '--diff-deletion-foreground', '--diff-deletion-intraline-background',
   '--diff-empty-background', '--diff-hunk-background', '--diff-hunk-foreground', '--diff-region-border',
