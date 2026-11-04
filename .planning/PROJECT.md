@@ -82,20 +82,22 @@ within hours of being widened.
 
 </details>
 
-## Next Milestone Goals: v2.1 (proposed — Workbench Redesign)
+## Current Milestone: v2.1 Workbench Redesign
 
-Defined by `/gsd:new-milestone`; inputs already validated by sketches 001–004
-(`.planning/sketches/WRAP-UP-SUMMARY.md`, skill `sketch-findings-loopnote`):
+**Goal:** Rebuild the browser review workspace as a VS Code-inspired workbench that gives the diff nearly all the space, keeping Loopnote's palette and every existing review, export, and support behaviour.
 
-- VS Code-inspired workbench: files-only side bar, title-bar Base→Head identity pill with a
-  details/drift/refresh popover, icon-only editor-title actions, bottom panel (Comments /
-  Summary / Export) closed while reading, 22px status bar. Loopnote palette kept.
-- VS Code Explorer-density changed-files tree (22px rows, compact folders, M/A/D decorations).
-- Inline Monaco view-zone comment threads with Open / Resolved / Anchor-moved states,
-  restoring resolve/reopen/delete removed by quick task `260915-jbv`.
-- Close backlog DEBT-01 through real `role="toolbar"`/`group` containers.
-- Open design questions to resolve in `/gsd:ui-phase`: narrow/phone widths, thread default
-  state, support entry point, `DESIGN.md` Composition/Geometry rewrite.
+**Target features:**
+- Workbench shell: 32px title bar with a Base→Head identity pill and details/drift/refresh popover; resizable files-only side bar; icon-only editor-title actions with VS Code shortcuts and breadcrumbs; bottom panel (Comments / Summary / Export) closed while reading (⌘J); 22px status bar with snapshot, open/stale comments, viewed count, Export, and the voluntary-support item.
+- VS Code Explorer-density changed-files tree: 22px rows, compact folders, right-aligned M/A/D, comment badges, `+/−` counts on hover or selection, path filter, view options, footer totals, keyboard tree navigation.
+- Inline Monaco view-zone comment threads with Open / Resolved / Anchor-moved states, resolve / reopen / delete / reply, expanded by default with a session-scoped collapse-all toggle, and cross-file thread navigation.
+- Export readiness, stale-anchor acknowledgement gate, and receipt in the bottom panel.
+- Workbench geometry tokens over the unchanged Loopnote colour roles; `DESIGN.md` Composition/Geometry and the token contract rewritten to match.
+- Toolbar groups reachable by role and name (closes DEBT-01).
+- `.vue` components brought under typechecking via a TypeScript/vue-tsc pairing decision.
+
+**Design source:** sketches 001–004 (`.planning/sketches/`), skill `sketch-findings-loopnote`.
+
+**Scope decisions (2026-11-04):** desktop only — layouts below 1050px may regress and are recorded as debt; drafts, the anchor model, V1–V6 exports, the agent stdin protocol, support flow, and all session kinds stay behaviourally unchanged.
 
 Candidates carried forward from v1.5 (still unscheduled):
 
@@ -104,7 +106,7 @@ Candidates carried forward from v1.5 (still unscheduled):
   verified-state portions for the global, npx, and marketplace paths.
 - Correct `SKILL.md`, which still installs `@1.5.0` and claims only 1.5.0 has independent
   release verification; this needs a separate marketplace publication.
-- Bring `.vue` files under typechecking (blocked on a TypeScript/vue-tsc pairing decision).
+- ~~Bring `.vue` files under typechecking~~ — scheduled in v2.1.
 
 <details>
 <summary>v2.0 Artifact Review (shipped 2026-11-04)</summary>
@@ -284,9 +286,14 @@ Validated in v2.0 Phases 14–18 (Artifact Review):
 
 ### Active
 
-- [ ] VS Code-inspired workbench shell replaces the identity header band, review rail, and footer (proposed v2.1).
-- [ ] Reviewers can resolve, reopen, and delete comment threads inline again (removed by quick task `260915-jbv`; proposed v2.1).
-- [ ] Assistive technology reaches toolbar control groups by role and name (DEBT-01; proposed v2.1).
+- [ ] VS Code-inspired workbench shell replaces the identity header band, review rail, toolbars, and footer.
+- [ ] Base→Head identity, drift, and Refresh live in a title-bar pill and popover.
+- [ ] Changed files render as a VS Code Explorer-density tree.
+- [ ] Reviewers can resolve, reopen, delete, and reply to comment threads inline (removed by quick task `260915-jbv`).
+- [ ] Comments, summary, and export live in a bottom panel closed while reading.
+- [ ] Assistive technology reaches toolbar control groups by role and name (DEBT-01).
+- [ ] `.vue` components are typechecked.
+- [ ] `DESIGN.md` describes the workbench.
 
 ### Out of Scope
 
@@ -410,4 +417,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with the current product state and feedback.
 
 ---
-*Last updated: 2026-11-04 after v2.0 Artifact Review milestone close*
+*Last updated: 2026-11-04 at v2.1 Workbench Redesign milestone start*
