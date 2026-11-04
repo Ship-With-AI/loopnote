@@ -106,7 +106,7 @@ Full details: [`milestones/v2.0-ROADMAP.md`](./milestones/v2.0-ROADMAP.md).
 Plans:
 **Wave 1**
 
-- [ ] 20-01-PLAN.md — `model/panel-state.ts`: clamped localStorage persistence for side-bar width/visibility and panel height (TDD)
+- [x] 20-01-PLAN.md — `model/panel-state.ts`: clamped localStorage persistence for side-bar width/visibility and panel height (TDD)
 - [ ] 20-02-PLAN.md — Monaco `addAction` overrides for F7/⇧F7/⌥↑/⌥↓ on all three editor instances, plus a runtime `setRenderSideBySide` adapter method
 - [ ] 20-03-PLAN.md — Token root migration + `TitleBar.vue` + `StatusBar.vue`
 

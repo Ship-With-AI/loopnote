@@ -27,7 +27,7 @@
 - [ ] **SHELL-01**: Reviewer sees a title bar, a files-only side bar, the editor area, a bottom panel, and a status bar, with no activity bar, identity header band, review rail, or footer copy.
 - [ ] **SHELL-02**: Reviewer can hide and show the side bar (⌘B / Ctrl+B or the title-bar toggle) and resize it by dragging its sash between 170 and 520px; double-clicking the sash resets the width.
 - [ ] **SHELL-03**: Reviewer can open and close the bottom panel (⌘J / Ctrl+J, the title-bar toggle, or ✕) and resize it by dragging; the panel is closed when a session starts.
-- [ ] **SHELL-04**: Reviewer's side-bar width and panel height persist across sessions on the same machine.
+- [x] **SHELL-04**: Reviewer's side-bar width and panel height persist across sessions on the same machine.
 - [ ] **SHELL-05**: Reviewer keeps every current capability in the new shell for each session kind — committed branch/worktree, exact patch, Staged/Unstaged/Working tree, standalone, and agent-attached — proven by one packaged-binary e2e check per kind.
 - [ ] **SHELL-06**: Reviewer never gets page-level horizontal scrolling at viewport widths from 1050 to 1920px; only the diff canvas scrolls horizontally.
 
@@ -123,7 +123,7 @@ Deferred, tracked but not in the v2.1 roadmap.
 | SHELL-01 | Phase 20 | Pending |
 | SHELL-02 | Phase 20 | Pending |
 | SHELL-03 | Phase 20 | Pending |
-| SHELL-04 | Phase 20 | Pending |
+| SHELL-04 | Phase 20 | Complete |
 | SHELL-05 | Phase 20 | Pending |
 | SHELL-06 | Phase 20 | Pending |
 | IDENT-01 | Phase 22 | Pending |

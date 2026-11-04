@@ -5,15 +5,15 @@ milestone_name: Workbench Redesign
 current_phase: 20
 current_phase_name: Shell Frame
 status: executing
-stopped_at: Completed 19-03-PLAN.md
-last_updated: "2026-11-04T19:29:37.573Z"
+stopped_at: Completed 20-01-PLAN.md
+last_updated: "2026-11-04T19:39:18.950Z"
 last_activity: 2026-11-04
 last_activity_desc: Phase 19 complete, transitioned to Phase 20
 progress:
   total_phases: 7
   completed_phases: 1
-  total_plans: 4
-  completed_plans: 4
+  total_plans: 14
+  completed_plans: 5
   percent: 14
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-11-04)
 ## Current Position
 
 Phase: 20 — Shell Frame
-Plan: Not started
+Plan: 1 of 10
 Status: Ready to execute
 Last activity: 2026-11-04 — Phase 19 complete, transitioned to Phase 20
 
@@ -108,6 +108,7 @@ Last activity: 2026-11-04 — Phase 19 complete, transitioned to Phase 20
 | Phase 19 P02 | 20min | 2 tasks | 2 files |
 | Phase 19 P03 | 25min | 3 tasks | 3 files |
 | Phase 19 P04 | 3min | 2 tasks | 5 files |
+| Phase 20-shell-frame P01 | 7min | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -216,6 +217,7 @@ Decisions are logged in PROJECT.md Key Decisions.
 - [Phase 19-03]: AttachedLifecycle consolidation uses App.vue's broader 7-member union as the single exported source of truth — ReviewNotesDialog.vue's narrower 6-member local type was a strict subset and 'ordinary' is provably unreachable at that call site, so widening the consumer's prop type changes zero runtime behaviour
 - [Phase 19-03]: App.vue's session-shell v-else branch narrowed to v-else-if="session !== undefined" to fix all 4 remaining session.value errors in one change — All four error sites live in the same subtree; vue-tsc's template control-flow analysis propagates the discriminant check through it, mirroring 19-02's DraftRecovery.vue v-else-if fix
 - [Phase 19-04]: Updated verify-supabase-support.mjs's required and gateCommands arrays only (not the separate whole-workflow commands Set loop), matching the plan's literal grep -c == 2 acceptance criterion for npm run typecheck:web
+- [Phase 20-shell-frame]: 20-01: No REFACTOR commit needed — the GREEN implementation already factored the shared clamp(value, min, max) helper behind clampSidebarWidth/clampPanelHeight — No further duplication existed to remove without changing behavior or hurting readability; the three independent per-field typeof ternaries in parsePanelState cover three different field types and aren't worth abstracting further.
 
 ### Pending Todos
 
@@ -274,8 +276,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-11-04T16:27:05.652Z
-Stopped at: Completed 19-03-PLAN.md
+Last session: 2026-11-04T19:38:24.810Z
+Stopped at: Completed 20-01-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
