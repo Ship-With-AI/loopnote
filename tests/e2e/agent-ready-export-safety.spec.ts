@@ -38,7 +38,7 @@ let lifecycleUrl: string;
 
 const lifecycleHarness = `
 import { createApp, h, ref } from 'vue';
-import ReviewNotesDialog from '/components/ReviewNotesDialog.vue';
+import BottomPanel from '/components/workbench/BottomPanel.vue';
 import CommentComposer from '/components/CommentComposer.vue';
 import '/styles.css';
 
@@ -57,7 +57,7 @@ export function mountLifecycleHarness() {
   };
   createApp({
     render: () => h('main', [
- h(ReviewNotesDialog, {
+ h(BottomPanel, {
  open: true,
  comments: [], inventory: [], summary: '', revision: 7, summaryBuffer: summaryBuffer.value,
         commentBuffers: new Map(), pending: null, conflict: conflict.value, failure: null,

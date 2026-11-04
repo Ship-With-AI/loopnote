@@ -223,7 +223,7 @@ async function startAppServer(): Promise<string> {
 
 async function openReview(page: Page): Promise<void> {
   await page.goto(`${origin}#token=${token}`);
-  await expect(page.getByRole('main')).toBeVisible();
+  await expect(page.locator('.workbench-shell__editor')).toBeVisible();
 }
 
 test.beforeAll(async () => {
@@ -341,14 +341,14 @@ test('selector drift uses the fixed endpoint and leaves the pinned review and fo
   await expect(notice).toContainText(baseOid);
   await expect(notice).toContainText(movedBaseOid);
 
-  const warningStack = page.locator('.session-shell__content > .shell-warning-stack');
+  const warningStack = page.locator('.workbench-shell__editor > .shell-warning-stack');
   await expect(warningStack).toBeVisible();
   await expect(warningStack).toContainText('Selected source changed — open review remains pinned');
 
-  const reviewNotes = page.getByRole('button', { name: 'Review notes', exact: true });
+  const reviewNotes = page.getByRole('button', { name: 'Toggle panel (⌘J)', exact: true });
   await expect(reviewNotes).toBeVisible();
   await reviewNotes.click();
-  await expect(page.getByRole('dialog', { name: 'Review notes' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Review', exact: true })).toBeVisible();
 
   const summaryDisclosure = page.getByRole('button', { name: /^Summary\b/ });
   await expect(summaryDisclosure).toHaveAttribute('aria-expanded', 'true');
@@ -364,7 +364,7 @@ test('selector drift uses the fixed endpoint and leaves the pinned review and fo
   await expect(summary).toHaveValue('Unsaved review buffer');
   await expect(summary).toBeFocused();
   await expect(page.getByRole('banner')).toContainText(new RegExp(`BASE\\s*base · ${baseOid.slice(0, 7)}`));
-  await page.getByRole('dialog', { name: 'Review notes' }).getByRole('button', { name: 'Close review notes' }).click();
+  await page.getByRole('region', { name: 'Review', exact: true }).getByRole('button', { name: 'Close panel' }).click();
 
   await page.getByRole('button', { name: `Copy pinned Base commit ${baseOid}` }).click();
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(baseOid);
@@ -387,7 +387,7 @@ test('selector drift uses the fixed endpoint and leaves the pinned review and fo
   }
 });
 
-test('exact patch drift is announced while Review notes makes the shell inert', async ({ page }) => {
+test('exact patch drift is announced while the review panel is open', async ({ page }) => {
   const pinnedPropWarnings: string[] = [];
   page.on('console', (message) => {
     if (message.type() === 'warning' && /prop "pinned(?:Base|Head)"/u.test(message.text())) {
@@ -398,10 +398,8 @@ test('exact patch drift is announced while Review notes makes the shell inert', 
   await openReview(page);
 
   await expect(page.getByRole('banner').getByText('Frozen patch', { exact: true })).toBeVisible();
-  await expect(page.getByRole('contentinfo').getByText('Local review · frozen patch', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Review notes', exact: true }).click();
-  await expect(page.getByRole('dialog', { name: 'Review notes' })).toBeVisible();
-  await expect(page.locator('.session-shell__content')).toHaveAttribute('inert', '');
+  await page.getByRole('button', { name: 'Toggle panel (⌘J)', exact: true }).click();
+  await expect(page.getByRole('region', { name: 'Review', exact: true })).toBeVisible();
   expect(patchStatusRequests).toHaveLength(1);
   expect(driftRequests).toHaveLength(0);
 
@@ -417,7 +415,7 @@ test('exact patch drift is announced while Review notes makes the shell inert', 
   });
 
   await expect(page.locator('[aria-live="polite"]')).toHaveText('Implemented content changed.');
-  await expect(page.locator('.session-shell__content [role="alert"]')).toHaveCount(0);
+  await expect(page.locator('.workbench-shell [role="alert"]')).toHaveCount(0);
   expect(pinnedPropWarnings).toEqual([]);
 });
 
@@ -502,7 +500,7 @@ test('exact patch retry stays snapshot-only and terminal loss focuses one source
   )).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Pinned session unavailable' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Try frozen snapshot again' })).toHaveCount(0);
-  await expect(page.locator('.review-shell')).toHaveCount(0);
+  await expect(page.locator('.workbench-shell__body')).toHaveCount(0);
   await expect(page.locator('body')).not.toContainText(/\bpinned\b/iu);
 
   await page.evaluate(() => {

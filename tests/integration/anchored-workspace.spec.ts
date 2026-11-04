@@ -406,8 +406,8 @@ async function readMonacoGeometry(page: Page, targetText: string): Promise<Monac
     ) ?? visibleLines[0];
     const lineRect = rect(line ?? null);
     const tokenRect = rect(line?.querySelector('span') ?? null);
-    const reviewMain = document.querySelector<HTMLElement>('.review-main');
-    const reviewShell = document.querySelector<HTMLElement>('.review-shell');
+    const reviewMain = document.querySelector<HTMLElement>('.workbench-shell__main');
+    const reviewShell = document.querySelector<HTMLElement>('.workbench-shell__body');
     const diffViewport = document.querySelector<HTMLElement>('.diff-workspace__viewport');
     const diffCanvas = document.querySelector<HTMLElement>('.diff-workspace__canvas');
     return {
@@ -531,7 +531,7 @@ test('Phase 07 header and control states', async ({ page }) => {
     await page.goto(`${origin}#token=${token}`);
     await expect(page.locator('.monaco-diff-editor')).toBeVisible();
 
-    const header = page.locator('.review-toolbar');
+    const header = page.locator('.editor-title');
     await expect(header).toHaveCount(1);
     await expect(page.locator(`#${RENAME_MAP.cssPrefix}heading`)).toHaveCount(1);
     await expect(page.getByRole('banner')).toContainText(new RegExp('HEAD\\s*head · bbbbbbb'));
@@ -560,7 +560,7 @@ test('Phase 07 header and control states', async ({ page }) => {
     }
 
     await nextFile.hover();
-    await expect(page.getByRole('tooltip')).toHaveText('Next file · Alt+Shift+]');
+    await expect(page.getByRole('tooltip')).toHaveText('Next file · Alt+↓');
     const restBounds = await nextFile.boundingBox();
     const disabledBackground = await previousFile.evaluate((element) => getComputedStyle(element).backgroundColor);
     await previousFile.hover({ force: true });
@@ -923,7 +923,7 @@ test('anchored gap closure', async ({ page }) => {
   await expect(changedFiles.getByRole('searchbox', { name: 'Filter files', exact: true })).toBeFocused();
   await page.getByRole('button', { name: 'Close files' }).click();
   await expect(filesToggle).toBeFocused();
-  await expect(page.locator('.changed-files-sidebar')).not.toBeVisible();
+  await expect(page.locator('.workbench-shell__sidebar')).not.toBeVisible();
   await filesToggle.click();
   await expect(changedFiles).toBeVisible();
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -933,28 +933,16 @@ test('anchored gap closure', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
 
 
-  const reviewNotes = page.getByRole('button', { name: 'Review notes', exact: true });
+  const reviewNotes = page.getByRole('button', { name: 'Toggle panel (⌘J)', exact: true });
   await reviewNotes.focus();
   await reviewNotes.click();
-  const reviewNotesDialog = page.getByRole('dialog', { name: 'Review notes', exact: true });
-  const reviewNotesClose = reviewNotesDialog.getByRole('button', { name: 'Close review notes', exact: true });
+  const reviewNotesDialog = page.getByRole('region', { name: 'Review', exact: true });
+  const reviewNotesClose = reviewNotesDialog.getByRole('button', { name: 'Close panel', exact: true });
   await expect(reviewNotesDialog).toBeVisible();
-  await expect(page.locator('.session-shell__content')).toHaveAttribute('inert', '');
-  await expect(reviewNotesClose).toBeFocused();
-  await page.keyboard.press('Shift+Tab');
-  await expect(reviewNotesDialog.getByRole('button').last()).toBeFocused();
-  await page.keyboard.press('Tab');
-  await expect(reviewNotesClose).toBeFocused();
   await reviewNotesClose.click();
-  await expect(reviewNotes).toBeFocused();
-  await reviewNotes.click();
-  await reviewNotesDialog.locator('..').dispatchEvent('click');
   await expect(reviewNotesDialog).toHaveCount(0);
-  await expect(reviewNotes).toBeFocused();
   await reviewNotes.click();
-  await page.keyboard.press('Escape');
-  await expect(reviewNotesDialog).toHaveCount(0);
-  await expect(reviewNotes).toBeFocused();
+  await expect(reviewNotesDialog).toBeVisible();
   await openReview(page);
   await page.setViewportSize({ width: 1200, height: 1100 });
 });
@@ -1129,7 +1117,7 @@ test('preserves no-reflow Monaco semantic channels at every phase viewport', asy
     }
     expect(initial.reviewMain.rect.width).toBeLessThanOrEqual(initial.reviewShell.rect.width + 1);
     expect(initial.diffViewport.rect.width).toBeLessThanOrEqual(initial.reviewMain.rect.width + 1);
-    const outerOverflowOwners = await page.locator('.review-main').evaluate((root) => [...root.querySelectorAll<HTMLElement>('*')]
+    const outerOverflowOwners = await page.locator('.workbench-shell__main').evaluate((root) => [...root.querySelectorAll<HTMLElement>('*')]
       .filter((element) => !element.closest('.diff-workspace__viewport')
         && !element.closest('.review-toolbar__active-file')
         && !element.classList.contains('sr-only')
