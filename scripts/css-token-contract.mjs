@@ -1,13 +1,13 @@
 export const CANONICAL_TOKENS = [
-  '--border-control', '--border-default', '--border-gap', '--border-hunk', '--border-overlay', '--border-width-default',
+  '--border-control', '--border-default', '--border-gap', '--border-hunk', '--border-overlay', '--border-width-default', '--breadcrumb-height',
   '--control-height-compact', '--control-height-icon', '--control-height-standard', '--destructive-emphasis', '--destructive-foreground',
   '--dialog-max-height', '--dialog-width', '--diff-addition-background', '--diff-addition-foreground', '--diff-addition-intraline-background',
   '--diff-deletion-background', '--diff-deletion-foreground', '--diff-deletion-intraline-background',
   '--diff-empty-background', '--diff-hunk-background', '--diff-hunk-foreground', '--diff-region-border',
-  '--diff-unchanged-background', '--file-row-min-height', '--focus-offset', '--focus-outline-width', '--focus-ring', '--font-mono',
-  '--font-size-body', '--font-size-chrome', '--font-size-code', '--font-size-display', '--font-size-metadata', '--font-size-page-heading',
+  '--diff-unchanged-background', '--editor-title-height', '--file-row-min-height', '--focus-offset', '--focus-outline-width', '--focus-ring', '--font-mono',
+  '--font-size-body', '--font-size-chrome', '--font-size-code', '--font-size-display', '--font-size-label', '--font-size-metadata', '--font-size-page-heading',
   '--font-ui', '--font-weight-regular', '--font-weight-semibold', '--icon-size', '--interactive-accent',
-  '--interactive-accent-emphasis', '--interactive-accent-emphasis-hover', '--line-height-body', '--line-height-chrome', '--line-height-code',
+  '--interactive-accent-emphasis', '--interactive-accent-emphasis-hover', '--letter-spacing-label', '--line-height-body', '--line-height-chrome', '--line-height-code',
   '--line-height-display', '--line-height-metadata', '--line-height-page-heading', '--monaco-inactive-selection-background',
   '--monaco-scrollbar-active-background', '--monaco-scrollbar-hover-background', '--monaco-whitespace-foreground',
   '--radius-control', '--radius-file-row', '--radius-overlay', '--radius-pill', '--radius-scrollbar', '--scrollbar-thumb', '--selected-rail-width',
@@ -23,7 +23,7 @@ export const CANONICAL_TOKENS = [
   '--syntax-comment-foreground', '--syntax-default-foreground', '--syntax-invalid-foreground',
   '--syntax-keyword-foreground', '--syntax-number-foreground', '--syntax-string-foreground',
   '--syntax-type-foreground', '--text-hunk', '--text-line-number', '--text-muted', '--text-on-emphasis',
-  '--text-primary', '--text-selection-background', '--titlebar-height', '--tree-indent',
+  '--text-primary', '--text-selection-background', '--titlebar-height', '--tree-indent', '--view-header-height',
 ];
 const COLOR_TOKEN = /^(?!--(?:border-width-default|focus-offset|focus-outline-width)$)--(?:surface|text|border|interactive|focus|selection|scrollbar|destructive|status|diff|monaco|syntax)-/u;
 const HEX_COLOR = /^#([\da-fA-F]{6}(?:[\da-fA-F]{2})?)$/u;

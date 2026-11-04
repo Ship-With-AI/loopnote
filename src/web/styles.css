@@ -134,6 +134,11 @@
   --titlebar-height: 32px;
   --statusbar-height: 22px;
   --control-height-icon: 22px;
+  --editor-title-height: 35px;
+  --breadcrumb-height: 24px;
+  --view-header-height: 35px;
+  --font-size-label: 11px;
+  --letter-spacing-label: 0.04em;
   --font-size-chrome: 13px;
   --line-height-chrome: 16px;
   /* Approved continuity — UI-SPEC:23 icon geometry. */
@@ -918,9 +923,13 @@ input:-webkit-autofill:focus {
 
 .file-tree-pane h2 {
   display: flex;
+  height: var(--view-header-height);
   align-items: center;
   gap: var(--space-2);
   margin-bottom: var(--space-4);
+  font-size: var(--font-size-label);
+  letter-spacing: var(--letter-spacing-label);
+  text-transform: uppercase;
 }
 
 .file-tree,
