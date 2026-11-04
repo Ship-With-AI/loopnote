@@ -19,14 +19,14 @@
 
 ### Design Tokens & Contract
 
-- [ ] **TOK-01**: Reviewer sees the workspace rendered with workbench geometry tokens (22px rows, 264px side bar, 32/35/24/22px title, editor-title, breadcrumb, and status heights, 4px control and 6px overlay radius, 20px code line height) over unchanged colour roles, and `npm run verify:semantic-css` passes.
+- [x] **TOK-01**: Reviewer sees the workspace rendered with workbench geometry tokens (22px rows, 264px side bar, 32/35/24/22px title, editor-title, breadcrumb, and status heights, 4px control and 6px overlay radius, 20px code line height) over unchanged colour roles, and `npm run verify:semantic-css` passes.
 - [ ] **TOK-02**: Contributors read a `DESIGN.md` whose Composition, Geometry, and Components sections describe the shipped workbench, with no review rail or identity header band.
 
 ### Workbench Shell
 
-- [ ] **SHELL-01**: Reviewer sees a title bar, a files-only side bar, the editor area, a bottom panel, and a status bar, with no activity bar, identity header band, review rail, or footer copy.
-- [ ] **SHELL-02**: Reviewer can hide and show the side bar (⌘B / Ctrl+B or the title-bar toggle) and resize it by dragging its sash between 170 and 520px; double-clicking the sash resets the width.
-- [ ] **SHELL-03**: Reviewer can open and close the bottom panel (⌘J / Ctrl+J, the title-bar toggle, or ✕) and resize it by dragging; the panel is closed when a session starts.
+- [x] **SHELL-01**: Reviewer sees a title bar, a files-only side bar, the editor area, a bottom panel, and a status bar, with no activity bar, identity header band, review rail, or footer copy.
+- [x] **SHELL-02**: Reviewer can hide and show the side bar (⌘B / Ctrl+B or the title-bar toggle) and resize it by dragging its sash between 170 and 520px; double-clicking the sash resets the width.
+- [x] **SHELL-03**: Reviewer can open and close the bottom panel (⌘J / Ctrl+J, the title-bar toggle, or ✕) and resize it by dragging; the panel is closed when a session starts.
 - [x] **SHELL-04**: Reviewer's side-bar width and panel height persist across sessions on the same machine.
 - [ ] **SHELL-05**: Reviewer keeps every current capability in the new shell for each session kind — committed branch/worktree, exact patch, Staged/Unstaged/Working tree, standalone, and agent-attached — proven by one packaged-binary e2e check per kind.
 - [ ] **SHELL-06**: Reviewer never gets page-level horizontal scrolling at viewport widths from 1050 to 1920px; only the diff canvas scrolls horizontally.
@@ -118,11 +118,11 @@ Deferred, tracked but not in the v2.1 roadmap.
 |-------------|-------|--------|
 | TYPE-01 | Phase 19 | Complete |
 | TYPE-02 | Phase 19 | Complete |
-| TOK-01 | Phase 20 | Pending |
+| TOK-01 | Phase 20 | Complete |
 | TOK-02 | Phase 25 | Pending |
-| SHELL-01 | Phase 20 | Pending |
-| SHELL-02 | Phase 20 | Pending |
-| SHELL-03 | Phase 20 | Pending |
+| SHELL-01 | Phase 20 | Complete |
+| SHELL-02 | Phase 20 | Complete |
+| SHELL-03 | Phase 20 | Complete |
 | SHELL-04 | Phase 20 | Complete |
 | SHELL-05 | Phase 20 | Pending |
 | SHELL-06 | Phase 20 | Pending |

@@ -5,15 +5,15 @@ milestone_name: Workbench Redesign
 current_phase: 20
 current_phase_name: Shell Frame
 status: executing
-stopped_at: Completed 20-02-PLAN.md
-last_updated: "2026-11-04T19:47:34.513Z"
+stopped_at: Completed 20-03-PLAN.md
+last_updated: "2026-11-04T19:57:30.487Z"
 last_activity: 2026-11-04
 last_activity_desc: Phase 19 complete, transitioned to Phase 20
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 14
-  completed_plans: 5
+  completed_plans: 7
   percent: 14
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-11-04)
 ## Current Position
 
 Phase: 20 — Shell Frame
-Plan: 2 of 10
+Plan: 3 of 10
 Status: Ready to execute
 Last activity: 2026-11-04 — Phase 19 complete, transitioned to Phase 20
 
@@ -110,6 +110,7 @@ Last activity: 2026-11-04 — Phase 19 complete, transitioned to Phase 20
 | Phase 19 P04 | 3min | 2 tasks | 5 files |
 | Phase 20-shell-frame P01 | 7min | 1 tasks | 2 files |
 | Phase 20 P02 | 25 min | 2 tasks | 3 files |
+| Phase 20 P03 | 35min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -221,6 +222,8 @@ Decisions are logged in PROJECT.md Key Decisions.
 - [Phase 20-shell-frame]: 20-01: No REFACTOR commit needed — the GREEN implementation already factored the shared clamp(value, min, max) helper behind clampSidebarWidth/clampPanelHeight — No further duplication existed to remove without changing behavior or hurting readability; the three independent per-field typeof ternaries in parsePanelState cover three different field types and aren't worth abstracting further.
 - [Phase 20]: 20-02: Fixed MonacoStabilityPrototype.vue call site broken by new navigate constructor param — Rule 3 blocking-issue fix caused directly by this task's signature change to createMonacoDiffAdapter; file is outside files_modified but build would fail without it
 - [Phase 20]: 20-02: NAV-01/NAV-03 left Pending in REQUIREMENTS.md despite plan frontmatter listing them — Plan's own success_criteria states App.vue integration (20-07) and icon UI (20-04) still owe further work before the requirement is user-observable; 20-04/20-07/20-09 also list these IDs and are the correct plans to flip them complete
+- [Phase ?]: StatusBar's Export-item emphasis aliases directly to --interactive-accent-emphasis instead of a new --statusbar-emphasis-bg token — UI-SPEC Color section forbids new hex/color tokens this phase; the existing accent-emphasis token already satisfies the one-allowed-accent rule
+- [Phase ?]: Registered only the 5 TOK-01 tokens with a real consumer in 20-03 (titlebar/statusbar height, control-height-icon, font/line-height-chrome), deferring the remaining UI-SPEC new-token rows to 20-04..20-06 — verify-semantic-css.mjs fails on any canonical token without a var(...) consumer; pairing token registration with its first real consumer avoids inventing throwaway consumers
 
 ### Pending Todos
 
@@ -279,8 +282,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-11-04T19:47:34.508Z
-Stopped at: Completed 20-02-PLAN.md
+Last session: 2026-11-04T19:57:30.483Z
+Stopped at: Completed 20-03-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
