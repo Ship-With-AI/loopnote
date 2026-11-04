@@ -5,8 +5,8 @@ milestone_name: Workbench Redesign
 current_phase: 20
 current_phase_name: Shell Frame
 status: executing
-stopped_at: Completed 20-06-PLAN.md
-last_updated: "2026-11-04T20:36:45.521Z"
+stopped_at: Completed 20-07-PLAN.md
+last_updated: "2026-11-04T20:55:58.936Z"
 last_activity: 2026-11-04
 last_activity_desc: Completed 20-05-PLAN.md (useSash.ts composable + WorkbenchShell.vue grid host)
 progress:
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-11-04)
 ## Current Position
 
 Phase: 20 — Shell Frame
-Plan: 6 of 10
+Plan: 7 of 10
 Status: Ready to execute
 Last activity: 2026-11-04 — Completed 20-05-PLAN.md (useSash.ts composable + WorkbenchShell.vue grid host)
 
@@ -114,6 +114,7 @@ Last activity: 2026-11-04 — Completed 20-05-PLAN.md (useSash.ts composable + W
 | Phase 20 P04 | 40min | 3 tasks | 5 files |
 | Phase 20 P05 | 30min | 2 tasks | 5 files |
 | Phase 20-shell-frame P06 | 25min | 2 tasks | 3 files |
+| Phase 20-shell-frame P07 | 45 min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -234,6 +235,10 @@ Decisions are logged in PROJECT.md Key Decisions.
 - [Phase 20]: 20-05: SHELL-06 left Pending in REQUIREMENTS.md despite this plan's frontmatter listing it, following the 20-02/20-04 precedent — `WorkbenchShell.vue` is unwired until 20-07's `App.vue` integration makes the no-horizontal-scroll behavior user-observable.
 - [Phase 20-shell-frame]: 20-06: Adjusted BottomPanel.vue's relative import paths for the extra workbench/ directory depth versus ReviewNotesDialog.vue (contracts/domain/model + sibling imports all gained one extra ../ level) — Required for typecheck to pass from the new file location; the plan's 'nothing else in the script changes' covers logic, not resolvable import paths
 - [Phase 20-shell-frame]: 20-06: Added exact:true to the rewritten spec's page.getByRole('region', { name: 'Review' }) locator — Playwright's default substring name matching otherwise also matches the nested 'Review comment counts' implicit region, producing a strict-mode ambiguous-locator failure
+- [Phase 20-shell-frame]: 20-07: toggleSidebar() keeps the pre-existing narrow-viewport branch (opens ChangedFilesDialog instead of flipping sidebarVisible) — Preserves the <760px drawer path CONTEXT.md requires to keep working unchanged; the plan's literal function body omitted this branch
+- [Phase 20-shell-frame]: 20-07: #editor slot gates EditorTitle/warning-stack/Breadcrumbs/DiffWorkspace behind the same recoveryLoad v-if/v-else DraftRecovery previously used — The plan's literal template skeleton omitted DraftRecovery entirely, but CONTEXT.md/UI-SPEC.md both list it as reused-unchanged; dropping it would regress malformed-draft recovery
+- [Phase 20-shell-frame]: 20-07: added two new unconditional Cmd/Ctrl+B / Cmd/Ctrl+J branches at the very top of handleKeydown, before even the .inline-comment-composer textarea guard — must_haves truth states these fire 'from anywhere, including with focus inside the Monaco editor'; the plan named only 'before line 926' (the generic input/textarea/select guard), but the composer-specific guard at line 916 returns unconditionally first and would otherwise swallow the chord inside composer textareas
+- [Phase 20-shell-frame]: 20-07: Task 1 pruned only the genuinely dead .session-header/.review-toolbar/.shell-footer selector branches from styles.css, keeping .review-toolbar__active-file/__status/__counts, .session-header__brand/__comparison/__endpoint*, .header-facts, .pin-cue, .dirty-badge, .identity-disclosure, .change-indicator — EditorTitle.vue/TitleBar.vue/StatusBar.vue (20-03/20-04) literally reuse those classnames in their templates; the plan's selector-prefix list in Task 1's action text would have deleted live CSS if applied verbatim — confirmed via grep across the six new workbench components before each deletion
 
 ### Pending Todos
 
@@ -292,8 +297,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-11-04T20:36:45.509Z
-Stopped at: Completed 20-06-PLAN.md
+Last session: 2026-11-04T20:55:58.932Z
+Stopped at: Completed 20-07-PLAN.md
 Resume file: None
 
 ## Operator Next Steps

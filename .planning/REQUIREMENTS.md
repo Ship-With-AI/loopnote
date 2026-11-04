@@ -29,7 +29,7 @@
 - [x] **SHELL-03**: Reviewer can open and close the bottom panel (⌘J / Ctrl+J, the title-bar toggle, or ✕) and resize it by dragging; the panel is closed when a session starts.
 - [x] **SHELL-04**: Reviewer's side-bar width and panel height persist across sessions on the same machine.
 - [ ] **SHELL-05**: Reviewer keeps every current capability in the new shell for each session kind — committed branch/worktree, exact patch, Staged/Unstaged/Working tree, standalone, and agent-attached — proven by one packaged-binary e2e check per kind.
-- [ ] **SHELL-06**: Reviewer never gets page-level horizontal scrolling at viewport widths from 1050 to 1920px; only the diff canvas scrolls horizontally.
+- [x] **SHELL-06**: Reviewer never gets page-level horizontal scrolling at viewport widths from 1050 to 1920px; only the diff canvas scrolls horizontally.
 
 ### Comparison Identity
 
@@ -50,10 +50,10 @@
 
 ### Editor Title & Navigation
 
-- [ ] **NAV-01**: Reviewer sees the file name, M/A/D, and `+/−` counts in the editor title, followed by icon-only actions — previous/next change, previous/next file, inline/side-by-side, and for Markdown files a Source/Rendered toggle — each with a tooltip and accessible name that include its shortcut.
-- [ ] **NAV-02**: Reviewer sees breadcrumbs for the current file path above the diff.
-- [ ] **NAV-03**: Reviewer can use F7 / ⇧F7 (change) and ⌥↓ / ⌥↑ (file) both with focus in the diff editor and outside it; Monaco's own Diff Review Pane and move-line bindings do not fire for these keys.
-- [ ] **NAV-04**: Reviewer still sees the explanation for unsupported, unavailable, and changed-during-capture files in the editor area beneath the normal editor title.
+- [x] **NAV-01**: Reviewer sees the file name, M/A/D, and `+/−` counts in the editor title, followed by icon-only actions — previous/next change, previous/next file, inline/side-by-side, and for Markdown files a Source/Rendered toggle — each with a tooltip and accessible name that include its shortcut.
+- [x] **NAV-02**: Reviewer sees breadcrumbs for the current file path above the diff.
+- [x] **NAV-03**: Reviewer can use F7 / ⇧F7 (change) and ⌥↓ / ⌥↑ (file) both with focus in the diff editor and outside it; Monaco's own Diff Review Pane and move-line bindings do not fire for these keys.
+- [x] **NAV-04**: Reviewer still sees the explanation for unsupported, unavailable, and changed-during-capture files in the editor area beneath the normal editor title.
 
 ### Comment Threads
 
@@ -125,7 +125,7 @@ Deferred, tracked but not in the v2.1 roadmap.
 | SHELL-03 | Phase 20 | Complete |
 | SHELL-04 | Phase 20 | Complete |
 | SHELL-05 | Phase 20 | Pending |
-| SHELL-06 | Phase 20 | Pending |
+| SHELL-06 | Phase 20 | Complete |
 | IDENT-01 | Phase 22 | Pending |
 | IDENT-02 | Phase 22 | Pending |
 | IDENT-03 | Phase 22 | Pending |
@@ -137,10 +137,10 @@ Deferred, tracked but not in the v2.1 roadmap.
 | TREE-05 | Phase 21 | Pending |
 | TREE-06 | Phase 21 | Pending |
 | TREE-07 | Phase 21 | Pending |
-| NAV-01 | Phase 20 | Pending |
-| NAV-02 | Phase 20 | Pending |
-| NAV-03 | Phase 20 | Pending |
-| NAV-04 | Phase 20 | Pending |
+| NAV-01 | Phase 20 | Complete |
+| NAV-02 | Phase 20 | Complete |
+| NAV-03 | Phase 20 | Complete |
+| NAV-04 | Phase 20 | Complete |
 | THREAD-01 | Phase 23 | Pending |
 | THREAD-02 | Phase 23 | Pending |
 | THREAD-03 | Phase 23 | Pending |

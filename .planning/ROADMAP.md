@@ -101,7 +101,7 @@ Full details: [`milestones/v2.0-ROADMAP.md`](./milestones/v2.0-ROADMAP.md).
   4. A packaged-binary e2e check passes for each of the five session kinds — committed branch/worktree, exact patch, Staged/Unstaged/Working tree, standalone, and agent-attached — proving the new shell kept every current capability per kind.
   5. No viewport width from 1050 to 1920px produces page-level horizontal scroll (only the diff canvas scrolls horizontally), and Loopnote's own F7/⇧F7 (change) and ⌥↓/⌥↑ (file) shortcuts fire both inside and outside the diff editor while Monaco's native Diff Review Pane and Move-Line bindings stay suppressed inside it; reviewer still sees the explanation for unsupported/unavailable/changed-during-capture files beneath the editor title.
 
-**Plans:** 6/10 plans executed
+**Plans:** 7/10 plans executed
 
 Plans:
 **Wave 1**
@@ -121,7 +121,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 20-07-PLAN.md — `App.vue` integration: wires every new component, deletes superseded ones, rewrites handleKeydown
+- [x] 20-07-PLAN.md — `App.vue` integration: wires every new component, deletes superseded ones, rewrites handleKeydown
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
@@ -224,7 +224,7 @@ Plans:
 | 17.1. Full Project Rename | v2.0 | 23/23 | Complete | 2026-11-02 |
 | 18. Product Repositioning Copy | v2.0 | 5/5 | Complete | 2026-11-02 |
 | 19. Typecheck Foundation | v2.1 | 4/4 | Complete    | 2026-11-04 |
-| 20. Shell Frame | v2.1 | 6/10 | In Progress|  |
+| 20. Shell Frame | v2.1 | 7/10 | In Progress|  |
 | 21. Changed-Files Tree | v2.1 | 0/TBD | Not started | - |
 | 22. Identity & Status Bar | v2.1 | 0/TBD | Not started | - |
 | 23. Inline Comment Threads | v2.1 | 0/TBD | Not started | - |
