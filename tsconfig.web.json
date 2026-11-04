@@ -7,15 +7,8 @@
     "verbatimModuleSyntax": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-    "types": ["node"]
+    "types": ["node", "vite/client"]
   },
-  "files": [
-    "src/web/monaco/diff-adapter.ts",
-    "src/web/monaco/diff-semantics.ts",
-    "src/web/monaco/line-mapping.ts",
-    "src/web/monaco/theme.ts",
-    "src/web/theme/token-contract.ts",
-    "src/web/theme/virtual-tokens.d.ts",
-    "src/web/model/workspace-command.ts"
-  ]
+  "include": ["src/web/**/*.ts", "src/web/**/*.vue"],
+  "exclude": ["src/web/shims-vue.d.ts"]
 }

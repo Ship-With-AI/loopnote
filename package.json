@@ -38,7 +38,7 @@
     "build:node": "tsc --project tsconfig.json",
     "build:runtime": "npm run build:bin && npm run build:node && node scripts/build-native-addon.mjs",
     "build:web": "vite build",
-    "typecheck:web": "tsc --noEmit --project tsconfig.web.json",
+    "typecheck:web": "vue-tsc --noEmit --project tsconfig.web.json",
     "build": "npm run build:runtime && npm run build:web",
     "prepack": "npm run build",
     "verify:prerequisites": "node scripts/verify-prerequisites.mjs && npm run build:runtime",
@@ -61,7 +61,7 @@
     "evidence:public-acceptance": "node scripts/write-acceptance-evidence.mjs",
     "test:performance": "npm run build:runtime && node tests/performance/production-picker.mjs",
     "typecheck:tests:node": "tsc --noEmit --project tsconfig.test.json",
-    "typecheck:tests:web": "tsc --noEmit --project tsconfig.web.test.json",
+    "typecheck:tests:web": "vue-tsc --noEmit --project tsconfig.web.test.json",
     "typecheck:tests": "npm run typecheck:tests:node && npm run typecheck:tests:web"
   },
   "dependencies": {
@@ -79,11 +79,12 @@
     "@playwright/test": "1.61.1",
     "@types/markdown-it": "14.1.2",
     "@types/node": "24.11.1",
+    "@typescript/native": "npm:typescript@7.0.2",
     "@vitejs/plugin-vue": "6.0.7",
     "supabase": "2.114.0",
-    "typescript": "7.0.2",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
     "vite": "8.1.4",
     "vitest": "4.1.10",
-    "vue-tsc": "3.3.7"
+    "vue-tsc": "3.3.14"
   }
 }
