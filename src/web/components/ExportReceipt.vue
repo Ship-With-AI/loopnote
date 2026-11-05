@@ -90,6 +90,19 @@ onMounted(() => {
   if (!props.previous) void nextTick(() => heading.value?.focus());
 });
 
+async function copyAgentPrompt(): Promise<void> {
+  copyMessage.value = '';
+  try {
+    await navigator.clipboard.writeText(
+      `Apply the review in \`${props.receipt.files[0].path}\` (human-readable: \`review.md\`). `
+      + 'Address every open comment; leave resolved ones as context.',
+    );
+    copyMessage.value = 'Copied agent prompt.';
+  } catch {
+    copyMessage.value = 'Could not copy. Select the value and copy it manually.';
+  }
+}
+
 async function copyDetails(): Promise<void> {
   copyMessage.value = '';
   try {
@@ -197,6 +210,7 @@ async function revealDirectory(): Promise<void> {
       <ReceiptFileRow :file="receipt.files[1]" file-name="review.md" />
     </div>
     <div v-if="!previous" class="export-actions">
+      <button type="button" class="ui-button" @click="copyAgentPrompt">Copy agent prompt</button>
       <button type="button" class="ui-button" @click="copyDetails">Copy all receipt details</button>
       <button type="button" class="ui-button" @click="revealDirectory">Reveal export directory</button>
     </div>
