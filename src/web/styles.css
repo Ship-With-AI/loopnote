@@ -258,6 +258,31 @@ body {
   gap: var(--space-2);
 }
 
+.editor-refresh-progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  overflow: hidden;
+}
+
+.editor-refresh-progress__sweep {
+  width: 40%;
+  height: 100%;
+  background: var(--interactive-accent-emphasis);
+  animation: identity-refresh-sweep 1.1s linear infinite;
+}
+
+@keyframes identity-refresh-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+
 
 .workspace-shell {
   display: grid;
@@ -266,50 +291,16 @@ body {
 }
 
 
-.session-header__brand,
-.session-header__comparison,
-.session-header__endpoint {
+.session-header__brand {
   display: flex;
   min-width: 0;
   align-items: center;
-}
-
-.session-header__brand {
   flex: 0 0 auto;
   gap: var(--space-1);
   font-family: var(--font-ui);
   font-size: var(--font-size-page-heading);
   font-weight: var(--font-weight-semibold);
   line-height: var(--line-height-page-heading);
-}
-
-.session-header__comparison {
-  gap: var(--space-2);
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-  font-size: var(--font-size-code);
-  font-weight: var(--font-weight-regular);
-  line-height: var(--line-height-code);
-}
-
-.session-header__endpoint {
-  min-width: 0;
-  gap: var(--space-1);
-}
-
-.session-header__endpoint-label {
-  flex: 0 0 auto;
-  color: var(--text-primary);
-  font-family: var(--font-ui);
-  font-size: var(--font-size-metadata);
-  font-weight: var(--font-weight-semibold);
-  line-height: var(--line-height-metadata);
-}
-
-.session-header__selector {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .state-card h1,
@@ -370,7 +361,6 @@ body {
   justify-content: space-between;
 }
 
-.pin-cue,
 .dirty-badge,
 .status-badge,
 .availability-marker {
@@ -385,11 +375,6 @@ body {
   font-weight: var(--font-weight-semibold);
   line-height: var(--line-height-metadata);
   white-space: nowrap;
-}
-
-
-.pin-cue {
-  padding-inline: var(--space-1);
 }
 
 .status-badge {
@@ -2598,7 +2583,6 @@ h3.conversation-card__identity {
     flex-wrap: wrap;
   }
 
-  .pin-cue,
   .dirty-badge {
     white-space: normal;
   }

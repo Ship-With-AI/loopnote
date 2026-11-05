@@ -347,6 +347,11 @@ watch(patchDrifted, (drifted) => {
   if (drifted && !hadPatchDrift) announce('Implemented content changed.');
   hadPatchDrift = drifted;
 });
+let hadWorktreeChanged = false;
+watch(worktreeChanged, (changed) => {
+  if (changed && !hadWorktreeChanged) announce('Working tree changed since snapshot.');
+  hadWorktreeChanged = changed;
+});
 watch(documentTitle, (title) => {
   document.title = title;
 }, { immediate: true });
@@ -1341,6 +1346,8 @@ onBeforeUnmount(() => {
           :refresh-busy="refreshBusy"
           :show-refresh="isUncommittedSession"
           :worktree-changed="worktreeChanged"
+          :selector-drift-status="selectorDriftStatus"
+          :patch-drifted="patchDrifted"
           :sidebar-visible="panelState.sidebarVisible.value"
           :panel-open="panelOpen"
           @refresh="performRefresh"
@@ -1349,6 +1356,7 @@ onBeforeUnmount(() => {
         />
       </template>
       <template #editor>
+        <div v-if="refreshBusy" class="editor-refresh-progress"><div class="editor-refresh-progress__sweep" /></div>
         <DraftRecovery
           v-if="recoveryLoad !== undefined && primarySurface !== 'workspace'"
           :load="recoveryLoad"
@@ -1378,14 +1386,9 @@ onBeforeUnmount(() => {
             @toggle-layout="(value) => (renderSideBySide = value)"
           />
           <section
-            v-if="patchDrifted || hasUnverifiedAnchors || selectorDriftStatus?.base.kind !== 'unchanged' || selectorDriftStatus?.head.kind !== 'unchanged' || (capturedFilesChanged > 0 && !dismissedCaptureBanner) || refreshSummary !== undefined || (recoveryAvailable && !recoveryOfferDismissed)"
+            v-if="hasUnverifiedAnchors || (capturedFilesChanged > 0 && !dismissedCaptureBanner) || refreshSummary !== undefined || (recoveryAvailable && !recoveryOfferDismissed)"
             class="shell-warning-stack"
           >
-            <InlineNotice v-if="patchDrifted" tone="error">
-              <h2>Implemented content changed</h2>
-              <p>{{ `The repository or worktree no longer matches this exact patch. The frozen review remains readable, but ${RENAME_MAP.displayName} will not substitute current content. Relaunch with a patch that matches the current implementation.` }}</p>
-            </InlineNotice>
-            <SelectorDriftNotice :drift="selectorDriftStatus" />
             <StaleAnchorNotice v-if="hasUnverifiedAnchors" />
             <InlineNotice
               v-if="capturedFilesChanged > 0 && !dismissedCaptureBanner"
