@@ -368,6 +368,84 @@ test('packaged inline comment threads: resolve, edit, collapse-all, and Option+F
   }
 });
 
+test('packaged inline comment threads: Esc on a focused thread header returns focus to the Monaco editor at its anchored line, side-by-side and inline (committed two-pane session)', async ({ browser, page }, testInfo) => {
+  // Regression for a Phase 23 gap (23-CONTEXT.md's locked keyboard-entry decision): with a
+  // thread header focused (via ⌥Enter, click, or Tab — not editing, no textarea focused),
+  // Esc must return focus to the Monaco editor at that thread's anchored side/line,
+  // side-correct in both side-by-side and inline diff layouts.
+  assertChromium(browser, testInfo);
+  const fixture = await createGitFixture({ anchoredReview: true });
+  const running = startGeneratedCli(fixture);
+  try {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await openGeneratedReview(page, await waitForLoopbackUrl(running));
+
+    await page.getByRole('treeitem', { name: /changed\.ts/ }).click();
+    const commentBase = await (async () => {
+      await activateMonacoLine(page, 'base', 'export const stableContext3 = 3;', 3);
+      return addComment(page, 'Base-anchored thread.');
+    })();
+    const commentHead = await (async () => {
+      await activateMonacoLine(page, 'head', 'export const stableContext5 = 5;', 5);
+      return addComment(page, 'Head-anchored thread.');
+    })();
+
+    async function assertEscReturnsFocusToEditor(commentId: string, side: 'base' | 'head', line: number): Promise<void> {
+      const thread = threadLocator(page, commentId);
+      await thread.locator('.thread-header').focus();
+      await expect(thread.locator('.thread-header')).toBeFocused();
+      await page.keyboard.press('Escape');
+      const editorPane = page.locator(side === 'base' ? '.monaco-diff-editor .editor.original' : '.monaco-diff-editor .editor.modified');
+      await expect(editorPane.locator('.native-edit-context')).toBeFocused();
+      await expect(editorPane.locator('.line-numbers.active-line-number')).toHaveText(String(line));
+    }
+
+    // Side-by-side (default layout): base and head anchors each return focus to their own pane.
+    await assertEscReturnsFocusToEditor(commentBase, 'base', 3);
+    await assertEscReturnsFocusToEditor(commentHead, 'head', 5);
+
+    // Inline layout: same anchors, same side-correctness requirement.
+    await page.getByRole('button', { name: 'Inline diff' }).click();
+    await assertEscReturnsFocusToEditor(commentBase, 'base', 3);
+    await assertEscReturnsFocusToEditor(commentHead, 'head', 5);
+  } finally {
+    await stopGeneratedCli(running);
+    await fixture.cleanup();
+  }
+});
+
+test('packaged inline comment threads: Esc on a focused thread header returns focus to the Monaco editor, single-pane (standalone session)', async ({ browser }) => {
+  const fixture = await createGitFixture();
+  await fixture.write('src/notes.ts', [
+    'export const noteOne = 1;',
+    'export const noteTwo = 2;',
+    '',
+  ].join('\n'));
+  const running = startGeneratedStandaloneCli(fixture, ['src/notes.ts']);
+  try {
+    const url = await waitForLoopbackUrl(running);
+    const page = await browser.newPage();
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await openGeneratedStandaloneReview(page, url, 1);
+
+    await activateSinglePaneLine(page, 'head', 'export const noteTwo = 2;', 2);
+    const commentId = await addComment(page, 'Single-pane thread.');
+
+    const thread = threadLocator(page, commentId);
+    await thread.locator('.thread-header').focus();
+    await expect(thread.locator('.thread-header')).toBeFocused();
+    await page.keyboard.press('Escape');
+    const editorPane = page.locator('.diff-workspace__editor');
+    await expect(editorPane.locator('.native-edit-context')).toBeFocused();
+    await expect(editorPane.locator('.line-numbers.active-line-number')).toHaveText('2');
+
+    await page.close();
+  } finally {
+    await stopGeneratedCli(running);
+    await fixture.cleanup();
+  }
+});
+
 test('packaged inline comment threads: Escape cancels an existing thread\'s inline edit without sending a mutation (standalone single-pane session)', async ({ browser }) => {
   // Regression for a Phase 23 gap: App.vue's document-level keydown handler matched any
   // textarea inside `.inline-comment-composer` to route ⌘Enter/Esc to the new-comment

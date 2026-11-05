@@ -357,7 +357,11 @@ function revealComment(side: DiffSide, line: number, endLine?: number): void {
   void nextTick(renderThreads);
 }
 
-defineExpose({ focusComment, layout, nextChange, previousChange, revealComment });
+function focusEditorAtAnchor(side: DiffSide, line: number): void {
+  adapter?.focusAnchor(side, line);
+}
+
+defineExpose({ focusComment, focusEditorAtAnchor, layout, nextChange, previousChange, revealComment });
 
 watch(() => [props.composer, props.comments] as const, () => {
   if (props.composer !== undefined) {

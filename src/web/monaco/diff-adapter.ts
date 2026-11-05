@@ -61,6 +61,7 @@ export type MonacoDiffAdapter = Readonly<{
   clearAnchor: () => void;
   createThread: (commentId: string, anchor: Anchor) => HTMLElement;
   dispose: () => void;
+  focusAnchor: (side: DiffSide, line: number) => void;
   getActiveAnchor: () => Anchor | undefined;
   getAnchorAffordance: () => AnchorAffordanceTarget | undefined;
   getLineChanges: () => readonly monaco.editor.ILineChange[];
@@ -388,6 +389,15 @@ class PublicMonacoDiffAdapter {
     this.activeComposer = undefined;
     this.rebuildAnchoredLayout();
     this.onChange();
+  }
+
+  focusAnchor(side: DiffSide, line: number): void {
+    if (this.currentFile === undefined || !this.isValidLine(side, line)) {
+      return;
+    }
+    this.editorFor(side).setPosition({ lineNumber: line, column: 1 });
+    this.editorFor(side).revealLineInCenter(line);
+    this.editorFor(side).focus();
   }
 
   getActiveAnchor(): Anchor | undefined {
@@ -1035,6 +1045,15 @@ class PublicMonacoSinglePaneAdapter {
     this.activeComposer = undefined;
     this.rebuildAnchoredLayout();
     this.onChange();
+  }
+
+  focusAnchor(side: DiffSide, line: number): void {
+    if (side !== this.side || this.currentFile === undefined || !this.isValidLine(line)) {
+      return;
+    }
+    this.editor.setPosition({ lineNumber: line, column: 1 });
+    this.editor.revealLineInCenter(line);
+    this.editor.focus();
   }
 
   getActiveAnchor(): Anchor | undefined {

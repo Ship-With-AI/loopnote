@@ -1130,6 +1130,21 @@ function handleKeydown(event: KeyboardEvent): void {
     }
     return;
   }
+  // Phase 23 keyboard-entry decision (23-CONTEXT.md): Esc on a focused-but-not-editing
+  // thread header (or its visible-on-focus action buttons) returns focus to the Monaco
+  // editor at that thread's anchored side/line. The edit-textarea Escape case above
+  // already returns before reaching here, so this only fires for the "focused header,
+  // not editing" case.
+  const focusedThreadArticle = target instanceof HTMLElement ? target.closest('.comment-thread') : null;
+  if (focusedThreadArticle !== null && event.key === 'Escape') {
+    const commentId = focusedThreadArticle.getAttribute('data-comment-id');
+    const comment = commentId === null ? undefined : workspaceComments.value.find((candidate) => candidate.id === commentId);
+    if (comment !== undefined && editingCommentId.value !== comment.id) {
+      event.preventDefault();
+      diffWorkspace.value?.focusEditorAtAnchor(comment.side, comment.line);
+      return;
+    }
+  }
   if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement) return;
   if (event.altKey && event.key === 'ArrowUp') {
     event.preventDefault();
