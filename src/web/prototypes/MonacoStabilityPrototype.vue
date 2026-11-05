@@ -256,6 +256,30 @@ function renderComposer(): void {
   });
 }
 
+// Test-only hooks (monaco-anchor.spec.ts Plan 23-07 multi-thread/reconciliation-stability
+// coverage): this prototype has no draft/comment backend, so these drive the real
+// MonacoDiffAdapter createThread/growThread/removeThread surface directly, mirroring
+// exactly what DiffWorkspace.vue's renderThreads() calls in the real app.
+function createThreadForTest(commentId: string, side: 'base' | 'head', line: number, heightPx: number): void {
+  const node = adapter?.createThread(commentId, { fileId: currentFile.value.id, side, line });
+  if (node === undefined) {
+    return;
+  }
+  const card = document.createElement('div');
+  card.className = 'comment-thread';
+  card.setAttribute('data-comment-id', commentId);
+  card.style.minHeight = `${heightPx}px`;
+  card.textContent = `Thread ${commentId}`;
+  node.appendChild(card);
+  adapter?.growThread(commentId, heightPx);
+}
+function growThreadForTest(commentId: string, heightPx: number): void {
+  adapter?.growThread(commentId, heightPx);
+}
+function removeThreadForTest(commentId: string): void {
+  adapter?.removeThread(commentId);
+}
+
 
 function publishContract(): void {
   const diagnostics = adapter?.getDiagnostics();
@@ -339,6 +363,13 @@ onMounted(async () => {
       previousThread: () => {},
     },
   );
+  Object.assign(window, {
+    __monacoStabilityThreads: {
+      create: createThreadForTest,
+      grow: growThreadForTest,
+      remove: removeThreadForTest,
+    },
+  });
   adapter.layout();
   resizeObserver = new ResizeObserver(() => adapter?.layout());
   resizeObserver.observe(host.value);

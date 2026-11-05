@@ -37,6 +37,17 @@ declare global {
   }
 }
 
+declare global {
+  interface Window {
+    __monacoStabilityThreads: {
+      create: (commentId: string, side: 'base' | 'head', line: number, heightPx: number) => void;
+      grow: (commentId: string, heightPx: number) => void;
+      remove: (commentId: string) => void;
+    };
+  }
+}
+
+
 async function startPrototypeServer(): Promise<string> {
   server = await createServer({
     configFile: resolve(repositoryRoot, 'vite.config.ts'),
@@ -84,6 +95,35 @@ async function expectPairedZonesAligned(page: Page): Promise<void> {
   expect(composerBox, 'Monaco stability: composer zone must be rendered').not.toBeNull();
   expect(spacerBox, 'Monaco stability: paired spacer zone must be rendered').not.toBeNull();
   expect(Math.abs((composerBox?.y ?? 0) - (spacerBox?.y ?? 0)), 'Monaco stability: paired-zone top alignment').toBeLessThanOrEqual(1);
+}
+
+// Generalizes expectPairedZonesAligned (one hardcoded composer/spacer pair) to N
+// independently-keyed thread zone pairs. Thread-spacer zones carry no data-comment-id
+// of their own (only the overlay widget they position does), and Monaco orders a
+// pane's view zones by their own afterLineNumber rather than creation order, so pairs
+// are matched geometrically (closest top + matching height) instead of by index —
+// RESEARCH.md Pitfall 1's exact verification shape, generalized to N pairs.
+async function expectAllThreadZonesAligned(page: Page, expectedPairCount: number): Promise<void> {
+  await expect(page.locator('.monaco-diff-pane--base .monaco-anchor-zone--thread-spacer')).toHaveCount(expectedPairCount);
+  await expect(page.locator('.monaco-diff-pane--head .monaco-anchor-zone--thread-spacer')).toHaveCount(expectedPairCount);
+  const { baseZones, headZones } = await page.evaluate(() => {
+    const rect = (element: Element) => {
+      const box = element.getBoundingClientRect();
+      return { top: box.top, height: box.height };
+    };
+    return {
+      baseZones: [...document.querySelectorAll('.monaco-diff-pane--base .monaco-anchor-zone--thread-spacer')].map(rect),
+      headZones: [...document.querySelectorAll('.monaco-diff-pane--head .monaco-anchor-zone--thread-spacer')].map(rect),
+    };
+  });
+  const unmatchedBase = [...baseZones];
+  for (const headZone of headZones) {
+    const matchIndex = unmatchedBase.findIndex((baseZone) =>
+      Math.abs(baseZone.top - headZone.top) <= 1 && Math.abs(baseZone.height - headZone.height) <= 1);
+    expect(matchIndex, `no aligned base zone found for head zone at top=${headZone.top} height=${headZone.height}`).toBeGreaterThanOrEqual(0);
+    unmatchedBase.splice(matchIndex, 1);
+  }
+  expect(unmatchedBase, 'every base zone must pair with exactly one head zone').toHaveLength(0);
 }
 
 test.beforeAll(async () => {
@@ -348,4 +388,71 @@ test('12. keeps selection contrast, anchor rail, diff meaning, and focus in sepa
   await page.getByRole('button', { name: 'Next file' }).click();
   await expect(selectionContrast).toHaveCount(0);
   await expect.poll(() => readState(page)).toMatchObject({ listenerCount: 29, liveModels: 2 });
+});
+
+test('13. keeps paired thread zones aligned for 2+ simultaneously open threads of different heights', async ({ page }) => {
+  await openPrototype(page);
+  await page.evaluate(() => {
+    window.__monacoStabilityThreads.create('thread-a', 'head', 2, 160);
+    window.__monacoStabilityThreads.create('thread-b', 'head', 5, 220);
+  });
+  await expect(page.locator('[data-thread-id="thread-a"]')).toBeVisible();
+  await expect(page.locator('[data-thread-id="thread-b"]')).toBeVisible();
+  await expectAllThreadZonesAligned(page, 2);
+
+  // Grow thread-a well past thread-b's height (simulating entering edit mode with
+  // longer text) and re-assert BOTH pairs independently stay Base/Head aligned —
+  // RESEARCH.md Pitfall 1's exact concern: a height change to one thread's zone
+  // pair must never leave it, or any other thread's pair, desynced.
+  await page.evaluate(() => {
+    window.__monacoStabilityThreads.grow('thread-a', 420);
+  });
+  await expectAllThreadZonesAligned(page, 2);
+  const headZoneHeights = await page.locator('.monaco-diff-pane--head .monaco-anchor-zone--thread-spacer')
+    .evaluateAll((elements) => elements.map((element) => element.getBoundingClientRect().height));
+  expect(new Set(headZoneHeights).size, 'the two threads must end up at distinct heights').toBe(2);
+});
+
+test('14. preserves thread DOM-node identity and scroll position across a reconciliation pass', async ({ page }) => {
+  await openPrototype(page);
+  await page.evaluate(() => {
+    window.__monacoStabilityThreads.create('thread-a', 'head', 2, 160);
+    window.__monacoStabilityThreads.create('thread-b', 'head', 5, 160);
+  });
+  await expect(page.locator('[data-thread-id="thread-a"]')).toBeVisible();
+  await expect(page.locator('[data-thread-id="thread-b"]')).toBeVisible();
+
+  const before = await page.evaluate(() => {
+    const widgetA = document.querySelector('[data-thread-id="thread-a"]') as (HTMLElement & { __testMarker?: string }) | null;
+    const widgetB = document.querySelector('[data-thread-id="thread-b"]') as (HTMLElement & { __testMarker?: string }) | null;
+    if (widgetA !== null) widgetA.__testMarker = 'a';
+    if (widgetB !== null) widgetB.__testMarker = 'b';
+    const scroller = document.querySelector<HTMLElement>('.monaco-diff-pane--head .monaco-scrollable-element');
+    return { scrollTop: scroller?.scrollTop ?? 0 };
+  });
+
+  // Simulate the same diff-by-comment-id reconciliation pass DiffWorkspace.vue's
+  // renderThreads() runs on every Refresh/conflict-recovery: only ids whose identity
+  // actually changed are created/removed. Here that means creating a THIRD,
+  // previously-unseen thread while leaving thread-a/thread-b's existing zones and
+  // widgets completely untouched — exactly mirroring diffThreadIds()'s toKeep branch,
+  // which never calls adapter.createThread for ids already present.
+  await page.evaluate(() => {
+    window.__monacoStabilityThreads.create('thread-c', 'base', 8, 140);
+  });
+  await expect(page.locator('[data-thread-id="thread-c"]')).toBeVisible();
+
+  const after = await page.evaluate(() => {
+    const widgetA = document.querySelector('[data-thread-id="thread-a"]') as (HTMLElement & { __testMarker?: string }) | null;
+    const widgetB = document.querySelector('[data-thread-id="thread-b"]') as (HTMLElement & { __testMarker?: string }) | null;
+    const scroller = document.querySelector<HTMLElement>('.monaco-diff-pane--head .monaco-scrollable-element');
+    return {
+      markerA: widgetA?.__testMarker,
+      markerB: widgetB?.__testMarker,
+      scrollTop: scroller?.scrollTop ?? 0,
+    };
+  });
+  expect(after.markerA, 'thread-a DOM node identity preserved across reconciliation').toBe('a');
+  expect(after.markerB, 'thread-b DOM node identity preserved across reconciliation').toBe('b');
+  expect(after.scrollTop, 'scroll position unchanged by an unrelated thread creation').toBe(before.scrollTop);
 });

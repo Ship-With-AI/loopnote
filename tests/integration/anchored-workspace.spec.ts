@@ -334,7 +334,14 @@ async function hoverMonacoLine(page: Page, side: 'base' | 'head', text: string):
       .find(({ height, width }) => height > 0 && width > 0));
     return bounds !== undefined;
   }).toBe(true);
-  await page.mouse.move(bounds!.x + 20, bounds!.y + 9);
+  // Re-issuing the move (rather than a single call) guards against hovering while
+  // in-flight thread-zone layout work (growThread/layoutOverlayWidget) is still
+  // settling — a single mousemove can land before Monaco's affordance recomputes
+  // against the final geometry, leaving the gutter "+" permanently unset.
+  await expect.poll(async () => {
+    await page.mouse.move(bounds!.x + 20, bounds!.y + 9);
+    return await page.locator('.diff-workspace__gutter-action').count();
+  }).toBeGreaterThan(0);
 }
 
 type GeometryRect = Readonly<{ x: number; y: number; width: number; height: number }>;
@@ -432,7 +439,7 @@ async function readMonacoGeometry(page: Page, targetText: string): Promise<Monac
           && value.width > 0 && value.height > 0),
       scrollOwners: [...document.querySelectorAll<HTMLElement>('.monaco-diff-editor .monaco-scrollable-element')]
         .map(scrollDimensions),
-      zones: [...document.querySelectorAll('.monaco-anchor-zone')]
+      zones: [...document.querySelectorAll('.monaco-anchor-zone:not(.monaco-anchor-zone--thread-spacer)')]
         .map((element) => rect(element)).filter((value): value is GeometryRect => value !== null),
     };
   }, targetText);
@@ -592,7 +599,7 @@ test('inline comment persistence', async ({ page }) => {
   const accepted = page.waitForResponse((candidate) => candidate.url().includes('/api/draft/mutations'));
   await page.locator('.monaco-anchor-zone--composer button').filter({ hasText: 'Add comment' }).click();
   expect((await accepted).status()).toBe(201);
-  await expect(page.locator('.monaco-anchor-zone--composer .inline-accepted-comment')).toHaveCount(1);
+  await expect(page.locator('.comment-thread[data-comment-id]')).toHaveCount(1);
 });
 
 test('Phase 07 inline conversation states', async ({ page }) => {
@@ -684,65 +691,38 @@ test('Phase 07 inline conversation states', async ({ page }) => {
       && candidate.request().postData()?.includes(retainedText) === true);
   await composer.locator('button').filter({ hasText: 'Add comment' }).click();
   expect((await acceptedResponse).status()).toBe(201);
-  const inlineAccepted = page.locator('.monaco-anchor-zone--composer .inline-accepted-comment');
-  const acceptedHeading = inlineAccepted.locator('h3.conversation-card__identity');
+  const acceptedId = 'comment_123e4567-e89b-12d3-a456-426614174000';
+  const inlineAccepted = page.locator(`.comment-thread[data-comment-id="${acceptedId}"]`);
+  const acceptedHeading = inlineAccepted.locator('.thread-header');
   await expect(inlineAccepted).toHaveCount(1);
-  await expect(acceptedHeading).toHaveText('src/first.ts · Head · line 10');
+  await expect(acceptedHeading).toContainText('Head · L10');
   await expect(acceptedHeading).toBeFocused();
   await expect(inlineAccepted.getByText('Open', { exact: true })).toBeVisible();
-  await expect(inlineAccepted.getByText('Verified', { exact: true })).toBeVisible();
   await expect(inlineAccepted.getByText('Saved locally', { exact: true })).toBeVisible();
-  await expect(inlineAccepted.locator('.review-state-badge svg[aria-hidden="true"]')).toHaveCount(2);
-  await expect(page.locator('.monaco-anchor-zone--composer')).toHaveCount(1);
-  await expect(page.locator('.monaco-anchor-zone--spacer')).toHaveCount(1);
-  await expect.poll(async () => await page.evaluate(() => {
-    const composerZone = document.querySelector('.monaco-anchor-zone--composer');
-    const spacerZone = document.querySelector('.monaco-anchor-zone--spacer');
-    if (composerZone === null || spacerZone === null) return false;
-    const composerRect = composerZone.getBoundingClientRect();
-    const spacerRect = spacerZone.getBoundingClientRect();
-    return Math.abs(composerRect.top - spacerRect.top) <= 1 && composerRect.height === spacerRect.height;
-  })).toBe(true);
-  const acceptedGeometry = await page.evaluate(() => {
+  await expect(inlineAccepted.locator('.review-state-badge svg[aria-hidden="true"]')).toHaveCount(1);
+  await expect(page.locator('.monaco-anchor-zone--composer')).toHaveCount(0);
+  await expect(page.locator('.monaco-anchor-zone--spacer')).toHaveCount(0);
+  const acceptedGeometry = await page.evaluate((commentId) => {
     const rect = (element: Element): DOMRect => element.getBoundingClientRect();
-    const card = document.querySelector('.monaco-anchor-zone--composer .inline-accepted-comment');
-    const composerZone = document.querySelector('.monaco-anchor-zone--composer');
-    const spacerZone = document.querySelector('.monaco-anchor-zone--spacer');
-    if (card === null || composerZone === null || spacerZone === null) {
+    const card = document.querySelector(`[data-comment-id="${commentId}"]`);
+    const widget = document.querySelector(`[data-thread-id="${commentId}"]`);
+    if (card === null || widget === null) {
       return null;
     }
     const cardRect = rect(card);
-    const composerRect = rect(composerZone);
-    const spacerRect = rect(spacerZone);
-    const nextCode = [...document.querySelectorAll('.monaco-diff-editor .modified .view-line')]
-      .map(rect)
-      .filter((line) => line.height > 0 && line.top >= composerRect.bottom - 1)
-      .sort((left, right) => left.top - right.top)[0] ?? null;
+    const widgetRect = rect(widget);
     return {
       cardHeight: (card as HTMLElement).scrollHeight,
       cardBottom: cardRect.bottom,
-      composerBottom: composerRect.bottom,
-      composerHeight: composerRect.height,
-      spacerHeight: spacerRect.height,
-      zoneTopDelta: Math.abs(composerRect.top - spacerRect.top),
-      nextCodeTop: nextCode?.top ?? null,
+      widgetBottom: widgetRect.bottom,
     };
-  });
+  }, acceptedId);
   if (acceptedGeometry === null) throw new Error('expected accepted comment geometry');
-  expect(acceptedGeometry.cardHeight).toBeGreaterThan(280);
-  expect(acceptedGeometry.zoneTopDelta).toBeLessThanOrEqual(1);
-  expect(acceptedGeometry.composerHeight).toBe(acceptedGeometry.spacerHeight);
-  expect(acceptedGeometry.cardBottom).toBeLessThanOrEqual(acceptedGeometry.composerBottom + 1);
-  expect(acceptedGeometry.nextCodeTop).not.toBeNull();
-  expect(acceptedGeometry.nextCodeTop).toBeGreaterThanOrEqual(acceptedGeometry.composerBottom - 1);
-  expect(acceptedGeometry.nextCodeTop).toBeGreaterThanOrEqual(acceptedGeometry.cardBottom - 1);
-
-  await expect(inlineAccepted.getByText('Verified', { exact: true })).toBeVisible();
+  expect(acceptedGeometry.cardHeight).toBeGreaterThan(140);
+  expect(acceptedGeometry.cardBottom).toBeLessThanOrEqual(acceptedGeometry.widgetBottom + 1);
 
   const restored = await readMonacoGeometry(page, targetText);
   expectConversationCardNotToReflow(before, restored);
-  expect(Math.abs(restored.zones[0]!.y - restored.zones[1]!.y)).toBeLessThanOrEqual(1);
-  expect(restored.zones[0]!.height).toBe(restored.zones[1]!.height);
 });
 
 
@@ -989,7 +969,7 @@ test.describe('async comment settlement', () => {
     await expect(page.locator('.monaco-anchor-zone--composer')).toHaveCount(0);
     await page.getByRole('treeitem', { name: /src\/first\.ts/ }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'src/first.ts' })).toBeVisible();
-    await expect(page.locator('.inline-accepted-comment')).toContainText(body);
+    await expect(page.locator('.comment-thread[data-comment-id]')).toContainText(body);
     await expect(page.locator('.monaco-anchor-zone--composer textarea')).toHaveCount(0);
   });
 

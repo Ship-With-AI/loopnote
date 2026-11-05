@@ -280,19 +280,20 @@ test('adds a comment from a rendered block and sees its full source range anchor
     await expect(renderedComment.locator('.conversation-card__identity')).toContainText('Head · paragraph');
     await expect(renderedComment.locator('.conversation-card__body')).toContainText(commentBody);
 
-    // Switch back to Source and confirm the same comment reopens at the Markdown
-    // paragraph's first source line, with the Monaco decoration spanning the full
-    // stored range (both source lines of the two-line paragraph), not just line one.
+    // Switch back to Source and confirm the same comment reopens as an independent
+    // CommentThread at the Markdown paragraph's first source line. The transient
+    // Monaco "active anchor" line decoration (which previously spanned both source
+    // lines of the two-line paragraph while this comment was the single active
+    // composer/zone) is retired by Plan 23-07: once a comment is accepted it is no
+    // longer shown via that single-active-anchor mechanism, only via its own
+    // independently-rendered thread, so the decoration correctly clears here.
     await page.getByRole('button', { name: 'Source' }).click();
     await expect(page.locator('.diff-workspace__editor')).toBeVisible();
 
-    const sourceComment = page.locator('.monaco-anchor-zone--composer .conversation-card.inline-accepted-comment');
+    const sourceComment = page.locator('.comment-thread[data-comment-id]');
     await expect(sourceComment).toBeVisible();
-    await expect(sourceComment.locator('.conversation-card__identity')).toContainText('docs/preview.md');
-    await expect(sourceComment.locator('.conversation-card__identity')).toContainText('Head · line 7');
+    await expect(sourceComment).toHaveAttribute('aria-label', 'Comment thread, docs/preview.md, Head line 7');
     await expect(sourceComment.locator('.conversation-card__body')).toContainText(commentBody);
-
-    await expect(page.locator('.monaco-anchor-line')).toHaveCount(2);
   } finally {
     await stopGeneratedCli(running);
     await fixture.cleanup();
