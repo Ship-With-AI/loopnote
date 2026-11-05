@@ -65,7 +65,7 @@ export function mountLifecycleHarness() {
         refreshIgnoreStatus: async () => {}, revealExportDirectory: async () => ({ kind: 'revealed' }),
         attachedLifecycle: lifecycle.value, attachedReady: lifecycle.value === 'waiting',
         mutationLocked: lifecycle.value === 'finishing' || lifecycle.value === 'completed',
-        attachedFailure: result.value, isExactPatch: isExactPatch.value,
+        attachedFailure: result.value, isExactPatch: isExactPatch.value, activeTab: 'export',
         onFinishReview: () => { finished.value += 1; },
       }),
       h('section', { 'aria-label': 'Inline composer lock harness' }, [
