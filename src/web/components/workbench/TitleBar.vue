@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 import type { SessionResponse } from '../../../contracts/api';
 import { RENAME_MAP } from '../../../domain/product-identity';
@@ -87,6 +87,14 @@ const attachedFact = computed(() => {
     default: return '';
   }
 });
+
+const sidebarToggle = ref<HTMLButtonElement>();
+
+function focusSidebarToggle(): void {
+  sidebarToggle.value?.focus();
+}
+
+defineExpose({ focusSidebarToggle });
 </script>
 
 <template>
@@ -169,6 +177,7 @@ const attachedFact = computed(() => {
         {{ refreshBusy ? 'Refreshing…' : 'Refresh' }}
       </button>
       <button
+        ref="sidebarToggle"
         type="button"
         class="icon-btn"
         title="Toggle side bar (⌘B)"

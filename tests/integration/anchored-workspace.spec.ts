@@ -928,7 +928,7 @@ test('anchored gap closure', async ({ page }) => {
   await filesToggle.click();
   await expect(changedFiles).toBeVisible();
   await page.setViewportSize({ width: 1440, height: 900 });
-  const desktopFilesToggle = page.getByRole('button', { name: 'Hide files sidebar', exact: true });
+  const desktopFilesToggle = page.getByRole('button', { name: 'Toggle side bar (⌘B)', exact: true });
   await expect(changedFiles).toHaveCount(0);
   await expect(desktopFilesToggle).toBeFocused();
   await page.setViewportSize({ width: 1440, height: 900 });

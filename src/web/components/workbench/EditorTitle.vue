@@ -10,7 +10,6 @@ import UiIcon from '../ui/UiIcon.vue';
 import UiTooltip from '../ui/UiPrimitives.vue';
 
 const props = defineProps<{
-  readonly filesCollapsed: boolean;
   readonly filesDrawer: boolean;
   readonly mode: 'source' | 'rendered';
   readonly selectedFile?: SessionFile;
@@ -80,11 +79,6 @@ const isMarkdownFile = computed(() => {
   const path = effectivePath.value.toLowerCase();
   return path.endsWith('.md') || path.endsWith('.markdown');
 });
-const filesHostVisible = computed(() => !props.filesDrawer && !props.filesCollapsed);
-const filesToggleCopy = computed(() => props.filesDrawer ? 'Files' : props.filesCollapsed ? 'Show files' : 'Hide files');
-const filesToggleLabel = computed(() => props.filesDrawer
-  ? 'Open files'
-  : props.filesCollapsed ? 'Show files sidebar' : 'Hide files sidebar');
 
 function focusFilesToggle(): void {
   filesToggle.value?.focus();
@@ -219,14 +213,13 @@ defineExpose({ focusFilesToggle, focusHeading });
       </div>
     </template>
     <button
+      v-if="filesDrawer"
       ref="filesToggle"
       type="button"
       class="ui-button"
-      :aria-label="filesToggleLabel"
-      :aria-controls="filesHostVisible ? 'changed-files' : undefined"
-      :aria-expanded="filesHostVisible ? true : undefined"
+      aria-label="Open files"
       @click="emit('toggleFiles')"
-    >{{ filesToggleCopy }}</button>
+    >Files</button>
   </div>
 </template>
 

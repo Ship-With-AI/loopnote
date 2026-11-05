@@ -99,6 +99,7 @@ const shellModalOpen = computed(() => shellDialog.value !== null);
 const liveMessage = ref('');
 const liveMessageVersion = ref(0);
 const editorTitle = ref<InstanceType<typeof EditorTitle>>();
+const titleBar = ref<InstanceType<typeof TitleBar>>();
 const diffWorkspace = ref<InstanceType<typeof DiffWorkspace>>();
 const statusBar = ref<InstanceType<typeof StatusBar>>();
 const workspaceState = shallowRef<WorkspaceState>();
@@ -977,7 +978,14 @@ function handleViewportChange(): void {
   const isNarrowViewport = viewportMedia?.matches ?? false;
   isNarrow.value = isNarrowViewport;
   if (!isNarrowViewport) {
+    // The narrow-only "Open files" drawer trigger unmounts once the viewport widens past
+    // 760px, so its ModalDialog can no longer restore focus to it (EditorTitle.vue). Move
+    // focus to the consolidated title-bar toggle that replaces it instead.
+    const wasChangedFilesOpen = changedFilesOpen.value;
     closeChangedFiles();
+    if (wasChangedFilesOpen) {
+      void nextTick(() => nextTick(() => titleBar.value?.focusSidebarToggle()));
+    }
   }
   dispatchWorkspace({ type: 'resize' });
   diffWorkspace.value?.layout();
@@ -1304,6 +1312,7 @@ onBeforeUnmount(() => {
     >
       <template #titlebar>
         <TitleBar
+          ref="titleBar"
           :session="session"
           :attached-lifecycle="isAttachedSession ? (attachedLifecycle === 'finishing' || attachedLifecycle === 'completed' ? attachedLifecycle : 'waiting') : undefined"
           :refresh-busy="refreshBusy"
@@ -1328,7 +1337,6 @@ onBeforeUnmount(() => {
         <template v-else>
           <EditorTitle
             ref="editorTitle"
-            :files-collapsed="!panelState.sidebarVisible.value"
             :files-drawer="isNarrow"
             :mode="activeFileMode"
             :selected-file="selectedFile"
