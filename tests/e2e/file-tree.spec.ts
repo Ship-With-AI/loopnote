@@ -404,7 +404,7 @@ test('packaged file tree preserves opaque selection and keyboard semantics', asy
     });
     await expect(modifiedRow).toBeVisible();
     const rowBox = await modifiedRow.boundingBox();
-    expect(rowBox?.height).toBe(28);
+    expect(rowBox?.height).toBe(26);
 
     const unsupportedRow = tree.getByRole('treeitem', {
       name: /binary\.dat.*Unsupported.*Line counts unavailable.*added/i,

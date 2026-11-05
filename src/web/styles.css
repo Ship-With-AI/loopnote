@@ -955,6 +955,7 @@ input:-webkit-autofill:focus {
 .tree-row {
   position: relative;
   display: grid;
+  grid-auto-flow: column;
   min-height: var(--file-row-min-height);
   align-items: center;
   gap: 0 var(--space-2);

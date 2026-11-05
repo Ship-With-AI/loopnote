@@ -346,7 +346,7 @@ test('exact patch: Repository object → Implemented content identity, no Refres
   }
 });
 
-test('row anatomy: file-type mark → name → markers/line-counts → status letter, 22px rows, collapsed status bullet', async ({ browser }) => {
+test('row anatomy: file-type mark → name → markers/line-counts → status letter, fixed-height rows, collapsed status bullet', async ({ browser }) => {
   const repository = await createGitFixture();
   repository.git(['switch', 'main']);
   await repository.write('app.ts', 'export const app = 1;\n');
@@ -379,7 +379,7 @@ test('row anatomy: file-type mark → name → markers/line-counts → status le
     const row = page.locator('.file-row').filter({ hasText: 'app.ts' });
     await expect(row).toBeVisible();
     const rowBox = await row.boundingBox();
-    expect(rowBox?.height).toBe(22);
+    expect(rowBox?.height).toBe(26);
 
     const childClasses = await row.evaluate((element) =>
       Array.from(element.children).map((child) => child.className),

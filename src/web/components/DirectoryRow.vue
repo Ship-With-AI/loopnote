@@ -7,18 +7,24 @@ import FileRow from './FileRow.vue';
 
 defineOptions({ name: 'DirectoryRow' });
 
-const props = defineProps<{
-  directory: FileTreeDirectory;
-  level: number;
-  expandedDirectoryIds: ReadonlySet<string>;
-  statusPriorityByDirectoryId: ReadonlyMap<string, ChangedFileStatusKind>;
-  tabbableRowId: string | null;
-  selectedFileId: string | null;
-  recentlyChangedPaths?: ReadonlySet<string>;
-  openCommentCounts?: ReadonlyMap<string, number>;
-  lineCounts?: 'always' | 'hover' | 'never';
-  commentBadgesEnabled?: boolean;
-}>();
+const props = withDefaults(
+  defineProps<{
+    directory: FileTreeDirectory;
+    level: number;
+    expandedDirectoryIds: ReadonlySet<string>;
+    statusPriorityByDirectoryId: ReadonlyMap<string, ChangedFileStatusKind>;
+    tabbableRowId: string | null;
+    selectedFileId: string | null;
+    recentlyChangedPaths?: ReadonlySet<string>;
+    openCommentCounts?: ReadonlyMap<string, number>;
+    lineCounts?: 'always' | 'hover' | 'never';
+    commentBadgesEnabled?: boolean;
+  }>(),
+  {
+    lineCounts: 'hover',
+    commentBadgesEnabled: true,
+  },
+);
 
 function isRecentlyChanged(leaf: FileTreeLeaf): boolean {
   const path = leaf.file.newPath?.display ?? leaf.file.oldPath?.display;

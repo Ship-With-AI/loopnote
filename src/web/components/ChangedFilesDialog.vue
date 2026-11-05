@@ -3,19 +3,25 @@ import type { SessionFile } from '../../contracts/api.js';
 import FileTree from './FileTree.vue';
 import ModalDialog from './ui/ModalDialog.vue';
 
-const props = defineProps<{
-  readonly emptyHeading: string;
-  readonly emptyMessage: string;
-  readonly files: readonly SessionFile[];
-  readonly initialSelectedFileId?: string;
-  readonly narrow: boolean;
-  readonly open: boolean;
-  readonly recentlyChangedPaths?: ReadonlySet<string>;
-  readonly restoreFocus?: boolean;
-  readonly openCommentCounts?: ReadonlyMap<string, number>;
-  readonly lineCounts?: 'always' | 'hover' | 'never';
-  readonly commentBadgesEnabled?: boolean;
-}>();
+const props = withDefaults(
+  defineProps<{
+    readonly emptyHeading: string;
+    readonly emptyMessage: string;
+    readonly files: readonly SessionFile[];
+    readonly initialSelectedFileId?: string;
+    readonly narrow: boolean;
+    readonly open: boolean;
+    readonly recentlyChangedPaths?: ReadonlySet<string>;
+    readonly restoreFocus?: boolean;
+    readonly openCommentCounts?: ReadonlyMap<string, number>;
+    readonly lineCounts?: 'always' | 'hover' | 'never';
+    readonly commentBadgesEnabled?: boolean;
+  }>(),
+  {
+    lineCounts: 'hover',
+    commentBadgesEnabled: true,
+  },
+);
 
 const emit = defineEmits<{
   activate: [fileId: string];

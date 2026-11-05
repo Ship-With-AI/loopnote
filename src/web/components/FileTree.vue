@@ -11,14 +11,20 @@ import {
 import DirectoryRow from './DirectoryRow.vue';
 import FileRow from './FileRow.vue';
 
-const props = defineProps<{
-  files: readonly SessionFile[];
-  initialSelectedFileId?: string;
-  recentlyChangedPaths?: ReadonlySet<string>;
-  openCommentCounts?: ReadonlyMap<string, number>;
-  lineCounts?: 'always' | 'hover' | 'never';
-  commentBadgesEnabled?: boolean;
-}>();
+const props = withDefaults(
+  defineProps<{
+    files: readonly SessionFile[];
+    initialSelectedFileId?: string;
+    recentlyChangedPaths?: ReadonlySet<string>;
+    openCommentCounts?: ReadonlyMap<string, number>;
+    lineCounts?: 'always' | 'hover' | 'never';
+    commentBadgesEnabled?: boolean;
+  }>(),
+  {
+    lineCounts: 'hover',
+    commentBadgesEnabled: true,
+  },
+);
 
 function isRecentlyChanged(leaf: FileTreeLeaf): boolean {
   const path = leaf.file.newPath?.display ?? leaf.file.oldPath?.display;
