@@ -2024,6 +2024,7 @@ h3.conversation-card__identity {
 
 .undo-toast {
   position: fixed;
+  z-index: 20;
   bottom: var(--space-6);
   left: 50%;
   transform: translateX(-50%);
