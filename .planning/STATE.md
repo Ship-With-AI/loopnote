@@ -4,11 +4,11 @@ milestone: v2.1
 milestone_name: Workbench Redesign
 current_phase: 23
 current_phase_name: Inline Comment Threads
-status: executing
-stopped_at: Completed 23-08-PLAN.md
-last_updated: "2026-11-05T21:52:00.000Z"
+status: verification_pending_human_uat
+stopped_at: Completed 23-VERIFICATION.md (human_needed, 0 gaps)
+last_updated: "2026-11-05T22:40:00.000Z"
 last_activity: 2026-11-05
-last_activity_desc: Plan 23-08 complete (App.vue wires collapse state, resolve/reopen/edit/delete mutation dispatch, pinned Orphaned-comments group, delete-with-5s-Undo, and Option+F9/Shift+Option+F9 cross-file thread navigation; canonicalComment() fixed to focus stale-anchored threads; 2 bugfixes surfaced by packaged-binary Playwright coverage). Phase 23 plans complete (8/8) — awaiting phase-wide verification.
+last_activity_desc: Phase 23 verified — 5/5 ROADMAP success criteria, 9/9 THREAD-01..09 requirements wired, 0 gaps. 2 human_verification items persisted to 23-UAT.md (pixel polish, Esc-on-header focus); phase completion awaits /gsd:verify-work.
 progress:
   total_phases: 7
   completed_phases: 5
@@ -30,8 +30,8 @@ See: .planning/PROJECT.md (updated 2026-11-04)
 
 Phase: 23 — Inline Comment Threads
 Plan: 8 of 8
-Status: Phase 23 plans complete — awaiting phase verification
-Last activity: 2026-11-05 — Plan 23-08 complete (App.vue wires collapse state, resolve/reopen/edit/delete mutation dispatch, pinned Orphaned-comments group, delete-with-5s-Undo, and Option+F9/Shift+Option+F9 cross-file thread navigation; canonicalComment() fixed to focus stale-anchored threads; 2 bugfixes surfaced by packaged-binary Playwright coverage). All 8 Phase 23 plans executed; phase-wide verification is next.
+Status: Phase 23 verified (0 gaps) — human verification pending (see 23-UAT.md)
+Last activity: 2026-11-05 — Phase 23 goal-backward verification complete: 5/5 ROADMAP success criteria verified, 9/9 THREAD-01..09 requirements wired, 0 gaps. 2 human_verification items (pixel polish, Esc-on-header focus) persisted to 23-UAT.md; phase completion awaits /gsd:verify-work.
 
 ## Performance Metrics
 
