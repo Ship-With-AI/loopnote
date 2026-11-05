@@ -208,7 +208,7 @@ Plans:
   4. Reviewer sees open threads expanded and resolved threads collapsed to a one-line snippet by default, and can collapse or expand one thread or every thread in the current file, with the choice kept for the session.
   5. Reviewer sees previous/next-thread and collapse-all-threads icon actions in the editor title and can use ⌥F9/⇧⌥F9 both inside and outside the diff editor to jump across files in tree order; comments can be added from the gutter `+`, and threads keep their position, expanded state, and any in-progress edit text through draft reconciliation and snapshot Refresh, with durable anchors (including Markdown block ranges) staying byte-identical to the current model.
 
-**Plans**: 4/8 plans executed
+**Plans**: 5/8 plans executed
 **Wave 1**
 
 - [x] 23-01-PLAN.md
@@ -218,7 +218,7 @@ Plans:
 - [x] 23-02-PLAN.md
 - [x] 23-03-PLAN.md
 - [x] 23-04-PLAN.md
-- [ ] 23-06-PLAN.md
+- [x] 23-06-PLAN.md
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -305,7 +305,7 @@ Plans:
 | 20. Shell Frame | v2.1 | 10/10 | Complete    | 2026-11-04 |
 | 21. Changed-Files Tree | v2.1 | 4/4 | Complete    | 2026-11-05 |
 | 22. Identity & Status Bar | v2.1 | 4/4 | Complete    | 2026-11-05 |
-| 23. Inline Comment Threads | v2.1 | 4/8 | In Progress|  |
+| 23. Inline Comment Threads | v2.1 | 5/8 | In Progress|  |
 | 24. Bottom Panel & Export | v2.1 | 0/11 | Planned    |  |
 | 25. Accessibility, Design Docs & Regression Sweep | v2.1 | 0/TBD | Not started | - |
 
