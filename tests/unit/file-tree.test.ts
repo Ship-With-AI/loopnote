@@ -721,3 +721,94 @@ describe('createFileTreeModel', () => {
     ).toBe(true);
   });
 });
+
+describe('statusPriorityByDirectoryId', () => {
+  it('resolves the winner to deleted when a directory holds a deleted file and an added file', () => {
+    const model = createFileTreeModel([
+      sessionFile(0, { kind: 'deleted', oldPath: exactPath('dir/deleted.ts') }),
+      sessionFile(1, { kind: 'added', newPath: exactPath('dir/added.ts') }),
+    ]);
+    const dir = directory(model.tree, 'dir');
+
+    expect(model.statusPriorityByDirectoryId.get(dir.directoryId)).toBe('deleted');
+  });
+
+  it('resolves the winner to modified once a modified file joins the same directory', () => {
+    const model = createFileTreeModel([
+      sessionFile(0, { kind: 'deleted', oldPath: exactPath('dir/deleted.ts') }),
+      sessionFile(1, { kind: 'added', newPath: exactPath('dir/added.ts') }),
+      sessionFile(2, {
+        newPath: exactPath('dir/modified.ts'),
+        oldPath: exactPath('dir/modified.ts'),
+      }),
+    ]);
+    const dir = directory(model.tree, 'dir');
+
+    expect(model.statusPriorityByDirectoryId.get(dir.directoryId)).toBe('modified');
+  });
+
+  it('propagates a nested directory winner up through a parent that also has a lower-priority direct file', () => {
+    const model = createFileTreeModel([
+      sessionFile(0, { kind: 'added', newPath: exactPath('parent/child/added.ts') }),
+      sessionFile(1, {
+        kind: 'unsupported',
+        newPath: exactPath('parent/sibling.ts'),
+      }),
+    ]);
+    const parent = directory(model.tree, 'parent');
+    const child = directory(parent.children, 'child');
+
+    expect(model.statusPriorityByDirectoryId.get(parent.directoryId)).toBe('added');
+    expect(model.statusPriorityByDirectoryId.get(child.directoryId)).toBe('added');
+  });
+
+  it('records renamed and copied as distinct per-directory winners within the same priority tier', () => {
+    const model = createFileTreeModel([
+      sessionFile(0, {
+        kind: 'renamed',
+        newPath: exactPath('renamedDir/file.ts'),
+        oldPath: exactPath('renamedDir/old.ts'),
+      }),
+      sessionFile(1, {
+        kind: 'copied',
+        newPath: exactPath('copiedDir/file.ts'),
+        oldPath: exactPath('copiedDir/source.ts'),
+      }),
+    ]);
+    const renamedDir = directory(model.tree, 'renamedDir');
+    const copiedDir = directory(model.tree, 'copiedDir');
+
+    expect(model.statusPriorityByDirectoryId.get(renamedDir.directoryId)).toBe(
+      'renamed',
+    );
+    expect(model.statusPriorityByDirectoryId.get(copiedDir.directoryId)).toBe(
+      'copied',
+    );
+  });
+
+  it('is populated immediately after construction with one entry per directory', () => {
+    const model = createFileTreeModel([
+      sessionFile(0, {
+        newPath: exactPath('a/one.ts'),
+        oldPath: exactPath('a/one.ts'),
+      }),
+      sessionFile(1, {
+        newPath: exactPath('a/sub/two.ts'),
+        oldPath: exactPath('a/sub/two.ts'),
+      }),
+      sessionFile(2, { newPath: exactPath('z.ts'), oldPath: exactPath('z.ts') }),
+    ]);
+    const directories = model.visibleRows.filter(
+      (candidate): candidate is VisibleFileTreeDirectory =>
+        candidate.kind === 'directory',
+    );
+
+    expect(model.statusPriorityByDirectoryId.size).toBe(directories.length);
+    expect(
+      directories.every((candidate) =>
+        model.statusPriorityByDirectoryId.has(candidate.directoryId),
+      ),
+    ).toBe(true);
+  });
+});
+
