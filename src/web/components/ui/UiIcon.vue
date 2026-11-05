@@ -25,6 +25,12 @@ export type UiIconName =
   | 'tree'
   | 'collapse-all'
   | 'more'
+  | 'compare'
+  | 'chevron'
+  | 'patch'
+  | 'commit'
+  | 'worktree'
+  | 'copy'
   | 'disabled';
 
 defineProps<{
@@ -140,6 +146,32 @@ defineProps<{
       <circle cx="4" cy="8" r="1" fill="currentColor" stroke="none" />
       <circle cx="8" cy="8" r="1" fill="currentColor" stroke="none" />
       <circle cx="12" cy="8" r="1" fill="currentColor" stroke="none" />
+    </template>
+    <template v-else-if="name === 'compare'">
+      <circle cx="12" cy="12" r="2" />
+      <circle cx="4" cy="4" r="2" />
+      <path d="M8.5 4h2A1.5 1.5 0 0 1 12 5.5v4.5" />
+      <path d="M7.5 12H5.5A1.5 1.5 0 0 1 4 10.5V6" />
+    </template>
+    <template v-else-if="name === 'chevron'">
+      <path d="m4.5 6 3.5 3.5L11.5 6" />
+    </template>
+    <template v-else-if="name === 'patch'">
+      <rect x="2.5" y="2.5" width="11" height="11" rx="2" />
+      <path d="M8 2.5v11M2.5 8h11" />
+    </template>
+    <template v-else-if="name === 'commit'">
+      <circle cx="8" cy="8" r="2.25" />
+      <path d="M2 8h3.5M10.5 8h3.5" />
+    </template>
+    <template v-else-if="name === 'worktree'">
+      <rect x="3" y="5.5" width="7.5" height="7" rx="1.25" />
+      <circle cx="12.25" cy="4.25" r="1.5" />
+      <path d="M9.5 5.5 11 5" />
+    </template>
+    <template v-else-if="name === 'copy'">
+      <rect x="6" y="6" width="8" height="8" rx="1.25" />
+      <path d="M3.5 10V3.75A1.75 1.75 0 0 1 5.25 2H10.5" />
     </template>
     <template v-else>
       <circle cx="8" cy="8" r="5.5" />

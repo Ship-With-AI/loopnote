@@ -2045,6 +2045,194 @@ h3.conversation-card__identity {
   white-space: nowrap;
 }
 
+.identity-pill-host {
+  position: relative;
+  min-width: 0;
+}
+
+.identity-pill {
+  display: inline-flex;
+  min-width: 0;
+  overflow: hidden;
+  align-items: center;
+  gap: var(--space-2);
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-control);
+  background: var(--surface-interactive);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-chrome);
+  line-height: var(--line-height-chrome);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.identity-pill--warning {
+  border-color: var(--status-warning-foreground);
+}
+
+.identity-pill--refreshing {
+  cursor: progress;
+}
+
+.identity-pill__endpoint {
+  display: inline-flex;
+  min-width: 0;
+  overflow: hidden;
+  align-items: center;
+  gap: var(--space-1);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.identity-pill__label {
+  flex: 0 0 auto;
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-label);
+  text-transform: uppercase;
+}
+
+.identity-pill__ref {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.identity-pill__sha {
+  flex: 0 0 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: var(--font-size-metadata);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.identity-pill__arrow,
+.identity-pill__mark,
+.identity-pill__suffix,
+.identity-pill__chevron,
+.identity-pill__icon {
+  flex: 0 0 auto;
+}
+
+.identity-pill__suffix {
+  color: var(--text-muted);
+}
+
+.identity-pill__dot {
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--status-warning-foreground);
+}
+
+.identity-popover {
+  position: absolute;
+  z-index: 10;
+  top: 100%;
+  left: 50%;
+  width: min(440px, calc(100vw - var(--space-4)));
+  margin-top: var(--space-1);
+  padding: var(--space-3);
+  border: 1px solid var(--border-overlay);
+  border-radius: var(--radius-overlay);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-overlay);
+  text-align: left;
+  transform: translateX(-50%);
+}
+
+.identity-popover__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin: 0 0 var(--space-2);
+  color: var(--text-primary);
+  font-size: var(--font-size-chrome);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-chrome);
+}
+
+.identity-popover__grid {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.identity-popover__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.identity-popover__row dt {
+  flex: 0 0 auto;
+  min-width: 96px;
+  color: var(--text-muted);
+  font-size: var(--font-size-metadata);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-metadata);
+}
+
+.identity-popover__row dd {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-chrome);
+  line-height: var(--line-height-chrome);
+}
+
+.identity-popover__chip {
+  display: inline-flex;
+  margin-inline-start: var(--space-1);
+  padding-inline: var(--space-1);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+  color: var(--text-muted);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-label);
+  text-transform: uppercase;
+}
+
+.identity-popover__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.identity-popover__guidance {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--font-size-metadata);
+  line-height: var(--line-height-metadata);
+}
+
+.ui-button--ghost {
+  border-color: transparent;
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.ui-button--ghost:hover:not(:disabled) {
+  background: var(--surface-interactive-hover);
+  color: var(--text-primary);
+}
+
 .review-summary {
   display: grid;
   min-width: 0;
