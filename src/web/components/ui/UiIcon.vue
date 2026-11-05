@@ -19,6 +19,7 @@ export type UiIconName =
   | 'diff-inline'
   | 'markdown-source'
   | 'markdown-preview'
+  | 'comment'
   | 'disabled';
 
 defineProps<{
@@ -110,6 +111,9 @@ defineProps<{
     </template>
     <template v-else-if="name === 'markdown-preview'">
       <path d="M3.5 5h9M3.5 8h9M3.5 11h6" />
+    </template>
+    <template v-else-if="name === 'comment'">
+      <path d="M3 4.5h10a1 1 0 0 1 1 1V10a1 1 0 0 1-1 1H7l-2.5 2.5V11H3a1 1 0 0 1-1-1V5.5a1 1 0 0 1 1-1Z" />
     </template>
     <template v-else>
       <circle cx="8" cy="8" r="5.5" />

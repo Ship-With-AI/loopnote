@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 
+import type { ChangedFileStatusKind } from '../../contracts/comparison.js';
 import type { FileTreeDirectory, FileTreeLeaf } from '../../domain/file-tree.js';
 import FileRow from './FileRow.vue';
 
@@ -10,10 +11,13 @@ const props = defineProps<{
   directory: FileTreeDirectory;
   level: number;
   expandedDirectoryIds: ReadonlySet<string>;
-  directoryDescendantCounts: ReadonlyMap<string, number>;
+  statusPriorityByDirectoryId: ReadonlyMap<string, ChangedFileStatusKind>;
   tabbableRowId: string | null;
   selectedFileId: string | null;
   recentlyChangedPaths?: ReadonlySet<string>;
+  openCommentCounts?: ReadonlyMap<string, number>;
+  lineCounts?: 'always' | 'hover' | 'never';
+  commentBadgesEnabled?: boolean;
 }>();
 
 function isRecentlyChanged(leaf: FileTreeLeaf): boolean {
@@ -34,13 +38,24 @@ const expanded = computed(() =>
 const displayPath = computed(() =>
   props.directory.segments.map((segment) => segment.display).join('/'),
 );
-const descendantCount = computed(
-  () => props.directoryDescendantCounts.get(props.directory.directoryId) ?? 0,
-);
-const descendantCountLabel = computed(
-  () => `${descendantCount.value} ${descendantCount.value === 1 ? 'changed file' : 'changed files'}`,
-);
 
+// `21-UI-SPEC.md` `## Compact Folders & Collapsed Bullet` — same tone
+// vocabulary `StatusBadge.vue` uses (renamed/copied share the "moved" tone;
+// type-changed shares the "modified" tone; unsupported maps to "warning").
+const BULLET_TONE_BY_STATUS_KIND: Readonly<Record<ChangedFileStatusKind, string>> = Object.freeze({
+  modified: 'modified',
+  deleted: 'deleted',
+  added: 'added',
+  renamed: 'moved',
+  copied: 'moved',
+  'type-changed': 'modified',
+  unsupported: 'warning',
+});
+
+const collapsedBulletTone = computed(() => {
+  const status = props.statusPriorityByDirectoryId.get(props.directory.directoryId);
+  return status === undefined ? undefined : BULLET_TONE_BY_STATUS_KIND[status];
+});
 </script>
 
 <template>
@@ -62,7 +77,12 @@ const descendantCountLabel = computed(
         {{ expanded ? '▾' : '▸' }}
       </span>
       <span class="directory-row__path">{{ displayPath }}/</span>
-      <span class="directory-row__count" :aria-label="descendantCountLabel">{{ descendantCount }}</span>
+      <span
+        v-if="!expanded && collapsedBulletTone !== undefined"
+        class="directory-row__bullet"
+        :class="`directory-row__bullet--${collapsedBulletTone}`"
+        aria-hidden="true"
+      >●</span>
     </div>
 
     <ul v-if="expanded" class="tree-group" role="group">
@@ -72,10 +92,13 @@ const descendantCountLabel = computed(
           :directory="child"
           :level="level + 1"
           :expanded-directory-ids="expandedDirectoryIds"
-          :directory-descendant-counts="directoryDescendantCounts"
+          :status-priority-by-directory-id="statusPriorityByDirectoryId"
           :tabbable-row-id="tabbableRowId"
           :selected-file-id="selectedFileId"
           :recently-changed-paths="recentlyChangedPaths"
+          :open-comment-counts="openCommentCounts"
+          :line-counts="lineCounts"
+          :comment-badges-enabled="commentBadgesEnabled"
           @activate-file="emit('activateFile', $event)"
           @focus-row="emit('focusRow', $event)"
           @toggle-directory="emit('toggleDirectory', $event)"
@@ -88,6 +111,9 @@ const descendantCountLabel = computed(
           :tabbable="tabbableRowId === `file:${child.fileId}`"
           :selected="selectedFileId === child.fileId"
           :recently-changed="isRecentlyChanged(child)"
+          :open-comment-count="openCommentCounts?.get(child.fileId) ?? 0"
+          :line-counts="lineCounts"
+          :comment-badges-enabled="commentBadgesEnabled"
           @activate="emit('activateFile', $event)"
           @focus-row="emit('focusRow', $event)"
         />

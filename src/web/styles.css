@@ -995,21 +995,47 @@ input:-webkit-autofill:focus {
 
 .tree-row .status-badge {
   min-height: 0;
-  padding: 3px 4px;
-  border-radius: 3px;
-  font-family: var(--font-mono);
-  letter-spacing: 0.04em;
-  line-height: 1;
+  width: 12px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font: var(--font-weight-semibold) 11px/1 var(--font-mono);
+  text-align: center;
 }
 
 .tree-row .availability-marker {
   min-height: 0;
-  padding: 3px var(--space-1);
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.tree-row .availability-marker::before {
+  display: none;
+}
+
+.tree-row__refresh-marker,
+.standalone-state-marker {
+  color: var(--text-muted);
+  font-size: var(--font-size-metadata);
+  white-space: nowrap;
 }
 
 .tree-row .line-counts {
   gap: 6px;
   font-weight: var(--font-weight-regular);
+  opacity: 0;
+}
+
+.tree-row:hover .line-counts,
+.tree-row--selected .line-counts,
+.tree-row--counts-always .line-counts {
+  opacity: 1;
+}
+
+.tree-row--counts-never .line-counts {
+  opacity: 0;
 }
 
 .tree-row .line-counts__added,
@@ -1037,8 +1063,44 @@ input:-webkit-autofill:focus {
   white-space: nowrap;
 }
 
+.ft {
+  flex-shrink: 0;
+  width: 20px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-semibold);
+  text-align: center;
+}
+
+.cbadge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--interactive-accent);
+  font-size: var(--font-size-metadata);
+  white-space: nowrap;
+}
+
+.name-tone--deleted {
+  color: var(--status-deleted-foreground);
+  text-decoration: line-through;
+}
+
+.name-tone--modified {
+  color: var(--status-modified-foreground);
+}
+
+.name-tone--added {
+  color: var(--status-added-foreground);
+}
+
+.name-tone--muted {
+  color: var(--text-muted);
+}
+
 .directory-row {
-  grid-template-columns: 12px minmax(0, 1fr) auto;
+  grid-template-columns: 12px minmax(0, 1fr) 12px;
 }
 
 .directory-row__disclosure,
@@ -1068,13 +1130,31 @@ input:-webkit-autofill:focus {
   white-space: nowrap;
 }
 
-.directory-row__count {
-  color: var(--text-muted);
-  font-family: var(--font-mono);
+.directory-row__bullet {
+  width: 12px;
+  opacity: 0.7;
+  text-align: center;
   font-size: var(--font-size-metadata);
-  font-weight: var(--font-weight-regular);
-  line-height: var(--line-height-metadata);
-  white-space: nowrap;
+}
+
+.directory-row__bullet--modified {
+  color: var(--status-modified-foreground);
+}
+
+.directory-row__bullet--deleted {
+  color: var(--status-deleted-foreground);
+}
+
+.directory-row__bullet--added {
+  color: var(--status-added-foreground);
+}
+
+.directory-row__bullet--moved {
+  color: var(--status-resolved-foreground);
+}
+
+.directory-row__bullet--warning {
+  color: var(--status-warning-foreground);
 }
 
 .path-display {
