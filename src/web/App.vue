@@ -180,15 +180,10 @@ const uncommittedSourceLabel = computed(() => {
     default: return '';
   }
 });
-const snapshotLabel = computed(() => {
-  if (isExactPatchSession.value) return 'Frozen patch';
-  if (isStandaloneSession.value) {
-    return `Standalone · snapshot ${controlSafeDisplay(uncommittedSession.value?.reviewKey.slice(0, 7) ?? '')}`;
-  }
-  if (isUncommittedSession.value) {
-    return `${uncommittedSourceLabel.value} · snapshot ${controlSafeDisplay(uncommittedSession.value?.reviewKey.slice(0, 7) ?? '')}`;
-  }
-  return `${controlSafeDisplay(pinnedSession.value?.base.oid.slice(0, 7) ?? '')} → ${controlSafeDisplay(pinnedSession.value?.head.oid.slice(0, 7) ?? '')}`;
+const statusbarIdentifier = computed(() => {
+  if (isExactPatchSession.value) return controlSafeDisplay(exactPatchSession.value?.patch.digest.slice(0, 7) ?? '');
+  if (isUncommittedSession.value) return controlSafeDisplay(uncommittedSession.value?.reviewKey.slice(0, 7) ?? '');
+  return controlSafeDisplay(pinnedSession.value?.head.oid.slice(0, 7) ?? '');
 });
 const singlePaneSide = computed(() =>
   selectedFile.value === undefined
@@ -306,6 +301,9 @@ const openCommentCounts = computed<ReadonlyMap<string, number>>(() => {
 });
 const hasUnverifiedAnchors = computed(() =>
   workspaceComments.value.some((comment) => comment.status === 'stale' || comment.status === 'orphaned'),
+);
+const staleCommentCount = computed(() =>
+  workspaceComments.value.filter((comment) => comment.status === 'stale' || comment.status === 'orphaned').length,
 );
 
 const isAttachedSession = computed(() => session.value?.attached?.kind === 'agent-review');
@@ -1507,7 +1505,9 @@ onBeforeUnmount(() => {
         <StatusBar
           ref="statusBar"
           :session="session"
-          :snapshot-label="snapshotLabel"
+          :identifier="statusbarIdentifier"
+          :stale-comment-count="staleCommentCount"
+          :attached-lifecycle="isAttachedSession ? (attachedLifecycle === 'finishing' || attachedLifecycle === 'completed' ? attachedLifecycle : 'waiting') : undefined"
           :export-supported="!isUncommittedSession || isStandaloneSession"
           :open-comment-count="openCommentCount"
           :support-enabled="supportEnabled"

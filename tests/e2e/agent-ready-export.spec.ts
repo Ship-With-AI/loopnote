@@ -663,10 +663,10 @@ test('attached range review stays silent until Finish then emits one canonical V
     expect(readFileSync(running.stdoutPath)).toEqual(Buffer.alloc(0));
     await openAcceptanceRuntimeSession(page, url);
     await openReviewNotes(page);
-    await expect(page.getByRole('button', { name: 'Finish review', exact: true })).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Finish attached review' }).getByRole('button', { name: 'Finish review', exact: true })).toBeVisible();
 
     const finished = page.waitForResponse((response) => response.url().includes('/api/review-completion/finish'));
-    await page.getByRole('button', { name: 'Finish review', exact: true }).click();
+    await page.getByRole('region', { name: 'Finish attached review' }).getByRole('button', { name: 'Finish review', exact: true }).click();
     expect((await finished).status()).toBe(201);
     expect(await waitForAttachedExit(running)).toBe(0);
 
@@ -722,14 +722,14 @@ test('equivalent installed attached ranges retain canonical provenance while own
 
     await openReviewNotes(page);
     const firstFinished = page.waitForResponse((response) => response.url().includes('/api/review-completion/finish'));
-    await page.getByRole('button', { name: 'Finish review', exact: true }).click();
+    await page.getByRole('region', { name: 'Finish attached review' }).getByRole('button', { name: 'Finish review', exact: true }).click();
     expect((await firstFinished).status()).toBe(201);
     expect(await waitForAttachedExit(first)).toBe(0);
     expect(readFileSync(second.stdoutPath)).toEqual(Buffer.alloc(0));
 
     await openReviewNotes(secondPage);
     const secondFinished = secondPage.waitForResponse((response) => response.url().includes('/api/review-completion/finish'));
-    await secondPage.getByRole('button', { name: 'Finish review', exact: true }).click();
+    await secondPage.getByRole('region', { name: 'Finish attached review' }).getByRole('button', { name: 'Finish review', exact: true }).click();
     expect((await secondFinished).status()).toBe(201);
     expect(await waitForAttachedExit(second)).toBe(0);
 
@@ -785,7 +785,7 @@ test('installed exact-patch review grounds the submitted patch and emits canonic
     await addHeadComment(page, 'Grounded exact-patch feedback.', 9, 'export const changed = "head value";');
     await openReviewNotes(page);
     const finished = page.waitForResponse((response) => response.url().includes('/api/review-completion/finish'));
-    await page.getByRole('button', { name: 'Finish review', exact: true }).click();
+    await page.getByRole('region', { name: 'Finish attached review' }).getByRole('button', { name: 'Finish review', exact: true }).click();
     const finishResponse = await finished;
     expect(finishResponse.status(), await finishResponse.text()).toBe(201);
     expect(await waitForAttachedExit(running)).toBe(0);
@@ -888,7 +888,7 @@ test('installed configured support remains unavailable without outbound access a
 
     await openReviewNotes(page);
     const finished = page.waitForResponse((response) => response.url().includes('/api/review-completion/finish'));
-    await page.getByRole('button', { name: 'Finish review', exact: true }).click();
+    await page.getByRole('region', { name: 'Finish attached review' }).getByRole('button', { name: 'Finish review', exact: true }).click();
     expect((await finished).status()).toBe(201);
     expect(await waitForAttachedExit(running)).toBe(0);
     expect(parseCanonicalReviewExport(readFileSync(running.stdoutPath))).toMatchObject({ schemaVersion: 2 });
@@ -929,7 +929,7 @@ test('installed uncommitted review resolves worktree changes and emits canonical
     await addSinglePaneComment(page, /\/staged-20\.txt/, 'head', 'staged 20', 1, 'Uncommitted worktree feedback.');
     await openReviewNotes(page);
     const finished = page.waitForResponse((response) => response.url().includes('/api/review-completion/finish'));
-    await page.getByRole('button', { name: 'Finish review', exact: true }).click();
+    await page.getByRole('region', { name: 'Finish attached review' }).getByRole('button', { name: 'Finish review', exact: true }).click();
     const finishResponse = await finished;
     expect(finishResponse.status(), await finishResponse.text()).toBe(201);
     expect(await waitForAttachedExit(running)).toBe(0);
@@ -982,7 +982,7 @@ test('installed files review resolves standalone paths and emits canonical V6 on
     await addSinglePaneComment(page, /changed\.ts/, 'head', 'export const changed = "head value";', 9, 'Standalone files feedback.');
     await openReviewNotes(page);
     const finished = page.waitForResponse((response) => response.url().includes('/api/review-completion/finish'));
-    await page.getByRole('button', { name: 'Finish review', exact: true }).click();
+    await page.getByRole('region', { name: 'Finish attached review' }).getByRole('button', { name: 'Finish review', exact: true }).click();
     const finishResponse = await finished;
     expect(finishResponse.status(), await finishResponse.text()).toBe(201);
     expect(await waitForAttachedExit(running)).toBe(0);
