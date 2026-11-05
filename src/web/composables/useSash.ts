@@ -62,15 +62,21 @@ export function useSash(options: UseSashOptions): UseSashResult {
   }
 
   function teardown(): void {
-    if (activeTarget !== undefined) {
-      if (activePointerId !== undefined) activeTarget.releasePointerCapture(activePointerId);
-      activeTarget.removeEventListener('pointermove', onPointermove);
-      activeTarget.removeEventListener('pointerup', onPointerup);
-      activeTarget.removeEventListener('pointercancel', onPointercancel);
-    }
+    const target = activeTarget;
+    const pointerId = activePointerId;
     activeTarget = undefined;
     activePointerId = undefined;
     isDragging.value = false;
+    if (target === undefined) return;
+    target.removeEventListener('pointermove', onPointermove);
+    target.removeEventListener('pointerup', onPointerup);
+    target.removeEventListener('pointercancel', onPointercancel);
+    if (pointerId === undefined) return;
+    try {
+      target.releasePointerCapture(pointerId);
+    } catch {
+      // The user agent already released capture implicitly (pointercancel).
+    }
   }
 
   function onPointerup(): void {
