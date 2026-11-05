@@ -2022,6 +2022,23 @@ h3.conversation-card__identity {
   opacity: 1;
 }
 
+.undo-toast {
+  position: fixed;
+  bottom: var(--space-6);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--border-overlay);
+  border-radius: var(--radius-overlay);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-overlay);
+  color: var(--text-primary);
+  font-size: var(--font-size-chrome);
+}
+
 .diff-workspace__editor {
   position: relative;
   z-index: 1;
