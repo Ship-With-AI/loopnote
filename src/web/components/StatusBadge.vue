@@ -6,6 +6,7 @@ import { isSinglePaneStatusKind } from '../model/single-pane-layout.js';
 
 const props = defineProps<{
   kind: ChangedFileStatusKind;
+  code: string;
   reviewable?: boolean;
 }>();
 
@@ -22,8 +23,9 @@ const presentation = computed(() => {
     case 'renamed':
       return { label: 'Renamed', text: 'R', tone: 'moved' };
     case 'type-changed':
+      return { label: 'type changed', text: 'T', tone: 'modified' };
     case 'unsupported':
-      return { label: 'Mode changed', text: 'Mode', tone: 'modified' };
+      return { label: `unsupported status: ${props.code}`, text: props.code, tone: 'warning' };
   }
 });
 

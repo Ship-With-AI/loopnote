@@ -313,6 +313,7 @@ const SessionRangeSchema = z
 const ApiFileStatusSchema = z
   .strictObject({
     kind: ChangedFileStatusKindSchema,
+    code: z.string().regex(/^[A-Z]$/).optional(),
     similarity: z.number().int().min(0).max(100).optional(),
   })
   .readonly();

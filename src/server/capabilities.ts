@@ -430,8 +430,8 @@ export function createCapabilityRegistry(
     files: comparison.changedFiles.map((file) => {
       const status =
         file.status.similarity === null
-          ? { kind: file.status.kind }
-          : { kind: file.status.kind, similarity: file.status.similarity };
+          ? { kind: file.status.kind, code: file.status.code }
+          : { kind: file.status.kind, code: file.status.code, similarity: file.status.similarity };
       const sessionFile = {
         fileId: file.id,
         status,
@@ -864,7 +864,7 @@ export async function createExactPatchCapabilityRegistry(
       if (file === undefined) return undefined;
       return FileMetadataResponseSchema.parse({
         fileId: file.id,
-        status: file.status.similarity === null ? { kind: file.status.kind } : { kind: file.status.kind, similarity: file.status.similarity },
+        status: file.status.similarity === null ? { kind: file.status.kind, code: file.status.code } : { kind: file.status.kind, code: file.status.code, similarity: file.status.similarity },
         oldMode: file.oldMode,
         newMode: file.newMode,
         ...(file.oldPath === undefined ? {} : { oldPath: file.oldPath }),
@@ -1026,7 +1026,7 @@ export async function createUncommittedCapabilityRegistry(
       },
       files: files.map((file) => ({
         fileId: file.id,
-        status: file.status.similarity === null ? { kind: file.status.kind } : { kind: file.status.kind, similarity: file.status.similarity },
+        status: file.status.similarity === null ? { kind: file.status.kind, code: file.status.code } : { kind: file.status.kind, code: file.status.code, similarity: file.status.similarity },
         oldMode: file.oldMode,
         ...(file.oldPath === undefined ? {} : { oldPath: file.oldPath }),
         ...(file.newPath === undefined ? {} : { newPath: file.newPath }),
@@ -1287,7 +1287,7 @@ export async function createUncommittedCapabilityRegistry(
       if (file === undefined) return undefined;
       return FileMetadataResponseSchema.parse({
         fileId: file.id,
-        status: file.status.similarity === null ? { kind: file.status.kind } : { kind: file.status.kind, similarity: file.status.similarity },
+        status: file.status.similarity === null ? { kind: file.status.kind, code: file.status.code } : { kind: file.status.kind, code: file.status.code, similarity: file.status.similarity },
         oldMode: file.oldMode,
         newMode: file.newMode,
         ...(file.oldPath === undefined ? {} : { oldPath: file.oldPath }),
@@ -1382,7 +1382,7 @@ export async function createStandaloneCapabilityRegistry(
       },
       files: files.map((file) => ({
         fileId: file.id,
-        status: file.status.similarity === null ? { kind: file.status.kind } : { kind: file.status.kind, similarity: file.status.similarity },
+        status: file.status.similarity === null ? { kind: file.status.kind, code: file.status.code } : { kind: file.status.kind, code: file.status.code, similarity: file.status.similarity },
         oldMode: file.oldMode,
         ...(file.oldPath === undefined ? {} : { oldPath: file.oldPath }),
         ...(file.newPath === undefined ? {} : { newPath: file.newPath }),
@@ -1628,7 +1628,7 @@ export async function createStandaloneCapabilityRegistry(
       if (file === undefined) return undefined;
       return FileMetadataResponseSchema.parse({
         fileId: file.id,
-        status: file.status.similarity === null ? { kind: file.status.kind } : { kind: file.status.kind, similarity: file.status.similarity },
+        status: file.status.similarity === null ? { kind: file.status.kind, code: file.status.code } : { kind: file.status.kind, code: file.status.code, similarity: file.status.similarity },
         oldMode: file.oldMode,
         newMode: file.newMode,
         ...(file.oldPath === undefined ? {} : { oldPath: file.oldPath }),

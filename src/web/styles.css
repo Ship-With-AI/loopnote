@@ -440,6 +440,12 @@ body {
   color: var(--text-primary);
 }
 
+.status-badge--warning {
+  border-color: var(--status-warning-foreground);
+  background: var(--status-warning-background);
+  color: var(--status-warning-foreground);
+}
+
 .identity-disclosure,
 .copy-button,
 .retry-button,

@@ -100,11 +100,11 @@ defineExpose({ focusFilesToggle, focusHeading });
       </h1>
       <template v-if="selectedFile !== undefined">
         <template v-if="standaloneStateLabel !== undefined">
-          <StatusBadge :kind="selectedFile.status.kind" reviewable />
+          <StatusBadge :kind="selectedFile.status.kind" :code="selectedFile.status.code ?? ''" reviewable />
           <span class="review-toolbar__status">{{ standaloneStateLabel }}</span>
         </template>
         <template v-else-if="layoutLabel !== undefined">
-          <StatusBadge :kind="selectedFile.status.kind" reviewable />
+          <StatusBadge :kind="selectedFile.status.kind" :code="selectedFile.status.code ?? ''" reviewable />
           <span class="review-toolbar__status">{{ layoutLabel }}</span>
         </template>
         <span v-else class="review-toolbar__status">{{ selectedFile.status.kind }}</span>
