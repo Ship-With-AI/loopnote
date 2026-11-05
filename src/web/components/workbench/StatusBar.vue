@@ -1,15 +1,36 @@
+<script lang="ts">
+export function openCommentSegment(openCommentCount: number): string {
+  return openCommentCount === 0 ? '0' : `${openCommentCount} open`;
+}
+
+export function staleCommentSegment(staleCommentCount: number): string | undefined {
+  return staleCommentCount > 0 ? `${staleCommentCount} stale` : undefined;
+}
+
+export function emphasisLabel(attachedLifecycle: 'waiting' | 'finishing' | 'completed' | undefined): string {
+  switch (attachedLifecycle) {
+    case 'waiting': return 'Finish review';
+    case 'finishing': return 'Finishing…';
+    case 'completed': return 'Finished';
+    default: return 'Export';
+  }
+}
+</script>
+
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
 import type { SessionResponse } from '../../../contracts/api';
 import { RENAME_MAP } from '../../../domain/product-identity';
 import UiIcon from '../ui/UiIcon.vue';
 
-defineProps<{
+const props = defineProps<{
   readonly session: SessionResponse;
-  readonly snapshotLabel: string;
+  readonly identifier: string;
   readonly exportSupported: boolean;
   readonly openCommentCount: number;
+  readonly staleCommentCount: number;
+  readonly attachedLifecycle?: 'waiting' | 'finishing' | 'completed';
   readonly supportEnabled?: boolean;
   readonly supportInert?: boolean;
   readonly supportOpen?: boolean;
@@ -22,6 +43,11 @@ const emit = defineEmits<{
 
 const support = ref<HTMLButtonElement>();
 
+const openSegment = computed(() => openCommentSegment(props.openCommentCount));
+const staleSegment = computed(() => staleCommentSegment(props.staleCommentCount));
+const emphasizedLabel = computed(() => emphasisLabel(props.attachedLifecycle));
+const emphasizedBusy = computed(() => props.attachedLifecycle === 'finishing');
+
 function focusSupport(): void {
   support.value?.focus();
 }
@@ -33,23 +59,23 @@ defineExpose({ focusSupport });
   <footer class="statusbar">
     <div class="statusbar__left">
       <UiIcon name="lock" />
-      <span>{{ snapshotLabel }}</span>
+      <span>{{ identifier }}</span>
     </div>
     <div class="statusbar__right">
       <button
         type="button"
         class="statusbar__item"
         @click="emit('openPanel')"
-      >
-        {{ openCommentCount }} open comment{{ openCommentCount === 1 ? '' : 's' }}
-      </button>
+      >💬 {{ openSegment }}<template v-if="staleSegment !== undefined"> · <span class="statusbar__stale">{{ staleSegment }}</span></template></button>
       <button
         v-if="exportSupported"
         type="button"
         class="statusbar__item statusbar__item--emphasis"
+        :disabled="emphasizedBusy"
+        :aria-busy="emphasizedBusy"
         @click="emit('openPanel')"
       >
-        Export
+        {{ emphasizedLabel }}
       </button>
       <button
         v-if="supportEnabled"
@@ -117,5 +143,9 @@ defineExpose({ focusSupport });
   border-radius: var(--radius-control);
   background: var(--interactive-accent-emphasis);
   color: var(--text-on-emphasis);
+}
+
+.statusbar__stale {
+  color: var(--status-warning-foreground);
 }
 </style>
