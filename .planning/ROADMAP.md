@@ -42,7 +42,7 @@ the shell.
 - [x] **Phase 20: Shell Frame** - Workbench geometry tokens land together with the existing toolbar/tree/diff/dialog components as they're re-plumbed into `WorkbenchShell.vue`'s five regions (title bar, side bar, editor with icon-only title/breadcrumbs, bottom panel, status bar) across all five session kinds. (completed 2026-11-04)
 - [x] **Phase 21: Changed-Files Tree** - The changed-files tree is restyled to VS Code Explorer density with hover counts, a path filter, a view-options menu, and full keyboard reachability. (completed 2026-11-05)
 - [x] **Phase 22: Identity & Status Bar** - Comparison identity and drift relocate into a title-bar pill/popover; the status bar carries snapshot/comment counts, one emphasized Export/Finish item, and the support entry. (completed 2026-11-05)
-- [ ] **Phase 23: Inline Comment Threads** - A multi-zone Monaco adapter rework renders every comment as an expanded-by-default view-zone thread with its own editor-title navigation icons and ⌥F9/⇧⌥F9 shortcuts, gated by an explicit pointer/keyboard go/no-go spike.
+- [x] **Phase 23: Inline Comment Threads** - A multi-zone Monaco adapter rework renders every comment as an expanded-by-default view-zone thread with its own editor-title navigation icons and ⌥F9/⇧⌥F9 shortcuts, gated by an explicit pointer/keyboard go/no-go spike. (completed 2026-11-05)
 - [ ] **Phase 24: Bottom Panel & Export** - Comments/Summary/Export live in the ⌘J bottom panel, including the agent-attached Finish action behind the export readiness gate.
 - [ ] **Phase 25: Accessibility, Design Docs & Regression Sweep** - A toolbar role/name audit closes DEBT-01, every popover/menu/live-region is keyboard-accessible, the full suite passes with same-phase locator updates, and `DESIGN.md` describes the shipped workbench.
 
@@ -305,7 +305,7 @@ Plans:
 | 20. Shell Frame | v2.1 | 10/10 | Complete    | 2026-11-04 |
 | 21. Changed-Files Tree | v2.1 | 4/4 | Complete    | 2026-11-05 |
 | 22. Identity & Status Bar | v2.1 | 4/4 | Complete    | 2026-11-05 |
-| 23. Inline Comment Threads | v2.1 | 8/8 | Complete   | 2026-11-05 |
+| 23. Inline Comment Threads | v2.1 | 8/8 | Complete    | 2026-11-05 |
 | 24. Bottom Panel & Export | v2.1 | 0/11 | Planned    |  |
 | 25. Accessibility, Design Docs & Regression Sweep | v2.1 | 0/TBD | Not started | - |
 
