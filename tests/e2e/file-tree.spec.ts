@@ -61,7 +61,7 @@ const path = (display) => ({
 });
 const file = (fileId, display) => ({
   fileId,
-  status: { kind: 'modified' },
+  status: { kind: 'modified', code: 'M' },
   oldPath: path(display),
   newPath: path(display),
   additions: 1,
@@ -85,6 +85,7 @@ export function mountFileTreeHarness() {
     setup: () => () => h('main', { id: 'file-tree-harness' }, [
       h(FileTree, {
         files: files.value,
+        openCommentCounts: new Map([['file_opaque-alpha', 2]]),
         onSelect: () => { selectCount.value += 1; },
       }),
       h('output', { id: 'file-tree-select-count' }, String(selectCount.value)),
@@ -399,27 +400,27 @@ test('packaged file tree preserves opaque selection and keyboard semantics', asy
     await expect.poll(() => fileRequests.length).toBeGreaterThan(0);
 
     const modifiedRow = tree.getByRole('treeitem', {
-      name: /Modified.*tracked\.txt.*\d+ additions?.*1 deletion.*Text/i,
+      name: /tracked\.txt.*Text.*\d+ additions?.*1 deletion.*modified/i,
     });
     await expect(modifiedRow).toBeVisible();
     const rowBox = await modifiedRow.boundingBox();
     expect(rowBox?.height).toBe(28);
 
     const unsupportedRow = tree.getByRole('treeitem', {
-      name: /Added.*binary\.dat.*Line counts unavailable.*Unsupported/i,
+      name: /binary\.dat.*Unsupported.*Line counts unavailable.*added/i,
     });
     await expect(unsupportedRow).toBeVisible();
     await expect(unsupportedRow.getByText('Unsupported', { exact: true })).toBeVisible();
 
     const renamedRow = tree.getByRole('treeitem', {
-      name: /Renamed.*renamed from src\/deep\/only\/rename-source\.ts to src\/deep\/only\/renamed\.ts.*Text/i,
+      name: /renamed from src\/deep\/only\/rename-source\.ts to src\/deep\/only\/renamed\.ts.*Text.*renamed/i,
     });
     const copiedRow = tree.getByRole('treeitem', {
-      name: /Copied.*copied from copy-source\.ts to copy-target\.ts.*Text/i,
+      name: /copied from copy-source\.ts to copy-target\.ts.*Text.*copied/i,
     });
     await expect(renamedRow).toContainText('rename-source.ts→renamed.ts');
     await expect(renamedRow).toHaveAccessibleName(
-      /Renamed.*renamed from src\/deep\/only\/rename-source\.ts to src\/deep\/only\/renamed\.ts.*Text/i,
+      /renamed from src\/deep\/only\/rename-source\.ts to src\/deep\/only\/renamed\.ts.*Text.*renamed/i,
     );
     await expect(copiedRow).toContainText('copy-source.ts→copy-target.ts');
 
@@ -433,8 +434,8 @@ test('packaged file tree preserves opaque selection and keyboard semantics', asy
       .locator('[role="treeitem"] .path-display .path-text__filename')
       .filter({ hasText: /^�\.ts$/ });
     await expect(displayCollisions).toHaveCount(2);
-    await expect(tree.getByRole('treeitem', { name: /collision\/.*2 changed files/i })).toBeVisible();
-    await expect(tree.getByRole('treeitem', { name: /control\/.*1 changed file/i })).toBeVisible();
+    await expect(tree.getByRole('treeitem', { name: /^collision\/?$/i })).toBeVisible();
+    await expect(tree.getByRole('treeitem', { name: /^control\/?$/i })).toBeVisible();
     await displayCollisions.nth(0).click();
     await expect.poll(() => fileRequests.length).toBeGreaterThan(1);
     const firstCollisionRequest = fileRequests.at(-1)!;
@@ -536,7 +537,7 @@ test('packaged file tree filters and recovers without changing the open file', a
     const tabbableTreeitems = tree.locator('[role="treeitem"][tabindex="0"]');
     const selectedLeaf = tree.locator('[role="treeitem"][aria-selected="true"]');
     const collisionDirectory = tree.getByRole('treeitem', {
-      name: /collision\/.*2 changed files/i,
+      name: /^collision\/?$/i,
     });
 
     await expect(tree).toBeVisible();
@@ -546,7 +547,7 @@ test('packaged file tree filters and recovers without changing the open file', a
     if (selectedLeafFileId === null) throw new Error('expected the selected leaf to carry data-file-id');
     await expect(tabbableTreeitems).toHaveAttribute('data-file-id', selectedLeafFileId);
     const trackedRow = tree.getByRole('treeitem', {
-      name: /Modified.*tracked\.txt.*\d+ additions?.*1 deletion.*Text/i,
+      name: /tracked\.txt.*Text.*\d+ additions?.*1 deletion.*modified/i,
     });
     await trackedRow.click();
     const trackedRowFileId = await trackedRow.getAttribute('data-file-id');
@@ -568,10 +569,10 @@ test('packaged file tree filters and recovers without changing the open file', a
       }),
     ).toHaveCount(2);
     await expect(
-      tree.getByRole('treeitem', { name: /control\/.*1 changed file/i }),
+      tree.getByRole('treeitem', { name: /^control\/?$/i }),
     ).toHaveCount(0);
     await expect(
-      tree.getByRole('treeitem', { name: /src\/deep\/only\/.*1 changed file/i }),
+      tree.getByRole('treeitem', { name: /^src\/deep\/only\/?$/i }),
     ).toHaveCount(0);
     await expect(tree.getByRole('treeitem', { name: /binary\.dat/i })).toHaveCount(0);
     await expect(tree.getByRole('treeitem', { name: /copy-target\.ts/i })).toHaveCount(0);
@@ -652,8 +653,12 @@ test('component tree replacement preserves opaque state without selecting again'
   const tree = navigation.getByRole('tree', { name: 'Files' });
   const filter = navigation.getByRole('searchbox', { name: 'Filter files' });
   const bravo = tree.getByRole('treeitem', { name: /bravo\.ts/i });
-  const collapsed = tree.getByRole('treeitem', { name: /collapsed\/.*1 changed file/i });
-  const kept = tree.getByRole('treeitem', { name: /kept\/.*2 changed files/i });
+  const alpha = tree.getByRole('treeitem', { name: /alpha\.ts/i });
+  const collapsed = tree.getByRole('treeitem', { name: /^collapsed\/?$/i });
+  const kept = tree.getByRole('treeitem', { name: /^kept\/?$/i });
+
+  await expect(alpha.getByLabel('2 open comments')).toBeVisible();
+  await expect(bravo.getByLabel(/\d+ open comments?/)).toHaveCount(0);
 
   await bravo.click();
   await collapsed.click();
@@ -686,6 +691,6 @@ test('component tree replacement preserves opaque state without selecting again'
   await filter.fill('');
   await expect(collapsed).toHaveAttribute('aria-expanded', 'false');
   await expect(kept).toHaveAttribute('aria-expanded', 'false');
-  await expect(tree.getByRole('treeitem', { name: /new\/.*1 changed file/i }))
+  await expect(tree.getByRole('treeitem', { name: /^new\/?$/i }))
     .toHaveAttribute('aria-expanded', 'true');
 });

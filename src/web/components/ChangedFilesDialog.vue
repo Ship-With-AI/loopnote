@@ -12,6 +12,9 @@ const props = defineProps<{
   readonly open: boolean;
   readonly recentlyChangedPaths?: ReadonlySet<string>;
   readonly restoreFocus?: boolean;
+  readonly openCommentCounts?: ReadonlyMap<string, number>;
+  readonly lineCounts?: 'always' | 'hover' | 'never';
+  readonly commentBadgesEnabled?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -40,6 +43,9 @@ const emit = defineEmits<{
       :files="files"
       :initial-selected-file-id="initialSelectedFileId"
       :recently-changed-paths="recentlyChangedPaths"
+      :open-comment-counts="openCommentCounts"
+      :line-counts="lineCounts"
+      :comment-badges-enabled="commentBadgesEnabled"
       @select="emit('select', $event)"
       @activate="emit('activate', $event)"
     />

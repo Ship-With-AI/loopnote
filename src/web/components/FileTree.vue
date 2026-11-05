@@ -15,6 +15,9 @@ const props = defineProps<{
   files: readonly SessionFile[];
   initialSelectedFileId?: string;
   recentlyChangedPaths?: ReadonlySet<string>;
+  openCommentCounts?: ReadonlyMap<string, number>;
+  lineCounts?: 'always' | 'hover' | 'never';
+  commentBadgesEnabled?: boolean;
 }>();
 
 function isRecentlyChanged(leaf: FileTreeLeaf): boolean {
@@ -200,10 +203,13 @@ watch(
             :directory="node"
             :level="1"
             :expanded-directory-ids="model.effectiveExpandedDirectoryIds"
-            :directory-descendant-counts="model.directoryDescendantCounts"
+            :status-priority-by-directory-id="model.statusPriorityByDirectoryId"
             :tabbable-row-id="model.tabbableRowId"
             :selected-file-id="model.selectedFileId"
             :recently-changed-paths="recentlyChangedPaths"
+            :open-comment-counts="openCommentCounts"
+            :line-counts="lineCounts"
+            :comment-badges-enabled="commentBadgesEnabled"
             @activate-file="activateFile"
             @focus-row="focusRow"
             @toggle-directory="toggleDirectory"
@@ -215,6 +221,9 @@ watch(
             :tabbable="model.tabbableRowId === `file:${node.fileId}`"
             :selected="model.selectedFileId === node.fileId"
             :recently-changed="isRecentlyChanged(node)"
+            :open-comment-count="openCommentCounts?.get(node.fileId) ?? 0"
+            :line-counts="lineCounts"
+            :comment-badges-enabled="commentBadgesEnabled"
             @activate="activateFile"
             @focus-row="focusRow"
           />

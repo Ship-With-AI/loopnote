@@ -346,6 +346,64 @@ test('exact patch: Repository object → Implemented content identity, no Refres
   }
 });
 
+test('row anatomy: file-type mark → name → markers/line-counts → status letter, 22px rows, collapsed status bullet', async ({ browser }) => {
+  const repository = await createGitFixture();
+  repository.git(['switch', 'main']);
+  await repository.write('app.ts', 'export const app = 1;\n');
+  await repository.write('docs/guide/readme.ts', 'export const guide = 1;\n');
+  repository.git(['add', '-A']);
+  repository.git(['commit', '-m', 'add files shared with feature']);
+  const baseRevision = repository.git(['rev-parse', 'HEAD']).toString('ascii').trim();
+  repository.git(['switch', 'feature']);
+  repository.git(['merge', 'main', '--no-edit']);
+  await repository.write('app.ts', 'export const app = 2;\n');
+  await repository.write('docs/guide/readme.ts', 'export const guide = 2;\n');
+  repository.git(['add', '-A']);
+  repository.git(['commit', '-m', 'modify files on feature']);
+  const headRevision = repository.git(['rev-parse', 'HEAD']).toString('ascii').trim();
+
+  const running = spawnCli(repository, {
+    launchOptions: {
+      base: { label: 'Base fixture', revision: baseRevision },
+      head: { label: 'Head fixture', revision: headRevision },
+    },
+  });
+  try {
+    const url = await waitForLoopbackUrl(running);
+    const page = await browser.newPage();
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(url, { waitUntil: 'domcontentloaded' });
+
+    await assertShellRegionsPresent(page);
+
+    const row = page.locator('.file-row').filter({ hasText: 'app.ts' });
+    await expect(row).toBeVisible();
+    const rowBox = await row.boundingBox();
+    expect(rowBox?.height).toBe(22);
+
+    const childClasses = await row.evaluate((element) =>
+      Array.from(element.children).map((child) => child.className),
+    );
+    expect(childClasses[0]).toContain('ft');
+    expect(childClasses[1]).toContain('path-display');
+    expect(childClasses.at(-1)).toContain('status-badge');
+
+    const docsDirectory = page.getByRole('treeitem', { name: /^docs\/guide\/?$/ });
+    if ((await docsDirectory.getAttribute('aria-expanded')) === 'true') {
+      await docsDirectory.click();
+    }
+    await expect(docsDirectory).toHaveAttribute('aria-expanded', 'false');
+    const bullet = docsDirectory.locator('.directory-row__bullet');
+    await expect(bullet).toBeVisible();
+    await expect(bullet).toHaveClass(/directory-row__bullet--modified/);
+
+    await page.close();
+  } finally {
+    await stopGeneratedCli(running);
+    await repository.cleanup();
+  }
+});
+
 test('agent-attached: attachedFact overlay and Finish review entry point in the bottom panel', async ({ browser }) => {
   const repository = await createGitFixture();
   // Any non-interactive stdin `review-request` always resolves server-side to an

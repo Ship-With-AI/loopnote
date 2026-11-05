@@ -296,6 +296,14 @@ const unsavedInlineComposerFile = computed(() => {
 });
 const workspaceComments = computed(() => workspaceState.value?.comments ?? []);
 const openCommentCount = computed(() => workspaceComments.value.filter((comment) => comment.state === 'open').length);
+const openCommentCounts = computed<ReadonlyMap<string, number>>(() => {
+  const counts = new Map<string, number>();
+  for (const comment of workspaceComments.value) {
+    if (comment.state !== 'open' || comment.fileId === null) continue;
+    counts.set(comment.fileId, (counts.get(comment.fileId) ?? 0) + 1);
+  }
+  return counts;
+});
 const hasUnverifiedAnchors = computed(() =>
   workspaceComments.value.some((comment) => comment.status === 'stale' || comment.status === 'orphaned'),
 );
@@ -1498,6 +1506,9 @@ onBeforeUnmount(() => {
       :narrow="isNarrow"
       :files="session.files"
       :recently-changed-paths="recentlyChangedPaths"
+      :open-comment-counts="openCommentCounts"
+      :line-counts="panelState.treeLineCounts.value"
+      :comment-badges-enabled="panelState.treeCommentBadges.value"
       :initial-selected-file-id="selectedFile?.fileId"
       :empty-heading="emptyFilesCopy.heading"
       :empty-message="emptyFilesCopy.message"
