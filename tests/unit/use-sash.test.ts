@@ -38,3 +38,42 @@ describe('useSash reset', () => {
     expect(committed).toBe(264);
   });
 });
+
+describe('useSash drag direction', () => {
+  function dragBy(axis: 'horizontal' | 'vertical', delta: number) {
+    const value = shallowRef(300);
+    const listeners = new Map<string, (event: PointerEvent) => void>();
+    const target = {
+      setPointerCapture: () => {},
+      releasePointerCapture: () => {},
+      addEventListener: (type: string, listener: (event: PointerEvent) => void) => void listeners.set(type, listener),
+      removeEventListener: (type: string) => void listeners.delete(type),
+    };
+    const sash = useSash({ axis, min: 120, max: 520, default: 300, value, onCommit: () => {} });
+    const at = (coordinate: number) => ({
+      currentTarget: target,
+      pointerId: 1,
+      clientX: axis === 'vertical' ? coordinate : 0,
+      clientY: axis === 'vertical' ? 0 : coordinate,
+      preventDefault: () => {},
+    }) as unknown as PointerEvent;
+    sash.handlers.onPointerdown(at(400));
+    listeners.get('pointermove')!(at(400 + delta));
+    return { value, listeners, isDragging: sash.isDragging };
+  }
+
+  it('a rightward drag on the vertical side-bar sash grows the side bar', () => {
+    expect(dragBy('vertical', 60).value.value).toBe(360);
+  });
+
+  it('a downward drag on the horizontal panel sash shrinks the panel', () => {
+    expect(dragBy('horizontal', 60).value.value).toBe(240);
+  });
+
+  it('pointercancel detaches every listener and clears the dragging flag', () => {
+    const { listeners, isDragging } = dragBy('horizontal', 60);
+    listeners.get('pointercancel')!({} as unknown as PointerEvent);
+    expect(listeners.size).toBe(0);
+    expect(isDragging.value).toBe(false);
+  });
+});
