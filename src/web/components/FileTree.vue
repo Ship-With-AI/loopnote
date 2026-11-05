@@ -301,6 +301,7 @@ function toggleViewOptions(): void {
 function handleFilterKeydown(event: KeyboardEvent): void {
   if (event.key === 'Escape') {
     event.preventDefault();
+    event.stopPropagation();
     closeFilterReturnFocusToTree();
     return;
   }

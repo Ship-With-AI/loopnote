@@ -65,6 +65,7 @@ function activateFocused(): void {
 function handleKeydown(event: KeyboardEvent): void {
   if (event.key === 'Escape') {
     event.preventDefault();
+    event.stopPropagation();
     emit('close');
     return;
   }
