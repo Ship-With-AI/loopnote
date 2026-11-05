@@ -1071,6 +1071,19 @@ function selectFile(fileId: string): void {
   dispatchWorkspace({ type: 'switch-file', fileId: file.fileId });
 }
 
+function revealCommentFromPanel(commentId: string, fileId: string, side: WorkspaceComment['side'], line: number): void {
+  if (fileId !== selectedFile.value?.fileId) selectFile(fileId);
+  collapsedByCommentId.value = new Map([...collapsedByCommentId.value, [commentId, false]]);
+  void nextTick(() => {
+    diffWorkspace.value?.revealComment(side, line);
+    void nextTick(() => {
+      void nextTick(() => {
+        (document.querySelector(`[data-comment-id="${commentId}"] .thread-header`) as HTMLElement | null)?.focus();
+      });
+    });
+  });
+}
+
 function previousFile(): void {
   dispatchWorkspace({ type: 'previous-file' });
 }
