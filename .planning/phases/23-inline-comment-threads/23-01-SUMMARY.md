@@ -1,6 +1,6 @@
 # Plan 23-01 Summary: Content-Widget vs. Overlay-Widget Go/No-Go Spike
 
-**Status:** Task 1 and Task 2 complete. Task 3 (`checkpoint:decision`) is **blocking** — awaiting human selection. This document records the measured evidence that decision is made from.
+**Status:** Complete. Task 1 and Task 2 produced the measured evidence below; Task 3 (`checkpoint:decision`) is resolved — see **Decision** below.
 
 ## What was built (throwaway, not shipped)
 
@@ -93,3 +93,11 @@ Given production threads have no per-file comment cap (CONTEXT.md: "No per-file 
 - `content-widget` — build Plan 23-05 on `IContentWidget`. Not recommended given the measured scroll and hidden-region failures above.
 - `overlay-widget` — build Plan 23-05 on `IOverlayWidget` + `onDomNodeTop`. **Recommended**, per the comparison above.
 - `re-plan` — neither technique is reliable enough; stop and return to the user for an alternate interaction model. Not supported by this spike's evidence (overlay-widget passed every check).
+
+## Decision (Task 3, checkpoint:decision — resolved)
+
+**Selected: `overlay-widget`.** Recorded by the user on 2026-11-05, grounded in the measured evidence above (overlay-widget passes every check content-widget fails: scroll "half in/out" survival and `hideUnchangedRegions` collapse survival, with no offsetting cost — input-to-paint latency and baseline reliability are statistically indistinguishable between the two techniques).
+
+**Binding on downstream plans:** Plan 23-05 (and any other Phase 23 plan whose text assumes content widgets) MUST build on `IOverlayWidget` + `onDomNodeTop`/`layoutOverlayWidget`, positioned over paired view zones exactly as this spike validated — not `IContentWidget`. Where a plan's prose references `IContentWidget`/`addContentWidget`/`ContentWidgetPositionPreference`, substitute the overlay-widget equivalents (`addOverlayWidget`/`IOverlayWidget`/`onDomNodeTop`-driven `top` + `layoutOverlayWidget`) and record the substitution as a deviation in that plan's SUMMARY.md.
+
+Per this plan's `<verification>`, the three throwaway files (`src/web/prototypes/ThreadWidgetSpikePrototype.vue`, `tests/e2e/thread-widget-spike.spec.ts`, `tests/performance/thread-input-lag.mjs`) are deleted as part of closing out this plan — nothing from this spike ships.
