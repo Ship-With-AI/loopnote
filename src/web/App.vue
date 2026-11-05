@@ -1124,6 +1124,11 @@ function handleKeydown(event: KeyboardEvent): void {
     if (!shellModalOpen.value) (chromeKey === 'b' ? toggleSidebar : togglePanel)();
     return;
   }
+  if (chromeKey === 's') {
+    event.preventDefault();
+    if (panelOpen.value && panelState.activeTab.value === 'summary') saveSummary();
+    return;
+  }
   const target = event.target;
   const editingThreadArticle = target instanceof HTMLTextAreaElement ? target.closest('.comment-thread') : null;
   if (editingThreadArticle !== null && editingCommentId.value !== undefined) {
