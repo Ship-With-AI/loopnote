@@ -40,13 +40,13 @@
 
 ### Changed-Files Tree
 
-- [ ] **TREE-01**: Reviewer sees changed files as a tree with 22px rows, single-child folder chains compacted onto one row, a file-type mark, a status-coloured name, a right-aligned M/A/D letter with line-through for deleted files (status never colour-only), and an open-comment badge.
-- [ ] **TREE-02**: Reviewer sees each file's `+N −N` line counts on hover or selection by default.
-- [ ] **TREE-03**: Reviewer can open a path filter from the view header that highlights the matched substring, shows "N of M", supports Enter / ↓ / Esc, and shows an empty state when nothing matches.
-- [ ] **TREE-04**: Reviewer can switch the changed files between the folder tree and a flat list showing the file name with its dimmed directory.
-- [ ] **TREE-05**: Reviewer can choose from a view-options menu whether line counts show always, on hover or selection, or never, and whether comment badges show.
-- [ ] **TREE-06**: Reviewer sees totals under the tree (file count and `+X −Y`).
-- [ ] **TREE-07**: Reviewer can operate the tree by keyboard — ↑↓ preview, ←→ fold, Home/End, Enter/Space open — with a single tab stop.
+- [x] **TREE-01**: Reviewer sees changed files as a tree with 22px rows, single-child folder chains compacted onto one row, a file-type mark, a status-coloured name, a right-aligned M/A/D letter with line-through for deleted files (status never colour-only), and an open-comment badge.
+- [x] **TREE-02**: Reviewer sees each file's `+N −N` line counts on hover or selection by default.
+- [x] **TREE-03**: Reviewer can open a path filter from the view header that highlights the matched substring, shows "N of M", supports Enter / ↓ / Esc, and shows an empty state when nothing matches.
+- [x] **TREE-04**: Reviewer can switch the changed files between the folder tree and a flat list showing the file name with its dimmed directory.
+- [x] **TREE-05**: Reviewer can choose from a view-options menu whether line counts show always, on hover or selection, or never, and whether comment badges show.
+- [x] **TREE-06**: Reviewer sees totals under the tree (file count and `+X −Y`).
+- [x] **TREE-07**: Reviewer can operate the tree by keyboard — ↑↓ preview, ←→ fold, Home/End, Enter/Space open — with a single tab stop.
 
 ### Editor Title & Navigation
 
@@ -130,13 +130,13 @@ Deferred, tracked but not in the v2.1 roadmap.
 | IDENT-02 | Phase 22 | Pending |
 | IDENT-03 | Phase 22 | Pending |
 | IDENT-04 | Phase 22 | Pending |
-| TREE-01 | Phase 21 | Pending |
-| TREE-02 | Phase 21 | Pending |
-| TREE-03 | Phase 21 | Pending |
-| TREE-04 | Phase 21 | Pending |
-| TREE-05 | Phase 21 | Pending |
-| TREE-06 | Phase 21 | Pending |
-| TREE-07 | Phase 21 | Pending |
+| TREE-01 | Phase 21 | Complete |
+| TREE-02 | Phase 21 | Complete |
+| TREE-03 | Phase 21 | Complete |
+| TREE-04 | Phase 21 | Complete |
+| TREE-05 | Phase 21 | Complete |
+| TREE-06 | Phase 21 | Complete |
+| TREE-07 | Phase 21 | Complete |
 | NAV-01 | Phase 20 | Complete |
 | NAV-02 | Phase 20 | Complete |
 | NAV-03 | Phase 20 | Complete |

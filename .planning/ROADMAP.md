@@ -40,7 +40,7 @@ the shell.
 
 - [x] **Phase 19: Typecheck Foundation** - One `typecheck:web` gate (vue-tsc 3.3.14 + TS 6/7 dual alias) covers every `.vue` component and web `.ts` module before any App.vue decomposition begins. (completed 2026-11-04)
 - [x] **Phase 20: Shell Frame** - Workbench geometry tokens land together with the existing toolbar/tree/diff/dialog components as they're re-plumbed into `WorkbenchShell.vue`'s five regions (title bar, side bar, editor with icon-only title/breadcrumbs, bottom panel, status bar) across all five session kinds. (completed 2026-11-04)
-- [ ] **Phase 21: Changed-Files Tree** - The changed-files tree is restyled to VS Code Explorer density with hover counts, a path filter, a view-options menu, and full keyboard reachability.
+- [x] **Phase 21: Changed-Files Tree** - The changed-files tree is restyled to VS Code Explorer density with hover counts, a path filter, a view-options menu, and full keyboard reachability. (completed 2026-11-05)
 - [ ] **Phase 22: Identity & Status Bar** - Comparison identity and drift relocate into a title-bar pill/popover; the status bar carries snapshot/comment counts, one emphasized Export/Finish item, and the support entry.
 - [ ] **Phase 23: Inline Comment Threads** - A multi-zone Monaco adapter rework renders every comment as an expanded-by-default view-zone thread with its own editor-title navigation icons and ⌥F9/⇧⌥F9 shortcuts, gated by an explicit pointer/keyboard go/no-go spike.
 - [ ] **Phase 24: Bottom Panel & Export** - Comments/Summary/Export live in the ⌘J bottom panel, including the agent-attached Finish action behind the export readiness gate.
@@ -150,19 +150,19 @@ Plans:
 **Plans**: 0/4 plans executed
 **Wave 1**
 
-- [ ] 21-01-PLAN.md
+- [x] 21-01-PLAN.md
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 21-02-PLAN.md
+- [x] 21-02-PLAN.md
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 21-03-PLAN.md
+- [x] 21-03-PLAN.md
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 21-04-PLAN.md
+- [x] 21-04-PLAN.md
 
 **UI hint**: yes
 
@@ -241,7 +241,7 @@ Plans:
 | 18. Product Repositioning Copy | v2.0 | 5/5 | Complete | 2026-11-02 |
 | 19. Typecheck Foundation | v2.1 | 4/4 | Complete    | 2026-11-04 |
 | 20. Shell Frame | v2.1 | 10/10 | Complete    | 2026-11-04 |
-| 21. Changed-Files Tree | v2.1 | 0/4 | Planned    |  |
+| 21. Changed-Files Tree | v2.1 | 4/4 | Complete    | 2026-11-05 |
 | 22. Identity & Status Bar | v2.1 | 0/TBD | Not started | - |
 | 23. Inline Comment Threads | v2.1 | 0/TBD | Not started | - |
 | 24. Bottom Panel & Export | v2.1 | 0/TBD | Not started | - |
