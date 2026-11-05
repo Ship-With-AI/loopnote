@@ -940,7 +940,6 @@ input:-webkit-autofill:focus {
   align-items: center;
   gap: var(--space-2);
   padding: 0 18px;
-  overflow: hidden;
 }
 
 .file-tree-pane__label {
@@ -1097,7 +1096,8 @@ input:-webkit-autofill:focus {
   opacity: 1;
 }
 
-.tree-row--counts-never .line-counts {
+.tree-row--counts-never .line-counts,
+.tree-row--counts-never:hover .line-counts {
   opacity: 0;
 }
 
