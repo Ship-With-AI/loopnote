@@ -957,6 +957,50 @@ input:-webkit-autofill:focus {
   gap: var(--space-1);
 }
 
+.file-tree-pane__view-options {
+  position: relative;
+  display: inline-flex;
+}
+
+.view-options-menu {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + var(--space-1));
+  right: 0;
+  display: grid;
+  width: max-content;
+  min-width: 180px;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border: 1px solid var(--border-overlay);
+  border-radius: var(--radius-overlay);
+  background: var(--surface-panel);
+  box-shadow: var(--shadow-overlay);
+}
+
+.view-options-menu__group {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.view-options-menu__item {
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-control);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: var(--font-size-chrome);
+  line-height: var(--line-height-chrome);
+}
+
+.view-options-menu__item:hover {
+  background: var(--surface-interactive-hover);
+}
+
+.view-options-menu__item[aria-checked="true"] {
+  background: var(--selection-background);
+  font-weight: var(--font-weight-semibold);
+}
+
 .file-tree,
 .tree-group {
   padding: 0;

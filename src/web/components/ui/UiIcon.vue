@@ -24,6 +24,7 @@ export type UiIconName =
   | 'list'
   | 'tree'
   | 'collapse-all'
+  | 'more'
   | 'disabled';
 
 defineProps<{
@@ -134,6 +135,11 @@ defineProps<{
     </template>
     <template v-else-if="name === 'collapse-all'">
       <path d="M4.5 6.5 8 3.5l3.5 3M4.5 12.5 8 9.5l3.5 3" />
+    </template>
+    <template v-else-if="name === 'more'">
+      <circle cx="4" cy="8" r="1" fill="currentColor" stroke="none" />
+      <circle cx="8" cy="8" r="1" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="8" r="1" fill="currentColor" stroke="none" />
     </template>
     <template v-else>
       <circle cx="8" cy="8" r="5.5" />
