@@ -482,6 +482,130 @@ test('filter highlighting, list mode toggle, and footer totals against the real 
   }
 });
 
+test('keyboard tab order: single tab stop across toolbar, filter, view-options menu, and a compacted folder row (packaged binary)', async ({ browser }) => {
+  const repository = await createGitFixture({ committedHeadChange: false });
+  repository.git(['switch', 'main']);
+  await repository.write('app.ts', 'export const app = 1;\n');
+  await repository.write('docs/guide/readme.ts', 'export const guide = 1;\n');
+  repository.git(['add', '-A']);
+  repository.git(['commit', '-m', 'add files shared with feature']);
+  const baseRevision = repository.git(['rev-parse', 'HEAD']).toString('ascii').trim();
+  repository.git(['switch', 'feature']);
+  repository.git(['merge', 'main', '--no-edit']);
+  await repository.write('app.ts', 'export const app = 2;\n');
+  await repository.write('docs/guide/readme.ts', 'export const guide = 2;\n');
+  repository.git(['add', '-A']);
+  repository.git(['commit', '-m', 'modify files on feature']);
+  const headRevision = repository.git(['rev-parse', 'HEAD']).toString('ascii').trim();
+
+  const running = spawnCli(repository, {
+    launchOptions: {
+      base: { label: 'Base fixture', revision: baseRevision },
+      head: { label: 'Head fixture', revision: headRevision },
+    },
+  });
+  try {
+    const url = await waitForLoopbackUrl(running);
+    const page = await browser.newPage();
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(url, { waitUntil: 'domcontentloaded' });
+
+    await assertShellRegionsPresent(page);
+
+    const navigation = page.getByRole('navigation', { name: 'Changed files' });
+    const tree = navigation.locator('.file-tree');
+    const tabbable = tree.locator('[role="treeitem"][tabindex="0"], [role="option"][tabindex="0"]');
+    const appRow = tree.getByRole('treeitem', { name: /^app\.ts\b/ });
+    const docsDirectory = tree.getByRole('treeitem', { name: /^docs\/guide\/?$/ });
+
+    const filterButton = navigation.getByRole('button', { name: /Filter changed files/ });
+    const listToggle = navigation.getByRole('button', { name: /View as (list|tree)/ });
+    const collapseAllButton = navigation.getByRole('button', { name: 'Collapse all' });
+    const viewOptionsButton = navigation.getByRole('button', { name: 'View options' });
+
+    // The toolbar's four buttons and the tree are each exactly one Tab stop
+    // with the filter closed — no extra stop inside the tree itself.
+    await filterButton.focus();
+    await expect(filterButton).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(listToggle).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(collapseAllButton).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(viewOptionsButton).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(tabbable).toHaveCount(1);
+    await expect(tabbable).toBeFocused();
+
+    // Exactly one roving tabindex="0" element exists at a time, and the
+    // compacted multi-segment "docs/guide" folder row is traversed as
+    // exactly one Arrow stop, not one stop per path segment.
+    await page.keyboard.press('Home');
+    await expect(appRow).toBeFocused();
+    await expect(tabbable).toHaveCount(1);
+    await page.keyboard.press('ArrowDown');
+    await expect(docsDirectory).toBeFocused();
+    await expect(tabbable).toHaveCount(1);
+    await page.keyboard.press('ArrowUp');
+    await expect(appRow).toBeFocused();
+    await expect(tabbable).toHaveCount(1);
+
+    // ⌥⌘F / Ctrl+Alt+F opens the path filter while focus is inside the
+    // tree; once open, the filter input is its own Tab stop between the
+    // toolbar and the tree, highlights a match with a real <mark>, and Esc
+    // clears/closes it and returns focus to the tree, not the filter input.
+    await page.keyboard.press('Control+Alt+F');
+    const filter = navigation.getByRole('searchbox', { name: 'Filter changed files' });
+    await expect(filter).toBeFocused();
+    await filter.fill('app');
+    await expect(appRow.locator('mark')).toHaveText('app');
+    await filter.fill('');
+    await page.keyboard.press('Tab');
+    await expect(tabbable).toHaveCount(1);
+    await expect(tabbable).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
+    await expect(filter).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
+    await expect(viewOptionsButton).toBeFocused();
+    await filter.focus();
+    await page.keyboard.press('Escape');
+    await expect(filter).toBeHidden();
+    await expect(tabbable).toBeFocused();
+
+    // The view-options menu: Arrow keys move focus among its four items
+    // with wrapping, and Esc closes the menu and returns focus to the ⋯
+    // button.
+    await viewOptionsButton.click();
+    const menu = page.getByRole('menu', { name: 'View options' });
+    await expect(menu).toBeVisible();
+    const items = menu.locator('[role="menuitemradio"], [role="menuitemcheckbox"]');
+    await expect(items).toHaveCount(4);
+    await expect(items.nth(1)).toBeFocused();
+    await page.keyboard.press('ArrowDown');
+    await expect(items.nth(2)).toBeFocused();
+    await page.keyboard.press('ArrowDown');
+    await expect(items.nth(3)).toBeFocused();
+    await page.keyboard.press('ArrowDown');
+    await expect(items.nth(0)).toBeFocused();
+    await page.keyboard.press('ArrowUp');
+    await expect(items.nth(3)).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(menu).toBeHidden();
+    await expect(viewOptionsButton).toBeFocused();
+
+    // The list⇄tree toggle switches the root list's role in both directions.
+    await listToggle.click();
+    await expect(navigation.getByRole('listbox', { name: 'Changed files' })).toBeVisible();
+    await listToggle.click();
+    await expect(navigation.getByRole('tree', { name: 'Changed files' })).toBeVisible();
+
+    await page.close();
+  } finally {
+    await stopGeneratedCli(running);
+    await repository.cleanup();
+  }
+});
+
 test('agent-attached: attachedFact overlay and Finish review entry point in the bottom panel', async ({ browser }) => {
   const repository = await createGitFixture();
   // Any non-interactive stdin `review-request` always resolves server-side to an
