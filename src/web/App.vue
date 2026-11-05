@@ -58,6 +58,12 @@ import { singlePaneSideFor } from './model/single-pane-layout.js';
 import { controlSafeDisplay } from '../domain/path-bytes.js';
 import type { DraftMutationRequest } from '../contracts/api.js';
 import { createPanelState, type TreeLineCountsMode, type TreeViewMode } from './model/panel-state.js';
+import UndoToast from './components/UndoToast.vue';
+import PathText from './components/ui/PathText.vue';
+import ReviewStateBadge from './components/ui/ReviewStateBadge.vue';
+import { createFileTreeModel } from './model/file-tree.js';
+import { projectOrphanedCommentGroup } from './model/orphaned-comments.js';
+import { flattenThreadOrder, nextThread, previousThread } from './model/thread-order.js';
 
 type CanonicalReviewDraft = Readonly<{
   revision: number;
@@ -306,6 +312,119 @@ const staleCommentCount = computed(() =>
   workspaceComments.value.filter((comment) => comment.status === 'stale' || comment.status === 'orphaned').length,
 );
 
+
+// --- Phase 23: inline comment threads ---
+const collapsedByCommentId = ref(new Map<string, boolean>());
+const editingCommentId = ref<string>();
+const locallyHiddenCommentIds = ref(new Set<string>());
+const activeUndo = ref<{ commentId: string } | undefined>();
+const pendingDeletes = new Map<string, { readonly timeoutId: ReturnType<typeof setTimeout> }>();
+
+const liveWorkspaceComments = computed(() =>
+  workspaceComments.value.filter((comment) => !locallyHiddenCommentIds.value.has(comment.id)),
+);
+const orphanedGroups = computed(() => projectOrphanedCommentGroup(liveWorkspaceComments.value));
+const flatFileRows = computed(() => createFileTreeModel(session.value?.files ?? []).flatFileRows);
+const threadOrder = computed(() => flattenThreadOrder(liveWorkspaceComments.value, flatFileRows.value));
+const hasThreadsAnywhere = computed(() => threadOrder.value.length > 0);
+const currentFileLiveComments = computed(() =>
+  liveWorkspaceComments.value.filter((comment) =>
+    comment.fileId === selectedFile.value?.fileId && comment.status !== 'orphaned'),
+);
+const hasCommentsInCurrentFile = computed(() => currentFileLiveComments.value.length > 0);
+const anyThreadExpanded = computed(() =>
+  currentFileLiveComments.value.some((comment) =>
+    !(collapsedByCommentId.value.get(comment.id) ?? (comment.state === 'resolved'))),
+);
+
+function currentCommentBody(commentId: string): string {
+  return workspaceComments.value.find((comment) => comment.id === commentId)?.body ?? '';
+}
+
+function toggleCommentCollapse(commentId: string): void {
+  const comment = workspaceComments.value.find((candidate) => candidate.id === commentId);
+  const current = collapsedByCommentId.value.get(commentId) ?? (comment?.state === 'resolved');
+  const next = new Map(collapsedByCommentId.value);
+  next.set(commentId, !current);
+  collapsedByCommentId.value = next;
+}
+
+function toggleThreadsCollapsed(): void {
+  const collapseAll = anyThreadExpanded.value;
+  const next = new Map(collapsedByCommentId.value);
+  for (const comment of currentFileLiveComments.value) {
+    next.set(comment.id, collapseAll);
+  }
+  collapsedByCommentId.value = next;
+}
+
+function jumpThread(direction: 'next' | 'previous'): void {
+  const currentId = (document.activeElement?.closest('[data-comment-id]') as HTMLElement | null)?.dataset.commentId;
+  const result = direction === 'next'
+    ? nextThread(threadOrder.value, currentId)
+    : previousThread(threadOrder.value, currentId);
+  if (result === undefined) return;
+  if (result.wrapped) {
+    announce(direction === 'next' ? 'Wrapped to first thread' : 'Wrapped to last thread');
+  }
+  if (result.entry.fileId !== selectedFile.value?.fileId) {
+    selectFile(result.entry.fileId);
+  }
+  void nextTick(() => {
+    const next = new Map(collapsedByCommentId.value);
+    next.set(result.entry.commentId, false);
+    collapsedByCommentId.value = next;
+    void nextTick(() => diffWorkspace.value?.revealComment(result.entry.side, result.entry.line));
+  });
+}
+
+function beginPendingDelete(commentId: string): void {
+  if (pendingDeletes.has(commentId)) return;
+  const next = new Set(locallyHiddenCommentIds.value);
+  next.add(commentId);
+  locallyHiddenCommentIds.value = next;
+  activeUndo.value = { commentId };
+  const timeoutId = setTimeout(() => commitPendingDelete(commentId), 5000);
+  pendingDeletes.set(commentId, { timeoutId });
+}
+
+function commitPendingDelete(commentId: string): void {
+  pendingDeletes.delete(commentId);
+  if (activeUndo.value?.commentId === commentId) activeUndo.value = undefined;
+  mutateReview({ type: 'deleteComment', expectedRevision: reviewDraft.value?.canonical.revision ?? 0, commentId });
+}
+
+function undoPendingDelete(commentId: string): void {
+  const pending = pendingDeletes.get(commentId);
+  if (pending !== undefined) {
+    clearTimeout(pending.timeoutId);
+    pendingDeletes.delete(commentId);
+  }
+  const next = new Set(locallyHiddenCommentIds.value);
+  next.delete(commentId);
+  locallyHiddenCommentIds.value = next;
+  if (activeUndo.value?.commentId === commentId) activeUndo.value = undefined;
+  announce('Comment restored.');
+}
+
+function flushPendingDeletes(): void {
+  for (const [commentId, pending] of [...pendingDeletes]) {
+    clearTimeout(pending.timeoutId);
+    commitPendingDelete(commentId);
+  }
+}
+
+function flushPendingDeletesWhenHidden(): void {
+  if (document.visibilityState === 'hidden') flushPendingDeletes();
+}
+
+watch(reviewFailure, (failure) => {
+  if (failure?.operation === 'delete' && failure.commentId !== undefined && locallyHiddenCommentIds.value.has(failure.commentId)) {
+    const next = new Set(locallyHiddenCommentIds.value);
+    next.delete(failure.commentId);
+    locallyHiddenCommentIds.value = next;
+  }
+});
 const isAttachedSession = computed(() => session.value?.attached?.kind === 'agent-review');
 const attachedMutationLocked = computed(() =>
   isAttachedSession.value && (attachedLifecycle.value === 'finishing' || attachedLifecycle.value === 'completed'),
@@ -994,6 +1113,9 @@ function handleKeydown(event: KeyboardEvent): void {
   } else if (event.key === 'F7') {
     event.preventDefault();
     event.shiftKey ? previousChange() : nextChange();
+  } else if (event.altKey && event.key === 'F9') {
+    event.preventDefault();
+    event.shiftKey ? jumpThread('next') : jumpThread('previous');
   } else if (event.altKey && event.shiftKey && event.key.toLowerCase() === 'r' && isUncommittedSession.value) {
     event.preventDefault();
     void performRefresh();
@@ -1239,6 +1361,8 @@ async function acceptUncommittedRecovery(): Promise<void> {
 
 onMounted(async () => {
   document.addEventListener('keydown', handleKeydown);
+  window.addEventListener('pagehide', flushPendingDeletes);
+  document.addEventListener('visibilitychange', flushPendingDeletesWhenHidden);
   viewportMedia = window.matchMedia('(max-width: 760px)');
   handleViewportChange();
   viewportMedia.addEventListener('change', handleViewportChange);
@@ -1297,6 +1421,8 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', handleKeydown);
+  window.removeEventListener('pagehide', flushPendingDeletes);
+  document.removeEventListener('visibilitychange', flushPendingDeletesWhenHidden);
   viewportMedia?.removeEventListener('change', handleViewportChange);
   selectorDriftState?.stop();
   stopPatchStatus();
@@ -1375,9 +1501,9 @@ onBeforeUnmount(() => {
             :has-active-file="selectedFile?.availability.kind === 'text'"
             :single-pane="singlePaneSide !== undefined"
             :render-side-by-side="renderSideBySide"
-            :has-threads-anywhere="false"
-            :any-thread-expanded="false"
-            :has-comments-in-current-file="false"
+            :has-threads-anywhere="hasThreadsAnywhere"
+            :any-thread-expanded="anyThreadExpanded"
+            :has-comments-in-current-file="hasCommentsInCurrentFile"
             @toggle-files="toggleSidebar"
             @toggle-mode="(mode) => selectedContent !== undefined && setFileMode(selectedContent.fileId, mode)"
             @previous-file="previousFile"
@@ -1385,6 +1511,9 @@ onBeforeUnmount(() => {
             @previous-change="previousChange"
             @next-change="nextChange"
             @toggle-layout="(value) => (renderSideBySide = value)"
+            @previous-thread="() => jumpThread('previous')"
+            @next-thread="() => jumpThread('next')"
+            @toggle-threads-collapsed="toggleThreadsCollapsed"
           />
           <section
             v-if="hasUnverifiedAnchors || (capturedFilesChanged > 0 && !dismissedCaptureBanner) || refreshSummary !== undefined || (recoveryAvailable && !recoveryOfferDismissed)"
@@ -1410,6 +1539,20 @@ onBeforeUnmount(() => {
             />
           </section>
           <Breadcrumbs :path="selectedPath" />
+          <section v-if="orphanedGroups.length > 0" class="conversation-card" aria-labelledby="orphaned-comments-heading">
+            <header class="conversation-card__header">
+              <div class="conversation-card__identity">
+                <h2 id="orphaned-comments-heading">Orphaned comments</h2>
+              </div>
+            </header>
+            <div v-for="group in orphanedGroups" :key="group.path.bytesBase64url" class="conversation-card__body">
+              <h3 class="conversation-card__identity"><PathText :display="group.path.display" /></h3>
+              <div v-for="comment in group.comments" :key="comment.id">
+                <ReviewStateBadge kind="unavailable" label="Anchor missing" size="compact" />
+                <p>{{ comment.body }}</p>
+              </div>
+            </div>
+          </section>
           <section v-if="session.files.length === 0" class="empty-state">
             <h2>{{ emptyFilesCopy.heading }}</h2>
             <p>{{ emptyFilesCopy.message }}</p>
@@ -1439,7 +1582,7 @@ onBeforeUnmount(() => {
           <DiffWorkspace
             v-else-if="selectedContent !== undefined"
             ref="diffWorkspace"
-            :comments="workspaceComments"
+            :comments="liveWorkspaceComments"
             :composer="activeComposer"
             :content="selectedContent"
             :mode="activeFileMode"
@@ -1451,6 +1594,9 @@ onBeforeUnmount(() => {
             :head-oid="singlePaneHeadOid"
             :mutations-locked="attachedMutationLocked"
             :render-side-by-side="renderSideBySide"
+            :collapsed-by-comment-id="collapsedByCommentId"
+            :editing-comment-id="editingCommentId"
+            :comment-buffers="reviewDraft?.commentBuffers"
             @activate="(side, line, endLine) => dispatchWorkspace({ type: 'activate-line', side, line, endLine })"
             @add="dispatchWorkspace({ type: 'add-comment' })"
             @cancel="dispatchWorkspace({ type: 'cancel-composer' })"
@@ -1463,6 +1609,16 @@ onBeforeUnmount(() => {
             @previous-change="previousChange"
             @next-file="nextFile"
             @previous-file="previousFile"
+            @next-thread="() => jumpThread('next')"
+            @previous-thread="() => jumpThread('previous')"
+            @resolve-comment="(commentId) => mutateReview({ type: 'resolveComment', expectedRevision: reviewDraft?.canonical.revision ?? 0, commentId })"
+            @reopen-comment="(commentId) => mutateReview({ type: 'reopenComment', expectedRevision: reviewDraft?.canonical.revision ?? 0, commentId })"
+            @delete-comment="(commentId) => beginPendingDelete(commentId)"
+            @toggle-comment-collapse="toggleCommentCollapse"
+            @begin-edit-comment="(commentId) => { editingCommentId = commentId; if (!reviewDraft?.commentBuffers.has(commentId)) reviewState?.setCommentBuffer(commentId, currentCommentBody(commentId)); }"
+            @update-comment-edit-text="(commentId, text) => { reviewState?.setCommentBuffer(commentId, text); refreshReviewSnapshot(); }"
+            @save-comment-edit="(commentId) => { mutateReview({ type: 'editComment', expectedRevision: reviewDraft?.canonical.revision ?? 0, commentId, body: reviewDraft?.commentBuffers.get(commentId) ?? '' }, commentId); editingCommentId = undefined; }"
+            @cancel-comment-edit="(commentId) => { reviewState?.setCommentBuffer(commentId, currentCommentBody(commentId)); editingCommentId = undefined; }"
           />
         </template>
       </template>
@@ -1552,6 +1708,7 @@ onBeforeUnmount(() => {
       @dismiss="dismissSupportDialog"
       @close="closeSupportDialog"
     />
+    <UndoToast v-if="activeUndo !== undefined" message="Comment deleted" @undo="undoPendingDelete(activeUndo.commentId)" />
     <p class="visually-hidden" aria-live="polite">
       <span :key="liveMessageVersion" :data-announcement-version="liveMessageVersion">{{ liveMessage }}</span>
     </p>
