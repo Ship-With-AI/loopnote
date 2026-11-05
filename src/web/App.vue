@@ -1615,10 +1615,10 @@ onBeforeUnmount(() => {
             @reopen-comment="(commentId) => mutateReview({ type: 'reopenComment', expectedRevision: reviewDraft?.canonical.revision ?? 0, commentId })"
             @delete-comment="(commentId) => beginPendingDelete(commentId)"
             @toggle-comment-collapse="toggleCommentCollapse"
-            @begin-edit-comment="(commentId) => { editingCommentId = commentId; if (!reviewDraft?.commentBuffers.has(commentId)) reviewState?.setCommentBuffer(commentId, currentCommentBody(commentId)); }"
+            @begin-edit-comment="(commentId) => { editingCommentId = commentId; if (!reviewDraft?.commentBuffers.has(commentId)) { reviewState?.setCommentBuffer(commentId, currentCommentBody(commentId)); refreshReviewSnapshot(); } }"
             @update-comment-edit-text="(commentId, text) => { reviewState?.setCommentBuffer(commentId, text); refreshReviewSnapshot(); }"
             @save-comment-edit="(commentId) => { mutateReview({ type: 'editComment', expectedRevision: reviewDraft?.canonical.revision ?? 0, commentId, body: reviewDraft?.commentBuffers.get(commentId) ?? '' }, commentId); editingCommentId = undefined; }"
-            @cancel-comment-edit="(commentId) => { reviewState?.setCommentBuffer(commentId, currentCommentBody(commentId)); editingCommentId = undefined; }"
+            @cancel-comment-edit="(commentId) => { reviewState?.setCommentBuffer(commentId, currentCommentBody(commentId)); refreshReviewSnapshot(); editingCommentId = undefined; }"
           />
         </template>
       </template>

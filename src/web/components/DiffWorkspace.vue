@@ -392,7 +392,7 @@ watch(() => [props.composer, props.comments] as const, () => {
   void nextTick(renderAnnotation);
 }, { deep: true });
 
-watch(() => props.comments, renderThreads);
+watch(() => [props.comments, props.collapsedByCommentId, props.editingCommentId, props.commentBuffers] as const, renderThreads);
 
 watch(visibleSides, syncSideNames);
 watch(() => props.renderSideBySide, syncRenderSideBySide);
