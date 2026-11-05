@@ -118,7 +118,7 @@ test('finishes the agent-supervised marketplace review and records window-scoped
     await addHeadComment(page);
     await saveSummaryAndExport(page);
     const finished = page.waitForResponse((response) => response.url().includes('/api/review-completion/finish'));
-    await page.getByRole('button', { name: 'Finish review', exact: true }).click();
+    await page.getByRole('region', { name: 'Finish attached review' }).getByRole('button', { name: 'Finish review', exact: true }).click();
     expect((await finished).status()).toBe(201);
     supportStates.push({
       state: 'dismissed',
@@ -145,7 +145,7 @@ test('finishes the agent-supervised marketplace review and records window-scoped
     await addHeadComment(page);
     await saveSummaryAndExport(page);
     const finished = page.waitForResponse((response) => response.url().includes('/api/review-completion/finish'));
-    await page.getByRole('button', { name: 'Finish review', exact: true }).click();
+    await page.getByRole('region', { name: 'Finish attached review' }).getByRole('button', { name: 'Finish review', exact: true }).click();
     expect((await finished).status()).toBe(201);
     supportStates.push(mode === 'verified'
       ? {

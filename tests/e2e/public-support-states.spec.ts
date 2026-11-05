@@ -274,7 +274,7 @@ async function completeAttachedFinish(browser: Browser): Promise<void> {
     try {
       await openRuntimeSession(page, await waitForAttachedLoopbackUrl(running));
       const finished = page.waitForResponse((response) => response.url().includes('/api/review-completion/finish'));
-      await page.getByRole('button', { name: 'Finish review', exact: true }).click();
+      await page.getByRole('region', { name: 'Finish attached review' }).getByRole('button', { name: 'Finish review', exact: true }).click();
       expect((await finished).status()).toBe(201);
       expect(await waitForAttachedExit(running)).toBe(0);
       expect(parseCanonicalReviewExport(readFileSync(running.stdoutPath))).toMatchObject({ schemaVersion: 2 });
