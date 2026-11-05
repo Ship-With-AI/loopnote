@@ -587,6 +587,7 @@ textarea:disabled:hover {
 .icon-btn[aria-pressed="true"] {
   background: var(--surface-interactive-active);
   color: var(--text-primary);
+  box-shadow: none;
 }
 
 ::placeholder {
