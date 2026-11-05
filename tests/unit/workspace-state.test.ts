@@ -118,6 +118,15 @@ describe('workspace session state', () => {
     expect(keyboard.commands).toEqual([{ type: 'rebuild-annotations', fileId: 'file-a' }]);
   });
 
+  it('focuses the existing thread for a stale-anchored comment instead of opening a composer', () => {
+    const workspace = createWorkspaceState(['file-b'], comments);
+    workspace.dispatch({ type: 'diff-ready', fileId: 'file-b' });
+
+    const base = workspace.dispatch({ type: 'activate-line', side: 'base', line: 2 });
+
+    expect(base.commands).toEqual([{ type: 'focus-comment', commentId: 'comment-stale' }]);
+  });
+
   it('keeps one per-file composer, asks before destructive movement, and preserves text on blur', () => {
     const workspace = createWorkspaceState(['file-a', 'file-b']);
     workspace.dispatch({ type: 'diff-ready', fileId: 'file-a' });

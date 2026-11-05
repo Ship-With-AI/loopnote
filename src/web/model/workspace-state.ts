@@ -127,7 +127,7 @@ function canonicalComment(
   return comments.find((comment) => comment.fileId === fileId
     && comment.side === side
     && comment.line === line
-    && comment.status === 'verified');
+    && (comment.status === 'verified' || comment.status === 'stale'));
 }
 
 function restoreCommands(fileId: string, state: WorkspaceFileState): WorkspaceCommand[] {
