@@ -15,10 +15,14 @@ type ReviewStateKind =
   | 'warning'
   | 'error';
 
-const props = defineProps<{
-  kind: ReviewStateKind;
-  label: string;
-}>();
+const props = withDefaults(
+  defineProps<{
+    kind: ReviewStateKind;
+    label: string;
+    size?: 'default' | 'compact';
+  }>(),
+  { size: 'default' },
+);
 
 const icons: Readonly<Record<Exclude<ReviewStateKind, 'pending'>, UiIconName>> = {
   open: 'open',
@@ -36,7 +40,13 @@ const icons: Readonly<Record<Exclude<ReviewStateKind, 'pending'>, UiIconName>> =
 </script>
 
 <template>
-  <span class="review-state-badge" :class="`review-state-badge--${props.kind}`">
+  <span
+    class="review-state-badge"
+    :class="{
+      [`review-state-badge--${props.kind}`]: true,
+      'review-state-badge--compact': props.size === 'compact',
+    }"
+  >
     <span v-if="props.kind === 'pending'" class="ui-spinner" aria-hidden="true" />
     <UiIcon v-else :name="icons[props.kind]" />
     <span>{{ props.label }}</span>

@@ -31,6 +31,13 @@ export type UiIconName =
   | 'commit'
   | 'worktree'
   | 'copy'
+  | 'edit'
+  | 'delete'
+  | 'reopen'
+  | 'previous-thread'
+  | 'next-thread'
+  | 'collapse-threads'
+  | 'expand-threads'
   | 'disabled';
 
 defineProps<{
@@ -172,6 +179,36 @@ defineProps<{
     <template v-else-if="name === 'copy'">
       <rect x="6" y="6" width="8" height="8" rx="1.25" />
       <path d="M3.5 10V3.75A1.75 1.75 0 0 1 5.25 2H10.5" />
+    </template>
+    <template v-else-if="name === 'edit'">
+      <path d="M11.5 2.5 13.5 4.5 5.5 12.5 2.5 13.5 3.5 10.5 11.5 2.5Z" />
+      <path d="m9.5 4.5 2 2" />
+    </template>
+    <template v-else-if="name === 'delete'">
+      <path d="M3 5h10" />
+      <path d="M6.5 5V3.5a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1V5" />
+      <path d="m4.5 5 .5 7.5a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1L11.5 5" />
+      <path d="M6.75 7.5v3.5M9.25 7.5v3.5" />
+    </template>
+    <template v-else-if="name === 'reopen'">
+      <path d="M10.25 11.9a4.5 4.5 0 1 1-4.5 0" />
+      <path d="m7.1 13.9-1.35-2-2 .7" />
+    </template>
+    <template v-else-if="name === 'previous-thread'">
+      <path d="M3 3h10a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H9l-2 2V9H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" />
+      <path d="m5.5 13.5 2.5-2.5 2.5 2.5" />
+    </template>
+    <template v-else-if="name === 'next-thread'">
+      <path d="M3 2.5h10a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H9l-2 2V8.5H3a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1Z" />
+      <path d="m5.5 11 2.5 2.5L10.5 11" />
+    </template>
+    <template v-else-if="name === 'collapse-threads'">
+      <path d="m4 8.5 4-3.5 4 3.5" />
+      <path d="m4 12 4-3.5 4 3.5" />
+    </template>
+    <template v-else-if="name === 'expand-threads'">
+      <path d="m4 4 4 3.5 4-3.5" />
+      <path d="m4 7.5 4 3.5 4-3.5" />
     </template>
     <template v-else>
       <circle cx="8" cy="8" r="5.5" />
