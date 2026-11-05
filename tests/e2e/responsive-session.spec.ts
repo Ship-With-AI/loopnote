@@ -473,7 +473,9 @@ async function expectPhase08ReflowAtCurrentWidth(
   expect(reflow.document.scrollWidth, `[responsive] ${width}px document fit`).toBeLessThanOrEqual(
     reflow.document.clientWidth,
   );
-  expect(reflow.toolbarGroups).toHaveLength(1);
+  // Diff-layout group + the Comment-threads group (Plan 23-06): the latter is
+  // never hidden by singlePane, unlike the previous-change/next-change pair.
+  expect(reflow.toolbarGroups).toHaveLength(2);
   for (const [index, group] of reflow.toolbarGroups.entries()) {
     expect(group.width, `[responsive] ${width}px toolbar group ${index}`).toBeGreaterThan(0);
     expect(group.height, `[responsive] ${width}px toolbar group ${index}`).toBeGreaterThan(0);
