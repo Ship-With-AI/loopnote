@@ -352,6 +352,7 @@ body {
 }
 
 .header-facts {
+  min-width: 0;
   gap: var(--space-1);
 }
 
@@ -1897,8 +1898,7 @@ h3.conversation-card__identity {
 .attached-completion__waiting,
 .attached-completion__progress,
 .attached-completion__pending,
-.attached-completion .inline-notice__content p,
-.attached-fact {
+.attached-completion .inline-notice__content p {
   overflow-wrap: anywhere;
 }
 
@@ -1906,10 +1906,16 @@ h3.conversation-card__identity {
   min-block-size: 44px;
 }
 
+/* Title-bar fact pill, unlike .attached-completion__* body copy above, lives in a fixed
+   32px row and must truncate to one line rather than wrap. */
 .attached-fact {
+  min-width: 0;
+  overflow: hidden;
   padding: var(--space-1) var(--space-2);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-control);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .review-summary {

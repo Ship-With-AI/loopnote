@@ -150,7 +150,7 @@ const attachedFact = computed(() => {
             Committed HEAD reviewed; uncommitted changes aren't included.
           </span>
         </span>
-        <span v-if="attachedFact !== ''" class="attached-fact">{{ attachedFact }}</span>
+        <span v-if="attachedFact !== ''" class="attached-fact" :title="attachedFact">{{ attachedFact }}</span>
         <span v-if="worktreeChanged" class="change-indicator">Working tree changed since snapshot</span>
       </div>
     </div>
