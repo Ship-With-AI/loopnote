@@ -41,7 +41,7 @@ defineExpose({ focusSupport });
         class="statusbar__item"
         @click="emit('openPanel')"
       >
-        {{ openCommentCount }} open comments
+        {{ openCommentCount }} open comment{{ openCommentCount === 1 ? '' : 's' }}
       </button>
       <button
         v-if="exportSupported"
