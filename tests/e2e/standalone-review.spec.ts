@@ -155,7 +155,7 @@ async function openGeneratedStandaloneReview(
   await expect(page.locator('.diff-workspace__editor')).toBeVisible();
   const endpoints = page.getByRole('banner');
   await expect(endpoints.getByText('STANDALONE', { exact: true })).toBeVisible();
-  await expect(endpoints.getByText(`Standalone review · ${fileCount} files`)).toBeVisible();
+  await expect(page.locator('.identity-pill')).toContainText(`${fileCount} files`);
   await expect(endpoints.getByText('BASE', { exact: true })).toHaveCount(0);
   await expect(endpoints.getByText('HEAD', { exact: true })).toHaveCount(0);
 }

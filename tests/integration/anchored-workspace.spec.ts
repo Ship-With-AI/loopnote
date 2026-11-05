@@ -534,7 +534,7 @@ test('Phase 07 header and control states', async ({ page }) => {
     const header = page.locator('.editor-title');
     await expect(header).toHaveCount(1);
     await expect(page.locator(`#${RENAME_MAP.cssPrefix}heading`)).toHaveCount(1);
-    await expect(page.getByRole('banner')).toContainText(new RegExp('HEAD\\s*head · bbbbbbb'));
+    await expect(page.getByRole('banner')).toContainText(new RegExp('HEAD\\s*headbbbbbbb'));
     await expect(page.getByRole('heading', {
       level: 1,
       name: 'renamed from src/old/first.ts to src/new/first.ts',

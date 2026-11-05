@@ -114,7 +114,7 @@ async function stopGeneratedCli(running: RunningCli): Promise<void> {
 async function openGeneratedUncommittedReview(page: Page, url: string): Promise<void> {
   await page.goto(url, { waitUntil: 'domcontentloaded' });
   await expect(page.locator('.diff-workspace__editor')).toBeVisible();
-  const endpoints = page.getByRole('banner');
+  const endpoints = page.locator('.identity-pill__label');
   await expect(endpoints.getByText('BASE', { exact: true })).toBeVisible();
   await expect(endpoints.getByText('HEAD', { exact: true })).toBeVisible();
 }
