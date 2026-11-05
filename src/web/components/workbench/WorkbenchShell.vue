@@ -1,5 +1,5 @@
 <template>
-  <div class="workbench-shell">
+  <div class="workbench-shell" ref="shellRoot">
     <div class="workbench-shell__titlebar"><slot name="titlebar" /></div>
     <div class="workbench-shell__body" :style="{ gridTemplateColumns: sidebarGridTemplateColumns }">
       <!-- v-show, not v-if: Teleport resolves `#changed-files` once, so destroying the host
@@ -12,7 +12,7 @@
         aria-label="Resize side bar"
         :aria-valuenow="sidebarWidth"
         aria-valuemin="170"
-        aria-valuemax="520"
+        :aria-valuemax="sidebarCeiling"
         tabindex="-1"
         class="workbench-shell__sash workbench-shell__sash--vertical"
         :style="{ left: `calc(${clampedSidebarWidth} - 2px)` }"
@@ -28,7 +28,7 @@
             aria-label="Resize panel"
             :aria-valuenow="panelHeight"
             aria-valuemin="120"
-            aria-valuemax="520"
+            :aria-valuemax="panelCeiling"
             tabindex="-1"
             class="workbench-shell__sash workbench-shell__sash--horizontal"
             @pointerdown="panelSash.handlers.onPointerdown"
@@ -43,7 +43,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, shallowRef, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue';
 
 import { useSash } from '../../composables/useSash';
 
@@ -76,10 +76,60 @@ watch(() => props.panelHeight, (next) => {
   panelHeight.value = next;
 });
 
+const SIDEBAR_WIDTH_MIN = 170;
+const SIDEBAR_WIDTH_MAX = 520;
+// Mirrors the `calc(100vw - 480px)` editor-width floor the layout previously
+// enforced in CSS alone (`.workbench-shell__sidebar`'s `max-width`). WR-01:
+// a static `max: 520` sash ceiling disagreed with that viewport-driven CSS
+// clamp below a ~1000px viewport, so the sash stopped tracking the cursor
+// partway through the drag. The live ceiling below is now the single source
+// of truth for both the sash and the layout.
+const EDITOR_WIDTH_FLOOR = 480;
+const PANEL_HEIGHT_MIN = 120;
+const PANEL_HEIGHT_MAX = 520;
+
+const shellRoot = ref<HTMLElement | null>(null);
+const sidebarCeiling = shallowRef(SIDEBAR_WIDTH_MAX);
+const panelCeiling = shallowRef(PANEL_HEIGHT_MAX);
+
+// `--titlebar-height`/`--statusbar-height` step from 32px/22px to 44px below
+// the 760px narrow breakpoint (`styles.css`); read the live computed value
+// instead of duplicating that breakpoint's numbers here.
+function chromeRowHeight(token: string, fallback: number): number {
+  if (shellRoot.value === null) return fallback;
+  const parsed = Number.parseFloat(getComputedStyle(shellRoot.value).getPropertyValue(token));
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+// WR-01: the sash's drag ceiling and the layout's rendered ceiling must be
+// the same number, derived from the live viewport, not two independent
+// static/CSS clamps that can disagree.
+function syncCeilings(): void {
+  sidebarCeiling.value = Math.max(
+    SIDEBAR_WIDTH_MIN,
+    Math.min(SIDEBAR_WIDTH_MAX, window.innerWidth - EDITOR_WIDTH_FLOOR),
+  );
+  if (sidebarWidth.value > sidebarCeiling.value) sidebarWidth.value = sidebarCeiling.value;
+
+  const titlebarHeight = chromeRowHeight('--titlebar-height', 32);
+  const statusbarHeight = chromeRowHeight('--statusbar-height', 22);
+  panelCeiling.value = Math.max(
+    PANEL_HEIGHT_MIN,
+    Math.min(PANEL_HEIGHT_MAX, window.innerHeight - titlebarHeight - statusbarHeight),
+  );
+  if (panelHeight.value > panelCeiling.value) panelHeight.value = panelCeiling.value;
+}
+
+onMounted(() => {
+  syncCeilings();
+  window.addEventListener('resize', syncCeilings);
+});
+onUnmounted(() => window.removeEventListener('resize', syncCeilings));
+
 const sidebarSash = useSash({
   axis: 'vertical',
-  min: 170,
-  max: 520,
+  min: SIDEBAR_WIDTH_MIN,
+  get max() { return sidebarCeiling.value; },
   default: 264,
   value: sidebarWidth,
   onCommit: (value) => emit('update:sidebarWidth', value),
@@ -87,8 +137,8 @@ const sidebarSash = useSash({
 
 const panelSash = useSash({
   axis: 'horizontal',
-  min: 120,
-  max: 520,
+  min: PANEL_HEIGHT_MIN,
+  get max() { return panelCeiling.value; },
   default: 240,
   value: panelHeight,
   onCommit: (value) => emit('update:panelHeight', value),
@@ -97,9 +147,12 @@ const panelSash = useSash({
 // The `.workbench-shell__body` grid's column track is driven by the live
 // `sidebarWidth` value (not just the sidebar element's own inline width) so
 // dragging the sash never overflows the sidebar item past its track into the
-// editor column; hiding the sidebar collapses the column entirely.
+// editor column; hiding the sidebar collapses the column entirely. The sash
+// already clamps `sidebarWidth` to `sidebarCeiling` on every pointermove, so
+// the track reuses that same ceiling instead of re-deriving its own via a
+// second CSS `min()`/`calc()` clamp that could disagree (WR-01).
 const clampedSidebarWidth = computed(
-  () => `min(${sidebarWidth.value}px, var(--sidebar-width-max), calc(100vw - 480px))`,
+  () => `${Math.min(sidebarWidth.value, sidebarCeiling.value)}px`,
 );
 const sidebarGridTemplateColumns = computed(
   () => (props.sidebarVisible ? `${clampedSidebarWidth.value} 1fr` : '1fr'),
@@ -125,10 +178,12 @@ const sidebarGridTemplateColumns = computed(
 
 .workbench-shell__sidebar {
   min-width: var(--sidebar-width-min);
-  /* SHELL-06: clamp the resizable width by the remaining viewport space so dragging
-     the sash can never push the body past 100vw; 480px is a reasonable
-     minimum-editor-width floor. */
-  max-width: min(var(--sidebar-width-max), calc(100vw - 480px));
+  /* WR-01: `sidebarWidth` is already clamped to the live `sidebarCeiling`
+     (JS, computed from the viewport width) before it ever reaches this
+     inline style, so this is a backstop against the static documented
+     maximum only — not a second, independently viewport-driven clamp that
+     could disagree with the JS one. */
+  max-width: var(--sidebar-width-max);
   overflow: hidden;
   border-right: 1px solid var(--border-default);
 }
