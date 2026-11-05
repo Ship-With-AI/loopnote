@@ -202,6 +202,51 @@ function flattenFileRows(
   }
 }
 
+export interface HighlightSegment {
+  readonly text: string;
+  readonly matched: boolean;
+}
+
+/**
+ * TREE-03: segments `display` into matched/unmatched runs for XSS-safe
+ * `<mark>` rendering — callers render this via plain `v-for`/text
+ * interpolation (never `v-html`), so a git path containing `<`/`>`/`&`
+ * can never be interpreted as markup. Matching is case-insensitive
+ * (mirroring `createModel`'s `needle` convention); each matched segment's
+ * `text` preserves `display`'s original casing, never the lower-cased query.
+ */
+export function highlightMatches(
+  display: string,
+  query: string,
+): readonly HighlightSegment[] {
+  const needle = query.trim().toLowerCase();
+  if (needle === '') {
+    return Object.freeze([Object.freeze({ text: display, matched: false })]);
+  }
+  const haystack = display.toLowerCase();
+  const segments: HighlightSegment[] = [];
+  let cursor = 0;
+  for (;;) {
+    const matchIndex = haystack.indexOf(needle, cursor);
+    if (matchIndex === -1) {
+      break;
+    }
+    if (matchIndex > cursor) {
+      segments.push(Object.freeze({ text: display.slice(cursor, matchIndex), matched: false }));
+    }
+    const matchEnd = matchIndex + needle.length;
+    segments.push(Object.freeze({ text: display.slice(matchIndex, matchEnd), matched: true }));
+    cursor = matchEnd;
+  }
+  if (cursor < display.length) {
+    segments.push(Object.freeze({ text: display.slice(cursor), matched: false }));
+  }
+  if (segments.length === 0) {
+    segments.push(Object.freeze({ text: display, matched: false }));
+  }
+  return Object.freeze(segments);
+}
+
 function pruneTree(
   nodes: readonly FileTreeNode[],
   matches: (leaf: FileTreeLeaf) => boolean,
