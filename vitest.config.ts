@@ -1,8 +1,9 @@
+import vue from '@vitejs/plugin-vue';
 import { tokenRootPlugin as rootPlugin } from './scripts/token-root-plugin.mjs';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
-  plugins: [rootPlugin(import.meta.dirname)],
+  plugins: [vue(), rootPlugin(import.meta.dirname)],
   test: {
     environment: 'node',
     include: [
