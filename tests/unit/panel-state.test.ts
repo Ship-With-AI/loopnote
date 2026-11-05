@@ -53,6 +53,9 @@ describe('parsePanelState', () => {
       sidebarWidth: 264,
       sidebarVisible: true,
       panelHeight: 240,
+      treeViewMode: 'tree',
+      treeLineCounts: 'hover',
+      treeCommentBadges: true,
     });
   });
 
@@ -61,6 +64,9 @@ describe('parsePanelState', () => {
       sidebarWidth: 264,
       sidebarVisible: true,
       panelHeight: 240,
+      treeViewMode: 'tree',
+      treeLineCounts: 'hover',
+      treeCommentBadges: true,
     });
   });
 
@@ -71,6 +77,9 @@ describe('parsePanelState', () => {
       sidebarWidth: 520,
       sidebarVisible: true,
       panelHeight: 240,
+      treeViewMode: 'tree',
+      treeLineCounts: 'hover',
+      treeCommentBadges: true,
     });
   });
 
@@ -81,6 +90,9 @@ describe('parsePanelState', () => {
       sidebarWidth: 264,
       sidebarVisible: true,
       panelHeight: 240,
+      treeViewMode: 'tree',
+      treeLineCounts: 'hover',
+      treeCommentBadges: true,
     });
   });
 
@@ -89,6 +101,9 @@ describe('parsePanelState', () => {
       sidebarWidth: 264,
       sidebarVisible: false,
       panelHeight: 240,
+      treeViewMode: 'tree',
+      treeLineCounts: 'hover',
+      treeCommentBadges: true,
     });
   });
 
@@ -97,6 +112,62 @@ describe('parsePanelState', () => {
       sidebarWidth: 264,
       sidebarVisible: true,
       panelHeight: 240,
+      treeViewMode: 'tree',
+      treeLineCounts: 'hover',
+      treeCommentBadges: true,
+    });
+  });
+
+  it('round-trips valid treeViewMode/treeLineCounts/treeCommentBadges values unchanged', () => {
+    expect(
+      parsePanelState(
+        JSON.stringify({
+          treeViewMode: 'list',
+          treeLineCounts: 'always',
+          treeCommentBadges: false,
+        }),
+      ),
+    ).toEqual({
+      sidebarWidth: 264,
+      sidebarVisible: true,
+      panelHeight: 240,
+      treeViewMode: 'list',
+      treeLineCounts: 'always',
+      treeCommentBadges: false,
+    });
+  });
+
+  it('falls back an invalid treeViewMode to its own default while valid sidebarWidth and treeLineCounts still parse through', () => {
+    expect(
+      parsePanelState(
+        JSON.stringify({
+          treeViewMode: 'grid',
+          sidebarWidth: 300,
+          treeLineCounts: 'always',
+        }),
+      ),
+    ).toEqual({
+      sidebarWidth: 300,
+      sidebarVisible: true,
+      panelHeight: 240,
+      treeViewMode: 'tree',
+      treeLineCounts: 'always',
+      treeCommentBadges: true,
+    });
+  });
+
+  it('falls back an invalid treeLineCounts and a non-boolean treeCommentBadges to their own defaults independently', () => {
+    expect(
+      parsePanelState(
+        JSON.stringify({ treeLineCounts: 'sometimes', treeCommentBadges: 'yes' }),
+      ),
+    ).toEqual({
+      sidebarWidth: 264,
+      sidebarVisible: true,
+      panelHeight: 240,
+      treeViewMode: 'tree',
+      treeLineCounts: 'hover',
+      treeCommentBadges: true,
     });
   });
 });
@@ -119,7 +190,14 @@ describe('createPanelState', () => {
     const state = createPanelState({ storage });
     state.persist();
     expect(storage.data.get(PANEL_STATE_STORAGE_KEY)).toBe(
-      JSON.stringify({ sidebarWidth: 264, sidebarVisible: true, panelHeight: 240 }),
+      JSON.stringify({
+        sidebarWidth: 264,
+        sidebarVisible: true,
+        panelHeight: 240,
+        treeViewMode: 'tree',
+        treeLineCounts: 'hover',
+        treeCommentBadges: true,
+      }),
     );
   });
 
@@ -135,5 +213,36 @@ describe('createPanelState', () => {
     expect(state.sidebarWidth.value).toBe(300);
     expect(state.sidebarVisible.value).toBe(false);
     expect(state.panelHeight.value).toBe(200);
+  });
+
+  it('exposes treeViewMode/treeLineCounts/treeCommentBadges as seeded refs and persists all six fields', () => {
+    const storage = createFakeStorage({
+      [PANEL_STATE_STORAGE_KEY]: JSON.stringify({
+        sidebarWidth: 300,
+        sidebarVisible: false,
+        panelHeight: 200,
+        treeViewMode: 'list',
+        treeLineCounts: 'always',
+        treeCommentBadges: false,
+      }),
+    });
+    const state = createPanelState({ storage });
+
+    expect(state.treeViewMode.value).toBe('list');
+    expect(state.treeLineCounts.value).toBe('always');
+    expect(state.treeCommentBadges.value).toBe(false);
+
+    state.persist();
+
+    expect(storage.data.get(PANEL_STATE_STORAGE_KEY)).toBe(
+      JSON.stringify({
+        sidebarWidth: 300,
+        sidebarVisible: false,
+        panelHeight: 200,
+        treeViewMode: 'list',
+        treeLineCounts: 'always',
+        treeCommentBadges: false,
+      }),
+    );
   });
 });
