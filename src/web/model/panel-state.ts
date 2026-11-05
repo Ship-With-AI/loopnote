@@ -12,6 +12,13 @@ const PANEL_HEIGHT_MAX = 520;
 
 const SIDEBAR_VISIBLE_DEFAULT = true;
 
+const TREE_VIEW_MODE_DEFAULT = 'tree';
+const TREE_LINE_COUNTS_DEFAULT = 'hover';
+const TREE_COMMENT_BADGES_DEFAULT = true;
+
+export type TreeViewMode = 'tree' | 'list';
+export type TreeLineCountsMode = 'always' | 'hover' | 'never';
+
 function clamp(value: number, min: number, max: number): number {
   if (value < min) {
     return min;
@@ -44,6 +51,9 @@ export interface PersistedPanelState {
   readonly sidebarWidth: number;
   readonly sidebarVisible: boolean;
   readonly panelHeight: number;
+  readonly treeViewMode: TreeViewMode;
+  readonly treeLineCounts: TreeLineCountsMode;
+  readonly treeCommentBadges: boolean;
 }
 
 function defaultPersistedPanelState(): PersistedPanelState {
@@ -51,6 +61,9 @@ function defaultPersistedPanelState(): PersistedPanelState {
     sidebarWidth: SIDEBAR_WIDTH_DEFAULT,
     sidebarVisible: SIDEBAR_VISIBLE_DEFAULT,
     panelHeight: PANEL_HEIGHT_DEFAULT,
+    treeViewMode: TREE_VIEW_MODE_DEFAULT,
+    treeLineCounts: TREE_LINE_COUNTS_DEFAULT,
+    treeCommentBadges: TREE_COMMENT_BADGES_DEFAULT,
   };
 }
 
@@ -89,6 +102,17 @@ export function parsePanelState(raw: string | null): PersistedPanelState {
     panelHeight: typeof candidate.panelHeight === 'number'
       ? clampPanelHeight(candidate.panelHeight)
       : PANEL_HEIGHT_DEFAULT,
+    treeViewMode: candidate.treeViewMode === 'tree' || candidate.treeViewMode === 'list'
+      ? candidate.treeViewMode
+      : TREE_VIEW_MODE_DEFAULT,
+    treeLineCounts: candidate.treeLineCounts === 'always' ||
+      candidate.treeLineCounts === 'hover' ||
+      candidate.treeLineCounts === 'never'
+      ? candidate.treeLineCounts
+      : TREE_LINE_COUNTS_DEFAULT,
+    treeCommentBadges: typeof candidate.treeCommentBadges === 'boolean'
+      ? candidate.treeCommentBadges
+      : TREE_COMMENT_BADGES_DEFAULT,
   };
 }
 
@@ -100,6 +124,9 @@ export interface PanelState {
   readonly sidebarWidth: ShallowRef<number>;
   readonly sidebarVisible: ShallowRef<boolean>;
   readonly panelHeight: ShallowRef<number>;
+  readonly treeViewMode: ShallowRef<TreeViewMode>;
+  readonly treeLineCounts: ShallowRef<TreeLineCountsMode>;
+  readonly treeCommentBadges: ShallowRef<boolean>;
   persist(): void;
 }
 
@@ -118,16 +145,25 @@ export function createPanelState(options: PanelStateOptions = {}): PanelState {
   const sidebarWidth = shallowRef(initial.sidebarWidth);
   const sidebarVisible = shallowRef(initial.sidebarVisible);
   const panelHeight = shallowRef(initial.panelHeight);
+  const treeViewMode = shallowRef(initial.treeViewMode);
+  const treeLineCounts = shallowRef(initial.treeLineCounts);
+  const treeCommentBadges = shallowRef(initial.treeCommentBadges);
 
   return Object.freeze({
     sidebarWidth,
     sidebarVisible,
     panelHeight,
+    treeViewMode,
+    treeLineCounts,
+    treeCommentBadges,
     persist() {
       const persisted: PersistedPanelState = {
         sidebarWidth: sidebarWidth.value,
         sidebarVisible: sidebarVisible.value,
         panelHeight: panelHeight.value,
+        treeViewMode: treeViewMode.value,
+        treeLineCounts: treeLineCounts.value,
+        treeCommentBadges: treeCommentBadges.value,
       };
       storage.setItem(PANEL_STATE_STORAGE_KEY, JSON.stringify(persisted));
     },
