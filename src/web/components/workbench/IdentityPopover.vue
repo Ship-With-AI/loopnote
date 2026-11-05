@@ -31,6 +31,27 @@ const panel = ref<HTMLElement>();
 const headingId = useId();
 const copyState = ref<'idle' | 'copied' | 'failed'>('idle');
 let copiedTimer: number | undefined;
+// Centered via CSS (`left: 50%; transform: translateX(-50%)`) relative to `.identity-pill-host`,
+// which is sized to the pill's own (possibly tiny, off-center) box — not the viewport. When the
+// title bar's left/right groups are uneven width (e.g. an agent-attached `.attached-fact` badge
+// widens the right side), the pill itself sits left-of-center, and a popover simply centered on
+// the pill can run off the left or right edge of the viewport. This measures the rendered panel
+// after each open/resize and nudges it back on-screen with the same 8px margin the width rule
+// (`min(440px, calc(100vw - var(--space-4)))`) already reserves per side — pure measurement-based
+// repositioning, no popper/floating-ui dependency added.
+const VIEWPORT_EDGE_MARGIN_PX = 8;
+const edgeShiftPx = ref(0);
+
+function clampToViewport(): void {
+  void nextTick(() => {
+    const element = panel.value;
+    if (element === undefined) return;
+    const rect = element.getBoundingClientRect();
+    const overflowLeft = VIEWPORT_EDGE_MARGIN_PX - rect.left;
+    const overflowRight = rect.right - (window.innerWidth - VIEWPORT_EDGE_MARGIN_PX);
+    edgeShiftPx.value = overflowLeft > 0 ? overflowLeft : overflowRight > 0 ? -overflowRight : 0;
+  });
+}
 
 const focusableSelector = [
   'button:not(:disabled)',
@@ -231,15 +252,19 @@ function handlePointerDown(event: MouseEvent): void {
 
 onMounted(() => {
   document.addEventListener('mousedown', handlePointerDown);
+  window.addEventListener('resize', clampToViewport);
   void nextTick(() => {
     panel.value?.querySelector<HTMLElement>(focusableSelector)?.focus();
   });
+  clampToViewport();
 });
 
 onBeforeUnmount(() => {
   document.removeEventListener('mousedown', handlePointerDown);
+  window.removeEventListener('resize', clampToViewport);
   if (copiedTimer !== undefined) window.clearTimeout(copiedTimer);
 });
+
 </script>
 
 <template>
@@ -248,6 +273,7 @@ onBeforeUnmount(() => {
     role="dialog"
     :aria-labelledby="headingId"
     class="identity-popover"
+    :style="edgeShiftPx !== 0 ? { transform: `translateX(calc(-50% + ${edgeShiftPx}px))` } : undefined"
     @keydown="containFocus"
   >
     <div :id="headingId" class="identity-popover__head">
