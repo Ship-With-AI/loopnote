@@ -92,6 +92,8 @@ test('finishes the agent-supervised marketplace review and records window-scoped
   if (!marker) throw new Error(`[marketplace-review] ${RENAME_MAP.envPrefix}MARKETPLACE_URL_MARKER is required`);
   const window = supportWindow();
   const observation = await openRuntimeSession(page, await waitForLoopbackUrl(marker), { dismissUnverified: false });
+  await page.getByRole('button', { name: 'Toggle panel (⌘J)', exact: true }).click();
+  await expect(page.getByRole('region', { name: 'Review', exact: true })).toBeVisible();
   const mode = observedSupportMode(window, observation);
   const supportStates: Array<Record<string, unknown>> = [];
 

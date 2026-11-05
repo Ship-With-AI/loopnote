@@ -273,6 +273,8 @@ async function completeAttachedFinish(browser: Browser): Promise<void> {
     let closed = false;
     try {
       await openRuntimeSession(page, await waitForAttachedLoopbackUrl(running));
+      await page.getByRole('button', { name: 'Toggle panel (⌘J)', exact: true }).click();
+      await expect(page.getByRole('region', { name: 'Review', exact: true })).toBeVisible();
       const finished = page.waitForResponse((response) => response.url().includes('/api/review-completion/finish'));
       await page.getByRole('region', { name: 'Finish attached review' }).getByRole('button', { name: 'Finish review', exact: true }).click();
       expect((await finished).status()).toBe(201);
