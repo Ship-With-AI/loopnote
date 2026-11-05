@@ -813,7 +813,7 @@ test('responsive keyboard and accessibility contract', async ({
     await page.setViewportSize({ width: 1440, height: 560 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto(url, { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('.session-header__comparison')).toContainText(
+    await expect(page.locator('.identity-pill')).toContainText(
       'BASEBase responsive fixture',
     );
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('alpha.ts');
@@ -900,7 +900,7 @@ test('responsive keyboard and accessibility contract', async ({
 
       const headingSelector = `#${RENAME_MAP.cssPrefix}heading`;
       const typography = await page.evaluate((heading) => [
-        heading, '[data-normal-file]', '.availability-marker', '.pin-cue',
+        heading, '[data-normal-file]', '.availability-marker',
       ].map((selector) => {
         const style = getComputedStyle(document.querySelector(selector)!);
         return [selector, style.fontSize, style.fontWeight, style.lineHeight, style.fontFamily];
@@ -916,7 +916,6 @@ test('responsive keyboard and accessibility contract', async ({
         [headingSelector, pageHeading, '600', pageHeadingLineHeight, computedUiFont],
         ['[data-normal-file]', fileRowSize, '400', fileRowLineHeight, computedUiFont],
         ['.availability-marker', metadataSize, '600', metadataLineHeight, computedUiFont],
-        ['.pin-cue', metadataSize, '600', metadataLineHeight, computedUiFont],
       ]);
       await expect(page.locator('.path-display').first()).toHaveCSS('font-family', /monospace/);
 
@@ -1143,8 +1142,8 @@ test('responsive keyboard and accessibility contract', async ({
       const stateCard = page.locator('[data-state-card-contract]');
       const reviewShell = page.locator('.workbench-shell__body');
       const sessionHeader = page.locator('.titlebar');
-      const headerFacts = page.locator('.header-facts');
-      const overlayShadow = await rootShadow(headerFacts);
+      const identityPillHost = page.locator('.identity-pill-host');
+      const overlayShadow = await rootShadow(identityPillHost);
       const assertFilesCollapse = async (width: number): Promise<void> => {
         await page.setViewportSize({ width, height: 560 });
         const filesButton = page.getByRole('button', { name: 'Toggle side bar (⌘B)', exact: true });
@@ -1227,7 +1226,6 @@ test('responsive keyboard and accessibility contract', async ({
 
       await page.setViewportSize({ width: 1050, height: 560 });
       await expect(page.getByRole('button', { name: 'Toggle side bar (⌘B)', exact: true })).toHaveAttribute('aria-pressed', 'true');
-      await expect(headerFacts).toHaveCSS('flex-wrap', 'wrap');
       const desktopColumns = await reviewShell.evaluate((shell) => {
         const files = shell.querySelector<HTMLElement>('.workbench-shell__sidebar')!;
         const main = shell.querySelector<HTMLElement>('.workbench-shell__main')!;
@@ -1249,12 +1247,11 @@ test('responsive keyboard and accessibility contract', async ({
 
       await page.setViewportSize({ width: 761, height: 560 });
       await expect(page.getByRole('button', { name: 'Toggle side bar (⌘B)', exact: true })).toHaveAttribute('aria-pressed', 'true');
-      await expect(headerFacts).toHaveCSS('flex-wrap', 'wrap');
       const wrappedHeaderGeometry = await sessionHeader.evaluate((header) => {
         const headerBox = header.getBoundingClientRect();
         const items = [
           header.querySelector<HTMLElement>('.session-header__brand')!,
-          ...header.querySelectorAll<HTMLElement>('.header-facts > *'),
+          ...header.querySelectorAll<HTMLElement>('.titlebar__center > *'),
         ].map((element) => {
           const box = element.getBoundingClientRect();
           return {
