@@ -47,8 +47,12 @@ function clampToViewport(): void {
     const element = panel.value;
     if (element === undefined) return;
     const rect = element.getBoundingClientRect();
-    const overflowLeft = VIEWPORT_EDGE_MARGIN_PX - rect.left;
-    const overflowRight = rect.right - (window.innerWidth - VIEWPORT_EDGE_MARGIN_PX);
+    // `rect` already includes the current translation, so the next correction has to be
+    // computed against the unshifted box — otherwise a correct clamp measures as in-bounds
+    // and resets to 0 on the next resize event (un-clamping the popover again).
+    const shift = edgeShiftPx.value;
+    const overflowLeft = VIEWPORT_EDGE_MARGIN_PX - (rect.left - shift);
+    const overflowRight = rect.right - shift - (window.innerWidth - VIEWPORT_EDGE_MARGIN_PX);
     edgeShiftPx.value = overflowLeft > 0 ? overflowLeft : overflowRight > 0 ? -overflowRight : 0;
   });
 }
