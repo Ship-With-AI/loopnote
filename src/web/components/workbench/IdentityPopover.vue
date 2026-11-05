@@ -197,6 +197,8 @@ const refreshLabel = computed(() => {
 });
 
 function copyIdentity(): void {
+  copyState.value = 'idle';
+  if (copiedTimer !== undefined) window.clearTimeout(copiedTimer);
   const text = rows.value
     .map((row) => {
       const chip = row.dirty === true ? ' (Dirty bytes ignored)' : row.chipText !== undefined ? ` (${row.chipText})` : '';
@@ -206,13 +208,14 @@ function copyIdentity(): void {
   void navigator.clipboard.writeText(text)
     .then(() => {
       copyState.value = 'copied';
-      if (copiedTimer !== undefined) window.clearTimeout(copiedTimer);
       copiedTimer = window.setTimeout(() => { copyState.value = 'idle'; }, 1_200);
     })
     .catch(() => {
+      // Deliberately does not auto-clear: an unannounced, time-limited failure state is the
+      // defect this fixes (WR-04). The failure stays visible/announced until the reviewer
+      // retries (copyIdentity resets to 'idle' at the top on the next click) or closes the
+      // popover.
       copyState.value = 'failed';
-      if (copiedTimer !== undefined) window.clearTimeout(copiedTimer);
-      copiedTimer = window.setTimeout(() => { copyState.value = 'idle'; }, 1_200);
     });
 }
 
@@ -307,6 +310,9 @@ onBeforeUnmount(() => {
       <button type="button" class="ui-button ui-button--ghost" @click="copyIdentity">
         <UiIcon name="copy" />{{ copyState === 'copied' ? 'Copied' : copyState === 'failed' ? 'Copy failed' : 'Copy' }}
       </button>
+      <p v-if="copyState === 'failed'" class="identity-popover__copy-failure" role="alert">
+        Couldn’t copy to the clipboard. The values above remain visible to select manually.
+      </p>
       <button
         v-if="canRefresh"
         type="button"

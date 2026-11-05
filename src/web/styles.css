@@ -2211,6 +2211,15 @@ h3.conversation-card__identity {
   line-height: var(--line-height-metadata);
 }
 
+.identity-popover__copy-failure {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--status-error-foreground);
+  font-size: var(--font-size-metadata);
+  line-height: var(--line-height-metadata);
+}
+
+
 .ui-button--ghost {
   border-color: transparent;
   background: transparent;
