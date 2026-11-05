@@ -112,14 +112,24 @@ defineExpose({ focusSidebarToggle });
 }
 
 .titlebar__center {
+  /* Centered via `inset-inline: 0` + `margin-inline: auto` + `width: fit-content`,
+     not `left: 50%; transform: translateX(-50%)`: a `transform` establishes a new
+     CSS stacking context, which trapped `.identity-popover`'s `z-index` inside this
+     box and let `.workbench-shell__editor`'s later-painted content (z-index: auto)
+     cover the popover whenever it overlapped the editor region below — the Copy/
+     Refresh/Launch-new-comparison controls were rendered but genuinely unclickable
+     in real Chromium. This centers an intrinsically-sized box with no stacking
+     context of its own, so the popover's explicit `z-index: 10` (styles.css) is
+     compared directly against the editor region and correctly paints on top. */
   position: absolute;
-  left: 50%;
+  inset-inline: 0;
+  margin-inline: auto;
+  width: fit-content;
   display: flex;
   max-width: 56%;
   min-width: 0;
   align-items: center;
   gap: var(--space-2);
-  transform: translateX(-50%);
 }
 
 .titlebar__right {
