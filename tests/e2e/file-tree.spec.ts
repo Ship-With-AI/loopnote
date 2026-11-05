@@ -388,9 +388,9 @@ test('packaged file tree preserves opaque selection and keyboard semantics', asy
     await page.goto(await waitForLoopbackUrl(running));
     await expect.poll(() => browserErrors).toEqual([]);
 
-    const navigation = page.getByRole('navigation', { name: 'Files' });
-    const tree = navigation.getByRole('tree', { name: 'Files' });
-    await expect(navigation.getByRole('heading', { name: /^Files \(\d+\)$/ })).toBeVisible();
+    const navigation = page.getByRole('navigation', { name: 'Changed files' });
+    const tree = navigation.getByRole('tree', { name: 'Changed files' });
+    await expect(navigation.getByText(/^\d+ files? · \+\d+ −\d+$/)).toBeVisible();
     await expect(tree).toBeVisible();
 
     const selectedLeaf = tree.locator('[role="treeitem"][aria-selected="true"]');
@@ -530,9 +530,10 @@ test('packaged file tree filters and recovers without changing the open file', a
     await page.goto(await waitForLoopbackUrl(running));
     await expect.poll(() => browserErrors).toEqual([]);
 
-    const navigation = page.getByRole('navigation', { name: 'Files' });
-    const tree = navigation.getByRole('tree', { name: 'Files' });
-    const filter = navigation.getByRole('searchbox', { name: 'Filter files' });
+    const navigation = page.getByRole('navigation', { name: 'Changed files' });
+    const tree = navigation.getByRole('tree', { name: 'Changed files' });
+    const filterButton = navigation.getByRole('button', { name: /Filter changed files/ });
+    const filter = navigation.getByRole('searchbox', { name: 'Filter changed files' });
     const treeitems = tree.locator('[role="treeitem"]');
     const tabbableTreeitems = tree.locator('[role="treeitem"][tabindex="0"]');
     const selectedLeaf = tree.locator('[role="treeitem"][aria-selected="true"]');
@@ -560,6 +561,7 @@ test('packaged file tree filters and recovers without changing the open file', a
     await collisionDirectory.click();
     await expect(collisionDirectory).toHaveAttribute('aria-expanded', 'false');
     const collapsedTreeitemCount = await treeitems.count();
+    await filterButton.click();
     await filter.fill('collision');
     await expect(collisionDirectory).toHaveAttribute('aria-expanded', 'true');
     await expect(treeitems).toHaveCount(3);
@@ -593,10 +595,7 @@ test('packaged file tree filters and recovers without changing the open file', a
     await filter.fill('no matching path');
     await expect(treeitems).toHaveCount(0);
     await expect(tabbableTreeitems).toHaveCount(0);
-    await expect(navigation.getByRole('heading', { name: 'No matching files' })).toBeVisible();
-    await expect(
-      navigation.getByText('Clear the filter to show all files.', { exact: true }),
-    ).toBeVisible();
+    await expect(navigation.getByText('No changed files match “no matching path”.')).toBeVisible();
     await expect(navigation.getByRole('button', { name: 'Clear filter' })).toBeVisible();
     await expect(tree).toBeAttached();
 
@@ -609,24 +608,27 @@ test('packaged file tree filters and recovers without changing the open file', a
     await expect.poll(() => fileRequests.length).toBe(fileRequestsBeforeFilter);
 
     await filter.fill('tracked');
-    const clearFilter = navigation.getByRole('button', { name: 'Clear file filter' });
+    const clearFilter = navigation.getByRole('button', { name: 'Clear filter' });
     await expect(clearFilter).toBeVisible();
     await clearFilter.click();
     await expect(filter).toBeFocused();
     await expect(filter).toHaveValue('');
     await expect(clearFilter).toHaveCount(0);
-    await filter.blur();
-    const glyphBox = await navigation
-      .locator('.file-tree-pane__filter-glyph')
-      .boundingBox();
-    if (glyphBox === null) {
-      throw new Error('Expected visible file filter glyph');
-    }
-    await page.mouse.click(
-      glyphBox.x + glyphBox.width / 2,
-      glyphBox.y + glyphBox.height / 2,
-    );
+
+    const listToggle = navigation.getByRole('button', { name: /View as (list|tree)/ });
+    const collapseAllButton = navigation.getByRole('button', { name: 'Collapse all' });
+    await expect(filter).toBeVisible();
+    await expect(listToggle).toBeVisible();
+    await expect(collapseAllButton).toBeVisible();
+    await filterButton.click();
+    await expect(filter).toBeHidden();
+    await filterButton.click();
     await expect(filter).toBeFocused();
+    await listToggle.click();
+    await expect(navigation.getByRole('listbox', { name: 'Changed files' })).toBeVisible();
+    await expect(tree).toHaveCount(0);
+    await listToggle.click();
+    await expect(tree).toBeVisible();
     await expect.poll(() => browserErrors).toEqual([]);
   } finally {
     await stopGeneratedCli(running);
@@ -649,9 +651,9 @@ test('component tree replacement preserves opaque state without selecting again'
     mountFileTreeHarness();
   });
 
-  const navigation = page.getByRole('navigation', { name: 'Files' });
-  const tree = navigation.getByRole('tree', { name: 'Files' });
-  const filter = navigation.getByRole('searchbox', { name: 'Filter files' });
+  const navigation = page.getByRole('navigation', { name: 'Changed files' });
+  const tree = navigation.getByRole('tree', { name: 'Changed files' });
+  const filter = navigation.getByRole('searchbox', { name: 'Filter changed files' });
   const bravo = tree.getByRole('treeitem', { name: /bravo\.ts/i });
   const alpha = tree.getByRole('treeitem', { name: /alpha\.ts/i });
   const collapsed = tree.getByRole('treeitem', { name: /^collapsed\/?$/i });
@@ -665,6 +667,7 @@ test('component tree replacement preserves opaque state without selecting again'
   await expect(collapsed).toHaveAttribute('aria-expanded', 'false');
   await kept.click();
   await expect(kept).toHaveAttribute('aria-expanded', 'false');
+  await navigation.getByRole('button', { name: /Filter changed files/ }).click();
   await filter.fill('kept');
   await expect(kept).toHaveAttribute('aria-expanded', 'true');
   const projectedRowIds = await tree.locator('[role="treeitem"]').evaluateAll(

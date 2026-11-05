@@ -57,7 +57,7 @@ import {
 import { singlePaneSideFor } from './model/single-pane-layout.js';
 import { controlSafeDisplay } from '../domain/path-bytes.js';
 import type { DraftMutationRequest } from '../contracts/api.js';
-import { createPanelState } from './model/panel-state.js';
+import { createPanelState, type TreeViewMode } from './model/panel-state.js';
 
 type CanonicalReviewDraft = Readonly<{
   revision: number;
@@ -395,6 +395,11 @@ function commitSidebarWidth(value: number): void {
 
 function commitPanelHeight(value: number): void {
   panelState.panelHeight.value = value;
+  panelState.persist();
+}
+
+function toggleTreeViewMode(mode: TreeViewMode): void {
+  panelState.treeViewMode.value = mode;
   panelState.persist();
 }
 
@@ -1509,12 +1514,14 @@ onBeforeUnmount(() => {
       :open-comment-counts="openCommentCounts"
       :line-counts="panelState.treeLineCounts.value"
       :comment-badges-enabled="panelState.treeCommentBadges.value"
+      :view-mode="panelState.treeViewMode.value"
       :initial-selected-file-id="selectedFile?.fileId"
       :empty-heading="emptyFilesCopy.heading"
       :empty-message="emptyFilesCopy.message"
       @close="closeChangedFiles"
       @select="selectFile"
       @activate="selectFile"
+      @update:view-mode="toggleTreeViewMode"
     />
     <SupportDialog
       v-if="supportEnabled"

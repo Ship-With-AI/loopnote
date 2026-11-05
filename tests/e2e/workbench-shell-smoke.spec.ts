@@ -404,6 +404,84 @@ test('row anatomy: file-type mark → name → markers/line-counts → status le
   }
 });
 
+test('filter highlighting, list mode toggle, and footer totals against the real packaged binary', async ({ browser }) => {
+  const repository = await createGitFixture({ committedHeadChange: false });
+  repository.git(['switch', 'main']);
+  await repository.write('alpha.ts', 'export const alpha = 1;\n');
+  await repository.write('beta.ts', 'export const beta = 1;\n');
+  repository.git(['add', '-A']);
+  repository.git(['commit', '-m', 'add files shared with feature']);
+  const baseRevision = repository.git(['rev-parse', 'HEAD']).toString('ascii').trim();
+  repository.git(['switch', 'feature']);
+  repository.git(['merge', 'main', '--no-edit']);
+  await repository.write('alpha.ts', 'export const alpha = 2;\n');
+  await repository.write('beta.ts', 'export const beta = 2;\n');
+  repository.git(['add', '-A']);
+  repository.git(['commit', '-m', 'modify files on feature']);
+  const headRevision = repository.git(['rev-parse', 'HEAD']).toString('ascii').trim();
+
+  const running = spawnCli(repository, {
+    launchOptions: {
+      base: { label: 'Base fixture', revision: baseRevision },
+      head: { label: 'Head fixture', revision: headRevision },
+    },
+  });
+  try {
+    const url = await waitForLoopbackUrl(running);
+    const page = await browser.newPage();
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(url, { waitUntil: 'domcontentloaded' });
+
+    await assertShellRegionsPresent(page);
+
+    const navigation = page.getByRole('navigation', { name: 'Changed files' });
+    const fileTreeRoot = navigation.locator('.file-tree');
+    const footer = navigation.locator('.tree-footer');
+    await expect(fileTreeRoot).toHaveAttribute('role', 'tree');
+    await expect(footer).toHaveText('2 files · +2 −2');
+
+    // Filter opens via the funnel button, highlights the typed substring with
+    // a real <mark> element (never v-html), and the footer switches to the
+    // "N of M files" form while a query is active.
+    const filterButton = navigation.getByRole('button', { name: /Filter changed files/ });
+    const filter = navigation.getByRole('searchbox', { name: 'Filter changed files' });
+    await expect(filter).toBeHidden();
+    await filterButton.click();
+    await expect(filter).toBeFocused();
+    await filter.fill('alpha');
+    const matchedRow = fileTreeRoot.getByRole('treeitem', { name: /alpha\.ts/i });
+    await expect(matchedRow).toBeVisible();
+    await expect(matchedRow.locator('mark')).toHaveText('alpha');
+    await expect(footer).toHaveText('1 of 2 files');
+
+    // Esc clears the query, closes the filter row, and returns focus to the
+    // tree — not back to the filter input (the v1.6 behaviour this changes).
+    await filter.press('Escape');
+    await expect(filter).toBeHidden();
+    await expect(fileTreeRoot.locator('[role="treeitem"][tabindex="0"]')).toBeFocused();
+    await expect(footer).toHaveText('2 files · +2 −2');
+
+    // Ctrl+Alt+F (⌥⌘F on macOS) opens the filter while focus is inside the
+    // tree; the shortcut is tree-scoped, not a document-level handler.
+    await page.keyboard.press('Control+Alt+F');
+    await expect(filter).toBeVisible();
+    await expect(filter).toBeFocused();
+    await filter.press('Escape');
+
+    // The list⇄tree toggle switches the root list's role in both directions.
+    const listToggle = navigation.getByRole('button', { name: /View as (list|tree)/ });
+    await listToggle.click();
+    await expect(fileTreeRoot).toHaveAttribute('role', 'listbox');
+    await listToggle.click();
+    await expect(fileTreeRoot).toHaveAttribute('role', 'tree');
+
+    await page.close();
+  } finally {
+    await stopGeneratedCli(running);
+    await repository.cleanup();
+  }
+});
+
 test('agent-attached: attachedFact overlay and Finish review entry point in the bottom panel', async ({ browser }) => {
   const repository = await createGitFixture();
   // Any non-interactive stdin `review-request` always resolves server-side to an

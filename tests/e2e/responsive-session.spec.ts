@@ -515,12 +515,9 @@ async function expectTreeInteriorAtWidth(page: Page, width: number): Promise<voi
   const lineCounts = selected.locator('.line-counts');
   const levelOne = filesPane.locator('[role="treeitem"][aria-level="1"]').first();
   const nested = filesPane.locator('[role="treeitem"][aria-level="2"]').first();
-  const directoryCount = filesPane.locator('.directory-row__count').first();
 
   await expect(filesPane).toBeVisible();
   await expect(selected).toBeVisible();
-  await expect(directoryCount).toBeVisible();
-  await expect(directoryCount).toHaveText(/\S+/);
   await expect(lineCounts).toBeVisible();
   await expect(lineCounts).toContainText(/\+.*−/u);
 
@@ -532,12 +529,13 @@ async function expectTreeInteriorAtWidth(page: Page, width: number): Promise<voi
     nested.evaluate((element) => getComputedStyle(element).paddingInlineStart),
   ]);
   // --file-row-min-height (22px) is a floor, not the rendered row height: the
-  // chrome-typography retune (20-03) sized .tree-row for its text content, but
-  // the unretuned .status-badge (padding + border + metadata line-height) is
-  // the tallest child and pushes the actual box to 28px. Matches the real
-  // height already established for the identical .tree-row--selected markup
-  // in tests/e2e/file-tree.spec.ts.
-  expect(selectedBox!.height).toBe(28);
+  // chrome-typography retune (20-03) sized .tree-row for its text content; the
+  // Phase 21 row-anatomy restyle (21-02) flattened the status-badge/marker
+  // chrome (border/background/padding) that previously pushed the box to
+  // 28px, so the real rendered height is now 26px. Matches the identical
+  // .tree-row--selected markup already updated to 26 in
+  // tests/e2e/file-tree.spec.ts (21-02's own verification pass).
+  expect(selectedBox!.height).toBe(26);
   expect(selectedBox!.x + selectedBox!.width).toBeLessThanOrEqual(filesBox!.x + filesBox!.width);
   expect(countsBox!.x + countsBox!.width).toBeLessThanOrEqual(filesBox!.x + filesBox!.width);
   expect(Number.parseFloat(nestedPadding)).toBeGreaterThan(Number.parseFloat(levelOnePadding));
@@ -1005,9 +1003,9 @@ test('responsive keyboard and accessibility contract', async ({
       await expectFocusIndicatorUnclipped(files);
       await page.keyboard.press('Enter');
       const changedFiles = page.getByRole('dialog', { name: 'Files', exact: true });
-      const filter = changedFiles.getByRole('searchbox', { name: 'Filter files', exact: true });
+      const tabbableRow = changedFiles.locator('[role="treeitem"][tabindex="0"], [role="option"][tabindex="0"]');
       await expect(changedFiles).toBeVisible();
-      await expect(filter).toBeFocused();
+      await expect(tabbableRow).toBeFocused();
       const firstFile = changedFiles.locator('.file-tree .file-row').first();
       await firstFile.focus();
       await expectFocusIndicatorUnclipped(firstFile);
@@ -1083,10 +1081,10 @@ test('responsive keyboard and accessibility contract', async ({
       await expect(page.locator('#changed-files-dialog-tree [role="treeitem"]').first()).toBeAttached();
       await files.focus();
       await page.keyboard.press('Enter');
-      const filter = changedFiles.getByRole('searchbox', { name: 'Filter files', exact: true });
+      const tabbableRow = changedFiles.locator('[role="treeitem"][tabindex="0"], [role="option"][tabindex="0"]');
       await expect(changedFiles).toBeVisible();
-      await expect(filter).toBeFocused();
-      await expect(page.getByRole('navigation', { name: 'Files', exact: true })).toHaveCount(1);
+      await expect(tabbableRow).toBeFocused();
+      await expect(page.getByRole('navigation', { name: 'Changed files', exact: true })).toHaveCount(1);
       await expect(page.locator('.workbench-shell')).toHaveAttribute('inert', '');
       expect(await page.locator('.workbench-shell__main').evaluate((main) => (
         [...main.querySelectorAll('input, textarea, select')]
@@ -1115,7 +1113,7 @@ test('responsive keyboard and accessibility contract', async ({
       await files.focus();
       await page.keyboard.press('Enter');
       try {
-        await expect(changedFiles.getByRole('searchbox', { name: 'Filter files', exact: true })).toBeFocused();
+        await expect(changedFiles.locator('[role="treeitem"][tabindex="0"], [role="option"][tabindex="0"]')).toBeFocused();
         await page.getByRole('button', { name: 'Close files', exact: true }).click();
       } finally {
         await cdp.detach();
@@ -1129,7 +1127,7 @@ test('responsive keyboard and accessibility contract', async ({
       await page.keyboard.press('Enter');
       try {
         await expect(changedFiles).toBeVisible();
-        await expect(changedFiles.getByRole('searchbox', { name: 'Filter files', exact: true })).toBeFocused();
+        await expect(changedFiles.locator('[role="treeitem"][tabindex="0"], [role="option"][tabindex="0"]')).toBeFocused();
         await page.getByRole('button', { name: 'Close files', exact: true }).click();
         await expect(files).toBeFocused();
       } finally {
@@ -1361,7 +1359,7 @@ test('responsive keyboard and accessibility contract', async ({
       await page.setViewportSize({ width: 320, height: 640 });
       await expect(page.getByRole('button', { name: 'Open files', exact: true })).toBeVisible();
       await page.getByRole('button', { name: 'Open files', exact: true }).click();
-      await expect(page.getByRole('tree', { name: /Files/ })).toBeVisible();
+      await expect(page.getByRole('tree', { name: /Changed files/ })).toBeVisible();
       await page.getByRole('button', { name: 'Close files' }).click();
     });
 

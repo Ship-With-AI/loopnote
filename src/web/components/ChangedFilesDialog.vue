@@ -16,10 +16,12 @@ const props = withDefaults(
     readonly openCommentCounts?: ReadonlyMap<string, number>;
     readonly lineCounts?: 'always' | 'hover' | 'never';
     readonly commentBadgesEnabled?: boolean;
+    readonly viewMode?: 'tree' | 'list';
   }>(),
   {
     lineCounts: 'hover',
     commentBadgesEnabled: true,
+    viewMode: 'tree',
   },
 );
 
@@ -27,6 +29,7 @@ const emit = defineEmits<{
   activate: [fileId: string];
   close: [];
   select: [fileId: string];
+  'update:view-mode': [mode: 'tree' | 'list'];
 }>();
 </script>
 
@@ -35,7 +38,7 @@ const emit = defineEmits<{
     :open="open"
     :keep-mounted="true"
     :restore-focus="restoreFocus"
-    initial-focus-selector="#file-tree-filter"
+    initial-focus-selector='[role="treeitem"][tabindex="0"], [role="option"][tabindex="0"]'
     title="Files"
     close-label="Close"
     close-aria-label="Close files"
@@ -52,8 +55,10 @@ const emit = defineEmits<{
       :open-comment-counts="openCommentCounts"
       :line-counts="lineCounts"
       :comment-badges-enabled="commentBadgesEnabled"
+      :view-mode="viewMode"
       @select="emit('select', $event)"
       @activate="emit('activate', $event)"
+      @update:view-mode="emit('update:view-mode', $event)"
     />
     <section v-else class="empty-files-pane">
       <h2>{{ emptyHeading }}</h2>
