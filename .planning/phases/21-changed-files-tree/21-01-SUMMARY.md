@@ -133,6 +133,9 @@ Confirmed via `git log`: for all three tasks, each `test(21-01): ...` RED commit
 - `ae5fabc` (test) → `d54b1a9` (feat) — Task 2
 - `870d912` (test) → `d75db03` (feat) — Task 3
 
+## Self-Check: PASSED
+All 6 task commit hashes (07d5a06, 4e151dd, ae5fabc, d54b1a9, 870d912, d75db03) confirmed present via `git log --oneline --all`; `.planning/phases/21-changed-files-tree/21-01-SUMMARY.md` confirmed present on disk.
+
 ---
 *Phase: 21-changed-files-tree*
 *Completed: 2026-11-05*
