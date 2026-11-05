@@ -934,6 +934,7 @@ input:-webkit-autofill:focus {
 
 .file-tree-pane__top {
   display: flex;
+  grid-row: 1;
   min-width: 0;
   height: var(--view-header-height);
   align-items: center;
@@ -1278,6 +1279,7 @@ input:-webkit-autofill:focus {
 
 .filter {
   display: flex;
+  grid-row: 2;
   align-items: center;
   gap: var(--space-2);
   height: 24px;
@@ -1327,6 +1329,7 @@ input:-webkit-autofill:focus {
 
 .file-tree-pane__scroller {
   min-height: 0;
+  grid-row: 3;
   padding: var(--space-2);
   padding-bottom: var(--space-4);
   overflow-y: auto;
@@ -1362,6 +1365,7 @@ input:-webkit-autofill:focus {
 
 .tree-footer {
   margin: 0;
+  grid-row: 4;
   padding: var(--space-2) 18px;
   border-top: var(--border-width-default) solid var(--border-default);
   color: var(--text-muted);
