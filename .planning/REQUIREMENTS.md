@@ -63,9 +63,9 @@
 - [x] **THREAD-04**: Reviewer can edit a comment's text inline, saving with ⌘Enter / Ctrl+Enter and cancelling with Esc.
 - [ ] **THREAD-05**: Reviewer sees open threads expanded and resolved threads collapsed to a one-line snippet by default, and can collapse or expand one thread or all threads in the current file, with the choice kept for the session.
 - [x] **THREAD-06**: Reviewer can add a comment by hovering a line number, clicking `+`, typing, and pressing ⌘Enter / Ctrl+Enter; durable anchors, including Markdown block ranges, stay byte-identical to the current model.
-- [ ] **THREAD-07**: Reviewer can jump to the next or previous thread across files in tree order; the target file opens and the thread scrolls into view.
+- [x] **THREAD-07**: Reviewer can jump to the next or previous thread across files in tree order; the target file opens and the thread scrolls into view.
 - [x] **THREAD-08**: Reviewer's threads keep their position, expanded state, and any in-progress edit text through draft reconciliation and snapshot Refresh.
-- [ ] **THREAD-09**: Reviewer sees previous/next-thread and collapse-all-threads icon actions in the editor title, and can use ⌥F9 / ⇧⌥F9 both inside and outside the diff editor.
+- [x] **THREAD-09**: Reviewer sees previous/next-thread and collapse-all-threads icon actions in the editor title, and can use ⌥F9 / ⇧⌥F9 both inside and outside the diff editor.
 
 ### Review Panel & Export
 
@@ -147,9 +147,9 @@ Deferred, tracked but not in the v2.1 roadmap.
 | THREAD-04 | Phase 23 | Complete |
 | THREAD-05 | Phase 23 | Pending |
 | THREAD-06 | Phase 23 | Complete |
-| THREAD-07 | Phase 23 | Pending |
+| THREAD-07 | Phase 23 | Complete |
 | THREAD-08 | Phase 23 | Complete |
-| THREAD-09 | Phase 23 | Pending |
+| THREAD-09 | Phase 23 | Complete |
 | PANEL-01 | Phase 24 | Pending |
 | PANEL-02 | Phase 24 | Pending |
 | PANEL-03 | Phase 24 | Pending |
