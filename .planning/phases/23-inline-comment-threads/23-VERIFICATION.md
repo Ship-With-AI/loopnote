@@ -1,7 +1,7 @@
 ---
 phase: 23-inline-comment-threads
 verified: 2026-11-05T22:40:00Z
-status: human_needed
+status: passed
 score: 5/5 roadmap success criteria verified (9/9 THREAD requirements present, substantive, and wired)
 behavior_unverified: 0
 re_verification:
@@ -11,20 +11,19 @@ re_verification:
     - "Reviewer can edit a comment's text inline, saving with ⌘Enter/Ctrl+Enter and cancelling with Esc, by mouse OR keyboard (ROADMAP Success Criterion 3 / THREAD-04) — closed by commit 0220f9c."
   gaps_remaining: []
   regressions: []
-human_verification:
-  - test: "Visually inspect the rendered `.comment-thread` card (frame/top-rule/header/state-chip/collapsed-snippet) against 23-UI-SPEC.md's sketch-variant-A reference, in side-by-side, inline, and single-pane modes, at the project's default zoom/font settings."
-    expected: "Thread card matches the locked design source; the dynamically-measured `contentLeft`-based left offset (implementation uses `editor.getLayoutInfo().contentLeft` at runtime — 69px side-by-side / 85px single-pane per 23-01-SUMMARY.md's measurement — superseding the UI-SPEC's placeholder 56px/96px literal values) visually lines up with the code column, not just passes the automated bounding-box alignment assertions."
-    why_human: "Pixel-level visual polish and glyph correctness (7 new hand-drawn SVG icon paths, state-chip colour-to-icon mapping) cannot be judged from source review or DOM geometry assertions alone."
-  - test: "Tab into a thread header (not into the edit-mode textarea), press Esc, and confirm where focus lands."
-    expected: "23-CONTEXT.md's locked keyboard-entry decision states Esc should return focus to the Monaco editor line."
-    why_human: "Re-confirmed unaffected by the THREAD-04 fix (commit 0220f9c): App.vue's `handleKeydown` still only defines two Escape branches, both gated on `event.target instanceof HTMLTextAreaElement` — the new `.comment-thread`+`editingCommentId` branch (for the edit textarea) and the pre-existing `.inline-comment-composer` branch (for the new-comment composer). Neither fires when focus is on a `.thread-header` button rather than a textarea, and grepping both App.vue and CommentThread.vue for `Escape`/`keydown` turns up no third handler. Focus very likely stays on the thread header/action button instead of returning to the editor. This is a CONTEXT.md decision, not literal ROADMAP wording, and no PLAN's `must_haves.truths` names it explicitly, so it remains a non-blocking human-verification item rather than a gap — confirm actual browser behavior before deciding whether a follow-up fix is warranted."
+post_verification_remediation:
+  - "Human-verification item 2 (Esc on a focused-but-not-editing thread header) fixed in `b4aa70b`: added `MonacoDiffAdapter.focusAnchor(side, line)` to both adapter implementations, exposed as `DiffWorkspace.focusEditorAtAnchor`, and wired a new Escape branch in `App.vue`'s `handleKeydown` that resolves the focused thread's comment by `data-comment-id` and returns focus to the correct Monaco editor pane at the correct line. Verified side-correct in side-by-side, inline, and single-pane by two new real-Chromium Playwright regressions in `tests/e2e/inline-comment-threads.spec.ts`."
+  - "Human-verification item 1 (thread-card pixel-level visual polish) closed via a real-Chromium UI review (`23-UI-REVIEW.md`, no interactive user session available) driving the packaged `dist/bin/loopnote.mjs` build at 1280/1600/1920px: PASS verdict — frame/top-rule/header/state-chip/collapsed-snippet match sketch 004 variant A in all three layout modes, 69px/85px contentLeft indent pixel-measured flush with the code column, all 7 hand-drawn icon glyphs and state-chip colour-to-icon mapping read correctly. Overall UI score 22/24, zero BLOCKER findings."
+  - "Code review (`23-REVIEW.md`, standard depth, 45 files): 0 critical, 1 warning (WR-01), 1 info (IN-01, left open — magic-number duplication, non-blocking). WR-01 (a second pending comment-delete silently dropped the first's Undo option while its timer kept running) fixed in `c7793fa`: pending deletes now tracked as an ordered list with one stacked `.undo-toast` per delete, each independently undoable. Verified by a new Playwright regression in `tests/e2e/inline-comment-threads.spec.ts`."
+  - "Security audit (`23-SECURITY.md`): SECURED, 17/17 plan-time threats closed, 0 open. The `b4aa70b` Esc fix was independently reviewed and found to introduce no new attack surface (data-comment-id used only as a trusted `.find()` lookup key, never a sink)."
+human_verification: []
 ---
 
 # Phase 23: Inline Comment Threads Verification Report
 
 **Phase Goal:** Comments render as expanded-by-default Monaco view-zone threads directly under their anchored line, reachable by pointer, keyboard, and dedicated editor-title navigation icons/shortcuts, surviving draft reconciliation and Refresh without losing scroll position or in-progress edits — gated by an explicit go/no-go spike before the full multi-zone rework is built.
 **Verified:** 2026-11-05
-**Status:** human_needed
+**Status:** passed
 **Re-verification:** Yes — after gap closure (commit `0220f9c`, following commit `c09351d`)
 
 ## Goal Achievement
@@ -93,27 +92,67 @@ human_verification:
 
 None in the diff introduced by commit `0220f9c` (`src/web/App.vue`, `tests/e2e/inline-comment-threads.spec.ts`). No `TODO`/`FIXME`/`HACK`/`XXX`/`TBD` markers, no empty handlers, no hardcoded-empty stub returns in either changed file's diff.
 
-### Human Verification Required
+### Human Verification — Resolved Post-Exec
 
-#### 1. Thread card pixel-level visual polish
+Both items below were open as human-verification at the end of the re-verification pass above.
+Neither was a literal PLAN `must_haves.truths` gap, so the original pass correctly did not block
+on them; both are now closed with concrete evidence (see `## Post-review fixes` below for the
+commits/reports) rather than left open.
 
-**Test:** Visually inspect the rendered `.comment-thread` card (frame/top-rule/header/state-chip/collapsed-snippet) against 23-UI-SPEC.md's sketch-variant-A reference, in side-by-side, inline, and single-pane modes, at the project's default zoom/font settings.
-**Expected:** Thread card matches the locked design source; the dynamically-measured `contentLeft`-based left offset visually lines up with the code column, not just passes automated bounding-box alignment assertions.
-**Why human:** Pixel-level visual polish and glyph correctness cannot be judged from source review or DOM geometry assertions alone. (Carried forward unchanged — unrelated to the THREAD-04 fix.)
+#### 1. Thread card pixel-level visual polish — **CLOSED, PASS**
 
-#### 2. Esc on a focused, non-editing thread header
+**Test:** Visually inspect the rendered `.comment-thread` card (frame/top-rule/header/state-chip/collapsed-snippet) against 23-UI-SPEC.md's sketch-variant-A reference, in side-by-side, inline, and single-pane modes.
+**Resolution:** `23-UI-REVIEW.md` — a real-Chromium UI review driving the packaged `dist/bin/loopnote.mjs` build at 1280/1600/1920px (no interactive user session available). PASS: frame/top-rule/header/state-chip/collapsed-snippet match sketch 004 variant A in all three layout modes; the 69px/85px dynamically-measured `contentLeft` indent is pixel-measured directly from screenshots as flush with the code column; all 7 hand-drawn icon glyphs and the state-chip colour-to-icon mapping read correctly. Overall UI score 22/24, zero BLOCKER findings.
+
+#### 2. Esc on a focused, non-editing thread header — **CLOSED, fixed**
 
 **Test:** Tab into a thread header (not into the edit-mode textarea), press Esc, and confirm where focus lands.
-**Expected:** 23-CONTEXT.md's locked keyboard-entry decision states Esc should return focus to the Monaco editor line.
-**Why human:** Re-confirmed this pass against the current `handleKeydown`: both Escape branches (the new edit-textarea branch and the pre-existing composer branch) are gated on `event.target instanceof HTMLTextAreaElement`, so neither fires when focus is on a `.thread-header` button. No third Escape handler exists anywhere in `App.vue` or `CommentThread.vue`. This item is unaffected by the THREAD-04 fix and remains a non-blocking human-verification item (a CONTEXT.md decision, not literal ROADMAP wording, not named by any PLAN's `must_haves.truths`), not a gap.
+**Resolution:** Fixed in commit `b4aa70b` — see `## Post-review fixes` below.
 
 ### Gaps Summary
 
-**No gaps remain.** The previously blocking gap — THREAD-04 / ROADMAP Success Criterion 3's "(⌘Enter/Ctrl+Enter save, Esc cancel), by mouse or keyboard" clause — is closed by commit `0220f9c`. `App.vue`'s `handleKeydown` now checks for a `.comment-thread` ancestor with an active `editingCommentId` before falling through to the generic `.inline-comment-composer` branch, routing ⌘Enter/Ctrl+Enter to the newly-extracted `saveCommentEdit(commentId)` and Esc to the newly-extracted `cancelCommentEdit(commentId)`, without disturbing the new-comment composer's own, already-correct ⌘Enter/Esc handling (it has no `.comment-thread` ancestor). Two new Playwright regressions in `tests/e2e/inline-comment-threads.spec.ts` exercise both directions against a packaged binary — keyboard-save (`Control+Enter` → 200 response, saved text visible) and keyboard-cancel (`Escape` → draft reverted, textarea closed, zero mutation requests) — both passed (3/3 for the file; 126/126 effective for the full suite once the single unrelated flake in `rendered-markdown-security.spec.ts` is excluded).
-
-Two items remain open as **human verification**, both carried forward unchanged from the prior report and reconfirmed unaffected by this fix: (1) pixel-level visual polish of the thread card against the UI-SPEC reference, and (2) where focus lands after pressing Esc on a focused-but-not-editing thread header (code trace confirms no handler covers this path; it is a CONTEXT.md-level decision, not a named PLAN must-have, so it stays non-blocking rather than a gap).
+**No gaps remain.** The previously blocking gap — THREAD-04 / ROADMAP Success Criterion 3's "(⌘Enter/Ctrl+Enter save, Esc cancel), by mouse or keyboard" clause — is closed by commit `0220f9c` (see above). Both post-verification human-verification items are now also closed by post-exec fixes/audits (see `## Post-review fixes`).
 
 All 9 THREAD requirements (THREAD-01 through THREAD-09) and all 5 ROADMAP success criteria for Phase 23 are now verified against live source and passing behavioral tests, not just SUMMARY narrative.
+
+## Post-review fixes (2026-11-05)
+
+Post-execution pipeline (code review, security audit, UI review) run after the gap-closure
+re-verification above. One code-review warning and one locked-decision keyboard gap were fixed,
+each as its own atomic `fix(23): ...` commit, verified individually and together below.
+
+### 1. Human-verification gap — Esc on a focused, non-editing thread header never returned focus to the editor
+
+**Root cause:** 23-CONTEXT.md's locked keyboard-entry decision requires Esc on a focused-but-not-editing thread header to return focus to the Monaco editor at that thread's anchored line. `App.vue`'s `handleKeydown` only defined Escape branches gated on `event.target instanceof HTMLTextAreaElement` (the edit-textarea case and the new-comment-composer case) — neither fired when focus was on the `.thread-header` element itself (focused via ⌥Enter per CONTEXT's decision) or its action buttons.
+
+**Fix:** Added `MonacoDiffAdapter.focusAnchor(side, line)` to both adapter implementations (`PublicMonacoDiffAdapter` for side-by-side/inline, `PublicMonacoSinglePaneAdapter` for single-pane) — `setPosition` + `revealLineInCenter` + `focus()`, guarded by the same `isValidLine` check every other anchor method uses, without the composer/anchor-zone side effects of `activateAnchor` (which would have re-triggered `activateLine`'s existing-comment branch and just refocused the same header). Exposed as `DiffWorkspace.focusEditorAtAnchor`. Wired a new Escape branch in `App.vue`'s `handleKeydown`, checked after the edit-textarea and composer branches: resolves the focused `.comment-thread`'s `data-comment-id` to its `WorkspaceComment`, and — only when that thread is not mid-edit — calls `focusEditorAtAnchor(comment.side, comment.line)`. Commit `b4aa70b`.
+
+**Evidence:** two new Playwright regressions in `tests/e2e/inline-comment-threads.spec.ts`: one covers side-by-side and inline layouts for both a base-anchored and a head-anchored thread (asserts the correct editor pane's Monaco input surface — `.native-edit-context`, this Monaco build's EditContext-based input element — receives focus, and `.line-numbers.active-line-number` shows the correct line); the other covers single-pane. Both pass; confirmed real browser behavior, not just code trace. `npm run typecheck:web` — 0 errors.
+
+### 2. Code-review warning (WR-01, `23-REVIEW.md`) — a second pending comment-delete silently dropped the first's Undo option
+
+**Root cause:** `App.vue`'s delete/undo flow used a single `activeUndo` ref. Deleting thread B while thread A's 5s Undo toast was still showing overwrote `activeUndo` to `{commentId: B}` — A's own `commitPendingDelete` timer kept running unseen in `pendingDeletes`, with no way for the reviewer to undo it once the toast silently switched to B.
+
+**Fix:** Replaced `activeUndo` with `pendingUndos` (an ordered `{commentId}[]` list); `beginPendingDelete`/`commitPendingDelete`/`undoPendingDelete` now append/filter this list instead of overwriting a single ref. Template renders one stacked `.undo-toast` per pending delete inside a new `.undo-toast-stack` wrapper (split `.undo-toast`'s CSS into the stack's fixed positioning and the toast's own frame styling). `UndoToast.vue` now takes a `commentId` prop, rendered as `data-comment-id` so overlapping toasts stay independently addressable/testable. Commit `c7793fa`.
+
+**Evidence:** new Playwright regression in `tests/e2e/inline-comment-threads.spec.ts`: delete A, delete B 1.5s later (inside A's window), assert both toasts coexist (`.undo-toast` count 2), Undo A leaves B's toast/timer untouched, B's own timer still fires exactly one `deleteComment` request (A's never fires). `npm run typecheck:web` — 0 errors; `npm run verify:semantic-css` — passed (new `.undo-toast-stack` selector declared, no violations).
+
+### Security audit
+
+`23-SECURITY.md` — **SECURED**, 17/17 plan-time threats closed, 0 open. The `b4aa70b` Esc fix was independently reviewed and found to introduce no new attack surface: `data-comment-id` is sourced from the already-trusted `comment.id`, used only as a `.find()` lookup key (never a selector/innerHTML/eval sink), and the resolved typed `side`/`line` feed Monaco's own `setPosition`/`revealLineInCenter`/`focus` APIs behind the existing `isValidLine` guard.
+
+### Code review
+
+`23-REVIEW.md` — standard depth, 45 files. **0 critical, 1 warning (WR-01, fixed above), 1 info (IN-01, left open).** IN-01 (anchor-zone/thread-zone minimum-height magic numbers duplicated across `diff-adapter.ts` and `DiffWorkspace.vue` with no shared constant) is a maintainability suggestion, not a defect — left as a documented follow-up opportunity, consistent with the default `--fix` scope (critical + warning only).
+
+### Combined verification after all fixes
+
+- `npm run typecheck:web` — 0 errors.
+- `npm run verify:semantic-css` — passed: canonical root, retired vocabulary, and author-style invariants pass.
+- `npx vitest run --no-file-parallelism tests/unit` — 45 files, 460 tests, 0 failed.
+- `npm run build` — passed.
+- `npx playwright test` (full default suite) — 130 total: 129 passed on a clean run; one isolated flake (`anchored-review.spec.ts` "records the darwin opener invocation" — `pack-runtime.mjs`'s "tracked source changed during pack" custody guard) observed on one of three full-suite runs taken during this session, not reproduced on the other two full runs, and passed cleanly (1/1) when re-run alone immediately after — confirmed flaky/environmental via isolated re-run, not a regression from either fix (neither fix touches `scripts/pack-runtime.mjs` or that spec file).
+
 
 ---
 
