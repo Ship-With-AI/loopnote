@@ -29,7 +29,7 @@ function pathBytes(identity: string): Uint8Array {
   return Uint8Array.from(decoded, (character) => character.charCodeAt(0));
 }
 
-function orderPathIdentity(left: string, right: string): number {
+export function orderPathIdentity(left: string, right: string): number {
   const leftBytes = pathBytes(left);
   const rightBytes = pathBytes(right);
   const length = Math.min(leftBytes.length, rightBytes.length);
@@ -40,7 +40,7 @@ function orderPathIdentity(left: string, right: string): number {
   return leftBytes.length - rightBytes.length;
 }
 
-function orderText(left: string, right: string): number {
+export function orderText(left: string, right: string): number {
   const sharedLength = Math.min(left.length, right.length);
   for (let index = 0; index < sharedLength; index += 1) {
     const difference = left.charCodeAt(index) - right.charCodeAt(index);
