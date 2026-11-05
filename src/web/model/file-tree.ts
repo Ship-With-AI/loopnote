@@ -1,3 +1,4 @@
+import type { ChangedFileStatusKind } from '../../contracts/comparison.js';
 import type { SessionFile } from '../../contracts/api.js';
 import {
   buildFileTree,
@@ -36,6 +37,7 @@ export interface FileTreeModel {
   readonly expandedDirectoryIds: readonly string[];
   readonly effectiveExpandedDirectoryIds: ReadonlySet<string>;
   readonly directoryDescendantCounts: ReadonlyMap<string, number>;
+  readonly statusPriorityByDirectoryId: ReadonlyMap<string, ChangedFileStatusKind>;
   readonly focusedRowId: string | null;
   readonly selectedFileId: string | null;
   readonly query: string;
@@ -111,6 +113,43 @@ function countDirectoryDescendants(
     }
   }
   return total;
+}
+
+const STATUS_PRIORITY_ORDER: readonly ChangedFileStatusKind[] = Object.freeze([
+  'modified',
+  'deleted',
+  'added',
+  'renamed',
+  'copied',
+  'type-changed',
+  'unsupported',
+]);
+
+function collectDirectoryStatusPriority(
+  nodes: readonly FileTreeNode[],
+  priorities: Map<string, ChangedFileStatusKind>,
+): ChangedFileStatusKind | undefined {
+  let best: ChangedFileStatusKind | undefined;
+  for (const node of nodes) {
+    let candidate: ChangedFileStatusKind | undefined;
+    if (node.kind === 'file') {
+      candidate = node.file.status.kind;
+    } else {
+      candidate = collectDirectoryStatusPriority(node.children, priorities);
+      if (candidate !== undefined) {
+        priorities.set(node.directoryId, candidate);
+      }
+    }
+    if (
+      candidate !== undefined &&
+      (best === undefined ||
+        STATUS_PRIORITY_ORDER.indexOf(candidate) <
+          STATUS_PRIORITY_ORDER.indexOf(best))
+    ) {
+      best = candidate;
+    }
+  }
+  return best;
 }
 
 function flattenVisibleRows(
@@ -213,6 +252,8 @@ function createModel(
         );
   const directoryDescendantCounts = new Map<string, number>();
   countDirectoryDescendants(projectedTree, directoryDescendantCounts);
+  const statusPriorityByDirectoryId = new Map<string, ChangedFileStatusKind>();
+  collectDirectoryStatusPriority(projectedTree, statusPriorityByDirectoryId);
   const effectiveExpanded = new Set(expandedDirectoryIds);
   if (needle !== '') {
     for (const directoryId of survivingDirectoryIds) {
@@ -452,6 +493,7 @@ function createModel(
     expandedDirectoryIds,
     effectiveExpandedDirectoryIds: effectiveExpanded,
     directoryDescendantCounts,
+    statusPriorityByDirectoryId,
     focusedRowId,
     selectedFileId,
     query,
