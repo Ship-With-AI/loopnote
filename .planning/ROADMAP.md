@@ -179,7 +179,20 @@ Plans:
   4. Reviewer sees the snapshot ID and open-comment count (stale count in warning ink) in the status bar, where clicking the counts opens the Comments tab, and sees exactly one emphasized status-bar item — Export, or Finish review in agent-attached sessions — that opens the Export tab.
   5. Reviewer can open the voluntary-support dialog from a plain, non-emphasized status-bar item, and support never gates any review action.
 
-**Plans**: TBD
+**Plans**: 0/4 plans executed
+**Wave 1**
+
+- [ ] 22-01-PLAN.md
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 22-02-PLAN.md
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 22-03-PLAN.md
+- [ ] 22-04-PLAN.md
+
 **UI hint**: yes
 
 ### Phase 23: Inline Comment Threads
@@ -195,13 +208,36 @@ Plans:
   4. Reviewer sees open threads expanded and resolved threads collapsed to a one-line snippet by default, and can collapse or expand one thread or every thread in the current file, with the choice kept for the session.
   5. Reviewer sees previous/next-thread and collapse-all-threads icon actions in the editor title and can use ⌥F9/⇧⌥F9 both inside and outside the diff editor to jump across files in tree order; comments can be added from the gutter `+`, and threads keep their position, expanded state, and any in-progress edit text through draft reconciliation and snapshot Refresh, with durable anchors (including Markdown block ranges) staying byte-identical to the current model.
 
-**Plans**: TBD
+**Plans**: 0/8 plans executed
+**Wave 1**
+
+- [ ] 23-01-PLAN.md
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 23-02-PLAN.md
+- [ ] 23-03-PLAN.md
+- [ ] 23-04-PLAN.md
+- [ ] 23-06-PLAN.md
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 23-05-PLAN.md
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 23-07-PLAN.md
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
+- [ ] 23-08-PLAN.md
+
 **UI hint**: yes
 
 ### Phase 24: Bottom Panel & Export
 
 **Goal**: Comments, the overall summary, and export live in a ⌘J bottom panel that stays closed while reading, relocating already-shipped summary/export components and giving agent-attached sessions their Finish action behind the unchanged export-readiness gate.
-**Depends on**: Phase 20, Phase 23
+**Depends on**: Phase 20, Phase 22, Phase 23
 **Requirements**: PANEL-01, PANEL-02, PANEL-03, PANEL-04, PANEL-05
 **Success Criteria** (what must be TRUE):
 
@@ -210,7 +246,33 @@ Plans:
   3. Reviewer sees an Export tab readiness checklist (open and resolved counts, summary state) that stays disabled until any comment with a moved anchor is acknowledged, and sees the post-export receipt (`review.md`/`review.json` paths, copy actions, "Copy agent prompt").
   4. Reviewer in an agent-attached session can Finish review from the Export tab behind the same readiness/acknowledgement gate, and the agent still receives an unchanged canonical result.
 
-**Plans**: TBD
+**Plans**: 0/11 plans executed
+**Wave 1**
+
+- [ ] 24-01-PLAN.md
+- [ ] 24-02-PLAN.md
+- [ ] 24-03-PLAN.md
+- [ ] 24-04-PLAN.md
+- [ ] 24-05-PLAN.md
+- [ ] 24-06-PLAN.md
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 24-07-PLAN.md
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 24-08-PLAN.md
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 24-09-PLAN.md
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
+- [ ] 24-10-PLAN.md
+- [ ] 24-11-PLAN.md
+
 **UI hint**: yes
 
 ### Phase 25: Accessibility, Design Docs & Regression Sweep
@@ -242,9 +304,9 @@ Plans:
 | 19. Typecheck Foundation | v2.1 | 4/4 | Complete    | 2026-11-04 |
 | 20. Shell Frame | v2.1 | 10/10 | Complete    | 2026-11-04 |
 | 21. Changed-Files Tree | v2.1 | 4/4 | Complete    | 2026-11-05 |
-| 22. Identity & Status Bar | v2.1 | 0/TBD | Not started | - |
-| 23. Inline Comment Threads | v2.1 | 0/TBD | Not started | - |
-| 24. Bottom Panel & Export | v2.1 | 0/TBD | Not started | - |
+| 22. Identity & Status Bar | v2.1 | 0/4 | Planned    |  |
+| 23. Inline Comment Threads | v2.1 | 0/8 | Planned    |  |
+| 24. Bottom Panel & Export | v2.1 | 0/11 | Planned    |  |
 | 25. Accessibility, Design Docs & Regression Sweep | v2.1 | 0/TBD | Not started | - |
 
 ## Backlog
