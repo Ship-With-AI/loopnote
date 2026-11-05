@@ -27,6 +27,7 @@ import {
   type GitFixture,
 } from '../helpers/git-fixture.js';
 import { RENAME_MAP } from '../../src/domain/product-identity.js';
+import { PANEL_STATE_STORAGE_KEY } from '../../src/web/model/panel-state.js';
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
@@ -630,6 +631,87 @@ test('packaged file tree filters and recovers without changing the open file', a
     await listToggle.click();
     await expect(tree).toBeVisible();
     await expect.poll(() => browserErrors).toEqual([]);
+  } finally {
+    await stopGeneratedCli(running);
+    await repository.cleanup();
+  }
+});
+
+test('packaged file tree view-options menu persists line-count mode and comment-badge toggle', async ({
+  browser,
+  page,
+}, testInfo) => {
+  assertChromiumPrerequisite(browser, testInfo);
+  const repository = await createFileTreeFixture();
+  const running = startGeneratedCli(repository);
+  try {
+    await page.goto(await waitForLoopbackUrl(running));
+
+    const navigation = page.getByRole('navigation', { name: 'Changed files' });
+    const tree = navigation.getByRole('tree', { name: 'Changed files' });
+    await expect(tree).toBeVisible();
+
+    const trackedRow = tree.getByRole('treeitem', { name: /tracked\.txt/i });
+    await trackedRow.click();
+
+    // Add a real comment through the app's own composer (not a raw API
+    // call) so the badge reflects normal client state, with no page reload
+    // required — reloading this packaged session is out of scope here: the
+    // boot script strips the one-time auth token from the URL via
+    // `history.replaceState` once read (src/web/api/client.ts:126), so a
+    // real reload is covered only by this plan's manual cross-check, not an
+    // automated assertion.
+    const editorSurface = page
+      .locator('.monaco-diff-editor .editor.modified .monaco-scrollable-element.editor-scrollable')
+      .first();
+    await editorSurface.hover({ position: { x: 16, y: 16 } });
+    const affordance = page.locator('.diff-workspace__gutter-action[data-anchor-side="head"]');
+    await expect(affordance).toBeVisible();
+    await affordance.click();
+    await page.locator('.monaco-anchor-zone--composer textarea').fill('seed comment for badge test');
+    const accepted = page.waitForResponse((response) => response.url().includes('/api/draft/mutations'));
+    await page.locator('.monaco-anchor-zone--composer button').filter({ hasText: 'Add comment' }).click();
+    expect((await accepted).status()).toBe(201);
+
+    // Select a different row so tracked.txt stays neither selected nor
+    // hovered below — otherwise its line-counts would already render at
+    // full opacity under the default hover-or-selected mode, masking
+    // whether "Always" mode is actually what made it visible.
+    await tree.getByRole('treeitem', { name: /copy-target\.ts/i }).click();
+    await expect(trackedRow.locator('.cbadge')).toBeVisible();
+
+    const viewOptionsButton = navigation.getByRole('button', { name: 'View options' });
+    const menu = page.getByRole('menu', { name: 'View options' });
+    await expect(menu).toBeHidden();
+    await viewOptionsButton.click();
+    await expect(menu).toBeVisible();
+
+    const alwaysOption = menu.getByRole('menuitemradio', { name: 'Always' });
+    await alwaysOption.click();
+    await expect(alwaysOption).toHaveAttribute('aria-checked', 'true');
+    await expect(menu).toBeVisible();
+    await expect(trackedRow.locator('.line-counts')).toHaveCSS('opacity', '1');
+
+    const badgesCheckbox = menu.getByRole('menuitemcheckbox', { name: 'Open comment badges' });
+    await badgesCheckbox.click();
+    await expect(badgesCheckbox).toHaveAttribute('aria-checked', 'false');
+    await expect(trackedRow.locator('.cbadge')).toHaveCount(0);
+
+    await page.keyboard.press('Escape');
+    await expect(menu).toBeHidden();
+    await expect(viewOptionsButton).toBeFocused();
+
+    // Both selections round-tripped through `panelState.persist()` into the
+    // same versioned localStorage key Phase 20 already established.
+    const persisted = await page.evaluate(
+      (key) => localStorage.getItem(key),
+      PANEL_STATE_STORAGE_KEY,
+    );
+    expect(persisted).not.toBeNull();
+    expect(JSON.parse(persisted!)).toMatchObject({
+      treeLineCounts: 'always',
+      treeCommentBadges: false,
+    });
   } finally {
     await stopGeneratedCli(running);
     await repository.cleanup();

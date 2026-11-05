@@ -11,6 +11,7 @@ import {
 import DirectoryRow from './DirectoryRow.vue';
 import FileRow from './FileRow.vue';
 import UiIcon from './ui/UiIcon.vue';
+import ViewOptionsMenu from './ViewOptionsMenu.vue';
 
 const FILE_ROW_PREFIX = 'file:';
 
@@ -40,12 +41,16 @@ const emit = defineEmits<{
   activate: [fileId: string];
   select: [fileId: string];
   'update:view-mode': [mode: 'tree' | 'list'];
+  'update:line-counts': [mode: 'always' | 'hover' | 'never'];
+  'update:comment-badges': [enabled: boolean];
 }>();
 
 const filterInput = ref<HTMLInputElement>();
 const treeElement = ref<HTMLElement>();
 const filterOpen = ref(false);
 const query = ref('');
+const viewOptionsOpen = ref(false);
+const viewOptionsButton = ref<HTMLButtonElement>();
 const model = shallowRef<FileTreeModel>(createFileTreeModel(props.files));
 
 const totals = computed(() => {
@@ -280,6 +285,19 @@ function toggleFilterOpen(): void {
   openFilter();
 }
 
+function focusViewOptionsButton(): void {
+  void nextTick(() => viewOptionsButton.value?.focus());
+}
+
+function closeViewOptions(): void {
+  viewOptionsOpen.value = false;
+  focusViewOptionsButton();
+}
+
+function toggleViewOptions(): void {
+  viewOptionsOpen.value = !viewOptionsOpen.value;
+}
+
 function handleFilterKeydown(event: KeyboardEvent): void {
   if (event.key === 'Escape') {
     event.preventDefault();
@@ -398,6 +416,27 @@ watch(
         <button type="button" class="icon-btn" aria-label="Collapse all" @click="collapseAll">
           <UiIcon name="collapse-all" />
         </button>
+        <div class="file-tree-pane__view-options">
+          <button
+            ref="viewOptionsButton"
+            type="button"
+            class="icon-btn"
+            aria-label="View options"
+            aria-haspopup="menu"
+            :aria-expanded="viewOptionsOpen"
+            @click="toggleViewOptions"
+          >
+            <UiIcon name="more" />
+          </button>
+          <ViewOptionsMenu
+            :open="viewOptionsOpen"
+            :line-counts="lineCounts"
+            :comment-badges-enabled="commentBadgesEnabled"
+            @update:line-counts="emit('update:line-counts', $event)"
+            @update:comment-badges="emit('update:comment-badges', $event)"
+            @close="closeViewOptions"
+          />
+        </div>
       </div>
     </div>
     <div class="filter" v-show="filterOpen">

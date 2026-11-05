@@ -57,7 +57,7 @@ import {
 import { singlePaneSideFor } from './model/single-pane-layout.js';
 import { controlSafeDisplay } from '../domain/path-bytes.js';
 import type { DraftMutationRequest } from '../contracts/api.js';
-import { createPanelState, type TreeViewMode } from './model/panel-state.js';
+import { createPanelState, type TreeLineCountsMode, type TreeViewMode } from './model/panel-state.js';
 
 type CanonicalReviewDraft = Readonly<{
   revision: number;
@@ -400,6 +400,16 @@ function commitPanelHeight(value: number): void {
 
 function toggleTreeViewMode(mode: TreeViewMode): void {
   panelState.treeViewMode.value = mode;
+  panelState.persist();
+}
+
+function toggleTreeLineCounts(mode: TreeLineCountsMode): void {
+  panelState.treeLineCounts.value = mode;
+  panelState.persist();
+}
+
+function toggleTreeCommentBadges(enabled: boolean): void {
+  panelState.treeCommentBadges.value = enabled;
   panelState.persist();
 }
 
@@ -1522,6 +1532,8 @@ onBeforeUnmount(() => {
       @select="selectFile"
       @activate="selectFile"
       @update:view-mode="toggleTreeViewMode"
+      @update:line-counts="toggleTreeLineCounts"
+      @update:comment-badges="toggleTreeCommentBadges"
     />
     <SupportDialog
       v-if="supportEnabled"

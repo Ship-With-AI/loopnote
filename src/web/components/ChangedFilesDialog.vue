@@ -30,6 +30,8 @@ const emit = defineEmits<{
   close: [];
   select: [fileId: string];
   'update:view-mode': [mode: 'tree' | 'list'];
+  'update:line-counts': [mode: 'always' | 'hover' | 'never'];
+  'update:comment-badges': [enabled: boolean];
 }>();
 </script>
 
@@ -59,6 +61,8 @@ const emit = defineEmits<{
       @select="emit('select', $event)"
       @activate="emit('activate', $event)"
       @update:view-mode="emit('update:view-mode', $event)"
+      @update:line-counts="emit('update:line-counts', $event)"
+      @update:comment-badges="emit('update:comment-badges', $event)"
     />
     <section v-else class="empty-files-pane">
       <h2>{{ emptyHeading }}</h2>
