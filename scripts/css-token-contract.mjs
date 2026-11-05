@@ -14,7 +14,7 @@ export const CANONICAL_TOKENS = [
   '--radius-control', '--radius-file-row', '--radius-overlay', '--radius-pill', '--radius-scrollbar', '--scrollbar-thumb', '--selected-rail-width',
   '--selection-background', '--selection-border', '--shadow-overlay', '--sidebar-width',
   '--sidebar-width-default', '--sidebar-width-max', '--sidebar-width-min', '--space-1', '--space-2', '--space-3', '--space-4',
-  '--space-5', '--space-6', '--space-8', '--status-added-background', '--status-added-border', '--status-added-foreground',
+  '--space-6', '--space-8', '--status-added-background', '--status-added-border', '--status-added-foreground',
   '--status-deleted-background', '--status-deleted-border', '--status-deleted-foreground', '--status-disabled-background',
   '--status-disabled-foreground', '--status-error-background', '--status-error-foreground', '--status-information-background',
   '--status-information-foreground', '--status-modified-background', '--status-modified-border', '--status-modified-foreground',

@@ -189,6 +189,13 @@ function isForcedColorsContext(context) {
   return context.some((item) => /^@media\s*\(\s*forced-colors\s*:\s*active\s*\)$/i.test(item));
 }
 
+const decorativeColorAllowlist = new Map([
+  // 21-UI-SPEC.md "## Filter (TREE-03)": documented decorative highlight overlay for
+  // filter-match <mark> text, locked to this exact selector/property/value — not a
+  // general direct-color bypass.
+  ['.file-tree-pane mark::background', 'rgb(210 153 34 / 35%)'],
+]);
+
 function assertDirectColorConfinement(source) {
   for (const rule of declarationRules(source)) {
     const isTokenRoot = rule.selector === ':root' && rule.context.length === 0;
@@ -198,6 +205,7 @@ function assertDirectColorConfinement(source) {
       const syntaxes = directColorSyntaxes(declaration.value);
       for (const syntax of syntaxes) {
         if (isTokenRoot || isNonPaletteColor(declaration.property, syntax)) continue;
+        if (decorativeColorAllowlist.get(`${rule.selector}::${declaration.property}`) === declaration.value) continue;
         if (inForcedColors && syntax.startsWith('system color ')
           && allowedForcedColorKeywords.has(syntax.slice('system color '.length).toLowerCase())) continue;
         fail(`direct ${syntax} outside the permitted token root or forced-colors repair in ${rule.selector}`);
