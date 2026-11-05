@@ -10,6 +10,7 @@ import {
 import { createExactPath, type ExactPath } from '../../src/domain/path-bytes.js';
 import {
   createFileTreeModel,
+  highlightMatches,
   type FileTreeModel,
   type VisibleFileTreeDirectory,
   type VisibleFileTreeRow,
@@ -887,6 +888,35 @@ describe('flatFileRows', () => {
     const toggled = model.toggleDirectory(dir.directoryId);
 
     expect(toggled.flatFileRows.map((fileRow) => fileRow.fileId)).toEqual(before);
+  });
+});
+
+describe('highlightMatches', () => {
+  it('returns a single unmatched segment for an empty query', () => {
+    expect(highlightMatches('tracked.txt', '')).toEqual([
+      { text: 'tracked.txt', matched: false },
+    ]);
+  });
+
+  it('matches case-insensitively at the start and preserves original casing', () => {
+    expect(highlightMatches('tracked.txt', 'track')).toEqual([
+      { text: 'track', matched: true },
+      { text: 'ed.txt', matched: false },
+    ]);
+  });
+
+  it('echoes the original casing of every match back to back with no gaps between them', () => {
+    expect(highlightMatches('abcABCabc', 'abc')).toEqual([
+      { text: 'abc', matched: true },
+      { text: 'ABC', matched: true },
+      { text: 'abc', matched: true },
+    ]);
+  });
+
+  it('returns a single unmatched segment when the query has no match', () => {
+    expect(highlightMatches('no-match-here.ts', 'zzz')).toEqual([
+      { text: 'no-match-here.ts', matched: false },
+    ]);
   });
 });
 
