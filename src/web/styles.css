@@ -2198,6 +2198,7 @@ h3.conversation-card__identity {
 
 .identity-popover__footer {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
