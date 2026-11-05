@@ -784,10 +784,12 @@ test('complete packaged Phase 1 ordering matrix', async ({ browser }, testInfo) 
           `BASE${matrixCase.selections.base.label} · ${expectedBase.slice(0, 7)}→HEAD${matrixCase.selections.head.label} · ${expectedHead.slice(0, 7)}`,
         );
         await expect(
-          page.getByRole('heading', { name: 'Files (3)' }),
+          page
+            .getByRole('navigation', { name: 'Changed files' })
+            .getByText(/^3 files? · \+\d+ −\d+$/),
         ).toBeVisible();
         await expect(
-          page.getByRole('tree', { name: 'Files' }),
+          page.getByRole('tree', { name: 'Changed files' }),
         ).toBeVisible();
 
         const firstFile = session.files[0]!;
