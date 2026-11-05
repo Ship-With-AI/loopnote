@@ -65,8 +65,11 @@ defineExpose({ focusSupport });
       <button
         type="button"
         class="statusbar__item"
+        :aria-label="staleSegment === undefined
+          ? `Comments: ${openSegment}`
+          : `Comments: ${openSegment}, ${staleSegment}`"
         @click="emit('openPanel')"
-      >💬 {{ openSegment }}<template v-if="staleSegment !== undefined"> · <span class="statusbar__stale">{{ staleSegment }}</span></template></button>
+      ><span aria-hidden="true">💬</span> {{ openSegment }}<template v-if="staleSegment !== undefined"> · <span class="statusbar__stale">{{ staleSegment }}</span></template></button>
       <button
         v-if="exportSupported"
         type="button"

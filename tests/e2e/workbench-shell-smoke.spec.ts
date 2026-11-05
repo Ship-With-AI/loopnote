@@ -230,7 +230,7 @@ test('committed branch/worktree: Base → Head identity, no Refresh, Export emph
     // pinned Head SHA (not a digest) in the status bar's left item; a fresh fixture
     // has zero comments.
     await expect(page.locator('.statusbar__left')).toContainText(expectedHead.slice(0, 7));
-    await expect(page.locator('.statusbar').getByRole('button', { name: '💬 0', exact: true })).toBeVisible();
+    await expect(page.locator('.statusbar').getByRole('button', { name: 'Comments: 0', exact: true })).toBeVisible();
 
     await page.close();
   } finally {
@@ -260,7 +260,7 @@ test('Staged/Unstaged/Working tree: Working-tree identity, Refresh present, Expo
     // 22-UI-SPEC Status Bar matrix (coverage addition): uncommitted sessions show a
     // bare 7-hex-char digest (not the pinned Head SHA) in the left item.
     await expect(page.locator('.statusbar__left')).toContainText(/^[0-9a-f]{7}$/);
-    await expect(page.locator('.statusbar').getByRole('button', { name: '💬 0', exact: true })).toBeVisible();
+    await expect(page.locator('.statusbar').getByRole('button', { name: 'Comments: 0', exact: true })).toBeVisible();
 
     // Uncommitted sessions can Refresh their frozen snapshot.
     await expect(page.getByRole('button', { name: 'Refresh snapshot' })).toBeVisible();
@@ -299,7 +299,7 @@ test('standalone: Standalone identity, Refresh present, Export emphasized', asyn
     // 22-UI-SPEC Status Bar matrix (coverage addition): standalone sessions show a
     // bare 7-hex-char digest in the left item.
     await expect(page.locator('.statusbar__left')).toContainText(/^[0-9a-f]{7}$/);
-    await expect(page.locator('.statusbar').getByRole('button', { name: '💬 0', exact: true })).toBeVisible();
+    await expect(page.locator('.statusbar').getByRole('button', { name: 'Comments: 0', exact: true })).toBeVisible();
 
     // Standalone sessions also support Refresh (`showRefresh = isUncommittedSession`,
     // true for standalone because standalone scopes still carry an `uncommitted` key).
@@ -368,7 +368,7 @@ test('exact patch: Repository object → Implemented content identity, no Refres
     // bare 7-hex-char digest in the left item, and the comment-count item is present
     // regardless of agent-attachment.
     await expect(page.locator('.statusbar__left')).toContainText(/^[0-9a-f]{7}$/);
-    await expect(page.locator('.statusbar').getByRole('button', { name: '💬 0', exact: true })).toBeVisible();
+    await expect(page.locator('.statusbar').getByRole('button', { name: 'Comments: 0', exact: true })).toBeVisible();
 
     await page.close();
   } finally {
