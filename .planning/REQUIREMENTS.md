@@ -58,10 +58,10 @@
 ### Comment Threads
 
 - [x] **THREAD-01**: Reviewer sees every comment on the current file as an inline thread directly under its anchored line, with the opposite side padded so Base and Head stay aligned.
-- [ ] **THREAD-02**: Reviewer sees on each thread header the side, line, and an Open, Resolved, or Anchor moved state that is never conveyed by colour alone.
+- [x] **THREAD-02**: Reviewer sees on each thread header the side, line, and an Open, Resolved, or Anchor moved state that is never conveyed by colour alone.
 - [x] **THREAD-03**: Reviewer can resolve, reopen, and delete a thread from its header by mouse or keyboard; delete offers Undo for a few seconds.
 - [x] **THREAD-04**: Reviewer can edit a comment's text inline, saving with ⌘Enter / Ctrl+Enter and cancelling with Esc.
-- [ ] **THREAD-05**: Reviewer sees open threads expanded and resolved threads collapsed to a one-line snippet by default, and can collapse or expand one thread or all threads in the current file, with the choice kept for the session.
+- [x] **THREAD-05**: Reviewer sees open threads expanded and resolved threads collapsed to a one-line snippet by default, and can collapse or expand one thread or all threads in the current file, with the choice kept for the session.
 - [x] **THREAD-06**: Reviewer can add a comment by hovering a line number, clicking `+`, typing, and pressing ⌘Enter / Ctrl+Enter; durable anchors, including Markdown block ranges, stay byte-identical to the current model.
 - [x] **THREAD-07**: Reviewer can jump to the next or previous thread across files in tree order; the target file opens and the thread scrolls into view.
 - [x] **THREAD-08**: Reviewer's threads keep their position, expanded state, and any in-progress edit text through draft reconciliation and snapshot Refresh.
@@ -142,10 +142,10 @@ Deferred, tracked but not in the v2.1 roadmap.
 | NAV-03 | Phase 20 | Complete |
 | NAV-04 | Phase 20 | Complete |
 | THREAD-01 | Phase 23 | Complete |
-| THREAD-02 | Phase 23 | Pending |
+| THREAD-02 | Phase 23 | Complete |
 | THREAD-03 | Phase 23 | Complete |
 | THREAD-04 | Phase 23 | Complete |
-| THREAD-05 | Phase 23 | Pending |
+| THREAD-05 | Phase 23 | Complete |
 | THREAD-06 | Phase 23 | Complete |
 | THREAD-07 | Phase 23 | Complete |
 | THREAD-08 | Phase 23 | Complete |
