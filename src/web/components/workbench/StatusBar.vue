@@ -86,7 +86,7 @@ defineExpose({ focusSupport });
         :aria-expanded="supportOpen"
         @click="emit('support')"
       >
-        Support {{ RENAME_MAP.displayName }}
+        <span aria-hidden="true">♡</span> Support {{ RENAME_MAP.displayName }}
       </button>
     </div>
   </footer>
