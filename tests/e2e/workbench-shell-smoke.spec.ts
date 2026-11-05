@@ -149,15 +149,18 @@ async function assertShellRegionsPresent(page: Page): Promise<void> {
   await expect(page.locator('.workbench-shell__statusbar .statusbar')).toBeVisible();
 }
 
-/** The status bar's single Export item (`StatusBar.vue`): always present, emphasis class gated by `exportSupported`. */
-async function assertExportEmphasized(page: Page, emphasized: boolean): Promise<void> {
+/**
+ * The status bar's Export item (`StatusBar.vue:46-54`) is rendered only when
+ * `exportSupported` is true, and always carries the emphasis class when it is.
+ */
+async function assertExportItem(page: Page, supported: boolean): Promise<void> {
   const item = page.locator('.statusbar').getByRole('button', { name: 'Export', exact: true });
-  await expect(item).toBeVisible();
-  if (emphasized) {
-    await expect(item).toHaveClass(/statusbar__item--emphasis/);
-  } else {
-    await expect(item).not.toHaveClass(/statusbar__item--emphasis/);
+  if (!supported) {
+    await expect(item).toHaveCount(0);
+    return;
   }
+  await expect(item).toBeVisible();
+  await expect(item).toHaveClass(/statusbar__item--emphasis/);
 }
 
 async function openPanel(page: Page): Promise<void> {
@@ -222,7 +225,7 @@ test('committed branch/worktree: Base → Head identity, no Refresh, Export emph
     await expect(page.getByRole('button', { name: 'Refresh snapshot' })).toHaveCount(0);
 
     // Committed sessions are export-supported (`!isUncommittedSession`).
-    await assertExportEmphasized(page, true);
+    await assertExportItem(page, true);
 
     await page.close();
   } finally {
@@ -254,7 +257,7 @@ test('Staged/Unstaged/Working tree: Working-tree identity, Refresh present, Expo
     await expect(page.getByRole('button', { name: 'Refresh snapshot' })).toBeVisible();
 
     // Uncommitted-and-not-standalone → `exportSupported` is false.
-    await assertExportEmphasized(page, false);
+    await assertExportItem(page, false);
     await openPanel(page);
     const dialog = page.locator('.workbench-shell__panel');
     await expect(dialog.getByRole('button', { name: 'Export review', exact: true })).toHaveCount(0);
@@ -290,7 +293,7 @@ test('standalone: Standalone identity, Refresh present, Export emphasized', asyn
     await expect(page.getByRole('button', { name: 'Refresh snapshot' })).toBeVisible();
 
     // `isStandaloneSession` makes `exportSupported` true even though it is "uncommitted-shaped".
-    await assertExportEmphasized(page, true);
+    await assertExportItem(page, true);
     await openPanel(page);
     const dialog = page.locator('.workbench-shell__panel');
     await expect(dialog.getByRole('button', { name: 'Export review', exact: true })).toBeVisible();
@@ -334,7 +337,7 @@ test('exact patch: Repository object → Implemented content identity, no Refres
     await expect(page.getByRole('button', { name: 'Refresh snapshot' })).toHaveCount(0);
 
     // `!isUncommittedSession` is true for exact-patch sessions → export-supported.
-    await assertExportEmphasized(page, true);
+    await assertExportItem(page, true);
 
     await page.close();
   } finally {
