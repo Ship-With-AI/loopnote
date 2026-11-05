@@ -57,7 +57,7 @@ import {
 import { singlePaneSideFor } from './model/single-pane-layout.js';
 import { controlSafeDisplay } from '../domain/path-bytes.js';
 import type { DraftMutationRequest } from '../contracts/api.js';
-import { createPanelState, type TreeLineCountsMode, type TreeViewMode } from './model/panel-state.js';
+import { createPanelState, type PanelTab, type TreeLineCountsMode, type TreeViewMode } from './model/panel-state.js';
 import UndoToast from './components/UndoToast.vue';
 import PathText from './components/ui/PathText.vue';
 import ReviewStateBadge from './components/ui/ReviewStateBadge.vue';
@@ -108,6 +108,7 @@ const editorTitle = ref<InstanceType<typeof EditorTitle>>();
 const titleBar = ref<InstanceType<typeof TitleBar>>();
 const diffWorkspace = ref<InstanceType<typeof DiffWorkspace>>();
 const statusBar = ref<InstanceType<typeof StatusBar>>();
+const panelRef = ref<InstanceType<typeof BottomPanel>>();
 const workspaceState = shallowRef<WorkspaceState>();
 const draftRevision = ref(0);
 const reviewDraft = shallowRef<ReviewDraftSnapshot>();
@@ -522,8 +523,10 @@ function closePanel(): void {
   panelOpen.value = false;
 }
 
-function openPanel(): void {
+function openPanel(tab: PanelTab): void {
+  panelState.setActiveTab(tab);
   panelOpen.value = true;
+  void nextTick(() => nextTick(() => panelRef.value?.focusActiveTab()));
 }
 
 function commitSidebarWidth(value: number): void {
@@ -1667,6 +1670,9 @@ onBeforeUnmount(() => {
       <template #panel>
         <BottomPanel
           v-if="reviewDraft !== undefined && session !== undefined"
+          ref="panelRef"
+          :active-tab="panelState.activeTab.value"
+          :flat-file-rows="flatFileRows"
           :open="panelOpen"
           :comments="workspaceComments"
           :summary="reviewDraft.canonical.summary"
@@ -1690,6 +1696,8 @@ onBeforeUnmount(() => {
           :is-exact-patch="isExactPatchSession"
           :export-supported="!isUncommittedSession || isStandaloneSession"
           @close="closePanel"
+          @update:active-tab="panelState.setActiveTab"
+          @reveal="revealCommentFromPanel"
           @cancel-summary="if (!attachedMutationLocked) { reviewState?.setSummaryBuffer(reviewDraft?.canonical.summary ?? ''); refreshReviewSnapshot(); }"
           @reload-latest="reloadLatestReview"
           @save-summary="saveSummary"
