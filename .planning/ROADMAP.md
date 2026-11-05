@@ -41,7 +41,7 @@ the shell.
 - [x] **Phase 19: Typecheck Foundation** - One `typecheck:web` gate (vue-tsc 3.3.14 + TS 6/7 dual alias) covers every `.vue` component and web `.ts` module before any App.vue decomposition begins. (completed 2026-11-04)
 - [x] **Phase 20: Shell Frame** - Workbench geometry tokens land together with the existing toolbar/tree/diff/dialog components as they're re-plumbed into `WorkbenchShell.vue`'s five regions (title bar, side bar, editor with icon-only title/breadcrumbs, bottom panel, status bar) across all five session kinds. (completed 2026-11-04)
 - [x] **Phase 21: Changed-Files Tree** - The changed-files tree is restyled to VS Code Explorer density with hover counts, a path filter, a view-options menu, and full keyboard reachability. (completed 2026-11-05)
-- [ ] **Phase 22: Identity & Status Bar** - Comparison identity and drift relocate into a title-bar pill/popover; the status bar carries snapshot/comment counts, one emphasized Export/Finish item, and the support entry.
+- [x] **Phase 22: Identity & Status Bar** - Comparison identity and drift relocate into a title-bar pill/popover; the status bar carries snapshot/comment counts, one emphasized Export/Finish item, and the support entry. (completed 2026-11-05)
 - [ ] **Phase 23: Inline Comment Threads** - A multi-zone Monaco adapter rework renders every comment as an expanded-by-default view-zone thread with its own editor-title navigation icons and ⌥F9/⇧⌥F9 shortcuts, gated by an explicit pointer/keyboard go/no-go spike.
 - [ ] **Phase 24: Bottom Panel & Export** - Comments/Summary/Export live in the ⌘J bottom panel, including the agent-attached Finish action behind the export readiness gate.
 - [ ] **Phase 25: Accessibility, Design Docs & Regression Sweep** - A toolbar role/name audit closes DEBT-01, every popover/menu/live-region is keyboard-accessible, the full suite passes with same-phase locator updates, and `DESIGN.md` describes the shipped workbench.
@@ -179,19 +179,19 @@ Plans:
   4. Reviewer sees the snapshot ID and open-comment count (stale count in warning ink) in the status bar, where clicking the counts opens the Comments tab, and sees exactly one emphasized status-bar item — Export, or Finish review in agent-attached sessions — that opens the Export tab.
   5. Reviewer can open the voluntary-support dialog from a plain, non-emphasized status-bar item, and support never gates any review action.
 
-**Plans**: 0/4 plans executed
+**Plans**: 4/4 plans complete
 **Wave 1**
 
-- [ ] 22-01-PLAN.md
+- [x] 22-01-PLAN.md
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 22-02-PLAN.md
+- [x] 22-02-PLAN.md
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 22-03-PLAN.md
-- [ ] 22-04-PLAN.md
+- [x] 22-03-PLAN.md
+- [x] 22-04-PLAN.md
 
 **UI hint**: yes
 
@@ -304,7 +304,7 @@ Plans:
 | 19. Typecheck Foundation | v2.1 | 4/4 | Complete    | 2026-11-04 |
 | 20. Shell Frame | v2.1 | 10/10 | Complete    | 2026-11-04 |
 | 21. Changed-Files Tree | v2.1 | 4/4 | Complete    | 2026-11-05 |
-| 22. Identity & Status Bar | v2.1 | 0/4 | Planned    |  |
+| 22. Identity & Status Bar | v2.1 | 4/4 | Complete    | 2026-11-05 |
 | 23. Inline Comment Threads | v2.1 | 0/8 | Planned    |  |
 | 24. Bottom Panel & Export | v2.1 | 0/11 | Planned    |  |
 | 25. Accessibility, Design Docs & Regression Sweep | v2.1 | 0/TBD | Not started | - |

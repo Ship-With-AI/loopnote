@@ -33,10 +33,10 @@
 
 ### Comparison Identity
 
-- [ ] **IDENT-01**: Reviewer sees the comparison as a pill centred in the title bar: Base → Head with ref names and short SHAs for committed sessions, "Staged" for staged sessions, "Exact patch" for exact-patch sessions, and "Standalone · N files" with the snapshot for standalone sessions.
-- [ ] **IDENT-02**: Reviewer can click the pill to open a details popover showing Base, Head, merge base when present, snapshot with capture time, and worktree, with a Copy action; Esc closes it and returns focus to the pill.
-- [ ] **IDENT-03**: Reviewer sees a warning state on the pill when the reviewed Head or source moved since capture; the popover explains what moved and makes Refresh its primary action, and no banner takes height from the diff.
-- [ ] **IDENT-04**: Reviewer can refresh uncommitted and standalone snapshots from the title bar and the popover with visible progress; exact-patch sessions state that they cannot refresh.
+- [x] **IDENT-01**: Reviewer sees the comparison as a pill centred in the title bar: Base → Head with ref names and short SHAs for committed sessions, "Staged" for staged sessions, "Exact patch" for exact-patch sessions, and "Standalone · N files" with the snapshot for standalone sessions.
+- [x] **IDENT-02**: Reviewer can click the pill to open a details popover showing Base, Head, merge base when present, snapshot with capture time, and worktree, with a Copy action; Esc closes it and returns focus to the pill.
+- [x] **IDENT-03**: Reviewer sees a warning state on the pill when the reviewed Head or source moved since capture; the popover explains what moved and makes Refresh its primary action, and no banner takes height from the diff.
+- [x] **IDENT-04**: Reviewer can refresh uncommitted and standalone snapshots from the title bar and the popover with visible progress; exact-patch sessions state that they cannot refresh.
 
 ### Changed-Files Tree
 
@@ -77,9 +77,9 @@
 
 ### Status Bar
 
-- [ ] **STAT-01**: Reviewer sees the snapshot ID and the open-comment count, with any stale count in warning ink, in the status bar; clicking the counts opens the Comments tab.
-- [ ] **STAT-02**: Reviewer sees exactly one emphasized status-bar item — Export, or Finish review in agent-attached sessions — which opens the Export tab.
-- [ ] **STAT-03**: Reviewer can open the voluntary-support dialog from a plain, non-emphasized status-bar item, and support never gates any review action.
+- [x] **STAT-01**: Reviewer sees the snapshot ID and the open-comment count, with any stale count in warning ink, in the status bar; clicking the counts opens the Comments tab.
+- [x] **STAT-02**: Reviewer sees exactly one emphasized status-bar item — Export, or Finish review in agent-attached sessions — which opens the Export tab.
+- [x] **STAT-03**: Reviewer can open the voluntary-support dialog from a plain, non-emphasized status-bar item, and support never gates any review action.
 
 ### Accessibility & Regression
 
@@ -126,10 +126,10 @@ Deferred, tracked but not in the v2.1 roadmap.
 | SHELL-04 | Phase 20 | Complete |
 | SHELL-05 | Phase 20 | Complete |
 | SHELL-06 | Phase 20 | Complete |
-| IDENT-01 | Phase 22 | Pending |
-| IDENT-02 | Phase 22 | Pending |
-| IDENT-03 | Phase 22 | Pending |
-| IDENT-04 | Phase 22 | Pending |
+| IDENT-01 | Phase 22 | Complete |
+| IDENT-02 | Phase 22 | Complete |
+| IDENT-03 | Phase 22 | Complete |
+| IDENT-04 | Phase 22 | Complete |
 | TREE-01 | Phase 21 | Complete |
 | TREE-02 | Phase 21 | Complete |
 | TREE-03 | Phase 21 | Complete |
@@ -155,9 +155,9 @@ Deferred, tracked but not in the v2.1 roadmap.
 | PANEL-03 | Phase 24 | Pending |
 | PANEL-04 | Phase 24 | Pending |
 | PANEL-05 | Phase 24 | Pending |
-| STAT-01 | Phase 22 | Pending |
-| STAT-02 | Phase 22 | Pending |
-| STAT-03 | Phase 22 | Pending |
+| STAT-01 | Phase 22 | Complete |
+| STAT-02 | Phase 22 | Complete |
+| STAT-03 | Phase 22 | Complete |
 | A11Y-01 | Phase 25 | Pending |
 | A11Y-02 | Phase 25 | Pending |
 | A11Y-03 | Phase 25 | Pending |
