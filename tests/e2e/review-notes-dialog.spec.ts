@@ -12,6 +12,7 @@ import '/styles.css';
 export function mountReviewNotesHarness() {
   const open = ref(true);
   const summaryBuffer = ref('');
+  const activeTab = ref('comments');
   createApp({
     render: () => h(BottomPanel, {
       open: open.value,
@@ -19,6 +20,8 @@ export function mountReviewNotesHarness() {
       inventory: [],
       summary: '',
       summaryBuffer: summaryBuffer.value,
+      activeTab: activeTab.value,
+      flatFileRows: [],
       revision: 7,
       commentBuffers: new Map(),
       pending: null,
@@ -31,6 +34,7 @@ export function mountReviewNotesHarness() {
       revealExportDirectory: async () => ({ kind: 'revealed' }),
       onClose: () => { open.value = false; },
       'onUpdate:summaryBuffer': (value) => { summaryBuffer.value = value; },
+      'onUpdate:activeTab': (tab) => { activeTab.value = tab; },
     }),
   }).mount('#review-notes-harness');
 }
@@ -63,6 +67,7 @@ test('Review panel owns the summary editor and closes via its close button', asy
   });
 
   const panel = page.getByRole('region', { name: 'Review', exact: true });
+  await panel.getByRole('tab', { name: 'Summary' }).click();
   await expect(panel.getByRole('region', { name: 'Summary Saved' })).toBeVisible();
   await panel.getByRole('tab', { name: 'Edit' }).click();
   const summary = panel.getByLabel('Review summary (Markdown)');
