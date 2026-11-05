@@ -226,6 +226,12 @@ test('committed branch/worktree: Base → Head identity, no Refresh, Export emph
     // Committed sessions are export-supported (`!isUncommittedSession`).
     await assertExportItem(page, true);
 
+    // 22-UI-SPEC Status Bar matrix (coverage addition): committed sessions show the
+    // pinned Head SHA (not a digest) in the status bar's left item; a fresh fixture
+    // has zero comments.
+    await expect(page.locator('.statusbar__left')).toContainText(expectedHead.slice(0, 7));
+    await expect(page.locator('.statusbar').getByRole('button', { name: '💬 0', exact: true })).toBeVisible();
+
     await page.close();
   } finally {
     await stopGeneratedCli(running);
@@ -250,6 +256,11 @@ test('Staged/Unstaged/Working tree: Working-tree identity, Refresh present, Expo
     await expect(page.locator('.identity-pill__label').getByText('HEAD', { exact: true })).toBeVisible();
     await expect(banner.locator('.identity-pill')).toContainText(/HEAD[0-9a-f]{7}/);
     await expect(banner.locator('.identity-pill')).toContainText('Working tree');
+
+    // 22-UI-SPEC Status Bar matrix (coverage addition): uncommitted sessions show a
+    // bare 7-hex-char digest (not the pinned Head SHA) in the left item.
+    await expect(page.locator('.statusbar__left')).toContainText(/^[0-9a-f]{7}$/);
+    await expect(page.locator('.statusbar').getByRole('button', { name: '💬 0', exact: true })).toBeVisible();
 
     // Uncommitted sessions can Refresh their frozen snapshot.
     await expect(page.getByRole('button', { name: 'Refresh snapshot' })).toBeVisible();
@@ -284,6 +295,11 @@ test('standalone: Standalone identity, Refresh present, Export emphasized', asyn
     await expect(banner.locator('.identity-pill')).toContainText('1 files');
     await expect(banner.getByText('BASE', { exact: true })).toHaveCount(0);
     await expect(banner.getByText('HEAD', { exact: true })).toHaveCount(0);
+
+    // 22-UI-SPEC Status Bar matrix (coverage addition): standalone sessions show a
+    // bare 7-hex-char digest in the left item.
+    await expect(page.locator('.statusbar__left')).toContainText(/^[0-9a-f]{7}$/);
+    await expect(page.locator('.statusbar').getByRole('button', { name: '💬 0', exact: true })).toBeVisible();
 
     // Standalone sessions also support Refresh (`showRefresh = isUncommittedSession`,
     // true for standalone because standalone scopes still carry an `uncommitted` key).
@@ -347,6 +363,12 @@ test('exact patch: Repository object → Implemented content identity, no Refres
     const emphasizedItem = page.locator('.statusbar').getByRole('button', { name: 'Finish review', exact: true });
     await expect(emphasizedItem).toBeVisible();
     await expect(emphasizedItem).toHaveClass(/statusbar__item--emphasis/);
+
+    // 22-UI-SPEC Status Bar matrix (coverage addition): exact-patch sessions show a
+    // bare 7-hex-char digest in the left item, and the comment-count item is present
+    // regardless of agent-attachment.
+    await expect(page.locator('.statusbar__left')).toContainText(/^[0-9a-f]{7}$/);
+    await expect(page.locator('.statusbar').getByRole('button', { name: '💬 0', exact: true })).toBeVisible();
 
     await page.close();
   } finally {
