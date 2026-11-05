@@ -306,14 +306,16 @@ function handleFilterKeydown(event: KeyboardEvent): void {
   }
   if (event.key === 'Enter') {
     event.preventDefault();
-    const first = model.value.flatFileRows[0];
-    if (first === undefined) {
+    if (props.viewMode === 'list') {
+      const first = model.value.flatFileRows[0];
+      if (first !== undefined) {
+        activateListFile(first.fileId);
+      }
       return;
     }
-    if (props.viewMode === 'list') {
-      activateListFile(first.fileId);
-    } else {
-      activateFile(first.fileId);
+    const firstVisible = model.value.visibleRows.find((row) => row.kind === 'file');
+    if (firstVisible !== undefined) {
+      activateFile(firstVisible.fileId);
     }
     return;
   }
