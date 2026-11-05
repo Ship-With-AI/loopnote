@@ -95,14 +95,21 @@ defineExpose({ focusSupport });
   color: inherit;
   cursor: pointer;
   font: inherit;
-}
-
-.statusbar__item,
-.statusbar .identity-disclosure {
   min-width: 0;
   min-height: 0;
   height: 100%;
   padding-block: 0;
+}
+
+/* Above the narrow breakpoint the bar is a fixed 22px row, so the disclosure must
+   shrink into it. At <=760px styles.css's 44px touch-target arm owns the control. */
+@media (min-width: 761px) {
+  .statusbar .identity-disclosure {
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+    padding-block: 0;
+  }
 }
 
 .statusbar__item--emphasis {

@@ -2362,6 +2362,11 @@ h3.conversation-card__identity {
     min-height: 44px;
   }
 
+  .workbench-shell {
+    --titlebar-height: 44px;
+    --statusbar-height: 44px;
+  }
+
 
 
   .diff-workspace__horizontal-cue {

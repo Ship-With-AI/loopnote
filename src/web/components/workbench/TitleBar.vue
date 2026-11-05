@@ -225,10 +225,14 @@ const attachedFact = computed(() => {
   margin-left: auto;
 }
 
-.titlebar .identity-disclosure {
-  min-width: 0;
-  min-height: 0;
-  height: var(--control-height-icon);
-  padding-block: 0;
+/* Above the narrow breakpoint the bar is a fixed-height row, so the disclosure must
+   shrink into it. At <=760px styles.css's 44px touch-target arm owns the control. */
+@media (min-width: 761px) {
+  .titlebar .identity-disclosure {
+    min-width: 0;
+    min-height: 0;
+    height: var(--control-height-icon);
+    padding-block: 0;
+  }
 }
 </style>
