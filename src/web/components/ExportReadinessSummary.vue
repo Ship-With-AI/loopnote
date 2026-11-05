@@ -34,7 +34,7 @@ const ignoreStatusPresentation = computed(() => {
     <div><dt>Open actionable</dt><dd>{{ actionableCount }}</dd></div>
     <div><dt>Need reviewer attention</dt><dd>{{ attentionCount }}</dd></div>
     <div><dt>Resolved</dt><dd>{{ resolvedCount }}</dd></div>
-    <div><dt>Summary</dt><dd>{{ summary === '' ? 'No summary provided' : 'Summary included' }}</dd></div>
+    <div><dt>Summary</dt><dd>{{ summary === '' ? 'No summary (optional)' : 'Summary written' }}</dd></div>
     <div><dt>Ignore status</dt><dd><ReviewStateBadge :kind="ignoreStatusPresentation.kind" :label="ignoreStatusPresentation.label" /></dd></div>
   </dl>
   <section v-if="actionableCount === 0" class="inline-notice" aria-labelledby="export-zero-actionable-heading">
