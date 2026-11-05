@@ -19,7 +19,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { expect, test } from '@playwright/test';
-import type { Browser, Page, TestInfo } from '@playwright/test';
+import type { Browser, Page, Request, TestInfo } from '@playwright/test';
 
 import { createGitFixture, type GitFixture } from '../helpers/git-fixture.js';
 import { RENAME_MAP } from '../../src/domain/product-identity.js';
@@ -287,6 +287,19 @@ test('packaged inline comment threads: resolve, edit, collapse-all, and Option+F
     expect((await saveResponse).status()).toBe(200);
     await expect(threadB).toContainText('Edited comment body.');
 
+    // Edit thread B again, this time saving via the ⌘Enter/Ctrl+Enter keyboard shortcut
+    // instead of the Save-edit button — regression for a Phase 23 gap where the shared
+    // `.inline-comment-composer` keydown handler routed an existing thread's edit textarea
+    // to the new-comment composer's reducer instead of the thread's own save/cancel path.
+    await threadB.getByRole('button', { name: 'Edit comment' }).click();
+    const editTextareaB = threadB.locator('textarea');
+    await editTextareaB.fill('Keyboard-saved body.');
+    const keyboardSaveResponse = page.waitForResponse((response) => response.url().includes('/api/draft/mutations'));
+    await editTextareaB.press('Control+Enter');
+    expect((await keyboardSaveResponse).status()).toBe(200);
+    await expect(threadB).toContainText('Keyboard-saved body.');
+    await expect(threadB.locator('textarea')).toHaveCount(0);
+
     // Collapse-all / expand-all from the editor title.
     await page.getByRole('button', { name: 'Collapse all threads' }).click();
     await expect(threadA.locator('.conversation-card__body')).toHaveCount(0);
@@ -349,6 +362,51 @@ test('packaged inline comment threads: resolve, edit, collapse-all, and Option+F
     await page.keyboard.press('Shift+Alt+F9');
     await expect(page.locator('[data-announcement-version]')).toHaveText('Wrapped to first thread');
     await expect(page.locator(`#${RENAME_MAP.cssPrefix}heading`)).toContainText(firstFileName);
+  } finally {
+    await stopGeneratedCli(running);
+    await fixture.cleanup();
+  }
+});
+
+test('packaged inline comment threads: Escape cancels an existing thread\'s inline edit without sending a mutation (standalone single-pane session)', async ({ browser }) => {
+  // Regression for a Phase 23 gap: App.vue's document-level keydown handler matched any
+  // textarea inside `.inline-comment-composer` to route ⌘Enter/Esc to the new-comment
+  // composer's reducer, even though CommentThread.vue's edit-mode textarea reuses that
+  // same class — so pressing Esc while editing an existing thread silently no-opped
+  // instead of cancelling the edit. Covers the Esc/cancel half; the ⌘Enter/save half is
+  // covered by the keyboard-save assertion in the "resolve, edit, collapse-all" test above.
+  const fixture = await createGitFixture();
+  await fixture.write('src/notes.ts', [
+    'export const noteOne = 1;',
+    'export const noteTwo = 2;',
+    '',
+  ].join('\n'));
+  const running = startGeneratedStandaloneCli(fixture, ['src/notes.ts']);
+  try {
+    const url = await waitForLoopbackUrl(running);
+    const page = await browser.newPage();
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await openGeneratedStandaloneReview(page, url, 1);
+
+    await activateSinglePaneLine(page, 'head', 'export const noteOne = 1;', 1);
+    const commentId = await addComment(page, 'Original body.');
+
+    let mutationFired = false;
+    page.on('request', (request) => {
+      if (request.url().includes('/api/draft/mutations')) mutationFired = true;
+    });
+
+    const thread = threadLocator(page, commentId);
+    await thread.getByRole('button', { name: 'Edit comment' }).click();
+    const editTextarea = thread.locator('textarea');
+    await editTextarea.fill('Should not persist.');
+    await editTextarea.press('Escape');
+    await expect(thread.locator('textarea')).toHaveCount(0);
+    await expect(thread).toContainText('Original body.');
+    await expect(thread).not.toContainText('Should not persist.');
+    expect(mutationFired).toBe(false);
+
+    await page.close();
   } finally {
     await stopGeneratedCli(running);
     await fixture.cleanup();

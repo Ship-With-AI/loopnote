@@ -341,6 +341,22 @@ function currentCommentBody(commentId: string): string {
   return workspaceComments.value.find((comment) => comment.id === commentId)?.body ?? '';
 }
 
+function saveCommentEdit(commentId: string): void {
+  mutateReview({
+    type: 'editComment',
+    expectedRevision: reviewDraft.value?.canonical.revision ?? 0,
+    commentId,
+    body: reviewDraft.value?.commentBuffers.get(commentId) ?? '',
+  }, commentId);
+  editingCommentId.value = undefined;
+}
+
+function cancelCommentEdit(commentId: string): void {
+  reviewState?.setCommentBuffer(commentId, currentCommentBody(commentId));
+  refreshReviewSnapshot();
+  editingCommentId.value = undefined;
+}
+
 function toggleCommentCollapse(commentId: string): void {
   const comment = workspaceComments.value.find((candidate) => candidate.id === commentId);
   const current = collapsedByCommentId.value.get(commentId) ?? (comment?.state === 'resolved');
@@ -1093,6 +1109,17 @@ function handleKeydown(event: KeyboardEvent): void {
     return;
   }
   const target = event.target;
+  const editingThreadArticle = target instanceof HTMLTextAreaElement ? target.closest('.comment-thread') : null;
+  if (editingThreadArticle !== null && editingCommentId.value !== undefined) {
+    if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+      event.preventDefault();
+      saveCommentEdit(editingCommentId.value);
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      cancelCommentEdit(editingCommentId.value);
+    }
+    return;
+  }
   if (target instanceof HTMLTextAreaElement && target.closest('.inline-comment-composer') !== null) {
     if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
       event.preventDefault();
@@ -1617,8 +1644,8 @@ onBeforeUnmount(() => {
             @toggle-comment-collapse="toggleCommentCollapse"
             @begin-edit-comment="(commentId) => { editingCommentId = commentId; if (!reviewDraft?.commentBuffers.has(commentId)) { reviewState?.setCommentBuffer(commentId, currentCommentBody(commentId)); refreshReviewSnapshot(); } }"
             @update-comment-edit-text="(commentId, text) => { reviewState?.setCommentBuffer(commentId, text); refreshReviewSnapshot(); }"
-            @save-comment-edit="(commentId) => { mutateReview({ type: 'editComment', expectedRevision: reviewDraft?.canonical.revision ?? 0, commentId, body: reviewDraft?.commentBuffers.get(commentId) ?? '' }, commentId); editingCommentId = undefined; }"
-            @cancel-comment-edit="(commentId) => { reviewState?.setCommentBuffer(commentId, currentCommentBody(commentId)); refreshReviewSnapshot(); editingCommentId = undefined; }"
+            @save-comment-edit="saveCommentEdit"
+            @cancel-comment-edit="cancelCommentEdit"
           />
         </template>
       </template>
