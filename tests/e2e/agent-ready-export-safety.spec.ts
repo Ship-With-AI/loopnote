@@ -38,7 +38,7 @@ let lifecycleUrl: string;
 
 const lifecycleHarness = `
 import { createApp, h, ref } from 'vue';
-import BottomPanel from '/components/workbench/BottomPanel.vue';
+import ExportTab from '/components/workbench/ExportTab.vue';
 import CommentComposer from '/components/CommentComposer.vue';
 import '/styles.css';
 
@@ -57,14 +57,13 @@ export function mountLifecycleHarness() {
   };
   createApp({
     render: () => h('main', [
- h(BottomPanel, {
- open: true,
- comments: [], inventory: [], summary: '', revision: 7, summaryBuffer: summaryBuffer.value,
-        commentBuffers: new Map(), pending: null, conflict: conflict.value, failure: null,
-        retainedSummary: false, exportState, appendIgnoreRule: async () => ({ kind: 'alreadyIgnored' }),
+ h(ExportTab, {
+ comments: [], summary: '', revision: 7, summaryBuffer: summaryBuffer.value,
+        commentBuffers: new Map(), pending: null, conflict: conflict.value,
+        exportState, appendIgnoreRule: async () => ({ kind: 'alreadyIgnored' }),
         refreshIgnoreStatus: async () => {}, revealExportDirectory: async () => ({ kind: 'revealed' }),
         attachedLifecycle: lifecycle.value, attachedReady: lifecycle.value === 'waiting',
-        mutationLocked: lifecycle.value === 'finishing' || lifecycle.value === 'completed',
+        locked: lifecycle.value === 'finishing' || lifecycle.value === 'completed',
         attachedFailure: result.value, isExactPatch: isExactPatch.value, activeTab: 'export',
         onFinishReview: () => { finished.value += 1; },
       }),
