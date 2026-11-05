@@ -812,3 +812,82 @@ describe('statusPriorityByDirectoryId', () => {
   });
 });
 
+describe('flatFileRows', () => {
+  function flatRowFiles(): readonly SessionFile[] {
+    return [
+      sessionFile(0, {
+        newPath: exactPath('dir/sub/one.ts'),
+        oldPath: exactPath('dir/sub/one.ts'),
+      }),
+      sessionFile(1, {
+        newPath: exactPath('dir/sub/two.ts'),
+        oldPath: exactPath('dir/sub/two.ts'),
+      }),
+    ];
+  }
+
+  it('includes files inside a collapsed directory even though they are absent from visibleRows', () => {
+    const expanded = createFileTreeModel(flatRowFiles());
+    const dir = directory(expanded.tree, 'dir');
+    const collapsed = expanded.toggleDirectory(dir.directoryId);
+
+    expect(
+      collapsed.visibleRows.some(
+        (candidate) => candidate.kind === 'file' && candidate.fileId === fileId(0),
+      ),
+    ).toBe(false);
+    expect(collapsed.flatFileRows.map((fileRow) => fileRow.fileId)).toEqual([
+      fileId(0),
+      fileId(1),
+    ]);
+  });
+
+  it('matches the visibleRows file order when every directory is expanded', () => {
+    const model = createFileTreeModel([
+      sessionFile(0, {
+        newPath: exactPath('a/one.ts'),
+        oldPath: exactPath('a/one.ts'),
+      }),
+      sessionFile(1, {
+        newPath: exactPath('a/sub/two.ts'),
+        oldPath: exactPath('a/sub/two.ts'),
+      }),
+      sessionFile(2, { newPath: exactPath('z.ts'), oldPath: exactPath('z.ts') }),
+    ]);
+
+    expect(model.flatFileRows.map((fileRow) => fileRow.fileId)).toEqual(
+      model.visibleRows
+        .filter((candidate) => candidate.kind === 'file')
+        .map((candidate) => candidate.fileId),
+    );
+  });
+
+  it('contains only filter-surviving files after setQuery', () => {
+    const model = createFileTreeModel([
+      sessionFile(0, { newPath: exactPath('parent/branch/filter-zone/alpha.ts') }),
+      sessionFile(1, { newPath: exactPath('parent/branch/filter-zone/beta.ts') }),
+      sessionFile(2, { newPath: exactPath('docs/guides/guide.ts') }),
+      sessionFile(3, { newPath: exactPath('other.ts') }),
+    ]);
+    const filtered = model.setQuery('alpha');
+
+    expect(new Set(filtered.flatFileRows.map((fileRow) => fileRow.fileId))).toEqual(
+      new Set(
+        filtered.visibleRows
+          .filter((candidate) => candidate.kind === 'file')
+          .map((candidate) => candidate.fileId),
+      ),
+    );
+  });
+
+  it('stays reference-stable in content when a directory is toggled', () => {
+    const model = createFileTreeModel(flatRowFiles());
+    const dir = directory(model.tree, 'dir');
+    const before = model.flatFileRows.map((fileRow) => fileRow.fileId);
+    const toggled = model.toggleDirectory(dir.directoryId);
+
+    expect(toggled.flatFileRows.map((fileRow) => fileRow.fileId)).toEqual(before);
+  });
+});
+
+
