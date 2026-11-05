@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 
 import { renderMarkdownPreview } from '../model/markdown-preview.js';
 import { RENAME_MAP } from '../../domain/product-identity.js';
@@ -36,7 +36,7 @@ const unsaved = computed(() => props.modelValue !== props.canonical);
 const status = computed(() => {
   if (props.conflict) return 'Conflict — unsaved text retained';
   if (props.failure) return 'Save failed';
-  if (props.saving) return 'Saving';
+  if (props.saving) return 'Saving…';
   if (props.retained && unsaved.value) return 'Retained after reload — not saved';
   return unsaved.value ? 'Unsaved' : 'Saved';
 });
@@ -125,6 +125,14 @@ function onConfirmationEscape(event: KeyboardEvent): void {
 watch(() => props.failure, (failed) => {
   if (failed) void nextTick(() => failureAlert.value?.focus());
 });
+
+let autosaveTimer: ReturnType<typeof setTimeout> | undefined;
+watch(() => props.modelValue, () => {
+  clearTimeout(autosaveTimer);
+  if (!unsaved.value || props.pending || props.conflict) return;
+  autosaveTimer = setTimeout(() => emit('save'), 800);
+});
+onBeforeUnmount(() => clearTimeout(autosaveTimer));
 </script>
 
 <template>
