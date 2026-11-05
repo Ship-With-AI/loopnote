@@ -1,0 +1,50 @@
+---
+phase: 24
+plan: 04
+type: auto
+wave: 1
+requirements: [PANEL-03, PANEL-05]
+---
+
+# Plan 24-04 Summary: ExportSection absorbs attached-completion state machine
+
+## Commits
+
+| Commit | Description |
+|---|---|
+| `d18fa4ac569324d822fa928ab34e89f2fc4e68b7` | fix(24-04): update export readiness Summary row copy |
+| `27a7377e10417ac71aeeb2d845a6aa9364217e63` | feat(24-04): absorb attached-completion state machine into ExportSection |
+
+## What shipped
+
+- `src/web/components/ExportReadinessSummary.vue` (line 37): Summary row copy changed to `'No summary (optional)'` / `'Summary written'`, superseding `'No summary provided'` / `'Summary included'`. No other line changed.
+- `src/web/components/ExportSection.vue`: absorbed the entire attached-completion state machine moved verbatim from `BottomPanel.vue:187-321` — the `completionAction`/`completionSuccess`/`completionFailure` refs, the `attachedBlockedByUnsavedText`/`attachedBlockedByPending`/`attachedBlockedByConflict`/`attachedNoFeedback` computeds (`attachedHasUnsavedText` intentionally **not** duplicated — reused the component's own pre-existing, formula-identical `hasUnsavedText` computed everywhere the moved markup referenced `attachedHasUnsavedText`), `finishAttachedReview()`, and the focus-move `watch(() => [attachedLifecycle, attachedFailure], ...)`. Added new optional props `attachedLifecycle?`, `attachedReady?`, `attachedFailure?`, `unsavedInlineComposerFile?`, `isExactPatch?`, `pending?`, `conflict?` and new emits `finishReview`, `reloadAttached`, `reviewInlineComposer`. Removed the externally-passed `attached?: boolean` prop, replaced with a locally-recomputed `const attached = computed(() => props.attachedLifecycle !== undefined)` per `24-PATTERNS.md`'s named exception. Added `PathText` import (for the inline-composer notice) and `FinishReviewResult`/`AttachedLifecycle`/`ReviewPendingOperation` type imports.
+  - Template restructured into one unified priority chain: tier 1 (`attached && attachedLifecycle !== undefined && attachedLifecycle !== 'waiting'`) renders the moved block's own 5-way `completed`/`finishing`/`waitingDisconnected`/`terminalFailure`/`retryableFailure`(×4 subkinds) chain inside a `<section class="attached-completion" aria-labelledby="finish-attached-review-heading">` region (`<h3 id="finish-attached-review-heading">Finish attached review</h3>` — accessible name preserved byte-for-byte); tiers 2-7 are the existing `locked`/`conflict`/`drift`/`failed`/`pending`/`unavailable` branches, unchanged, renumbered `v-else-if`; tier 8 (`exported`) and tier 9 (`ready`, final `v-else`) keep their existing readiness-checklist/receipt content unconditional, then branch on `!attached || attachedLifecycle !== 'waiting'`: the `false` side keeps today's unchanged `"Export review"`/`"Export review again"` button; the `true`/attached-and-waiting side renders a single `"Finish review"` primary button (`:disabled="attachedReady !== true"`, `@click="finishAttachedReview"`) preceded by the moved block's `attachedNoFeedback`/unsaved-text/inline-composer/pending/conflict blocking notices.
+- `src/web/components/workbench/ExportTab.vue` (new): thin wrapper, same shape as `SummaryTab.vue` (Plan 24-03) — mounts `ExportSection` forwarding every prop (including the new attached-related ones) and re-emitting every event (`export`, `cancel`, `reloadLatest`, `reviewUnsavedText`, `finishReview`, `reloadAttached`, `reviewInlineComposer`) 1:1, zero own computed logic. Not yet mounted anywhere (Plan 24-08's job). `BottomPanel.vue` was **not** touched, per the plan's explicit scope boundary — it keeps its own unmodified copy of the attached-completion block until Plan 24-08 cuts it out and rewires the mount point.
+
+## Deviations from Plan
+
+1. **Tooling, not scope:** Tasks 2 and 3 (`ExportSection.vue` and the new `ExportTab.vue`) landed in a single commit (`27a7377`) instead of two, because a shell-tooling race staged both files before the first `git commit` ran. Both tasks' content is correct and independently verifiable; only the commit granularity deviates from the "one commit per task" protocol.
+2. **Clarified ambiguity, not a scope change:** The plan's tier-8/tier-9 prose lists the attached-waiting content (notices + "Finish review" button) as a flat sequence without explicitly restating the `<section aria-labelledby="finish-attached-review-heading">`/`<h3>` wrapper used in tier 1. Since the frontmatter truth requires the region's accessible name to stay exactly "Finish attached review" wherever the "Finish review" button renders (and `tests/e2e/agent-ready-export.spec.ts`/`agent-ready-export-safety.spec.ts`/`marketplace-review.spec.ts`/`public-support-states.spec.ts`/`workbench-shell-smoke.spec.ts` all locate that button via `getByRole('region', { name: 'Finish attached review' })`, most commonly in the `waiting` lifecycle — i.e. the tier-8/9 case, not tier 1), I re-wrapped the tier-8 and tier-9 attached-waiting content in the same `<section>`/`<header>`/`<h3 id="finish-attached-review-heading">` scaffold used by tier 1. This duplicates that scaffold's markup in three mutually-exclusive template locations (never more than one mounted at once, so no duplicate-DOM-id risk) but is required to satisfy the explicit accessible-name truth for the predominant "waiting for agent" scenario.
+3. **Traced, not changed:** `AttachedLifecycle` includes an `'ordinary'` value (`App.vue`'s `attachedLifecycle` ref defaults to it before the first `getAttachedCompletionStatus()` poll resolves, and `BottomPanel.vue`'s real `:attached-lifecycle` binding — `isAttachedSession ? attachedLifecycle : undefined` — can pass it through). Under the plan's literally-specified tier-1 condition (`attachedLifecycle !== undefined && attachedLifecycle !== 'waiting'`, stated identically in the frontmatter truths, the task's dispatch order, and `24-UI-SPEC.md`'s locked dispatch order), `'ordinary'` is intercepted by tier 1 but matches none of its five named branches, rendering only the header with no body — whereas today's single-section `BottomPanel.vue` code treats `'ordinary'` identically to `'waiting'` (its own catch-all `v-else`). This is a narrow, likely-transient edge case (brief initial state before the first status poll) that exists because the literal, triply-stated plan condition was followed as written rather than unilaterally widened; flagging for Plan 24-10's cross-cutting verification rather than silently reinterpreting an explicitly-locked dispatch condition.
+
+## Verification run
+
+- `npm run typecheck:web` — 0 errors.
+- `npm run verify:semantic-css` — pass; no new CSS selector introduced (the moved block's classes — `.attached-completion`, `.attached-completion__*` — already exist globally in `src/web/styles.css`, confirmed by grep before the move; nothing added here).
+- `npx vitest run --no-file-parallelism tests/unit` — 46 files, 478 tests, all passed.
+- Playwright: grepped `tests/e2e` and `tests/integration` for `ExportSection|ExportReadinessSummary|ExportTab` — no hits; these files are not yet mounted/targeted directly anywhere. Separately grepped for `Finish attached review`/`finish-attached-review-heading` — all matches are in `agent-ready-export.spec.ts`, `agent-ready-export-safety.spec.ts`, `marketplace-review.spec.ts`, `public-support-states.spec.ts`, and `workbench-shell-smoke.spec.ts`, all of which still exercise `BottomPanel.vue`'s own unmodified copy of the block (untouched by this plan), not the new `ExportSection.vue`/`ExportTab.vue` code paths. Per this plan's own `<verification>` section, the packaged-binary Chromium/Playwright proof of byte-identical behavior is explicitly deferred to Plan 24-10; no Playwright run was performed for this plan.
+
+## Self-Check
+
+- Truth 1 (Summary row copy): verified — `ExportReadinessSummary.vue:37` reads exactly `'No summary (optional)'` / `'Summary written'`; the other four readiness rows (`Accepted revision`/`Open actionable`/`Need reviewer attention`/`Resolved`/`Ignore status`) are byte-identical to before.
+- Truth 2 (attached-completion state machine moved verbatim, accessible name preserved): verified — `ExportSection.vue` contains the identical markup/copy for all seven lifecycle branches plus the waiting/blocking-notice content, the identical focus-move `watch`, and three mutually-exclusive `<section aria-labelledby="finish-attached-review-heading"><h3 id="finish-attached-review-heading">Finish attached review</h3>...</section>` instances (tier 1, tier-8-else, tier-9-else) — accessible name is byte-identical in every instance.
+- Truth 3 (unified priority chain, not two stacked sections): verified — `ExportSection.vue`'s template is one `v-if`/`v-else-if`/`v-else` chain starting with the attached-non-waiting tier, followed by the unchanged `locked`/`conflict`/`drift`/`failed`/`pending`/`unavailable` branches, then the modified `exported`/ready branches that swap `"Export review"`/`"Export review again"` for a disabled-until-`attachedReady` `"Finish review"` button when attached-and-waiting.
+- Truth 4 (finishReview mutation payload untouched): verified — this plan did not touch `App.vue`'s `finishAttachedReview()`/`sessionClient.finishReview({ expectedRevision })` call site or the `FinishReviewResult`/`FinishReviewRequest` contracts in `src/contracts/api.ts`; `ExportSection.vue`'s own `finishAttachedReview()` only emits a zero-payload `finishReview` event, exactly as `BottomPanel.vue`'s did.
+- Artifact `ExportSection.vue` (new props/emits, locally-recomputed `attached`, moved-verbatim template/computeds/watch): present as committed.
+- Artifact `ExportTab.vue` (thin wrapper, 1:1 forwarding): present as committed — confirmed by direct read, zero own computed/ref/watch logic.
+- Key link (`ExportTab.vue` → `ExportSection.vue`, 1:1 prop/emit forwarding): confirmed — every prop and emit is forwarded under its original name with no transformation.
+- `npm run typecheck:web`: 0 errors. `npm run verify:semantic-css`: pass. `npx vitest run --no-file-parallelism tests/unit`: 478/478 passed.
+- `BottomPanel.vue` and `ExportReceipt.vue` were not touched, per scope.
+
+## Self-Check: PASSED
