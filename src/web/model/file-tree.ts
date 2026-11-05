@@ -34,6 +34,7 @@ export type VisibleFileTreeRow =
 export interface FileTreeModel {
   readonly tree: readonly FileTreeNode[];
   readonly visibleRows: readonly VisibleFileTreeRow[];
+  readonly flatFileRows: readonly VisibleFileTreeLeaf[];
   readonly expandedDirectoryIds: readonly string[];
   readonly effectiveExpandedDirectoryIds: ReadonlySet<string>;
   readonly directoryDescendantCounts: ReadonlyMap<string, number>;
@@ -182,6 +183,25 @@ function flattenVisibleRows(
   }
 }
 
+function flattenFileRows(
+  nodes: readonly FileTreeNode[],
+  output: VisibleFileTreeLeaf[],
+): void {
+  for (const node of nodes) {
+    if (node.kind === 'directory') {
+      flattenFileRows(node.children, output);
+    } else {
+      output.push(
+        Object.freeze({
+          ...node,
+          rowId: fileRowId(node.fileId),
+          depth: 0,
+        }),
+      );
+    }
+  }
+}
+
 function pruneTree(
   nodes: readonly FileTreeNode[],
   matches: (leaf: FileTreeLeaf) => boolean,
@@ -274,6 +294,9 @@ function createModel(
   const visibleRows: VisibleFileTreeRow[] = [];
   flattenVisibleRows(projectedTree, effectiveExpanded, 0, visibleRows);
   const frozenVisibleRows = Object.freeze(visibleRows);
+  const flatFileRows: VisibleFileTreeLeaf[] = [];
+  flattenFileRows(projectedTree, flatFileRows);
+  const frozenFlatFileRows = Object.freeze(flatFileRows);
   const selectedRowId =
     selectedFileId === null ? null : fileRowId(selectedFileId);
   const selectedRowVisible =
@@ -490,6 +513,7 @@ function createModel(
   model = Object.freeze({
     tree,
     visibleRows: frozenVisibleRows,
+    flatFileRows: frozenFlatFileRows,
     expandedDirectoryIds,
     effectiveExpandedDirectoryIds: effectiveExpanded,
     directoryDescendantCounts,
