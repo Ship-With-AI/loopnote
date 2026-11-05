@@ -113,7 +113,19 @@ vi.mock('monaco-editor', () => ({
   },
 }));
 
-import { createMonacoDiffAdapter, createMonacoSinglePaneAdapter } from '../../src/web/monaco/diff-adapter.js';
+import { createMonacoDiffAdapter, createMonacoSinglePaneAdapter, type AdapterNavigation } from '../../src/web/monaco/diff-adapter.js';
+
+// Phase 20-02 (commit 0c76bfa) added a required `navigate` parameter to both factories so
+// F7/Shift+F7/Alt+Up/Alt+Down can be registered as Monaco `addAction` overrides on the
+// single-pane editor too (20-UI-SPEC.md "Keyboard Map": dual registration on sub-editors
+// *and* the single-pane editor). Construction-only tests below never trigger these actions,
+// so a shared no-op stub is enough to keep the real five-argument call shape intact.
+const noopNavigate: AdapterNavigation = {
+  nextChange: vi.fn(),
+  previousChange: vi.fn(),
+  nextFile: vi.fn(),
+  previousFile: vi.fn(),
+};
 
 describe('PublicMonacoDiffAdapter construction', () => {
   it('defines and selects the stable theme before constructing a diff editor', () => {
@@ -341,7 +353,7 @@ describe('PublicMonacoSinglePaneAdapter construction', () => {
     mocks.defineTheme.mockClear();
     mocks.setTheme.mockClear();
 
-    createMonacoSinglePaneAdapter({} as HTMLElement, () => 'typescript', vi.fn(), 'head');
+    createMonacoSinglePaneAdapter({} as HTMLElement, () => 'typescript', vi.fn(), noopNavigate, 'head');
 
     expect(mocks.defineTheme).toHaveBeenCalledOnce();
     expect(mocks.setTheme).toHaveBeenCalledOnce();
@@ -353,7 +365,7 @@ describe('PublicMonacoSinglePaneAdapter construction', () => {
   it('constructs a plain editor with readonly/typography options and no diff-only keys', () => {
     const tokens = canonicalRoot(resolve(import.meta.dirname, '../..'));
 
-    createMonacoSinglePaneAdapter({} as HTMLElement, () => 'typescript', vi.fn(), 'head');
+    createMonacoSinglePaneAdapter({} as HTMLElement, () => 'typescript', vi.fn(), noopNavigate, 'head');
 
     const options = mocks.createEditor.mock.calls.at(-1)?.[1] as Record<string, unknown>;
     expect(options).toMatchObject({
@@ -381,10 +393,10 @@ describe('PublicMonacoSinglePaneAdapter construction', () => {
   });
 
   it('derives a side-specific aria label for base vs head construction', () => {
-    createMonacoSinglePaneAdapter({} as HTMLElement, () => 'typescript', vi.fn(), 'base');
+    createMonacoSinglePaneAdapter({} as HTMLElement, () => 'typescript', vi.fn(), noopNavigate, 'base');
     const baseOptions = mocks.createEditor.mock.calls.at(-1)?.[1] as { ariaLabel: string };
 
-    createMonacoSinglePaneAdapter({} as HTMLElement, () => 'typescript', vi.fn(), 'head');
+    createMonacoSinglePaneAdapter({} as HTMLElement, () => 'typescript', vi.fn(), noopNavigate, 'head');
     const headOptions = mocks.createEditor.mock.calls.at(-1)?.[1] as { ariaLabel: string };
 
     expect(baseOptions.ariaLabel).toContain('base');
@@ -394,7 +406,7 @@ describe('PublicMonacoSinglePaneAdapter construction', () => {
 
   it('loads a single file side synchronously without ever invoking onDidUpdateDiff', async () => {
     mocks.diffUpdateListeners.length = 0;
-    const adapter = createMonacoSinglePaneAdapter({ offsetTop: 0 } as HTMLElement, () => 'typescript', vi.fn(), 'head');
+    const adapter = createMonacoSinglePaneAdapter({ offsetTop: 0 } as HTMLElement, () => 'typescript', vi.fn(), noopNavigate, 'head');
     const mockEditor = mocks.createEditor.mock.results.at(-1)?.value;
 
     await adapter.setFile({
@@ -409,7 +421,7 @@ describe('PublicMonacoSinglePaneAdapter construction', () => {
 
   it('reports density changes through the shared CODE_DENSITIES table', () => {
     const tokens = canonicalRoot(resolve(import.meta.dirname, '../..'));
-    const adapter = createMonacoSinglePaneAdapter({} as HTMLElement, () => 'typescript', vi.fn(), 'head');
+    const adapter = createMonacoSinglePaneAdapter({} as HTMLElement, () => 'typescript', vi.fn(), noopNavigate, 'head');
     const mockEditor = mocks.createEditor.mock.results.at(-1)?.value;
 
     adapter.setCodeDensity('wide');
@@ -421,7 +433,7 @@ describe('PublicMonacoSinglePaneAdapter construction', () => {
   });
 
   it('disposes the underlying editor exactly once, even across repeated dispose calls', () => {
-    const adapter = createMonacoSinglePaneAdapter({} as HTMLElement, () => 'typescript', vi.fn(), 'head');
+    const adapter = createMonacoSinglePaneAdapter({} as HTMLElement, () => 'typescript', vi.fn(), noopNavigate, 'head');
     const mockEditor = mocks.createEditor.mock.results.at(-1)?.value;
 
     adapter.dispose();
@@ -433,8 +445,8 @@ describe('PublicMonacoSinglePaneAdapter construction', () => {
   it('constructs two independent fixed-side instances with two separate create calls', () => {
     mocks.createEditor.mockClear();
 
-    createMonacoSinglePaneAdapter({} as HTMLElement, () => 'typescript', vi.fn(), 'base');
-    createMonacoSinglePaneAdapter({} as HTMLElement, () => 'typescript', vi.fn(), 'head');
+    createMonacoSinglePaneAdapter({} as HTMLElement, () => 'typescript', vi.fn(), noopNavigate, 'base');
+    createMonacoSinglePaneAdapter({} as HTMLElement, () => 'typescript', vi.fn(), noopNavigate, 'head');
 
     expect(mocks.createEditor).toHaveBeenCalledTimes(2);
     const firstInstance = mocks.createEditor.mock.results[0]?.value;
@@ -443,7 +455,7 @@ describe('PublicMonacoSinglePaneAdapter construction', () => {
   });
 
   it('always returns an empty array since single-pane has no diff editor to compute changes from', () => {
-    const adapter = createMonacoSinglePaneAdapter({} as HTMLElement, () => 'typescript', vi.fn(), 'head');
+    const adapter = createMonacoSinglePaneAdapter({} as HTMLElement, () => 'typescript', vi.fn(), noopNavigate, 'head');
 
     expect(adapter.getLineChanges()).toEqual([]);
   });
@@ -461,7 +473,7 @@ describe('PublicMonacoSinglePaneAdapter unpaired anchor and view-zone wiring', (
       createElement: vi.fn(() => ({ className: '', setAttribute: vi.fn() })),
     });
     try {
-      const adapter = createMonacoSinglePaneAdapter({ offsetTop: 0 } as HTMLElement, () => 'typescript', vi.fn(), 'head');
+      const adapter = createMonacoSinglePaneAdapter({ offsetTop: 0 } as HTMLElement, () => 'typescript', vi.fn(), noopNavigate, 'head');
       const mockEditor = mocks.createEditor.mock.results.at(-1)?.value;
       await adapter.setFile(sampleFile);
 
@@ -478,7 +490,7 @@ describe('PublicMonacoSinglePaneAdapter unpaired anchor and view-zone wiring', (
       createElement: vi.fn(() => ({ className: '', setAttribute: vi.fn() })),
     });
     try {
-      const adapter = createMonacoSinglePaneAdapter({ offsetTop: 0 } as HTMLElement, () => 'typescript', vi.fn(), 'head');
+      const adapter = createMonacoSinglePaneAdapter({ offsetTop: 0 } as HTMLElement, () => 'typescript', vi.fn(), noopNavigate, 'head');
       const mockEditor = mocks.createEditor.mock.results.at(-1)?.value;
       await adapter.setFile(sampleFile);
       adapter.activateAnchor('head', 5);
@@ -496,7 +508,7 @@ describe('PublicMonacoSinglePaneAdapter unpaired anchor and view-zone wiring', (
       createElement: vi.fn(() => ({ className: '', setAttribute: vi.fn() })),
     });
     try {
-      const adapter = createMonacoSinglePaneAdapter({ offsetTop: 0 } as HTMLElement, () => 'typescript', vi.fn(), 'head');
+      const adapter = createMonacoSinglePaneAdapter({ offsetTop: 0 } as HTMLElement, () => 'typescript', vi.fn(), noopNavigate, 'head');
       const mockEditor = mocks.createEditor.mock.results.at(-1)?.value;
       await adapter.setFile(sampleFile);
       adapter.activateAnchor('head', 5);
@@ -510,7 +522,7 @@ describe('PublicMonacoSinglePaneAdapter unpaired anchor and view-zone wiring', (
   });
 
   it('returns undefined affordance for a line outside the model line-count bounds', async () => {
-    const adapter = createMonacoSinglePaneAdapter({ offsetTop: 0 } as HTMLElement, () => 'typescript', vi.fn(), 'head');
+    const adapter = createMonacoSinglePaneAdapter({ offsetTop: 0 } as HTMLElement, () => 'typescript', vi.fn(), noopNavigate, 'head');
     await adapter.setFile(sampleFile);
 
     expect(adapter.getAnchorAffordanceAt('head', 0)).toBeUndefined();
@@ -522,7 +534,7 @@ describe('PublicMonacoSinglePaneAdapter unpaired anchor and view-zone wiring', (
       createElement: vi.fn(() => ({ className: '', setAttribute: vi.fn() })),
     });
     try {
-      const adapter = createMonacoSinglePaneAdapter({ offsetTop: 0 } as HTMLElement, () => 'typescript', vi.fn(), 'head');
+      const adapter = createMonacoSinglePaneAdapter({ offsetTop: 0 } as HTMLElement, () => 'typescript', vi.fn(), noopNavigate, 'head');
       const mockEditor = mocks.createEditor.mock.results.at(-1)?.value;
       await adapter.setFile(sampleFile);
 
@@ -540,7 +552,7 @@ describe('PublicMonacoSinglePaneAdapter unpaired anchor and view-zone wiring', (
       createElement: vi.fn(() => ({ className: '', setAttribute: vi.fn() })),
     });
     try {
-      const adapter = createMonacoSinglePaneAdapter({ offsetTop: 0 } as HTMLElement, () => 'typescript', vi.fn(), 'head');
+      const adapter = createMonacoSinglePaneAdapter({ offsetTop: 0 } as HTMLElement, () => 'typescript', vi.fn(), noopNavigate, 'head');
       const mockEditor = mocks.createEditor.mock.results.at(-1)?.value;
       await adapter.setFile(sampleFile);
 
@@ -559,7 +571,7 @@ describe('PublicMonacoSinglePaneAdapter unpaired anchor and view-zone wiring', (
       createElement: vi.fn(() => ({ className: '', setAttribute: vi.fn() })),
     });
     try {
-      const adapter = createMonacoSinglePaneAdapter({ offsetTop: 0 } as HTMLElement, () => 'typescript', vi.fn(), 'head');
+      const adapter = createMonacoSinglePaneAdapter({ offsetTop: 0 } as HTMLElement, () => 'typescript', vi.fn(), noopNavigate, 'head');
       const mockEditor = mocks.createEditor.mock.results.at(-1)?.value;
       await adapter.setFile(sampleFile);
 
@@ -573,18 +585,28 @@ describe('PublicMonacoSinglePaneAdapter unpaired anchor and view-zone wiring', (
     }
   });
 
-  it(`registers the ${RENAME_MAP.kindPrefix}.add-{side}-comment keybinding exactly once per instance`, () => {
+  it(`registers the ${RENAME_MAP.kindPrefix}.add-{side}-comment keybinding exactly once per instance, alongside the NAV-03 navigation actions`, () => {
     mocks.createEditor.mockClear();
-    createMonacoSinglePaneAdapter({} as HTMLElement, () => 'typescript', vi.fn(), 'base');
+    createMonacoSinglePaneAdapter({} as HTMLElement, () => 'typescript', vi.fn(), noopNavigate, 'base');
     const baseEditor = mocks.createEditor.mock.results.at(-1)?.value;
 
-    createMonacoSinglePaneAdapter({} as HTMLElement, () => 'typescript', vi.fn(), 'head');
+    createMonacoSinglePaneAdapter({} as HTMLElement, () => 'typescript', vi.fn(), noopNavigate, 'head');
     const headEditor = mocks.createEditor.mock.results.at(-1)?.value;
 
-    expect(baseEditor.addAction).toHaveBeenCalledOnce();
+    // 20-UI-SPEC.md "Keyboard Map": F7/Shift+F7/Alt+Up/Alt+Down are registered as Monaco
+    // addAction overrides on the single-pane editor in addition to the pre-existing
+    // add-comment action, so each instance now registers five actions total.
+    expect(baseEditor.addAction).toHaveBeenCalledTimes(5);
+    expect(headEditor.addAction).toHaveBeenCalledTimes(5);
+
+    const baseActionIds = baseEditor.addAction.mock.calls.map((call: [{ id: string }]) => call[0].id);
+    const headActionIds = headEditor.addAction.mock.calls.map((call: [{ id: string }]) => call[0].id);
+
     expect(baseEditor.addAction.mock.calls[0][0].id).toBe(`${RENAME_MAP.kindPrefix}.add-base-comment`);
-    expect(headEditor.addAction).toHaveBeenCalledOnce();
     expect(headEditor.addAction.mock.calls[0][0].id).toBe(`${RENAME_MAP.kindPrefix}.add-head-comment`);
+    expect(baseActionIds.filter((id: string) => id === `${RENAME_MAP.kindPrefix}.add-base-comment`)).toHaveLength(1);
+    expect(headActionIds.filter((id: string) => id === `${RENAME_MAP.kindPrefix}.add-head-comment`)).toHaveLength(1);
   });
 });
+
 
