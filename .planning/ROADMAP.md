@@ -147,7 +147,23 @@ Plans:
   4. Reviewer sees file count and `+X −Y` totals under the tree.
   5. Reviewer operates the entire tree by keyboard — ↑↓ preview, ←→ fold, Home/End, Enter/Space open — through a single tab stop, proven with real-browser Tab/Arrow-key evidence across compact-folder-chain rows.
 
-**Plans**: TBD
+**Plans**: 0/4 plans executed
+**Wave 1**
+
+- [ ] 21-01-PLAN.md
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 21-02-PLAN.md
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 21-03-PLAN.md
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 21-04-PLAN.md
+
 **UI hint**: yes
 
 ### Phase 22: Identity & Status Bar
@@ -225,7 +241,7 @@ Plans:
 | 18. Product Repositioning Copy | v2.0 | 5/5 | Complete | 2026-11-02 |
 | 19. Typecheck Foundation | v2.1 | 4/4 | Complete    | 2026-11-04 |
 | 20. Shell Frame | v2.1 | 10/10 | Complete    | 2026-11-04 |
-| 21. Changed-Files Tree | v2.1 | 0/TBD | Not started | - |
+| 21. Changed-Files Tree | v2.1 | 0/4 | Planned    |  |
 | 22. Identity & Status Bar | v2.1 | 0/TBD | Not started | - |
 | 23. Inline Comment Threads | v2.1 | 0/TBD | Not started | - |
 | 24. Bottom Panel & Export | v2.1 | 0/TBD | Not started | - |
