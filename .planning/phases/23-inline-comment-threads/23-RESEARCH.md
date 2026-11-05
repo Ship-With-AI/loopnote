@@ -395,17 +395,17 @@ const overlayWidget: monaco.editor.IOverlayWidget = {
 | A2 | `monaco-editor@0.55.1`'s `onDomNodeTop`/overlay-widget pixel-coordinate behavior matches the typedoc description with no version-specific regressions | Pattern 2, Code Examples | Low — confirmed present in the exact installed `node_modules` type declarations (not just training-data recall of a possibly-different version), but behavior (not just type signature) is only confirmed by the spike itself |
 | A3 | Monaco's `addAction` keybinding handling calls `preventDefault`/`stopPropagation` before the keydown event reaches `document`, which is why F7/Alt-arrow dual-registration doesn't double-fire today | Pattern 4 | If this mechanism differs for `KeyMod.Alt | KeyCode.F9` specifically (e.g. if F9 has a different OS/browser-chrome interaction than F7 does), THREAD-09's shortcut could double-fire or silently not fire in one focus context — flagged explicitly as a cross-platform verification gap in PITFALLS.md Critical Pitfall 7, independent of this assumption |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Does `allowEditorOverflow` need to be `true` or `false` for the overlay widget, given threads can exceed the visible editor width/height when expanded?**
    - What we know: `IOverlayWidget.allowEditorOverflow` exists (line 5692) and lets the widget render outside the editor's own view DOM node bounds.
    - What's unclear: Whether this project's CSP (`src/server/security.ts`, flagged in PITFALLS.md's CSP/popover Integration Gotcha) or the fixed 720px max-width thread frame (per UI-SPEC) ever actually needs overflow — likely not, since threads are capped at 720px and the diff pane is wider, but should be confirmed empirically in the spike rather than assumed.
-   - Recommendation: Default to `false` (matches the fixed-width thread frame) and only flip to `true` if the spike surfaces clipping.
+   - RESOLVED: Default to `false` (matches the fixed-width thread frame) and only flip to `true` if the spike surfaces clipping. Resolution path: confirmed empirically by Plan 23-01's spike.
 
 2. **What exact code-column indent values (56px side-by-side / 96px inline) does the real rendered `glyphMargin` + line-number column produce?**
    - What we know: UI-SPEC explicitly defers this to "Plan 01 go/no-go spike against app's actual rendered `glyphMargin` + line-number column widths (`CODE_FONT_SIZE`/`lineNumbersMinChars` in `diff-adapter.ts`)."
    - What's unclear: The exact pixel values at each code density (`wide`/`default`/`compact`, `CODE_DENSITIES` constant, diff-adapter.ts:91-101).
-   - Recommendation: Measure via `editor.getLayoutInfo().decorationsLeft`/`.contentLeft` in the spike itself; UI-SPEC already defers this, so this research does not need to resolve it, only confirm the measurement API exists (`getLayoutInfo()` is a standard, long-stable Monaco API — [ASSUMED] not re-verified against 0.55.1 type defs in this session, low risk since it's unrelated to the content-widget risk area).
+   - RESOLVED: Measure via `editor.getLayoutInfo().decorationsLeft`/`.contentLeft` in the spike itself; UI-SPEC already defers this, so this research does not need to resolve it, only confirm the measurement API exists (`getLayoutInfo()` is a standard, long-stable Monaco API — [ASSUMED] not re-verified against 0.55.1 type defs in this session, low risk since it's unrelated to the content-widget risk area). Resolution path: confirmed empirically by Plan 23-01's spike.
 
 ## Environment Availability
 
