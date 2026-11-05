@@ -3,13 +3,14 @@ import type { AppendLoopnoteIgnoreResult, ExportDirectoryRevealResult, FinishRev
 import { RENAME_MAP } from '../../../domain/product-identity.js';
 import { computed, nextTick, ref, watch } from 'vue';
 
+import type { VisibleFileTreeLeaf } from '../../model/file-tree.js';
+import type { PanelTab } from '../../model/panel-state.js';
 import type { AttachedLifecycle, ReviewExportState, ReviewPendingOperation } from '../../model/review-draft-state.js';
 import type { WorkspaceComment } from '../../model/workspace-state.js';
-import ExportSection from '../ExportSection.vue';
-import SummarySection from '../SummarySection.vue';
-import ReviewStateBadge from '../ui/ReviewStateBadge.vue';
+import CommentsTab from './CommentsTab.vue';
+import ExportTab from './ExportTab.vue';
+import SummaryTab from './SummaryTab.vue';
 import UiIcon from '../ui/UiIcon.vue';
-import PathText from '../ui/PathText.vue';
 
 type ReviewFailure = Readonly<{
   operation: ReviewPendingOperation;
@@ -20,6 +21,7 @@ const props = withDefaults(
   defineProps<{
     readonly open: boolean;
     readonly comments: readonly WorkspaceComment[];
+    readonly flatFileRows?: readonly VisibleFileTreeLeaf[];
     readonly summary: string;
     readonly revision: number;
     readonly pinnedEndpoints?: Readonly<{
@@ -43,8 +45,9 @@ const props = withDefaults(
     readonly mutationLocked?: boolean;
     readonly isExactPatch?: boolean;
     readonly exportSupported?: boolean;
+    readonly activeTab?: PanelTab;
   }>(),
-  { exportSupported: true },
+  { exportSupported: true, activeTab: 'comments', flatFileRows: () => [] },
 );
 
 const emit = defineEmits<{
@@ -59,50 +62,64 @@ const emit = defineEmits<{
   reviewInlineComposer: [fileId: string];
   finishReview: [];
   reloadAttached: [];
+  'update:activeTab': [tab: PanelTab];
+  reveal: [commentId: string, fileId: string, side: WorkspaceComment['side'], line: number];
 }>();
 
 const reviewFailure = computed(() => props.failure !== null && props.failure.operation !== 'summary');
 const failureAlert = ref<HTMLElement>();
 
-const openCount = computed(() => props.comments.filter((comment) => comment.state === 'open').length);
-const resolvedCount = computed(() => props.comments.filter((comment) => comment.state === 'resolved').length);
 const summaryFailure = computed(() => props.failure?.operation === 'summary');
 const attached = computed(() => props.attachedLifecycle !== undefined);
-const attachedHasUnsavedText = computed(() => (
-  props.summaryBuffer !== props.summary
-  || props.comments.some((comment) => props.commentBuffers.get(comment.id) !== undefined && props.commentBuffers.get(comment.id) !== comment.body)
-));
-const attachedBlockedByUnsavedText = computed(
-  () => attachedHasUnsavedText.value || props.unsavedInlineComposerFile !== undefined,
-);
-const attachedBlockedByPending = computed(() => props.pending !== null);
-const attachedBlockedByConflict = computed(() => props.conflict !== null);
-const attachedNoFeedback = computed(() => props.summary === '' && props.comments.length === 0);
-const completionAction = ref<HTMLButtonElement>();
-const completionSuccess = ref<HTMLElement>();
-const completionFailure = ref<HTMLElement>();
-
-function finishAttachedReview(): void {
-  if (props.attachedReady) emit('finishReview');
-}
-
-watch(() => [props.attachedLifecycle, props.attachedFailure] as const, ([lifecycle, failure]) => {
-  if (lifecycle === 'finishing') void nextTick(() => completionAction.value?.focus());
-  if (lifecycle === 'completed') void nextTick(() => completionSuccess.value?.focus());
-  if (lifecycle === 'waitingDisconnected' || lifecycle === 'terminalFailure' || failure !== undefined) {
-    void nextTick(() => completionFailure.value?.focus());
-  }
-}, { deep: true });
 
 watch(reviewFailure, (failed) => {
   if (failed) void nextTick(() => failureAlert.value?.focus());
 });
+
+const TABS = [
+  { id: 'comments', label: 'Comments' },
+  { id: 'summary', label: 'Summary' },
+  { id: 'export', label: 'Export' },
+] as const satisfies readonly { id: PanelTab; label: string }[];
+
+const tabButtons = new Map<PanelTab, HTMLButtonElement>();
+function setTabRef(id: PanelTab, el: Element | null): void {
+  if (el instanceof HTMLButtonElement) tabButtons.set(id, el);
+  else tabButtons.delete(id);
+}
+
+function selectTab(tab: PanelTab): void {
+  emit('update:activeTab', tab);
+}
+
+function moveTab(delta: 1 | -1): void {
+  const index = TABS.findIndex((tab) => tab.id === props.activeTab);
+  const next = TABS[(index + delta + TABS.length) % TABS.length]!;
+  selectTab(next.id);
+  void nextTick(() => tabButtons.get(next.id)?.focus());
+}
+
+function focusActiveTab(): void {
+  tabButtons.get(props.activeTab)?.focus();
+}
+
+defineExpose({ focusActiveTab });
 </script>
 
 <template>
   <section v-if="open" role="region" aria-label="Review" class="bottom-panel">
     <header class="bottom-panel__header">
-      <span class="bottom-panel__label">REVIEW</span>
+      <div role="tablist" aria-label="Review panel" class="bottom-panel__tabs">
+        <button
+          v-for="tab in TABS" :key="tab.id" :ref="(el) => setTabRef(tab.id, el as Element | null)"
+          :id="`panel-tab-${tab.id}`" role="tab" type="button"
+          class="bottom-panel__tab" :class="{ 'bottom-panel__tab--selected': activeTab === tab.id }"
+          :aria-selected="activeTab === tab.id" :aria-controls="`panel-panel-${tab.id}`"
+          :tabindex="activeTab === tab.id ? 0 : -1"
+          @click="selectTab(tab.id)"
+          @keydown.left.prevent="moveTab(-1)" @keydown.right.prevent="moveTab(1)"
+        >{{ tab.label }}</button>
+      </div>
       <button type="button" class="icon-btn" aria-label="Close panel" @click="emit('close')">
         <UiIcon name="close" />
       </button>
@@ -144,182 +161,60 @@ watch(reviewFailure, (failed) => {
         <p v-else>{{ `The review change wasn’t saved. The accepted local draft is unchanged. Try again after checking ${RENAME_MAP.displayName} is running.` }}</p>
       </div>
     </section>
-    <SummarySection
-      :canonical="summary"
-      :model-value="summaryBuffer"
-      :pending="pending !== null || mutationLocked === true"
-      :saving="pending === 'summary'"
-      :conflict="conflict !== null"
-      :failure="summaryFailure"
-      :retained="retainedSummary"
 
-      @cancel="emit('cancelSummary')"
-      @save="emit('saveSummary')"
-      @update:model-value="emit('update:summaryBuffer', $event)"
-    />
-
-    <section class="review-notes-dialog__counts" aria-label="Review comment counts">
-      <ReviewStateBadge kind="open" :label="`Open ${openCount}`" />
-      <ReviewStateBadge kind="resolved" :label="`Resolved ${resolvedCount}`" />
-    </section>
-
-    <template v-if="exportSupported">
-    <ExportSection
-      :revision="revision"
-      :pinned-endpoints="pinnedEndpoints"
-      :summary="summary"
-      :summary-buffer="summaryBuffer"
-      :comments="comments"
-      :comment-buffers="commentBuffers"
-      :export-state="exportState"
-      :append-ignore-rule="appendIgnoreRule"
-      :refresh-ignore-status="refreshIgnoreStatus"
-      :reveal-export-directory="revealExportDirectory"
-      :attached="attached"
-      :locked="mutationLocked"
-      @cancel="emit('cancelExport')"
-      @export="emit('export')"
-      @reload-latest="emit('reloadLatest')"
-      @review-unsaved-text="emit('reviewUnsavedText')"
-    />
-    </template>
-
-    <section v-if="attached" class="attached-completion" aria-labelledby="finish-attached-review-heading">
-      <header class="attached-completion__heading">
-        <h3 id="finish-attached-review-heading">Finish attached review</h3>
-        <ReviewStateBadge
-          :kind="attachedLifecycle === 'completed' ? 'resolved' : 'open'"
-          :label="attachedLifecycle === 'completed' ? 'Completed' : attachedLifecycle === 'finishing' ? 'Finishing' : 'Waiting'"
-        />
-      </header>
-
-      <template v-if="attachedLifecycle === 'completed'">
-        <div class="inline-notice inline-notice--success" role="status">
-          <UiIcon name="check" class="inline-notice__icon" />
-          <div class="inline-notice__content">
-            <h4 ref="completionSuccess" tabindex="-1">Review finished</h4>
-            <p>The accepted review was returned to the requesting agent from revision {{ revision }}. You can close this tab.</p>
-          </div>
-        </div>
-      </template>
-
-      <template v-else-if="attachedLifecycle === 'finishing'">
-        <button ref="completionAction" type="button" class="ui-button ui-button--primary attached-completion__action" disabled aria-busy="true">
-          <span class="ui-spinner" aria-hidden="true" />Finishing review…
-        </button>
-        <p class="attached-completion__progress" role="status" aria-live="polite">Validating accepted revision {{ revision }} and its recorded anchors…</p>
-      </template>
-
-      <template v-else-if="attachedLifecycle === 'waitingDisconnected'">
-        <div class="inline-notice inline-notice--error" role="alert">
-          <UiIcon name="error" class="inline-notice__icon" />
-          <div class="inline-notice__content">
-            <h4 ref="completionFailure" tabindex="-1">Attached review disconnected</h4>
-            <p>{{ `The browser lost its connection to ${RENAME_MAP.displayName}. This review is still unfinished. Reload this page while ${RENAME_MAP.displayName} is running, then choose Finish review.` }}</p>
-            <button type="button" class="ui-button" @click="emit('reloadAttached')">Reload page</button>
-          </div>
-        </div>
-      </template>
-
-      <template v-else-if="attachedLifecycle === 'terminalFailure'">
-        <div class="inline-notice inline-notice--error" role="alert">
-          <UiIcon name="error" class="inline-notice__icon" />
-          <div class="inline-notice__content">
-            <h4 ref="completionFailure" tabindex="-1">Completion status unavailable</h4>
-            <p>{{ `${RENAME_MAP.displayName} disconnected before this tab received confirmation. This tab does not claim the review was finished. Check the invoking terminal. If ${RENAME_MAP.displayName} is still running, reload to reconnect.` }}</p>
-            <button type="button" class="ui-button" @click="emit('reloadAttached')">Reload page</button>
-          </div>
-        </div>
-      </template>
-
-      <template v-else-if="attachedLifecycle === 'retryableFailure' && attachedFailure?.kind === 'revisionConflict'">
-        <div class="inline-notice inline-notice--warning" role="alert">
-          <UiIcon name="warning" class="inline-notice__icon" />
-          <div class="inline-notice__content">
-            <h4 ref="completionFailure" tabindex="-1">Review changed before finish</h4>
-            <p>Accepted revision {{ attachedFailure.expectedRevision }} is no longer current. Latest revision is {{ attachedFailure.actualRevision }}. No feedback was returned. Reload the latest review, check the comments and summary, then choose Finish review again.</p>
-            <button type="button" class="ui-button" @click="emit('reloadLatest')">Reload latest</button>
-          </div>
-        </div>
-      </template>
-
-      <template v-else-if="attachedLifecycle === 'retryableFailure' && attachedFailure?.kind === 'staleAnchors'">
-        <div class="inline-notice inline-notice--warning" role="alert">
-          <UiIcon name="warning" class="inline-notice__icon" />
-          <div class="inline-notice__content">
-            <h4 ref="completionFailure" tabindex="-1">Review can’t be finished</h4>
-            <p>{{ `${RENAME_MAP.displayName} found stale or unavailable feedback anchors in the accepted review. Affected comments: ${attachedFailure.affectedCount}. No feedback returned. Their recorded anchors remain unchanged and may not be actionable in exported feedback.` }}</p>
-          </div>
-        </div>
-      </template>
-
-      <template v-else-if="attachedLifecycle === 'retryableFailure' && attachedFailure?.kind === 'scopeInvalid'">
-        <div class="inline-notice inline-notice--warning" role="alert">
-          <UiIcon name="warning" class="inline-notice__icon" />
-          <div class="inline-notice__content">
-            <h4 ref="completionFailure" tabindex="-1">Reviewed content changed</h4>
-            <p>{{ isExactPatch ? 'The submitted patch content no longer passes completion validation. No feedback returned. Relaunch agent request against valid content.' : 'The submitted review scope no longer passes completion validation. No feedback returned. Relaunch agent request against valid content.' }}</p>
-          </div>
-        </div>
-      </template>
-
-      <template v-else-if="attachedLifecycle === 'retryableFailure' && attachedFailure?.kind === 'draftReadOnly'">
-        <div class="inline-notice inline-notice--warning" role="alert">
-          <UiIcon name="warning" class="inline-notice__icon" />
-          <div class="inline-notice__content">
-            <h4 ref="completionFailure" tabindex="-1">Review draft can’t be validated</h4>
-            <p>{{ `The accepted local draft is corrupt, incomplete, or read-only. No feedback was returned. Reload the review; if it remains unavailable, relaunch ${RENAME_MAP.displayName}.` }}</p>
-            <button type="button" class="ui-button" @click="emit('reloadAttached')">Reload review</button>
-          </div>
-        </div>
-      </template>
-
-      <template v-else-if="attachedLifecycle === 'retryableFailure'">
-        <div class="inline-notice inline-notice--error" role="alert">
-          <UiIcon name="error" class="inline-notice__icon" />
-          <div class="inline-notice__content">
-            <h4 ref="completionFailure" tabindex="-1">Review was not finished</h4>
-            <p>{{ `No feedback was returned. Check that ${RENAME_MAP.displayName} is still running, then try Finish review again.` }}</p>
-            <button type="button" class="ui-button ui-button--primary" @click="finishAttachedReview">Try Finish review again</button>
-          </div>
-        </div>
-      </template>
-
-      <template v-else>
-        <p class="attached-completion__waiting">The requesting agent is waiting. Only Finish review returns the accepted summary and comments. Exporting, closing, reloading, or disconnecting leaves this review unfinished.</p>
-        <div v-if="attachedNoFeedback" class="inline-notice">
-          <div class="inline-notice__content">
-            <h4>No feedback added</h4>
-            <p>This review has no accepted summary or comments. You can still finish and return an empty review result, or add feedback first.</p>
-          </div>
-        </div>
-        <div v-if="attachedHasUnsavedText" class="inline-notice inline-notice--warning">
-          <div class="inline-notice__content">
-            <h4>Unsaved text must be reviewed</h4>
-            <p>Save or discard unsaved summary or comment text before finishing. The requesting agent only receives the accepted review.</p>
-            <button type="button" class="ui-button" @click="emit('reviewUnsavedText')">Review unsaved text</button>
-          </div>
-        </div>
-        <div v-if="unsavedInlineComposerFile !== undefined" class="inline-notice inline-notice--warning" role="region" aria-labelledby="inline-composer-finish-block-heading">
-          <div class="inline-notice__content">
-            <h4 id="inline-composer-finish-block-heading">Inline comment draft must be reviewed</h4>
-            <p><PathText :display="unsavedInlineComposerFile.display" /> has unsaved text. Save or discard it before finishing.</p>
-            <button type="button" class="ui-button" @click="emit('reviewInlineComposer', unsavedInlineComposerFile.fileId)">
-              Review draft in <PathText :display="unsavedInlineComposerFile.display" />
-            </button>
-          </div>
-        </div>
-        <p v-if="!attachedBlockedByUnsavedText && attachedBlockedByPending" class="attached-completion__pending" role="status">Saving review changes…</p>
-        <div v-else-if="!attachedBlockedByUnsavedText && attachedBlockedByConflict" class="inline-notice inline-notice--warning">
-          <div class="inline-notice__content">
-            <h4>Review changed before finish</h4>
-            <p>Accepted revision {{ conflict?.expectedRevision }} is no longer current. Latest revision is {{ conflict?.actualRevision }}. No feedback was returned. Reload the latest review, check the comments and summary, then choose Finish review again.</p>
-            <button type="button" class="ui-button" @click="emit('reloadLatest')">Reload latest</button>
-          </div>
-        </div>
-        <button ref="completionAction" type="button" class="ui-button ui-button--primary attached-completion__action" :disabled="attachedReady !== true" @click="finishAttachedReview">Finish review</button>
-      </template>
-    </section>
+    <div id="panel-panel-comments" role="tabpanel" aria-labelledby="panel-tab-comments" :hidden="activeTab !== 'comments'">
+      <CommentsTab
+        v-if="activeTab === 'comments'"
+        :comments="comments"
+        :flat-file-rows="flatFileRows"
+        @reveal="(commentId, fileId, side, line) => emit('reveal', commentId, fileId, side, line)"
+      />
+    </div>
+    <div id="panel-panel-summary" role="tabpanel" aria-labelledby="panel-tab-summary" :hidden="activeTab !== 'summary'">
+      <SummaryTab
+        v-if="activeTab === 'summary'"
+        :canonical="summary"
+        :model-value="summaryBuffer"
+        :pending="pending !== null || mutationLocked === true"
+        :saving="pending === 'summary'"
+        :conflict="conflict !== null"
+        :failure="summaryFailure"
+        :retained="retainedSummary"
+        @cancel="emit('cancelSummary')"
+        @save="emit('saveSummary')"
+        @update:model-value="emit('update:summaryBuffer', $event)"
+      />
+    </div>
+    <div id="panel-panel-export" role="tabpanel" aria-labelledby="panel-tab-export" :hidden="activeTab !== 'export'">
+      <ExportTab
+        v-if="activeTab === 'export' && (exportSupported || attached)"
+        :revision="revision"
+        :pinned-endpoints="pinnedEndpoints"
+        :summary="summary"
+        :summary-buffer="summaryBuffer"
+        :comments="comments"
+        :comment-buffers="commentBuffers"
+        :export-state="exportState"
+        :append-ignore-rule="appendIgnoreRule"
+        :refresh-ignore-status="refreshIgnoreStatus"
+        :reveal-export-directory="revealExportDirectory"
+        :locked="mutationLocked"
+        :attached-lifecycle="attachedLifecycle"
+        :attached-ready="attachedReady"
+        :attached-failure="attachedFailure"
+        :unsaved-inline-composer-file="unsavedInlineComposerFile"
+        :is-exact-patch="isExactPatch"
+        :pending="pending"
+        :conflict="conflict"
+        @cancel="emit('cancelExport')"
+        @export="emit('export')"
+        @reload-latest="emit('reloadLatest')"
+        @review-unsaved-text="emit('reviewUnsavedText')"
+        @review-inline-composer="(fileId) => emit('reviewInlineComposer', fileId)"
+        @finish-review="emit('finishReview')"
+        @reload-attached="emit('reloadAttached')"
+      />
+    </div>
   </section>
 </template>
 
@@ -342,9 +237,24 @@ watch(reviewFailure, (failed) => {
   padding: var(--space-1) var(--space-2);
 }
 
-.bottom-panel__label {
+.bottom-panel__tabs {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.bottom-panel__tab {
   font-size: var(--font-size-label);
   letter-spacing: var(--letter-spacing-label);
   text-transform: uppercase;
+  padding-block: var(--space-1);
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.bottom-panel__tab--selected {
+  border-bottom-color: var(--interactive-accent);
 }
 </style>
