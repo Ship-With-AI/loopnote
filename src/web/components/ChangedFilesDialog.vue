@@ -73,6 +73,7 @@ const emit = defineEmits<{
 
 <style scoped>
 .changed-files-dialog__results {
+  min-height: 160px;
   max-height: 50dvh;
   overflow: auto;
 }
