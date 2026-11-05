@@ -51,17 +51,18 @@ describe('truncateMiddle', () => {
   });
 
   test('does not split an astral-plane emoji mid-codepoint', () => {
-    const text = `prefix-content-here📁suffix-content-here`;
+    // headLen = 10 for max = 20. Placing the emoji at codepoint index 9 means its
+    // UTF-16 start offset (9 units in) falls inside what a UTF-16-naive
+    // `text.slice(0, headLen)` would take, so a regression away from the
+    // `Array.from`-based codepoint slicing would corrupt it into a lone leading
+    // surrogate. Under the actual (codepoint-safe) implementation the emoji
+    // survives intact in the head segment instead.
+    const text = `${'a'.repeat(9)}📁${'c'.repeat(15)}`;
     const result = truncateMiddle(text, 20);
 
-    expect(result).toHaveLength(20);
-    // A split surrogate pair would produce an unpaired lone surrogate,
-    // which Array.from would report as a distinct (invalid) codepoint
-    // entry rather than the single 📁 glyph.
-    for (const char of result) {
-      expect(char.length).toBeLessThanOrEqual(2);
-    }
-    expect([...result].every((char) => char.codePointAt(0) !== undefined)).toBe(true);
+    expect(Array.from(result)).toHaveLength(20);
+    expect(result).toContain('📁');
+    expect(result).not.toMatch(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/u);
   });
 
   test('does not split a combining diacritic mid-codepoint', () => {
