@@ -58,6 +58,11 @@ const navigate: AdapterNavigation = {
   previousChange: () => emit('previous-change'),
   nextFile: () => emit('next-file'),
   previousFile: () => emit('previous-file'),
+  // Plan 23-05 extends AdapterNavigation with thread-navigation hooks ahead of Plan 23-07's
+  // real wiring (flattened cross-file thread order + DiffWorkspace/App.vue integration);
+  // inert no-ops keep this component's public emit contract unchanged until then.
+  nextThread: () => {},
+  previousThread: () => {},
 };
 
 const host = ref<HTMLElement>();

@@ -52,11 +52,14 @@ export type AdapterNavigation = Readonly<{
   previousChange: () => void;
   nextFile: () => void;
   previousFile: () => void;
+  nextThread: () => void;
+  previousThread: () => void;
 }>;
 
 export type MonacoDiffAdapter = Readonly<{
   activateAnchor: (side: DiffSide, line: number, endLine?: number) => void;
   clearAnchor: () => void;
+  createThread: (commentId: string, anchor: Anchor) => HTMLElement;
   dispose: () => void;
   getActiveAnchor: () => Anchor | undefined;
   getAnchorAffordance: () => AnchorAffordanceTarget | undefined;
@@ -64,7 +67,9 @@ export type MonacoDiffAdapter = Readonly<{
   getAnchorAffordanceAt: (side: DiffSide, line: number) => AnchorAffordanceTarget | undefined;
   getDiagnostics: () => AdapterDiagnostics;
   goToChange: (direction: 'next' | 'previous') => void;
+  growThread: (commentId: string, heightInPx: number) => void;
   layout: (forceDimensions?: Readonly<{ width: number; height: number }>) => void;
+  removeThread: (commentId: string) => void;
   revealAnchor: (anchor: Anchor) => void;
   setAnchorZoneHeight: (heightInPx: number) => void;
   setActiveAnchor: (anchor: Anchor | undefined) => void;
@@ -115,6 +120,8 @@ class PublicMonacoDiffAdapter {
   private readonly modifiedDiffDecorations: monaco.editor.IEditorDecorationsCollection;
   private readonly originalSelectionDecorations: monaco.editor.IEditorDecorationsCollection;
   private readonly modifiedSelectionDecorations: monaco.editor.IEditorDecorationsCollection;
+  private readonly originalGutterDecorations: monaco.editor.IEditorDecorationsCollection;
+  private readonly modifiedGutterDecorations: monaco.editor.IEditorDecorationsCollection;
   private currentFile: ImmutableDiffFile | undefined;
   private activeComposer: ActiveComposer | undefined;
   private focused: { side: DiffSide; line: number } | undefined;
@@ -122,6 +129,15 @@ class PublicMonacoDiffAdapter {
   private contextMode: 'collapsed' | 'all-revealed' = 'collapsed';
   private originalZone: { id: string; zone: monaco.editor.IViewZone } | undefined;
   private modifiedZone: { id: string; zone: monaco.editor.IViewZone } | undefined;
+  private readonly threadZones = new Map<string, {
+    originalZoneId: string;
+    originalZone: monaco.editor.IViewZone;
+    modifiedZoneId: string;
+    modifiedZone: monaco.editor.IViewZone;
+    anchorEditor: monaco.editor.IStandaloneCodeEditor;
+    widget: monaco.editor.IOverlayWidget;
+    widgetTop: number;
+  }>();
   private diffUpdates = 0;
   private disposed = false;
   private pendingSetFileReady: (() => void) | undefined;
@@ -160,6 +176,8 @@ class PublicMonacoDiffAdapter {
     this.modifiedDiffDecorations = this.modifiedEditor.createDecorationsCollection();
     this.originalSelectionDecorations = this.originalEditor.createDecorationsCollection();
     this.modifiedSelectionDecorations = this.modifiedEditor.createDecorationsCollection();
+    this.originalGutterDecorations = this.originalEditor.createDecorationsCollection();
+    this.modifiedGutterDecorations = this.modifiedEditor.createDecorationsCollection();
     this.originalEditor.getContainerDomNode().classList.add('monaco-diff-pane--base');
     this.modifiedEditor.getContainerDomNode().classList.add('monaco-diff-pane--head');
     this.staticDisposables.push(
@@ -243,6 +261,30 @@ class PublicMonacoDiffAdapter {
         label: 'Previous file',
         keybindings: [monaco.KeyMod.Alt | monaco.KeyCode.UpArrow],
         run: () => this.navigate.previousFile(),
+      }),
+      this.originalEditor.addAction({
+        id: `${RENAME_MAP.kindPrefix}.previous-thread-base`,
+        label: 'Previous thread',
+        keybindings: [monaco.KeyMod.Alt | monaco.KeyCode.F9],
+        run: () => this.navigate.previousThread(),
+      }),
+      this.modifiedEditor.addAction({
+        id: `${RENAME_MAP.kindPrefix}.previous-thread-head`,
+        label: 'Previous thread',
+        keybindings: [monaco.KeyMod.Alt | monaco.KeyCode.F9],
+        run: () => this.navigate.previousThread(),
+      }),
+      this.originalEditor.addAction({
+        id: `${RENAME_MAP.kindPrefix}.next-thread-base`,
+        label: 'Next thread',
+        keybindings: [monaco.KeyMod.Alt | monaco.KeyMod.Shift | monaco.KeyCode.F9],
+        run: () => this.navigate.nextThread(),
+      }),
+      this.modifiedEditor.addAction({
+        id: `${RENAME_MAP.kindPrefix}.next-thread-head`,
+        label: 'Next thread',
+        keybindings: [monaco.KeyMod.Alt | monaco.KeyMod.Shift | monaco.KeyCode.F9],
+        run: () => this.navigate.nextThread(),
       }),
     );
   }
@@ -457,6 +499,7 @@ class PublicMonacoDiffAdapter {
     this.pendingSetFileReady?.();
     this.pendingSetFileReady = undefined;
     this.removeZones();
+    this.removeAllThreadZones();
     this.disposeModels();
     for (const disposable of this.staticDisposables) {
       disposable.dispose();
@@ -549,6 +592,8 @@ class PublicMonacoDiffAdapter {
     this.modifiedDecorations = undefined;
     this.originalDiffDecorations.clear();
     this.modifiedDiffDecorations.clear();
+    this.originalGutterDecorations.clear();
+    this.modifiedGutterDecorations.clear();
     this.originalSelectionDecorations.clear();
     this.modifiedSelectionDecorations.clear();
     this.diffEditor.setModel(null);
@@ -587,6 +632,18 @@ class PublicMonacoDiffAdapter {
       'head',
       modifiedLineCount,
     ));
+    this.originalGutterDecorations.set(this.buildGutterLineDecorations(originalLineCount));
+    this.modifiedGutterDecorations.set(this.buildGutterLineDecorations(modifiedLineCount));
+  }
+
+  private buildGutterLineDecorations(lineCount: number): monaco.editor.IModelDeltaDecoration[] {
+    if (lineCount <= 0) {
+      return [];
+    }
+    return [{
+      range: new monaco.Range(1, 1, lineCount, 1),
+      options: { glyphMarginClassName: 'diff-gutter-line' },
+    }];
   }
 
   private refreshSelectionDecorations(): void {
@@ -698,6 +755,113 @@ class PublicMonacoDiffAdapter {
     this.originalEditor.changeViewZones((accessor) => accessor.layoutZone(this.originalZone?.id ?? ''));
     this.modifiedEditor.changeViewZones((accessor) => accessor.layoutZone(this.modifiedZone?.id ?? ''));
   }
+
+  createThread(commentId: string, anchor: Anchor): HTMLElement {
+    return this.createThreadZone(commentId, anchor);
+  }
+
+  growThread(commentId: string, heightInPx: number): void {
+    this.growThreadZone(commentId, heightInPx);
+  }
+
+  removeThread(commentId: string): void {
+    this.removeThreadZone(commentId);
+  }
+
+  private createThreadSpacerDomNode(): HTMLElement {
+    const spacer = document.createElement('div');
+    spacer.className = 'monaco-anchor-zone monaco-anchor-zone--thread-spacer';
+    spacer.setAttribute('aria-hidden', 'true');
+    return spacer;
+  }
+
+  private createThreadSpacerZone(afterLineNumber: number): monaco.editor.IViewZone {
+    return {
+      afterLineNumber,
+      domNode: this.createThreadSpacerDomNode(),
+      heightInPx: 140,
+      suppressMouseDown: true,
+      showInHiddenAreas: true,
+    };
+  }
+
+  private createThreadZone(commentId: string, anchor: Anchor): HTMLElement {
+    this.removeThreadZone(commentId);
+    const anchoredEditor = this.editorFor(anchor.side);
+    const counterpartSide: DiffSide = anchor.side === 'base' ? 'head' : 'base';
+    const counterpartEditor = this.editorFor(counterpartSide);
+    const counterpartModel = this.modelFor(counterpartSide);
+    const counterpartLine = counterpartModel === undefined
+      ? anchor.line
+      : counterpartBoundary(this.diffEditor.getLineChanges(), anchor.side, anchor.line, counterpartModel.getLineCount());
+
+    const widgetDomNode = document.createElement('div');
+    widgetDomNode.className = 'monaco-thread-widget';
+    widgetDomNode.setAttribute('data-thread-id', commentId);
+
+    const anchoredZone = this.createThreadSpacerZone(anchor.line);
+    const counterpartZone = this.createThreadSpacerZone(counterpartLine);
+    const anchoredZoneId = this.addZone(anchoredEditor, anchoredZone);
+    const counterpartZoneId = this.addZone(counterpartEditor, counterpartZone);
+
+    const widget: monaco.editor.IOverlayWidget = {
+      allowEditorOverflow: false,
+      getId: () => `${RENAME_MAP.kindPrefix}.thread-${commentId}`,
+      getDomNode: () => widgetDomNode,
+      getPosition: () => ({
+        preference: { top: this.threadZones.get(commentId)?.widgetTop ?? 0, left: anchoredEditor.getLayoutInfo().contentLeft },
+      }),
+    };
+    anchoredZone.onDomNodeTop = (top) => {
+      const entry = this.threadZones.get(commentId);
+      if (entry === undefined) {
+        return;
+      }
+      entry.widgetTop = top;
+      anchoredEditor.layoutOverlayWidget(widget);
+    };
+    anchoredEditor.addOverlayWidget(widget);
+
+    this.threadZones.set(commentId, {
+      originalZoneId: anchor.side === 'base' ? anchoredZoneId : counterpartZoneId,
+      originalZone: anchor.side === 'base' ? anchoredZone : counterpartZone,
+      modifiedZoneId: anchor.side === 'base' ? counterpartZoneId : anchoredZoneId,
+      modifiedZone: anchor.side === 'base' ? counterpartZone : anchoredZone,
+      anchorEditor: anchoredEditor,
+      widget,
+      widgetTop: 0,
+    });
+    return widgetDomNode;
+  }
+
+  private growThreadZone(commentId: string, heightInPx: number): void {
+    const entry = this.threadZones.get(commentId);
+    if (entry === undefined) {
+      return;
+    }
+    entry.originalZone.heightInPx = heightInPx;
+    entry.modifiedZone.heightInPx = heightInPx;
+    this.originalEditor.changeViewZones((accessor) => accessor.layoutZone(entry.originalZoneId));
+    this.modifiedEditor.changeViewZones((accessor) => accessor.layoutZone(entry.modifiedZoneId));
+    entry.anchorEditor.layoutOverlayWidget(entry.widget);
+  }
+
+  private removeThreadZone(commentId: string): void {
+    const entry = this.threadZones.get(commentId);
+    if (entry === undefined) {
+      return;
+    }
+    entry.anchorEditor.removeOverlayWidget(entry.widget);
+    this.originalEditor.changeViewZones((accessor) => accessor.removeZone(entry.originalZoneId));
+    this.modifiedEditor.changeViewZones((accessor) => accessor.removeZone(entry.modifiedZoneId));
+    this.threadZones.delete(commentId);
+  }
+
+  private removeAllThreadZones(): void {
+    for (const commentId of [...this.threadZones.keys()]) {
+      this.removeThreadZone(commentId);
+    }
+  }
 }
 
 type SinglePaneSavedState = {
@@ -719,6 +883,12 @@ class PublicMonacoSinglePaneAdapter {
   private focusedLine: number | undefined;
   private anchorAffordance: AnchorAffordanceTarget | undefined;
   private zone: { id: string; zone: monaco.editor.IViewZone } | undefined;
+  private readonly threadZones = new Map<string, {
+    zoneId: string;
+    zone: monaco.editor.IViewZone;
+    widget: monaco.editor.IOverlayWidget;
+    widgetTop: number;
+  }>();
   private disposed = false;
 
   constructor(
@@ -781,6 +951,18 @@ class PublicMonacoSinglePaneAdapter {
         label: 'Previous file',
         keybindings: [monaco.KeyMod.Alt | monaco.KeyCode.UpArrow],
         run: () => this.navigate.previousFile(),
+      }),
+      this.editor.addAction({
+        id: `${RENAME_MAP.kindPrefix}.previous-thread-${side}`,
+        label: 'Previous thread',
+        keybindings: [monaco.KeyMod.Alt | monaco.KeyCode.F9],
+        run: () => this.navigate.previousThread(),
+      }),
+      this.editor.addAction({
+        id: `${RENAME_MAP.kindPrefix}.next-thread-${side}`,
+        label: 'Next thread',
+        keybindings: [monaco.KeyMod.Alt | monaco.KeyMod.Shift | monaco.KeyCode.F9],
+        run: () => this.navigate.nextThread(),
       }),
     );
   }
@@ -948,6 +1130,7 @@ class PublicMonacoSinglePaneAdapter {
     }
     this.disposed = true;
     this.removeZone();
+    this.removeAllThreadZones();
     this.disposeModel();
     for (const disposable of this.staticDisposables) {
       disposable.dispose();
@@ -1087,6 +1270,88 @@ class PublicMonacoSinglePaneAdapter {
       zoneId = accessor.addZone(zone);
     });
     return zoneId;
+  }
+
+  createThread(commentId: string, anchor: Anchor): HTMLElement {
+    return this.createThreadZone(commentId, anchor);
+  }
+
+  growThread(commentId: string, heightInPx: number): void {
+    this.growThreadZone(commentId, heightInPx);
+  }
+
+  removeThread(commentId: string): void {
+    this.removeThreadZone(commentId);
+  }
+
+  private createThreadSpacerDomNode(): HTMLElement {
+    const spacer = document.createElement('div');
+    spacer.className = 'monaco-anchor-zone monaco-anchor-zone--thread-spacer';
+    spacer.setAttribute('aria-hidden', 'true');
+    return spacer;
+  }
+
+  private createThreadZone(commentId: string, anchor: Anchor): HTMLElement {
+    this.removeThreadZone(commentId);
+    const widgetDomNode = document.createElement('div');
+    widgetDomNode.className = 'monaco-thread-widget';
+    widgetDomNode.setAttribute('data-thread-id', commentId);
+
+    const zone: monaco.editor.IViewZone = {
+      afterLineNumber: anchor.line,
+      domNode: this.createThreadSpacerDomNode(),
+      heightInPx: 140,
+      suppressMouseDown: true,
+      showInHiddenAreas: true,
+    };
+    const zoneId = this.addZone(zone);
+
+    const widget: monaco.editor.IOverlayWidget = {
+      allowEditorOverflow: false,
+      getId: () => `${RENAME_MAP.kindPrefix}.thread-${commentId}`,
+      getDomNode: () => widgetDomNode,
+      getPosition: () => ({
+        preference: { top: this.threadZones.get(commentId)?.widgetTop ?? 0, left: this.editor.getLayoutInfo().contentLeft },
+      }),
+    };
+    zone.onDomNodeTop = (top) => {
+      const entry = this.threadZones.get(commentId);
+      if (entry === undefined) {
+        return;
+      }
+      entry.widgetTop = top;
+      this.editor.layoutOverlayWidget(widget);
+    };
+    this.editor.addOverlayWidget(widget);
+
+    this.threadZones.set(commentId, { zoneId, zone, widget, widgetTop: 0 });
+    return widgetDomNode;
+  }
+
+  private growThreadZone(commentId: string, heightInPx: number): void {
+    const entry = this.threadZones.get(commentId);
+    if (entry === undefined) {
+      return;
+    }
+    entry.zone.heightInPx = heightInPx;
+    this.editor.changeViewZones((accessor) => accessor.layoutZone(entry.zoneId));
+    this.editor.layoutOverlayWidget(entry.widget);
+  }
+
+  private removeThreadZone(commentId: string): void {
+    const entry = this.threadZones.get(commentId);
+    if (entry === undefined) {
+      return;
+    }
+    this.editor.removeOverlayWidget(entry.widget);
+    this.editor.changeViewZones((accessor) => accessor.removeZone(entry.zoneId));
+    this.threadZones.delete(commentId);
+  }
+
+  private removeAllThreadZones(): void {
+    for (const commentId of [...this.threadZones.keys()]) {
+      this.removeThreadZone(commentId);
+    }
   }
 }
 

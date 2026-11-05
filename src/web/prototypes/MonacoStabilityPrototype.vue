@@ -335,6 +335,8 @@ onMounted(async () => {
       previousChange: () => navigateChange('previous'),
       nextFile: () => {},
       previousFile: () => {},
+      nextThread: () => {},
+      previousThread: () => {},
     },
   );
   adapter.layout();
