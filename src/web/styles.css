@@ -935,19 +935,25 @@ input:-webkit-autofill:focus {
 
 .file-tree-pane__top {
   display: flex;
+  min-width: 0;
   height: var(--view-header-height);
   align-items: center;
   gap: var(--space-2);
   padding: 0 18px;
+  overflow: hidden;
 }
 
 .file-tree-pane__label {
   margin-inline-end: auto;
+  overflow: hidden;
+  min-width: 0;
   color: var(--text-muted);
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-regular);
   letter-spacing: var(--letter-spacing-label);
+  text-overflow: ellipsis;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .file-tree-pane__toolbar {
