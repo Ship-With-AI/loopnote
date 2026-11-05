@@ -61,7 +61,7 @@ const snippet = computed(() => props.comment.body.split('\n', 1)[0] ?? '');
     :data-comment-id="comment.id"
     :aria-label="`Comment thread, ${path}, ${sideLabel} line ${comment.line}`"
   >
-    <header class="thread-header" @click="emit('toggleCollapse')">
+    <header class="thread-header" tabindex="-1" @click="emit('toggleCollapse')">
       <span class="directory-row__disclosure" aria-hidden="true">{{ collapsed ? '▸' : '▾' }}</span>
       <span class="thread-header__location">{{ sideLabel }} · L{{ comment.line }}</span>
       <ReviewStateBadge :kind="chip.kind" :label="chip.label" size="compact" />

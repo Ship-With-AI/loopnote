@@ -4,9 +4,8 @@ import type * as monaco from 'monaco-editor';
 
 import type { FileContentResponse } from '../../contracts/api.js';
 import CommentComposer from './CommentComposer.vue';
+import CommentThread from './CommentThread.vue';
 import InlineNotice from './InlineNotice.vue';
-import PathText from './ui/PathText.vue';
-import ReviewStateBadge from './ui/ReviewStateBadge.vue';
 import RenderedMarkdownView from './RenderedMarkdownView.vue';
 import {
   createMonacoDiffAdapter,
@@ -16,6 +15,7 @@ import {
   type DiffSide,
   type MonacoDiffAdapter,
 } from '../monaco/diff-adapter.js';
+import { diffThreadIds } from '../model/thread-zone-diff.js';
 import type { WorkspaceComment, WorkspaceComposer } from '../model/workspace-state.js';
 import { configureMonacoWorkers, languageForPath } from '../monaco/configure.js';
 
@@ -32,10 +32,15 @@ const props = withDefaults(defineProps<{
   sourceKind?: 'range' | 'exact-patch';
   mode?: 'source' | 'rendered';
   renderSideBySide?: boolean;
+  collapsedByCommentId?: ReadonlyMap<string, boolean>;
+  editingCommentId?: string;
+  commentBuffers?: ReadonlyMap<string, string>;
 }>(), {
   sourceKind: 'range',
   mode: 'source',
   renderSideBySide: true,
+  collapsedByCommentId: () => new Map(),
+  commentBuffers: () => new Map(),
 });
 
 const emit = defineEmits<{
@@ -51,6 +56,16 @@ const emit = defineEmits<{
   'previous-change': [];
   'next-file': [];
   'previous-file': [];
+  'next-thread': [];
+  'previous-thread': [];
+  resolveComment: [commentId: string];
+  reopenComment: [commentId: string];
+  deleteComment: [commentId: string];
+  beginEditComment: [commentId: string];
+  updateCommentEditText: [commentId: string, text: string];
+  saveCommentEdit: [commentId: string];
+  cancelCommentEdit: [commentId: string];
+  toggleCommentCollapse: [commentId: string];
 }>();
 
 const navigate: AdapterNavigation = {
@@ -58,11 +73,8 @@ const navigate: AdapterNavigation = {
   previousChange: () => emit('previous-change'),
   nextFile: () => emit('next-file'),
   previousFile: () => emit('previous-file'),
-  // Plan 23-05 extends AdapterNavigation with thread-navigation hooks ahead of Plan 23-07's
-  // real wiring (flattened cross-file thread order + DiffWorkspace/App.vue integration);
-  // inert no-ops keep this component's public emit contract unchanged until then.
-  nextThread: () => {},
-  previousThread: () => {},
+  nextThread: () => emit('next-thread'),
+  previousThread: () => emit('previous-thread'),
 };
 
 const host = ref<HTMLElement>();
@@ -141,13 +153,6 @@ function syncRenderSideBySide(): void {
   adapter?.setRenderSideBySide(props.renderSideBySide);
 }
 
-function currentComment() {
-  const anchor = adapter?.getActiveAnchor();
-  return anchor === undefined
-    ? undefined
-    : props.comments.find((comment) => comment.fileId === anchor.fileId
-      && comment.side === anchor.side && comment.line === anchor.line && comment.status === 'verified');
-}
 function composerAnchor(side: DiffSide, line: number): string {
   return `${side}:${line}`;
 }
@@ -165,6 +170,76 @@ function resizeAnchorZoneToContent(zone: HTMLElement): void {
   adapter?.setAnchorZoneHeight(Math.max(280, contentHeight + 16));
 }
 
+const renderedThreadNodes = new Map<string, HTMLElement>();
+
+function unmountThread(commentId: string): void {
+  const node = renderedThreadNodes.get(commentId);
+  if (node !== undefined) {
+    render(null, node);
+  }
+  renderedThreadNodes.delete(commentId);
+}
+
+function clearRenderedThreads(): void {
+  for (const commentId of [...renderedThreadNodes.keys()]) {
+    unmountThread(commentId);
+  }
+}
+
+function resizeThreadZoneToContent(commentId: string, node: HTMLElement): void {
+  const contentHeight = node.firstElementChild?.scrollHeight ?? node.scrollHeight;
+  adapter?.growThread(commentId, Math.max(140, contentHeight + 16));
+}
+
+function renderThreads(): void {
+  const liveComments = props.comments.filter((comment) =>
+    comment.fileId === props.content.fileId && comment.status !== 'orphaned');
+  const diff = diffThreadIds(new Set(renderedThreadNodes.keys()), liveComments);
+
+  for (const commentId of diff.toRemove) {
+    adapter?.removeThread(commentId);
+    unmountThread(commentId);
+  }
+
+  for (const commentId of diff.toCreate) {
+    if (adapter === undefined) continue;
+    const comment = liveComments.find((candidate) => candidate.id === commentId);
+    if (comment === undefined) continue;
+    const node = adapter.createThread(comment.id, {
+      fileId: props.content.fileId,
+      side: comment.side,
+      line: comment.line,
+      endLine: comment.recordedAnchor.endLine,
+    });
+    renderedThreadNodes.set(comment.id, node);
+  }
+
+  for (const commentId of [...diff.toCreate, ...diff.toKeep]) {
+    const comment = liveComments.find((candidate) => candidate.id === commentId);
+    const node = renderedThreadNodes.get(commentId);
+    if (comment === undefined || node === undefined) continue;
+    render(h(CommentThread, {
+      comment,
+      path: props.path,
+      sideLabel: commentSideName(comment.side),
+      collapsed: props.collapsedByCommentId?.get(comment.id) ?? (comment.state === 'resolved'),
+      editing: props.editingCommentId === comment.id,
+      editText: props.commentBuffers?.get(comment.id) ?? comment.body,
+      mutationDisabled: props.mutationsLocked,
+      onResolve: () => emit('resolveComment', comment.id),
+      onReopen: () => emit('reopenComment', comment.id),
+      onEdit: () => emit('beginEditComment', comment.id),
+      onDelete: () => emit('deleteComment', comment.id),
+      onToggleCollapse: () => emit('toggleCommentCollapse', comment.id),
+      onUpdateEditText: (text: string) => emit('updateCommentEditText', comment.id, text),
+      onSaveEdit: () => emit('saveCommentEdit', comment.id),
+      onCancelEdit: () => emit('cancelCommentEdit', comment.id),
+    }), node);
+    void nextTick(() => {
+      resizeThreadZoneToContent(commentId, node);
+    });
+  }
+}
 
 function renderAnnotation(): void {
   const zone = host.value?.querySelector<HTMLElement>('.monaco-anchor-zone--composer');
@@ -176,27 +251,6 @@ function renderAnnotation(): void {
   if (zoneRoot !== zone) {
     unmountZone();
     zoneRoot = zone;
-  }
-  const comment = currentComment();
-  if (comment !== undefined) {
-    render(h('section', { class: 'conversation-card inline-accepted-comment', 'data-comment-id': comment.id }, [
-      h('header', { class: 'conversation-card__header' }, [
-        h('h3', { tabindex: -1, class: 'conversation-card__identity' }, [
-          h(PathText, { display: props.path }),
-          h('span', ` · ${commentSideName(comment.side)} · line ${comment.line}`),
-        ]),
-        h('div', { class: 'conversation-card__badges' }, [
-          h(ReviewStateBadge, { kind: comment.state, label: comment.state === 'open' ? 'Open' : 'Resolved' }),
-          h(ReviewStateBadge, { kind: 'verified', label: 'Verified' }),
-        ]),
-      ]),
-      h('div', { class: 'conversation-card__body' }, [h('p', comment.body)]),
-      h('footer', { class: 'conversation-card__footer' }, [h('span', { class: 'comment-badge' }, 'Saved locally')]),
-    ]), zone);
-    void nextTick(() => {
-      resizeAnchorZoneToContent(zone);
-    });
-    return;
   }
   if (props.composer === undefined || props.composer.side !== anchor.side || props.composer.line !== anchor.line) {
     render(null, zone);
@@ -256,6 +310,7 @@ async function loadContent(): Promise<void> {
   await adapter.setFile(immutableFile());
   syncSideNames();
   if (version !== loadVersion) return;
+  void nextTick(renderThreads);
 
   const composer = props.composer;
   if (composer !== undefined && composer.side !== undefined && composer.line !== undefined) {
@@ -291,7 +346,7 @@ function addComment(target: AnchorAffordanceTarget): void {
 
 function focusComment(commentId: string): void {
   void nextTick(() => {
-    host.value?.querySelector<HTMLElement>(`[data-comment-id="${CSS.escape(commentId)}"] h3`)?.focus();
+    host.value?.querySelector<HTMLElement>(`[data-comment-id="${CSS.escape(commentId)}"] .thread-header`)?.focus();
   });
 }
 
@@ -299,6 +354,7 @@ function focusComment(commentId: string): void {
 function revealComment(side: DiffSide, line: number, endLine?: number): void {
   adapter?.revealAnchor({ fileId: props.content.fileId, side, line, endLine });
   void nextTick(renderAnnotation);
+  void nextTick(renderThreads);
 }
 
 defineExpose({ focusComment, layout, nextChange, previousChange, revealComment });
@@ -324,7 +380,7 @@ watch(() => [props.composer, props.comments] as const, () => {
     }
   } else {
     observedComposerAnchor = '';
-    if (currentComment() === undefined && adapter?.getActiveAnchor() !== undefined) {
+    if (adapter?.getActiveAnchor() !== undefined) {
       unmountZone();
       adapter.clearAnchor();
     }
@@ -335,6 +391,8 @@ watch(() => [props.composer, props.comments] as const, () => {
     : adapter?.getAnchorAffordanceAt(pendingMove.side, pendingMove.line);
   void nextTick(renderAnnotation);
 }, { deep: true });
+
+watch(() => props.comments, renderThreads);
 
 watch(visibleSides, syncSideNames);
 watch(() => props.renderSideBySide, syncRenderSideBySide);
@@ -355,6 +413,7 @@ watch(() => props.mode, () => {
     if (anchor !== undefined) {
       adapter?.setActiveAnchor(anchor);
       void nextTick(renderAnnotation);
+      void nextTick(renderThreads);
     }
   });
 });
@@ -370,6 +429,7 @@ watch(() => props.content, () => {
 
 watch(editorKind, () => {
   unmountZone();
+  clearRenderedThreads();
   adapter?.dispose();
   adapter = undefined;
   void nextTick(() => {
@@ -410,6 +470,7 @@ onMounted(() => {
 });
 onBeforeUnmount(() => {
   unmountZone();
+  clearRenderedThreads();
   resizeObserver?.disconnect();
   wideCodeMedia?.removeEventListener('change', syncCodeDensity);
   compactCodeMedia?.removeEventListener('change', syncCodeDensity);
