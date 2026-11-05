@@ -1950,6 +1950,78 @@ h3.conversation-card__identity {
   color: var(--status-error-foreground);
 }
 
+.review-state-badge--compact {
+  padding: 0 var(--space-2);
+  border: 1px solid currentColor;
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-label);
+  letter-spacing: var(--letter-spacing-label);
+  text-transform: uppercase;
+  line-height: 15px;
+}
+
+.comment-thread {
+  border: 1px solid var(--border-default);
+  border-top: 2px solid var(--interactive-accent);
+  border-radius: 0 0 var(--radius-overlay) var(--radius-overlay);
+  background: var(--surface-panel);
+  max-width: 720px;
+}
+
+.comment-thread--resolved {
+  border-top-color: var(--status-resolved-foreground);
+}
+
+.comment-thread--stale {
+  border-top-color: var(--status-warning-foreground);
+}
+
+.thread-header {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-1);
+  color: var(--text-muted);
+  font-size: var(--font-size-metadata);
+  cursor: pointer;
+}
+
+.thread-header__location {
+  flex: 0 0 auto;
+  color: var(--text-primary);
+  font-size: var(--font-size-chrome);
+  font-weight: var(--font-weight-semibold);
+}
+
+.thread-header__snippet {
+  display: none;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.comment-thread--collapsed .thread-header__snippet {
+  display: inline;
+}
+
+.thread-header__actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--space-1);
+  margin-inline-start: auto;
+  opacity: 0;
+}
+
+.thread-header:hover .thread-header__actions,
+.comment-thread:focus-within .thread-header__actions {
+  opacity: 1;
+}
+
 .diff-workspace__editor {
   position: relative;
   z-index: 1;
