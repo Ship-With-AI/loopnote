@@ -2022,12 +2022,19 @@ h3.conversation-card__identity {
   opacity: 1;
 }
 
-.undo-toast {
+.undo-toast-stack {
   position: fixed;
   z-index: 20;
   bottom: var(--space-6);
   left: 50%;
   transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.undo-toast {
   display: flex;
   align-items: center;
   gap: var(--space-3);

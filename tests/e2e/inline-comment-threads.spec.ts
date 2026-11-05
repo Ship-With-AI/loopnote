@@ -552,3 +552,78 @@ test('packaged inline comment threads: delete with Undo, and delete-expiry sends
     await fixture.cleanup();
   }
 });
+
+test('packaged inline comment threads: deleting a second thread within the first\'s 5s Undo window keeps both pending deletes independently undoable (standalone single-pane session)', async ({ browser }) => {
+  // Regression for a Phase 23 code-review finding (WR-01, 23-REVIEW.md): a single
+  // `activeUndo` ref meant deleting thread B while thread A's Undo toast was still
+  // showing silently dropped A's Undo affordance (the toast switched to B only) while
+  // A's 5s delete timer kept running unseen in the background — the reviewer had no way
+  // to undo A anymore. Fixed by tracking pending deletes as an ordered list and
+  // rendering one stacked toast per pending delete.
+  const fixture = await createGitFixture();
+  await fixture.write('src/notes.ts', [
+    'export const noteOne = 1;',
+    'export const noteTwo = 2;',
+    '',
+  ].join('\n'));
+  const running = startGeneratedStandaloneCli(fixture, ['src/notes.ts']);
+  try {
+    const url = await waitForLoopbackUrl(running);
+    const page = await browser.newPage();
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await openGeneratedStandaloneReview(page, url, 1);
+
+    await activateSinglePaneLine(page, 'head', 'export const noteOne = 1;', 1);
+    const commentA = await addComment(page, 'Delete me first, then undo.');
+    await activateSinglePaneLine(page, 'head', 'export const noteTwo = 2;', 2);
+    const commentB = await addComment(page, 'Delete me second, let it expire.');
+
+    const mutationRequestBodies: Array<{ type: string; commentId?: string }> = [];
+    page.on('request', (request) => {
+      if (!request.url().includes('/api/draft/mutations')) return;
+      try {
+        mutationRequestBodies.push(request.postDataJSON() as { type: string; commentId?: string });
+      } catch {
+        // non-JSON body, ignore
+      }
+    });
+
+    const threadA = threadLocator(page, commentA);
+    const threadB = threadLocator(page, commentB);
+    const toastA = page.locator(`.undo-toast[data-comment-id="${commentA}"]`);
+    const toastB = page.locator(`.undo-toast[data-comment-id="${commentB}"]`);
+
+    await threadA.getByRole('button', { name: 'Delete thread' }).click();
+    await expect(threadA).toHaveCount(0);
+    await expect(toastA).toBeVisible();
+
+    // Delete B well inside A's 5s window — both toasts must coexist, A's must not be
+    // silently replaced.
+    await page.waitForTimeout(1_500);
+    await threadB.getByRole('button', { name: 'Delete thread' }).click();
+    await expect(threadB).toHaveCount(0);
+    await expect(toastA).toBeVisible();
+    await expect(toastB).toBeVisible();
+    await expect(page.locator('.undo-toast')).toHaveCount(2);
+
+    // Undo A: only A's toast and thread come back; B's toast and timer are unaffected.
+    await toastA.getByRole('button', { name: 'Undo' }).click();
+    await expect(threadA).toBeVisible();
+    await expect(toastA).toHaveCount(0);
+    await expect(toastB).toBeVisible();
+
+    // Let B's own timer (started ~1.5s before A's undo) run to completion: exactly one
+    // deleteComment fires for B, zero ever fire for A. B's timer fires at ~6.5s after its
+    // own delete click, so wait comfortably past that from here.
+    await page.waitForTimeout(5_500);
+    expect(mutationRequestBodies.filter((request) => request.type === 'deleteComment' && request.commentId === commentA)).toHaveLength(0);
+    expect(mutationRequestBodies.filter((request) => request.type === 'deleteComment' && request.commentId === commentB)).toHaveLength(1);
+    await expect(threadB).toHaveCount(0);
+    await expect(page.locator('.undo-toast')).toHaveCount(0);
+
+    await page.close();
+  } finally {
+    await stopGeneratedCli(running);
+    await fixture.cleanup();
+  }
+});

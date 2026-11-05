@@ -317,7 +317,7 @@ const staleCommentCount = computed(() =>
 const collapsedByCommentId = ref(new Map<string, boolean>());
 const editingCommentId = ref<string>();
 const locallyHiddenCommentIds = ref(new Set<string>());
-const activeUndo = ref<{ commentId: string } | undefined>();
+const pendingUndos = ref<readonly { commentId: string }[]>([]);
 const pendingDeletes = new Map<string, { readonly timeoutId: ReturnType<typeof setTimeout> }>();
 
 const liveWorkspaceComments = computed(() =>
@@ -399,14 +399,14 @@ function beginPendingDelete(commentId: string): void {
   const next = new Set(locallyHiddenCommentIds.value);
   next.add(commentId);
   locallyHiddenCommentIds.value = next;
-  activeUndo.value = { commentId };
+  pendingUndos.value = [...pendingUndos.value, { commentId }];
   const timeoutId = setTimeout(() => commitPendingDelete(commentId), 5000);
   pendingDeletes.set(commentId, { timeoutId });
 }
 
 function commitPendingDelete(commentId: string): void {
   pendingDeletes.delete(commentId);
-  if (activeUndo.value?.commentId === commentId) activeUndo.value = undefined;
+  pendingUndos.value = pendingUndos.value.filter((entry) => entry.commentId !== commentId);
   mutateReview({ type: 'deleteComment', expectedRevision: reviewDraft.value?.canonical.revision ?? 0, commentId });
 }
 
@@ -419,7 +419,7 @@ function undoPendingDelete(commentId: string): void {
   const next = new Set(locallyHiddenCommentIds.value);
   next.delete(commentId);
   locallyHiddenCommentIds.value = next;
-  if (activeUndo.value?.commentId === commentId) activeUndo.value = undefined;
+  pendingUndos.value = pendingUndos.value.filter((entry) => entry.commentId !== commentId);
   announce('Comment restored.');
 }
 
@@ -1750,7 +1750,15 @@ onBeforeUnmount(() => {
       @dismiss="dismissSupportDialog"
       @close="closeSupportDialog"
     />
-    <UndoToast v-if="activeUndo !== undefined" message="Comment deleted" @undo="undoPendingDelete(activeUndo.commentId)" />
+    <div v-if="pendingUndos.length > 0" class="undo-toast-stack">
+      <UndoToast
+        v-for="entry in pendingUndos"
+        :key="entry.commentId"
+        :comment-id="entry.commentId"
+        message="Comment deleted"
+        @undo="undoPendingDelete(entry.commentId)"
+      />
+    </div>
     <p class="visually-hidden" aria-live="polite">
       <span :key="liveMessageVersion" :data-announcement-version="liveMessageVersion">{{ liveMessage }}</span>
     </p>
