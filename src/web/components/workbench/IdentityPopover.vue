@@ -123,7 +123,7 @@ const rows = computed<readonly PopoverRow[]>(() => {
       dt: 'Validated against',
       ddText: patch.validationTarget.kind === 'repository' ? 'Repository' : 'Worktree',
     });
-    list.push({ dt: 'Patch digest', ddText: patch.digest });
+    list.push({ dt: 'Patch digest', ddText: controlSafeDisplay(patch.digest) });
   }
   return list;
 });
