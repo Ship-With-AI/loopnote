@@ -354,10 +354,9 @@ test('generated CLI opens immutable pinned session', async ({ browser, page }, t
     await proveLoadingTransition(page, url);
     await expect(page.getByRole('img', { name: RENAME_MAP.displayName })).toBeVisible();
     await expect(page.locator('.titlebar').getByRole('heading', { level: 1 })).toHaveCount(0);
-    await expect(page.locator('.session-header__comparison')).toContainText(
-      `BASEBase fixture · ${expectedBase.slice(0, 7)}→HEADHead fixture · ${expectedHead.slice(0, 7)}`,
+    await expect(page.locator('.identity-pill')).toContainText(
+      `BASEBase fixture${expectedBase.slice(0, 7)}→HEADHead fixture${expectedHead.slice(0, 7)}`,
     );
-    await expect(page.getByText('Pinned comparison', { exact: true })).toBeVisible();
   } finally {
     await stopGeneratedCli(running);
     await repository.cleanup();
@@ -780,8 +779,8 @@ test('complete packaged Phase 1 ordering matrix', async ({ browser }, testInfo) 
         });
 
         await page.goto(launchUrl, { waitUntil: 'domcontentloaded' });
-        await expect(page.locator('.session-header__comparison')).toContainText(
-          `BASE${matrixCase.selections.base.label} · ${expectedBase.slice(0, 7)}→HEAD${matrixCase.selections.head.label} · ${expectedHead.slice(0, 7)}`,
+        await expect(page.locator('.identity-pill')).toContainText(
+          `BASE${matrixCase.selections.base.label}${expectedBase.slice(0, 7)}→HEAD${matrixCase.selections.head.label}${expectedHead.slice(0, 7)}`,
         );
         await expect(
           page
@@ -817,6 +816,7 @@ test('complete packaged Phase 1 ordering matrix', async ({ browser }, testInfo) 
             matrixCase.selections.head.source?.kind === 'worktree' &&
               matrixCase.selections.head.source.dirty,
           );
+        await page.locator('.identity-pill').click();
         await expect(
           page.getByText('Dirty bytes ignored', { exact: true }),
         ).toHaveCount(dirtyWorktreeCount);
@@ -860,10 +860,9 @@ test('identity session and empty states', async ({ browser, context, page }, tes
     });
     await proveLoadingTransition(page, url);
     await expect(page.locator('.titlebar').getByRole('heading', { level: 1 })).toHaveCount(0);
-    await expect(page.locator('.session-header__comparison')).toContainText(
-      `BASEBase fixture · ${expectedBase.slice(0, 7)}→HEADHead fixture · ${expectedHead.slice(0, 7)}`,
+    await expect(page.locator('.identity-pill')).toContainText(
+      `BASEBase fixture${expectedBase.slice(0, 7)}→HEADHead fixture${expectedHead.slice(0, 7)}`,
     );
-    await expect(page.getByText('Pinned comparison', { exact: true })).toBeVisible();
 
 
     const securityPage = await context.newPage();
@@ -964,9 +963,10 @@ test('identity session and empty states', async ({ browser, context, page }, tes
   try {
     const dirtyUrl = await waitForLoopbackUrl(dirtyRunning);
     await dirtyPage.goto(dirtyUrl, { waitUntil: 'domcontentloaded' });
-    await expect(dirtyPage.locator('.session-header__comparison')).toContainText(
+    await expect(dirtyPage.locator('.identity-pill')).toContainText(
       'HEADHead\\nworktree',
     );
+    await dirtyPage.locator('.identity-pill').click();
     const dirtyBadge = dirtyPage.getByText('Dirty bytes ignored', {
       exact: true,
     });
@@ -988,8 +988,8 @@ test('identity session and empty states', async ({ browser, context, page }, tes
   try {
     const emptyUrl = await waitForLoopbackUrl(emptyRunning);
     await emptyPage.goto(emptyUrl, { waitUntil: 'domcontentloaded' });
-    await expect(emptyPage.locator('.session-header__comparison')).toContainText(
-      /BASEBase fixture · [0-9a-f]{7}→HEADHead fixture · [0-9a-f]{7}/,
+    await expect(emptyPage.locator('.identity-pill')).toContainText(
+      /BASEBase fixture[0-9a-f]{7}→HEADHead fixture[0-9a-f]{7}/,
     );
     await expect(
       emptyPage.getByRole('heading', { level: 2, name: 'No changes in this comparison.' }),
@@ -1258,7 +1258,7 @@ test('fragment token protects loopback API', async ({ browser, page, request }, 
     const apiRequest = await apiRequestPromise;
     const apiResponse = await apiResponsePromise;
 
-    await expect(page.locator('.session-header__comparison')).toContainText('BASEBase fixture');
+    await expect(page.locator('.identity-pill')).toContainText('BASEBase fixture');
     expect(new URL(page.url()).hash).toBe('');
     expect(apiRequest.url()).not.toContain(token);
     expect(apiRequest.headers().authorization).toBe(`Bearer ${token}`);

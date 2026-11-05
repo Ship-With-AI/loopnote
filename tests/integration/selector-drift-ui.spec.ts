@@ -335,15 +335,14 @@ test('selector drift uses the fixed endpoint and leaves the pinned review and fo
     document.dispatchEvent(new Event('visibilitychange'));
   });
 
+  await page.locator('.identity-pill').click();
   const notice = page.getByRole('complementary', { name: 'Selected source changed — open review remains pinned' });
   await expect(notice).toBeVisible();
   await expect(notice).toContainText('Base source moved');
   await expect(notice).toContainText(baseOid);
   await expect(notice).toContainText(movedBaseOid);
 
-  const warningStack = page.locator('.workbench-shell__editor > .shell-warning-stack');
-  await expect(warningStack).toBeVisible();
-  await expect(warningStack).toContainText('Selected source changed — open review remains pinned');
+  await expect(page.locator('.identity-popover')).toContainText('Selected source changed — open review remains pinned');
 
   const reviewNotes = page.getByRole('button', { name: 'Toggle panel (⌘J)', exact: true });
   await expect(reviewNotes).toBeVisible();
@@ -363,8 +362,12 @@ test('selector drift uses the fixed endpoint and leaves the pinned review and fo
   await expect.poll(() => driftRequests.length).toBe(3);
   await expect(summary).toHaveValue('Unsaved review buffer');
   await expect(summary).toBeFocused();
-  await expect(page.getByRole('banner')).toContainText(new RegExp(`BASE\\s*base · ${baseOid.slice(0, 7)}`));
+  await expect(page.getByRole('banner')).toContainText(new RegExp(`BASE\\s*base${baseOid.slice(0, 7)}`));
   await page.getByRole('region', { name: 'Review', exact: true }).getByRole('button', { name: 'Close panel' }).click();
+  // Toggling the review panel is a mousedown outside `.identity-pill-host`, which
+  // `IdentityPopover.vue`'s outside-click listener treats as a close — reopen it
+  // before interacting with the drift notice's Copy button again.
+  await page.locator('.identity-pill').click();
 
   await page.getByRole('button', { name: `Copy pinned Base commit ${baseOid}` }).click();
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(baseOid);
@@ -397,7 +400,6 @@ test('exact patch drift is announced while the review panel is open', async ({ p
   session = exactPatchSession();
   await openReview(page);
 
-  await expect(page.getByRole('banner').getByText('Frozen patch', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Toggle panel (⌘J)', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Review', exact: true })).toBeVisible();
   expect(patchStatusRequests).toHaveLength(1);

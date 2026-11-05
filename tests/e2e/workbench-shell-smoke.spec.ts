@@ -215,11 +215,10 @@ test('committed branch/worktree: Base → Head identity, no Refresh, Export emph
     await assertShellRegionsPresent(page);
 
     const banner = page.getByRole('banner');
-    await expect(banner.getByText('BASE', { exact: true })).toBeVisible();
-    await expect(banner.getByText('HEAD', { exact: true })).toBeVisible();
-    await expect(banner.getByText(`Base fixture · ${expectedBase.slice(0, 7)}`)).toBeVisible();
-    await expect(banner.getByText(`Head fixture · ${expectedHead.slice(0, 7)}`)).toBeVisible();
-    await expect(banner.getByText('Pinned comparison', { exact: true })).toBeVisible();
+    await expect(page.locator('.identity-pill__label').getByText('BASE', { exact: true })).toBeVisible();
+    await expect(page.locator('.identity-pill__label').getByText('HEAD', { exact: true })).toBeVisible();
+    await expect(banner.getByText(`Base fixture${expectedBase.slice(0, 7)}`)).toBeVisible();
+    await expect(banner.getByText(`Head fixture${expectedHead.slice(0, 7)}`)).toBeVisible();
 
     // NAV-04/SHELL-05: Refresh only exists for uncommitted/standalone sessions.
     await expect(page.getByRole('button', { name: 'Refresh snapshot' })).toHaveCount(0);
@@ -247,11 +246,10 @@ test('Staged/Unstaged/Working tree: Working-tree identity, Refresh present, Expo
     await assertShellRegionsPresent(page);
 
     const banner = page.getByRole('banner');
-    await expect(banner.getByText('BASE', { exact: true })).toBeVisible();
-    await expect(banner.getByText('HEAD', { exact: true })).toBeVisible();
-    await expect(banner.getByText(/Repository object · [0-9a-f]{7}/)).toBeVisible();
-    await expect(banner.getByText(/Working tree · snapshot [0-9a-f]{7}/)).toBeVisible();
-    await expect(banner.getByText('Frozen snapshot', { exact: true })).toBeVisible();
+    await expect(page.locator('.identity-pill__label').getByText('BASE', { exact: true })).toBeVisible();
+    await expect(page.locator('.identity-pill__label').getByText('HEAD', { exact: true })).toBeVisible();
+    await expect(banner.locator('.identity-pill')).toContainText(/HEAD[0-9a-f]{7}/);
+    await expect(banner.locator('.identity-pill')).toContainText('Working tree');
 
     // Uncommitted sessions can Refresh their frozen snapshot.
     await expect(page.getByRole('button', { name: 'Refresh snapshot' })).toBeVisible();
@@ -283,10 +281,9 @@ test('standalone: Standalone identity, Refresh present, Export emphasized', asyn
 
     const banner = page.getByRole('banner');
     await expect(banner.getByText('STANDALONE', { exact: true })).toBeVisible();
-    await expect(banner.getByText(/Standalone review · 1 files · snapshot [0-9a-f]{7}/)).toBeVisible();
+    await expect(banner.locator('.identity-pill')).toContainText('1 files');
     await expect(banner.getByText('BASE', { exact: true })).toHaveCount(0);
     await expect(banner.getByText('HEAD', { exact: true })).toHaveCount(0);
-    await expect(banner.getByText('Frozen snapshot', { exact: true })).toBeVisible();
 
     // Standalone sessions also support Refresh (`showRefresh = isUncommittedSession`,
     // true for standalone because standalone scopes still carry an `uncommitted` key).
@@ -330,14 +327,26 @@ test('exact patch: Repository object → Implemented content identity, no Refres
     await expect(banner.getByText('POSTIMAGE', { exact: true })).toBeVisible();
     await expect(banner.getByText('Repository object', { exact: true })).toBeVisible();
     await expect(banner.getByText('Implemented content', { exact: true })).toBeVisible();
-    await expect(banner.getByText('Frozen patch', { exact: true })).toBeVisible();
+    await page.locator('.identity-pill').click();
+    await expect(page.locator('.identity-popover')).toContainText(
+      'Exact patches cannot refresh. Relaunch with an updated patch to review new changes.',
+    );
+    await page.keyboard.press('Escape');
 
     // Exact-patch sessions never show Refresh (`showRefresh = isUncommittedSession`, always
     // false here since `'uncommitted' in session` is false for a `'patch' in session` response).
     await expect(page.getByRole('button', { name: 'Refresh snapshot' })).toHaveCount(0);
 
-    // `!isUncommittedSession` is true for exact-patch sessions → export-supported.
-    await assertExportItem(page, true);
+    // `!isUncommittedSession` is true for exact-patch sessions → export-supported in
+    // principle, but every non-interactive stdin `review-request` (this test's launch
+    // shape) always resolves server-side to an agent-review-attached session, and
+    // StatusBar.vue's `emphasisLabel` unconditionally swaps the emphasized item's label
+    // to 'Finish review' whenever `attachedLifecycle` is defined — so the emphasized
+    // item here carries attached-review copy, not 'Export' (see `.statusbar` matrix,
+    // 22-UI-SPEC.md "Emphasized item (agent-attached)" row — same-for-all-kinds rule).
+    const emphasizedItem = page.locator('.statusbar').getByRole('button', { name: 'Finish review', exact: true });
+    await expect(emphasizedItem).toBeVisible();
+    await expect(emphasizedItem).toHaveClass(/statusbar__item--emphasis/);
 
     await page.close();
   } finally {
@@ -646,6 +655,14 @@ test('agent-attached: attachedFact overlay and Finish review entry point in the 
     // No pending draft mutations/conflicts/unsaved text on a fresh load, so
     // `attachedFinishReady` is true and the button is enabled.
     await expect(finishButton).toBeEnabled();
+
+    // Coverage addition (Phase 20 SHELL-05 precedent): the identity-pill side of
+    // this agent-attached, pinned-revisions request — statusbar presence and the
+    // range-kind pill carrying its lock-glyph aria-label are plan 22-03's status-bar
+    // scope's counterpart check, kept here since this test owns the pill/banner side.
+    await expect(page.locator('.statusbar')).toBeVisible();
+    await expect(page.locator('.identity-pill')).toBeVisible();
+    await expect(page.locator('.identity-pill')).toHaveAttribute('aria-label', /pinned revisions/);
 
     await page.close();
   } finally {
