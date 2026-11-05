@@ -10,6 +10,7 @@ import {
 import { createExactPath, type ExactPath } from '../../src/domain/path-bytes.js';
 import {
   createFileTreeModel,
+  fileTypeMarkFor,
   highlightMatches,
   type FileTreeModel,
   type VisibleFileTreeDirectory,
@@ -917,6 +918,36 @@ describe('highlightMatches', () => {
     expect(highlightMatches('no-match-here.ts', 'zzz')).toEqual([
       { text: 'no-match-here.ts', matched: false },
     ]);
+  });
+});
+
+describe('fileTypeMarkFor', () => {
+  it('resolves a known extension to its mark and tone', () => {
+    expect(fileTypeMarkFor('src/App.vue')).toEqual({
+      text: 'V',
+      tone: '--status-added-foreground',
+    });
+  });
+
+  it('falls back to the default mark for an unrecognised extension', () => {
+    expect(fileTypeMarkFor('src/App.unknownext')).toEqual({
+      text: '·',
+      tone: '--text-muted',
+    });
+  });
+
+  it('falls back to the default mark for a path with no extension', () => {
+    expect(fileTypeMarkFor('README')).toEqual({
+      text: '·',
+      tone: '--text-muted',
+    });
+  });
+
+  it('falls back to the default mark for an undefined path', () => {
+    expect(fileTypeMarkFor(undefined)).toEqual({
+      text: '·',
+      tone: '--text-muted',
+    });
   });
 });
 

@@ -600,3 +600,45 @@ export function createFileTreeModel(
     Object.freeze([]),
   );
 }
+
+// 21-UI-SPEC.md `## Row Anatomy` → `### 1. File-type mark`: fixed extension
+// lookup table, `tone` is the literal CSS custom-property name to colour the
+// mark with (reused existing tokens only). Shared by `FileRow.vue`.
+const FILE_TYPE_MARKS: Readonly<Record<string, Readonly<{ text: string; tone: string }>>> = Object.freeze({
+  ts: { text: 'TS', tone: '--syntax-type-foreground' },
+  tsx: { text: 'TS', tone: '--syntax-type-foreground' },
+  js: { text: 'JS', tone: '--syntax-type-foreground' },
+  jsx: { text: 'JS', tone: '--syntax-type-foreground' },
+  mjs: { text: 'JS', tone: '--syntax-type-foreground' },
+  cjs: { text: 'JS', tone: '--syntax-type-foreground' },
+  vue: { text: 'V', tone: '--status-added-foreground' },
+  css: { text: '#', tone: '--status-resolved-foreground' },
+  scss: { text: '#', tone: '--status-resolved-foreground' },
+  less: { text: '#', tone: '--status-resolved-foreground' },
+  md: { text: 'M↓', tone: '--text-muted' },
+  markdown: { text: 'M↓', tone: '--text-muted' },
+  json: { text: '{}', tone: '--text-muted' },
+  jsonc: { text: '{}', tone: '--text-muted' },
+  json5: { text: '{}', tone: '--text-muted' },
+  png: { text: 'IMG', tone: '--status-warning-foreground' },
+  jpg: { text: 'IMG', tone: '--status-warning-foreground' },
+  jpeg: { text: 'IMG', tone: '--status-warning-foreground' },
+  gif: { text: 'IMG', tone: '--status-warning-foreground' },
+  svg: { text: 'IMG', tone: '--status-warning-foreground' },
+  webp: { text: 'IMG', tone: '--status-warning-foreground' },
+  ico: { text: 'IMG', tone: '--status-warning-foreground' },
+  bmp: { text: 'IMG', tone: '--status-warning-foreground' },
+});
+const FALLBACK_FILE_TYPE_MARK = Object.freeze({ text: '·', tone: '--text-muted' });
+
+/**
+ * PANEL-02: resolves a display path to its file-type mark, extracted from
+ * `FileRow.vue`'s previously-private lookup so Phase 24's `CommentsTab.vue`
+ * can reuse the identical mark/tone for its grouped-by-file comment rows.
+ */
+export function fileTypeMarkFor(displayPath: string | undefined): Readonly<{ text: string; tone: string }> {
+  const extension = displayPath?.match(/\.([^./]+)$/)?.[1]?.toLowerCase();
+  return extension !== undefined && Object.hasOwn(FILE_TYPE_MARKS, extension)
+    ? FILE_TYPE_MARKS[extension]
+    : FALLBACK_FILE_TYPE_MARK;
+}
