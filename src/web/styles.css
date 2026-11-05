@@ -928,7 +928,6 @@ input:-webkit-autofill:focus {
   height: 100%;
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr) auto;
-  overflow: hidden;
   border-right: 1px solid var(--border-default);
   background: var(--surface-sidebar);
 }
