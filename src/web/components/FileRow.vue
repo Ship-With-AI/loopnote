@@ -94,7 +94,7 @@ const FALLBACK_FILE_TYPE_MARK = Object.freeze({ text: '·', tone: '--text-muted'
 const fileTypeMark = computed(() => {
   const path = props.leaf.file.newPath?.display ?? props.leaf.file.oldPath?.display;
   const extension = path?.match(/\.([^./]+)$/)?.[1]?.toLowerCase();
-  return extension !== undefined && extension in FILE_TYPE_MARKS
+  return extension !== undefined && Object.hasOwn(FILE_TYPE_MARKS, extension)
     ? FILE_TYPE_MARKS[extension]
     : FALLBACK_FILE_TYPE_MARK;
 });
