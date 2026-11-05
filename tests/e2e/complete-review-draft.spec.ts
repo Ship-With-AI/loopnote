@@ -773,10 +773,10 @@ test('selector drift reports complete OIDs while the packaged comparison stays p
       Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
       document.dispatchEvent(new Event('visibilitychange'));
     });
-
+    await page.locator('.identity-pill').click();
     const notice = page.getByRole('heading', { name: 'Selected source changed — open review remains pinned' });
     await expect(notice).toBeVisible({ timeout: 10_000 });
-    const drift = page.locator('.selector-drift-notice');
+    const drift = page.locator('.identity-popover').locator('.selector-drift-notice');
     await expect(drift).toContainText(pinnedHead);
     await expect(drift).toContainText(fixture.futureHeadOid);
     await expect(page.getByText('head value', { exact: false })).toBeVisible();
@@ -824,7 +824,8 @@ test('registered worktree drift reports moved and unavailable full-OID state wit
     await activateTopMonacoLine(page, 'head');
     const buffer = page.locator('.monaco-anchor-zone--composer textarea');
     await buffer.fill('Pinned local Monaco buffer.');
-    const drift = page.locator('.selector-drift-notice');
+    await page.locator('.identity-pill').click();
+    const drift = page.locator('.identity-popover').locator('.selector-drift-notice');
     await expect(drift).toContainText(pinnedHead, { timeout: 10_000 });
     await expect(drift).toContainText(movedFixture.futureHeadOid);
     await expect(drift).toContainText('Worktree');
@@ -854,7 +855,8 @@ test('registered worktree drift reports moved and unavailable full-OID state wit
     await activateTopMonacoLine(page, 'head');
     const buffer = page.locator('.monaco-anchor-zone--composer textarea');
     await buffer.fill('Unavailable worktree buffer.');
-    const drift = page.locator('.selector-drift-notice');
+    await page.locator('.identity-pill').click();
+    const drift = page.locator('.identity-popover').locator('.selector-drift-notice');
     await expect(drift).toContainText('Head source unavailable', { timeout: 10_000 });
     await expect(drift).toContainText(unavailablePinnedHead);
     await expect(drift).not.toContainText(unavailableFixture.futureHeadOid);
