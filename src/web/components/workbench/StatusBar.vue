@@ -37,7 +37,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  openPanel: [];
+  openPanel: [tab: 'comments' | 'export'];
   support: [];
 }>();
 
@@ -68,7 +68,7 @@ defineExpose({ focusSupport });
         :aria-label="staleSegment === undefined
           ? `Comments: ${openSegment}`
           : `Comments: ${openSegment}, ${staleSegment}`"
-        @click="emit('openPanel')"
+        @click="emit('openPanel', 'comments')"
       ><span aria-hidden="true">💬</span> {{ openSegment }}<template v-if="staleSegment !== undefined"> · <span class="statusbar__stale">{{ staleSegment }}</span></template></button>
       <button
         v-if="exportSupported"
@@ -76,7 +76,7 @@ defineExpose({ focusSupport });
         class="statusbar__item statusbar__item--emphasis"
         :disabled="emphasizedBusy"
         :aria-busy="emphasizedBusy"
-        @click="emit('openPanel')"
+        @click="emit('openPanel', 'export')"
       >
         {{ emphasizedLabel }}
       </button>
