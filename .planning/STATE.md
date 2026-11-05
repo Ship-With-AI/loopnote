@@ -5,16 +5,16 @@ milestone_name: Workbench Redesign
 current_phase: 23
 current_phase_name: Inline Comment Threads
 status: executing
-stopped_at: Completed 23-07-PLAN.md
-last_updated: "2026-11-05T21:15:00.000Z"
+stopped_at: Completed 23-08-PLAN.md
+last_updated: "2026-11-05T21:52:00.000Z"
 last_activity: 2026-11-05
-last_activity_desc: Plan 23-07 complete (DiffWorkspace.vue mounts keyed per-comment CommentThread loop via renderThreads()/diffThreadIds, navigate.nextThread/previousThread wired, anchor-pinning bug fixed, locators + 2 new multi-thread/reconciliation Playwright tests); Wave 4 continues with 23-08
+last_activity_desc: Plan 23-08 complete (App.vue wires collapse state, resolve/reopen/edit/delete mutation dispatch, pinned Orphaned-comments group, delete-with-5s-Undo, and Option+F9/Shift+Option+F9 cross-file thread navigation; canonicalComment() fixed to focus stale-anchored threads; 2 bugfixes surfaced by packaged-binary Playwright coverage). Phase 23 plans complete (8/8) — awaiting phase-wide verification.
 progress:
   total_phases: 7
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 41
-  completed_plans: 29
-  percent: 57
+  completed_plans: 30
+  percent: 71
 ---
 
 # Project State
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-11-04)
 ## Current Position
 
 Phase: 23 — Inline Comment Threads
-Plan: 23-07 complete (7 of 8 phase plans executed); next up 23-08
-Status: Executing
-Last activity: 2026-11-05 — Plan 23-07 complete (DiffWorkspace.vue mounts keyed per-comment CommentThread loop via renderThreads()/diffThreadIds, navigate.nextThread/previousThread wired, anchor-pinning bug fixed, locators + 2 new multi-thread/reconciliation Playwright tests); Wave 4 continues with 23-08
+Plan: 8 of 8
+Status: Phase 23 plans complete — awaiting phase verification
+Last activity: 2026-11-05 — Plan 23-08 complete (App.vue wires collapse state, resolve/reopen/edit/delete mutation dispatch, pinned Orphaned-comments group, delete-with-5s-Undo, and Option+F9/Shift+Option+F9 cross-file thread navigation; canonicalComment() fixed to focus stale-anchored threads; 2 bugfixes surfaced by packaged-binary Playwright coverage). All 8 Phase 23 plans executed; phase-wide verification is next.
 
 ## Performance Metrics
 
