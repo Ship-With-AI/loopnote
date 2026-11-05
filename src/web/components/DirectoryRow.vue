@@ -3,6 +3,7 @@ import { computed } from 'vue';
 
 import type { ChangedFileStatusKind } from '../../contracts/comparison.js';
 import type { FileTreeDirectory, FileTreeLeaf } from '../../domain/file-tree.js';
+import { highlightMatches } from '../model/file-tree.js';
 import FileRow from './FileRow.vue';
 
 defineOptions({ name: 'DirectoryRow' });
@@ -19,6 +20,7 @@ const props = withDefaults(
     openCommentCounts?: ReadonlyMap<string, number>;
     lineCounts?: 'always' | 'hover' | 'never';
     commentBadgesEnabled?: boolean;
+    query?: string;
   }>(),
   {
     lineCounts: 'hover',
@@ -44,6 +46,7 @@ const expanded = computed(() =>
 const displayPath = computed(() =>
   props.directory.segments.map((segment) => segment.display).join('/'),
 );
+const pathSegments = computed(() => highlightMatches(displayPath.value, props.query ?? ''));
 
 // `21-UI-SPEC.md` `## Compact Folders & Collapsed Bullet` — same tone
 // vocabulary `StatusBadge.vue` uses (renamed/copied share the "moved" tone;
@@ -82,7 +85,7 @@ const collapsedBulletTone = computed(() => {
       <span class="directory-row__disclosure" aria-hidden="true">
         {{ expanded ? '▾' : '▸' }}
       </span>
-      <span class="directory-row__path">{{ displayPath }}/</span>
+      <span class="directory-row__path"><template v-for="(segment, index) in pathSegments" :key="index"><mark v-if="segment.matched">{{ segment.text }}</mark><template v-else>{{ segment.text }}</template></template>/</span>
       <span
         v-if="!expanded && collapsedBulletTone !== undefined"
         class="directory-row__bullet"
@@ -105,6 +108,7 @@ const collapsedBulletTone = computed(() => {
           :open-comment-counts="openCommentCounts"
           :line-counts="lineCounts"
           :comment-badges-enabled="commentBadgesEnabled"
+          :query="query"
           @activate-file="emit('activateFile', $event)"
           @focus-row="emit('focusRow', $event)"
           @toggle-directory="emit('toggleDirectory', $event)"
@@ -120,6 +124,7 @@ const collapsedBulletTone = computed(() => {
           :open-comment-count="openCommentCounts?.get(child.fileId) ?? 0"
           :line-counts="lineCounts"
           :comment-badges-enabled="commentBadgesEnabled"
+          :query="query"
           @activate="emit('activateFile', $event)"
           @focus-row="emit('focusRow', $event)"
         />

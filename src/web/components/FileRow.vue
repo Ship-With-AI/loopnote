@@ -17,6 +17,7 @@ const props = withDefaults(
     openCommentCount?: number;
     commentBadgesEnabled?: boolean;
     lineCounts?: 'always' | 'hover' | 'never';
+    query?: string;
   }>(),
   {
     mode: 'tree',
@@ -139,7 +140,7 @@ const commentBadgeLabel = computed(
       @click="emit('activate', leaf.fileId)"
     >
       <span class="ft" aria-hidden="true" :style="{ color: `var(${fileTypeMark.tone})` }">{{ fileTypeMark.text }}</span>
-      <PathDisplay :file="leaf.file" basename :class="`name-tone--${nameTone}`" />
+      <PathDisplay :file="leaf.file" :basename="mode !== 'list'" :query="query" :class="`name-tone--${nameTone}`" />
       <span v-if="showCommentBadge" class="cbadge" :aria-label="commentBadgeLabel">
         <UiIcon name="comment" />
         <span aria-hidden="true">{{ openCommentCount }}</span>

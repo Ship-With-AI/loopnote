@@ -8,6 +8,7 @@ import type { SessionFile } from '../../contracts/api.js';
 const props = defineProps<{
   file: SessionFile;
   basename?: boolean;
+  query?: string;
 }>();
 
 const isMove = computed(
@@ -35,11 +36,11 @@ const moveLabel = computed(() => {
     :aria-label="moveLabel"
     :title="moveLabel"
   >
-    <span aria-hidden="true" class="path-display__old"><PathText :display="file.oldPath.display" :basename="basename" /></span>
+    <span aria-hidden="true" class="path-display__old"><PathText :display="file.oldPath.display" :basename="basename" :query="query" /></span>
     <span aria-hidden="true" class="path-display__arrow">→</span>
-    <span aria-hidden="true" class="path-display__new"><PathText :display="file.newPath.display" :basename="basename" /></span>
+    <span aria-hidden="true" class="path-display__new"><PathText :display="file.newPath.display" :basename="basename" :query="query" /></span>
   </span>
   <span v-else class="path-display" :aria-label="effectivePath?.display" :title="effectivePath?.display">
-    <PathText v-if="effectivePath !== undefined" :display="effectivePath.display" :basename="basename" />
+    <PathText v-if="effectivePath !== undefined" :display="effectivePath.display" :basename="basename" :query="query" />
   </span>
 </template>

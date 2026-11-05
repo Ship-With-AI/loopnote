@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, onMounted, ref, shallowRef, watch } from 'vue';
+import { computed, nextTick, onMounted, ref, shallowRef, watch } from 'vue';
 
 import type { SessionFile } from '../../contracts/api.js';
 import type { FileTreeLeaf } from '../../domain/file-tree.js';
@@ -10,6 +10,9 @@ import {
 } from '../model/file-tree.js';
 import DirectoryRow from './DirectoryRow.vue';
 import FileRow from './FileRow.vue';
+import UiIcon from './ui/UiIcon.vue';
+
+const FILE_ROW_PREFIX = 'file:';
 
 const props = withDefaults(
   defineProps<{
@@ -19,10 +22,12 @@ const props = withDefaults(
     openCommentCounts?: ReadonlyMap<string, number>;
     lineCounts?: 'always' | 'hover' | 'never';
     commentBadgesEnabled?: boolean;
+    viewMode?: 'tree' | 'list';
   }>(),
   {
     lineCounts: 'hover',
     commentBadgesEnabled: true,
+    viewMode: 'tree',
   },
 );
 
@@ -34,12 +39,48 @@ function isRecentlyChanged(leaf: FileTreeLeaf): boolean {
 const emit = defineEmits<{
   activate: [fileId: string];
   select: [fileId: string];
+  'update:view-mode': [mode: 'tree' | 'list'];
 }>();
 
 const filterInput = ref<HTMLInputElement>();
 const treeElement = ref<HTMLElement>();
+const filterOpen = ref(false);
 const query = ref('');
 const model = shallowRef<FileTreeModel>(createFileTreeModel(props.files));
+
+const totals = computed(() => {
+  let additions = 0;
+  let deletions = 0;
+  for (const file of props.files) {
+    additions += file.additions ?? 0;
+    deletions += file.deletions ?? 0;
+  }
+  return { additions, deletions };
+});
+
+const footerText = computed(() => {
+  if (query.value !== '') {
+    return `${model.value.flatFileRows.length} of ${props.files.length} files`;
+  }
+  const count = props.files.length;
+  return `${count} ${count === 1 ? 'file' : 'files'} · +${totals.value.additions} −${totals.value.deletions}`;
+});
+
+// List mode has no expansion state of its own: the "current" file is
+// whichever one is selected (if it still survives the filter), falling
+// back to the first filter-surviving entry — self-healing across filtering
+// and mode switches without a separate ref to keep in sync.
+const listTabbableFileId = computed(() => {
+  const rows = model.value.flatFileRows;
+  if (rows.length === 0) {
+    return null;
+  }
+  const selected = model.value.selectedFileId;
+  if (selected !== null && rows.some((row) => row.fileId === selected)) {
+    return selected;
+  }
+  return rows[0]!.fileId;
+});
 
 function focusModelRow(): void {
   const focusedRowId = model.value.focusedRowId;
@@ -50,6 +91,32 @@ function focusModelRow(): void {
     const row = Array.from(
       treeElement.value?.querySelectorAll<HTMLElement>('[role="treeitem"]') ?? [],
     ).find((candidate) => candidate.dataset.rowId === focusedRowId);
+    row?.focus();
+  });
+}
+
+// Unlike `focusModelRow` (which trusts the model's raw, possibly-stale
+// `focusedRowId`), this targets the clamped `tabbableRowId` — the row
+// that's always guaranteed visible — for focus moves triggered from
+// outside the row-navigation flow (the new filter/Esc interactions).
+function focusTabbableTreeRow(): void {
+  const rowId = model.value.tabbableRowId;
+  if (rowId === null) {
+    return;
+  }
+  void nextTick(() => {
+    const row = Array.from(
+      treeElement.value?.querySelectorAll<HTMLElement>('[role="treeitem"]') ?? [],
+    ).find((candidate) => candidate.dataset.rowId === rowId);
+    row?.focus();
+  });
+}
+
+function focusListRow(fileId: string): void {
+  void nextTick(() => {
+    const row = Array.from(
+      treeElement.value?.querySelectorAll<HTMLElement>('[role="option"]') ?? [],
+    ).find((candidate) => candidate.dataset.fileId === fileId);
     row?.focus();
   });
 }
@@ -84,6 +151,85 @@ function toggleDirectory(directoryId: string): void {
   applyModel(model.value.toggleDirectory(directoryId));
 }
 
+function collapseAll(): void {
+  const expandedSnapshot = [...model.value.effectiveExpandedDirectoryIds];
+  let next = model.value;
+  for (const directoryId of expandedSnapshot) {
+    next = next.toggleDirectory(directoryId);
+  }
+  applyModel(next);
+}
+
+function selectListFile(fileId: string): void {
+  if (model.value.selectedFileId === fileId) {
+    return;
+  }
+  model.value = model.value.selectFile(fileId);
+  emit('select', fileId);
+}
+
+function activateListFile(fileId: string): void {
+  const exists = model.value.flatFileRows.some((row) => row.fileId === fileId);
+  if (!exists) {
+    return;
+  }
+  selectListFile(fileId);
+  emit('activate', fileId);
+  focusListRow(fileId);
+}
+
+function handleListFocusRow(rowId: string): void {
+  selectListFile(rowId.slice(FILE_ROW_PREFIX.length));
+}
+
+function handleListKeydown(event: KeyboardEvent): void {
+  const rows = model.value.flatFileRows;
+  if (rows.length === 0) {
+    return;
+  }
+  const currentId = listTabbableFileId.value;
+  const currentIndex = currentId === null ? -1 : rows.findIndex((row) => row.fileId === currentId);
+
+  if (event.key === 'ArrowUp') {
+    event.preventDefault();
+    const nextIndex = Math.max(0, (currentIndex === -1 ? 0 : currentIndex) - 1);
+    selectListFile(rows[nextIndex]!.fileId);
+    focusListRow(rows[nextIndex]!.fileId);
+    return;
+  }
+  if (event.key === 'ArrowDown') {
+    event.preventDefault();
+    const nextIndex = Math.min(rows.length - 1, currentIndex + 1);
+    selectListFile(rows[nextIndex]!.fileId);
+    focusListRow(rows[nextIndex]!.fileId);
+    return;
+  }
+  if (event.key === 'Home') {
+    event.preventDefault();
+    selectListFile(rows[0]!.fileId);
+    focusListRow(rows[0]!.fileId);
+    return;
+  }
+  if (event.key === 'End') {
+    event.preventDefault();
+    const last = rows[rows.length - 1]!.fileId;
+    selectListFile(last);
+    focusListRow(last);
+    return;
+  }
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault();
+    if (currentId !== null) {
+      activateListFile(currentId);
+    }
+    return;
+  }
+  if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+    // List mode has no folders to fold — explicit no-op per TREE-07.
+    event.preventDefault();
+  }
+}
+
 function updateQuery(nextQuery: string): void {
   query.value = nextQuery;
   model.value = model.value.setQuery(nextQuery);
@@ -96,7 +242,7 @@ function revealSelectedFile(): void {
   }
   void nextTick(() => {
     const row = Array.from(
-      treeElement.value?.querySelectorAll<HTMLElement>('[role="treeitem"]') ?? [],
+      treeElement.value?.querySelectorAll<HTMLElement>('[role="treeitem"], [role="option"]') ?? [],
     ).find((candidate) => candidate.dataset.fileId === selectedFileId);
     row?.scrollIntoView({ block: 'nearest' });
   });
@@ -106,6 +252,73 @@ function clearQuery(): void {
   updateQuery('');
   revealSelectedFile();
   void nextTick(() => filterInput.value?.focus());
+}
+
+function openFilter(): void {
+  filterOpen.value = true;
+  void nextTick(() => filterInput.value?.focus());
+}
+
+function closeFilterReturnFocusToTree(): void {
+  updateQuery('');
+  filterOpen.value = false;
+  if (props.viewMode === 'list') {
+    const fileId = listTabbableFileId.value;
+    if (fileId !== null) {
+      focusListRow(fileId);
+    }
+  } else {
+    focusTabbableTreeRow();
+  }
+}
+
+function toggleFilterOpen(): void {
+  if (filterOpen.value) {
+    closeFilterReturnFocusToTree();
+    return;
+  }
+  openFilter();
+}
+
+function handleFilterKeydown(event: KeyboardEvent): void {
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    closeFilterReturnFocusToTree();
+    return;
+  }
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    const first = model.value.flatFileRows[0];
+    if (first === undefined) {
+      return;
+    }
+    if (props.viewMode === 'list') {
+      activateListFile(first.fileId);
+    } else {
+      activateFile(first.fileId);
+    }
+    return;
+  }
+  if (event.key === 'ArrowDown') {
+    event.preventDefault();
+    if (props.viewMode === 'list') {
+      const target = listTabbableFileId.value;
+      if (target !== null) {
+        focusListRow(target);
+      }
+    } else {
+      focusTabbableTreeRow();
+    }
+  }
+}
+
+function handleTreeScopedKeydown(event: KeyboardEvent): void {
+  const isFilterShortcut =
+    event.altKey && (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'f';
+  if (isFilterShortcut) {
+    event.preventDefault();
+    openFilter();
+  }
 }
 
 function handleKeydown(event: KeyboardEvent): void {
@@ -161,43 +374,64 @@ watch(
 </script>
 
 <template>
-  <nav class="file-tree-pane" aria-label="Files">
+  <nav class="file-tree-pane" aria-label="Changed files" @keydown="handleTreeScopedKeydown">
     <div class="file-tree-pane__top">
-      <h2 id="changed-files-heading" tabindex="-1">
-        <span aria-hidden="true">Files</span>
-        <span class="visually-hidden">Files ({{ files.length }})</span>
-        <span class="file-tree-pane__count" aria-hidden="true">{{ files.length }}</span>
-      </h2>
-      <div class="file-tree-pane__filter">
-        <span class="file-tree-pane__filter-glyph" aria-hidden="true">⌕</span>
-        <label class="visually-hidden" for="file-tree-filter">Filter files</label>
-        <input
-          id="file-tree-filter"
-          ref="filterInput"
-          type="search"
-          autocomplete="off"
-          placeholder="Find file…"
-          :value="query"
-          @input="updateQuery(($event.target as HTMLInputElement).value)"
-        />
+      <span class="file-tree-pane__label" aria-hidden="true">Changed files</span>
+      <div class="file-tree-pane__toolbar" role="toolbar" aria-label="Changed files actions">
         <button
-          v-if="query !== ''"
           type="button"
-          class="file-tree-pane__clear ui-button"
-          aria-label="Clear file filter"
-          @click="clearQuery"
+          class="icon-btn"
+          aria-label="Filter changed files (⌥⌘F)"
+          :aria-pressed="filterOpen"
+          @click="toggleFilterOpen"
         >
-          <span aria-hidden="true">×</span>
+          <UiIcon name="filter" />
+        </button>
+        <button
+          type="button"
+          class="icon-btn"
+          :aria-label="viewMode === 'tree' ? 'View as list' : 'View as tree'"
+          @click="emit('update:view-mode', viewMode === 'tree' ? 'list' : 'tree')"
+        >
+          <UiIcon :name="viewMode === 'tree' ? 'list' : 'tree'" />
+        </button>
+        <button type="button" class="icon-btn" aria-label="Collapse all" @click="collapseAll">
+          <UiIcon name="collapse-all" />
         </button>
       </div>
     </div>
+    <div class="filter" v-show="filterOpen">
+      <label class="visually-hidden" for="file-tree-filter">Filter changed files</label>
+      <input
+        id="file-tree-filter"
+        ref="filterInput"
+        type="search"
+        autocomplete="off"
+        placeholder="Filter by path"
+        :value="query"
+        @input="updateQuery(($event.target as HTMLInputElement).value)"
+        @keydown="handleFilterKeydown"
+      />
+      <span class="n" v-if="query !== ''">{{ model.flatFileRows.length }} of {{ files.length }}</span>
+      <button
+        v-if="query !== ''"
+        type="button"
+        class="file-tree-pane__clear ui-button"
+        aria-label="Clear filter"
+        @click="clearQuery"
+      >
+        <UiIcon name="close" />
+      </button>
+    </div>
     <div class="file-tree-pane__scroller">
       <ul
+        v-if="viewMode === 'tree'"
+        id="changed-files-heading"
         ref="treeElement"
         class="file-tree"
         role="tree"
-        aria-label="Files"
-        aria-labelledby="changed-files-heading"
+        aria-label="Changed files"
+        tabindex="-1"
         @keydown="handleKeydown"
       >
         <template
@@ -216,6 +450,7 @@ watch(
             :open-comment-counts="openCommentCounts"
             :line-counts="lineCounts"
             :comment-badges-enabled="commentBadgesEnabled"
+            :query="filterOpen ? query : undefined"
             @activate-file="activateFile"
             @focus-row="focusRow"
             @toggle-directory="toggleDirectory"
@@ -230,17 +465,41 @@ watch(
             :open-comment-count="openCommentCounts?.get(node.fileId) ?? 0"
             :line-counts="lineCounts"
             :comment-badges-enabled="commentBadgesEnabled"
+            :query="filterOpen ? query : undefined"
             @activate="activateFile"
             @focus-row="focusRow"
           />
         </template>
       </ul>
-      <section v-if="model.visibleRows.length === 0" class="tree-empty" aria-labelledby="tree-empty-heading">
-        <h3 id="tree-empty-heading">No matching files</h3>
-        <p>Clear the filter to show all files.</p>
-        <button type="button" class="ui-button" @click="clearQuery">Clear filter</button>
-      </section>
-      <p class="tree-hint">↑↓ move · → open · ← close · Home/End jump · Enter/Space select</p>
+      <ul
+        v-else
+        id="changed-files-heading"
+        ref="treeElement"
+        class="file-tree"
+        role="listbox"
+        aria-label="Changed files"
+        tabindex="-1"
+        @keydown="handleListKeydown"
+      >
+        <FileRow
+          v-for="row in model.flatFileRows"
+          :key="row.fileId"
+          mode="list"
+          :leaf="row"
+          :level="1"
+          :tabbable="listTabbableFileId === row.fileId"
+          :selected="model.selectedFileId === row.fileId"
+          :recently-changed="isRecentlyChanged(row)"
+          :open-comment-count="openCommentCounts?.get(row.fileId) ?? 0"
+          :line-counts="lineCounts"
+          :comment-badges-enabled="commentBadgesEnabled"
+          :query="filterOpen ? query : undefined"
+          @activate="activateListFile"
+          @focus-row="handleListFocusRow"
+        />
+      </ul>
+      <p v-if="model.flatFileRows.length === 0" class="tree-empty">No changed files match “{{ query }}”.</p>
     </div>
+    <p class="tree-footer">{{ footerText }}</p>
   </nav>
 </template>
