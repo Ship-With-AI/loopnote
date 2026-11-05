@@ -65,13 +65,22 @@ describe('truncateMiddle', () => {
     expect(result).not.toMatch(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/u);
   });
 
-  test('does not split a combining diacritic mid-codepoint', () => {
-    const base = 'e\u0301'; // e + combining acute accent, 2 UTF-16 code units, 1 grapheme-ish codepoint pair
-    const text = `${'x'.repeat(20)}${base}${'y'.repeat(20)}`;
+  test('does not split an astral-plane emoji mid-codepoint at the tail boundary', () => {
+    // The head-boundary case above (headLen = 10) is covered by the previous test. This
+    // covers the complementary tail-boundary case (tailLen = 9 for max = 20): placing the
+    // emoji as the first codepoint of the tail slice means its UTF-16 start offset falls
+    // inside what a UTF-16-naive `text.slice(text.length - tailLen)` would take, corrupting
+    // it into a lone trailing surrogate. (The combining-diacritic variant this replaced was
+    // not discriminating: a lone base character plus its combining mark are each one UTF-16
+    // code unit, so naive `text.slice()` and `Array.from`-based slicing produce byte-identical
+    // output regardless of where the cut lands — there is no surrogate pair to split. Codepoint
+    // safety does not claim to preserve grapheme-cluster/base+combining-mark adjacency.)
+    const text = `${'a'.repeat(15)}📁${'c'.repeat(8)}`;
     const result = truncateMiddle(text, 20);
 
-    expect(result).toHaveLength(20);
-    expect([...result].every((char) => char.codePointAt(0) !== undefined)).toBe(true);
+    expect(Array.from(result)).toHaveLength(20);
+    expect(result).toContain('📁');
+    expect(result).not.toMatch(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/u);
   });
 
   test('default max is 28 when omitted', () => {
