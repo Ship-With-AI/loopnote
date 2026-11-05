@@ -938,14 +938,12 @@ function retryDiff(): void {
 }
 
 function handleKeydown(event: KeyboardEvent): void {
-  if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'b') {
+  const chromeKey = (event.metaKey || event.ctrlKey) ? event.key.toLowerCase() : '';
+  if (chromeKey === 'b' || chromeKey === 'j') {
     event.preventDefault();
-    toggleSidebar();
-    return;
-  }
-  if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'j') {
-    event.preventDefault();
-    togglePanel();
+    // Shell chrome shortcuts must not mutate the inert shell behind a modal,
+    // nor replace the open dialog through `openShellDialog`.
+    if (!shellModalOpen.value) (chromeKey === 'b' ? toggleSidebar : togglePanel)();
     return;
   }
   const target = event.target;
