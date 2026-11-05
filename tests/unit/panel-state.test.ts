@@ -245,4 +245,30 @@ describe('createPanelState', () => {
       }),
     );
   });
+
+  it('exposes activeTab defaulted to comments, session-only and never persisted', () => {
+    const storage = createFakeStorage({
+      [PANEL_STATE_STORAGE_KEY]: JSON.stringify({
+        sidebarWidth: 300,
+        sidebarVisible: false,
+        panelHeight: 200,
+        treeViewMode: 'list',
+        treeLineCounts: 'always',
+        treeCommentBadges: false,
+      }),
+    });
+    const state = createPanelState({ storage });
+
+    expect(state.activeTab.value).toBe('comments');
+
+    state.setActiveTab('export');
+    expect(state.activeTab.value).toBe('export');
+
+    state.persist();
+
+    const persistedRaw = storage.data.get(PANEL_STATE_STORAGE_KEY);
+    expect(persistedRaw).toBeDefined();
+    expect(JSON.parse(persistedRaw as string)).not.toHaveProperty('activeTab');
+    expect(persistedRaw).not.toMatch(/activeTab/);
+  });
 });

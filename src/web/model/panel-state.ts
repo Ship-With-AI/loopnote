@@ -15,9 +15,18 @@ const SIDEBAR_VISIBLE_DEFAULT = true;
 const TREE_VIEW_MODE_DEFAULT = 'tree';
 const TREE_LINE_COUNTS_DEFAULT = 'hover';
 const TREE_COMMENT_BADGES_DEFAULT = true;
+const ACTIVE_TAB_DEFAULT = 'comments';
 
 export type TreeViewMode = 'tree' | 'list';
 export type TreeLineCountsMode = 'always' | 'hover' | 'never';
+
+/**
+ * PANEL-01: the Phase-24 bottom-panel tab the status bar and the panel's own
+ * tablist switch between. Session-only — deliberately excluded from
+ * `PersistedPanelState`/`loopnote.workbench.v1` so it never round-trips
+ * through storage (see `PanelState.activeTab`/`setActiveTab`).
+ */
+export type PanelTab = 'comments' | 'summary' | 'export';
 
 function clamp(value: number, min: number, max: number): number {
   if (value < min) {
@@ -127,6 +136,8 @@ export interface PanelState {
   readonly treeViewMode: ShallowRef<TreeViewMode>;
   readonly treeLineCounts: ShallowRef<TreeLineCountsMode>;
   readonly treeCommentBadges: ShallowRef<boolean>;
+  readonly activeTab: ShallowRef<PanelTab>;
+  setActiveTab(tab: PanelTab): void;
   persist(): void;
 }
 
@@ -148,6 +159,7 @@ export function createPanelState(options: PanelStateOptions = {}): PanelState {
   const treeViewMode = shallowRef(initial.treeViewMode);
   const treeLineCounts = shallowRef(initial.treeLineCounts);
   const treeCommentBadges = shallowRef(initial.treeCommentBadges);
+  const activeTab = shallowRef<PanelTab>(ACTIVE_TAB_DEFAULT);
 
   return Object.freeze({
     sidebarWidth,
@@ -156,6 +168,7 @@ export function createPanelState(options: PanelStateOptions = {}): PanelState {
     treeViewMode,
     treeLineCounts,
     treeCommentBadges,
+    activeTab,
     persist() {
       const persisted: PersistedPanelState = {
         sidebarWidth: sidebarWidth.value,
@@ -166,6 +179,9 @@ export function createPanelState(options: PanelStateOptions = {}): PanelState {
         treeCommentBadges: treeCommentBadges.value,
       };
       storage.setItem(PANEL_STATE_STORAGE_KEY, JSON.stringify(persisted));
+    },
+    setActiveTab(tab: PanelTab) {
+      activeTab.value = tab;
     },
   });
 }
