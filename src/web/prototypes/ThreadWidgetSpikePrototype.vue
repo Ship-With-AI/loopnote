@@ -145,17 +145,18 @@ const clickCounts: Record<string, number> = {};
 
 // Mirrors production's ⌥F9 cross-thread navigation (THREAD-07/09): scroll a thread's
 // anchor line to the center of its editor before interacting with it, instead of
-// relying on the raw initial scroll position.
+// relying on the raw initial scroll position. Both the diff editor and the
+// single-pane editor stay mounted simultaneously (mode only toggles CSS visibility),
+// each with a thread entry sharing the same id — so this must target whichever
+// editor the current mode actually shows, not just the first list that matches.
 function revealThread(threadId: string): void {
-  const diffThread = activeDiffThreads.find((thread) => thread.def.id === threadId);
-  if (diffThread !== undefined) {
-    diffThread.anchorEditor.revealLineInCenter(diffThread.def.anchorLine);
+  if (mode.value === 'single-pane') {
+    const singleThread = activeSinglePaneThreads.find((thread) => thread.def.id === threadId);
+    singleThread?.anchorEditor.revealLineInCenter(singleThread.def.anchorLine);
     return;
   }
-  const singleThread = activeSinglePaneThreads.find((thread) => thread.def.id === threadId);
-  if (singleThread !== undefined) {
-    singleThread.anchorEditor.revealLineInCenter(singleThread.def.anchorLine);
-  }
+  const diffThread = activeDiffThreads.find((thread) => thread.def.id === threadId);
+  diffThread?.anchorEditor.revealLineInCenter(diffThread.def.anchorLine);
 }
 
 function publishContract(): void {
