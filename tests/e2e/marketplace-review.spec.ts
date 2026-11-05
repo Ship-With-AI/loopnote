@@ -43,6 +43,13 @@ async function addHeadComment(page: Page): Promise<void> {
 }
 
 async function saveSummaryAndExport(page: Page): Promise<void> {
+  // SummarySection's 'Write summary' button and the 'Finish attached review' region both
+  // live inside BottomPanel's v-if="open" (BottomPanel.vue:103), and panelOpen starts false
+  // (App.vue:94). Open the panel here, not earlier in the caller — both call sites invoke
+  // this only after dismissing the support modal, whose fixed full-viewport backdrop
+  // (styles.css:733-741) would otherwise block the title-bar toggle click.
+  await page.getByRole('button', { name: 'Toggle panel (⌘J)', exact: true }).click();
+  await expect(page.getByRole('region', { name: 'Review', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Write summary' }).click();
   await page.getByLabel('Review summary (Markdown)').fill(summary);
   const accepted = page.waitForResponse((response) => response.url().includes('/api/draft/mutations'));
@@ -92,8 +99,6 @@ test('finishes the agent-supervised marketplace review and records window-scoped
   if (!marker) throw new Error(`[marketplace-review] ${RENAME_MAP.envPrefix}MARKETPLACE_URL_MARKER is required`);
   const window = supportWindow();
   const observation = await openRuntimeSession(page, await waitForLoopbackUrl(marker), { dismissUnverified: false });
-  await page.getByRole('button', { name: 'Toggle panel (⌘J)', exact: true }).click();
-  await expect(page.getByRole('region', { name: 'Review', exact: true })).toBeVisible();
   const mode = observedSupportMode(window, observation);
   const supportStates: Array<Record<string, unknown>> = [];
 
