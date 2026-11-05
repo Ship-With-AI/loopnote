@@ -19,6 +19,9 @@ const props = defineProps<{
   hasActiveFile: boolean;
   singlePane: boolean;
   renderSideBySide: boolean;
+  hasThreadsAnywhere: boolean;
+  anyThreadExpanded: boolean;
+  hasCommentsInCurrentFile: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -29,6 +32,9 @@ const emit = defineEmits<{
   previousChange: [];
   nextChange: [];
   'toggle-layout': [renderSideBySide: boolean];
+  previousThread: [];
+  nextThread: [];
+  toggleThreadsCollapsed: [];
 }>();
 
 const filesToggle = ref<HTMLButtonElement>();
@@ -212,6 +218,41 @@ defineExpose({ focusFilesToggle, focusHeading });
         </UiTooltip>
       </div>
     </template>
+    <span class="editor-title__separator" aria-hidden="true" />
+    <div class="editor-title__group" role="group" aria-label="Comment threads">
+      <UiTooltip text="Previous thread · Option+F9">
+        <button
+          type="button"
+          class="ui-button ui-button--icon"
+          aria-label="Previous thread"
+          :disabled="!hasThreadsAnywhere"
+          @click="emit('previousThread')"
+        >
+          <UiIcon name="previous-thread" />
+        </button>
+      </UiTooltip>
+      <UiTooltip text="Next thread · Shift+Option+F9">
+        <button
+          type="button"
+          class="ui-button ui-button--icon"
+          aria-label="Next thread"
+          :disabled="!hasThreadsAnywhere"
+          @click="emit('nextThread')"
+        >
+          <UiIcon name="next-thread" />
+        </button>
+      </UiTooltip>
+      <UiTooltip v-if="hasCommentsInCurrentFile" :text="anyThreadExpanded ? 'Collapse all threads' : 'Expand all threads'">
+        <button
+          type="button"
+          class="ui-button ui-button--icon"
+          :aria-label="anyThreadExpanded ? 'Collapse all threads' : 'Expand all threads'"
+          @click="emit('toggleThreadsCollapsed')"
+        >
+          <UiIcon :name="anyThreadExpanded ? 'collapse-threads' : 'expand-threads'" />
+        </button>
+      </UiTooltip>
+    </div>
     <button
       v-if="filesDrawer"
       ref="filesToggle"
