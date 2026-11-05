@@ -29,7 +29,7 @@ interface PopoverRow {
 
 const panel = ref<HTMLElement>();
 const headingId = useId();
-const copied = ref(false);
+const copyState = ref<'idle' | 'copied' | 'failed'>('idle');
 let copiedTimer: number | undefined;
 
 const focusableSelector = [
@@ -133,6 +133,7 @@ const worktreeSourceLabel = computed(() => {
     case 'staged': return 'Staged';
     case 'unstaged': return 'Unstaged';
     case 'worktree': return 'Working tree';
+    case 'standalone': return 'the reviewed files';
     default: return '';
   }
 });
@@ -183,11 +184,15 @@ function copyIdentity(): void {
     .join('\n');
   void navigator.clipboard.writeText(text)
     .then(() => {
-      copied.value = true;
+      copyState.value = 'copied';
       if (copiedTimer !== undefined) window.clearTimeout(copiedTimer);
-      copiedTimer = window.setTimeout(() => { copied.value = false; }, 1_200);
+      copiedTimer = window.setTimeout(() => { copyState.value = 'idle'; }, 1_200);
     })
-    .catch(() => undefined);
+    .catch(() => {
+      copyState.value = 'failed';
+      if (copiedTimer !== undefined) window.clearTimeout(copiedTimer);
+      copiedTimer = window.setTimeout(() => { copyState.value = 'idle'; }, 1_200);
+    });
 }
 
 function containFocus(event: KeyboardEvent): void {
@@ -274,7 +279,7 @@ onBeforeUnmount(() => {
     </InlineNotice>
     <div class="identity-popover__footer">
       <button type="button" class="ui-button ui-button--ghost" @click="copyIdentity">
-        <UiIcon name="copy" />{{ copied ? 'Copied' : 'Copy' }}
+        <UiIcon name="copy" />{{ copyState === 'copied' ? 'Copied' : copyState === 'failed' ? 'Copy failed' : 'Copy' }}
       </button>
       <button
         v-if="canRefresh"
