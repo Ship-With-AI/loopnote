@@ -1079,7 +1079,8 @@ test('responsive keyboard and accessibility contract', async ({
       await page.keyboard.press('Alt+ArrowUp');
       await expect(page.locator(`#${RENAME_MAP.cssPrefix}heading`)).toContainText('alpha.ts');
       await page.setViewportSize({ width: 320, height: 640 });
-      await expect(page.locator('.workbench-shell__sidebar')).not.toBeVisible();
+      await expect(page.locator('.workbench-shell__sidebar [role="treeitem"]')).toHaveCount(0);
+      await expect(page.locator('#changed-files-dialog-tree [role="treeitem"]').first()).toBeAttached();
       await files.focus();
       await page.keyboard.press('Enter');
       const filter = changedFiles.getByRole('searchbox', { name: 'Filter files', exact: true });

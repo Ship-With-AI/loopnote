@@ -923,7 +923,8 @@ test('anchored gap closure', async ({ page }) => {
   await expect(changedFiles.getByRole('searchbox', { name: 'Filter files', exact: true })).toBeFocused();
   await page.getByRole('button', { name: 'Close files' }).click();
   await expect(filesToggle).toBeFocused();
-  await expect(page.locator('.workbench-shell__sidebar')).not.toBeVisible();
+  await expect(page.locator('.workbench-shell__sidebar [role="treeitem"]')).toHaveCount(0);
+  await expect(page.locator('#changed-files-dialog-tree [role="treeitem"]').first()).toBeAttached();
   await filesToggle.click();
   await expect(changedFiles).toBeVisible();
   await page.setViewportSize({ width: 1440, height: 900 });
