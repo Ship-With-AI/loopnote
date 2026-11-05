@@ -2037,7 +2037,11 @@ h3.conversation-card__identity {
 
 .identity-pill {
   display: inline-flex;
+  max-width: 100%;
   min-width: 0;
+  min-height: 0;
+  height: var(--control-height-icon);
+  padding-block: 0;
   overflow: hidden;
   align-items: center;
   gap: var(--space-2);
