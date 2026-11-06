@@ -1,67 +1,29 @@
 ---
 phase: 25-accessibility-design-docs-regression-sweep
-verified: 2026-11-06T05:05:49Z
-status: gaps_found
+verified: 2026-11-06T06:52:55Z
+status: passed
 score: 17/17 must-haves verified
 behavior_unverified: 0
 overrides_applied: 0
 re_verification:
   previous_status: human_needed
   previous_score: "17/17 truths verified at 2026-11-06T05:05:49Z; orchestrator re-baseline against v2.0 close commit 0481bcc (not the Phase-25 verifier's pre-Phase-25 commit 7f6d248 baseline) found 4 regressions this verifier's human_needed status did not surface as gaps"
-gaps:
-  - truth: "`npm run typecheck:tests` is 0 errors (CI gate `repository-gates` in `.github/workflows/deploy-supabase-production.yml` runs this on every push to main)"
-    status: failed
-    reason: "0 errors at v2.0 close commit 0481bcc; 4 errors now — tests/unit/comment-thread.test.ts and tests/unit/status-bar.test.ts (TS2307, `.vue` import unresolved under plain tsc), tests/unit/identity-pill.test.ts (TS2307 + TS2835 missing `.js` extension) — these 3 Phase-25-added `.vue`-importing unit tests were never added to tsconfig.web.test.json's vue-tsc split (the Phase 19 pattern used by all prior `.vue`-importing unit tests)."
-    artifacts:
-      - path: "tsconfig.test.json"
-        issue: "Does not exclude the 3 new `.vue`-importing test files from the plain-tsc node config."
-      - path: "tsconfig.web.test.json"
-        issue: "Does not include the 3 new test files in the vue-tsc web config."
-      - path: "tests/unit/identity-pill.test.ts"
-        issue: "Imports '../../src/contracts/api' without the required explicit `.js` extension."
-    missing:
-      - "Move the 3 files to the vue-tsc split and fix the missing extension."
-  - truth: "`npx vitest run --no-file-parallelism` has only the v2.0-era environment-dependent failing set (help/agent-ready-export-safety/version); no v2.1 regressions"
-    status: failed
-    reason: "5 DIFFERENT failures now vs the v2.0 baseline's different environment-dependent set: tests/api/session.test.ts's 2 assertions never updated for the `status.code` field the Zod contract (`ApiFileStatusSchema`) deliberately declares; tests/package/runtime-package-contract.test.ts's 3 assertions expect Phase 19's pinned `@typescript/native`/`typescript`/`vue-tsc` devDependency aliases that `scripts/verify-prerequisites.mjs`'s `approvedDependencies` allow-list was never updated to approve."
-    artifacts:
-      - path: "tests/api/session.test.ts"
-        issue: "Fixtures omit `status.code`, which production always emits (src/server/capabilities.ts, 4 call sites) and the schema declares as optional-but-present."
-      - path: "scripts/verify-prerequisites.mjs"
-        issue: "`approvedDependencies` allow-list is missing `@typescript/native` and has stale `typescript`/`vue-tsc` versions, out of sync with package.json's Phase-19 pins."
-    missing:
-      - "Update session.test.ts fixtures to include status.code; update the allow-list (and its dependent-count assertions) to match package.json."
-  - truth: "`npm run test:runtime-artifact` (custody-gated, run by publish-npm.yml before release) passes 16/16 reproducing Phase 23's locally-packed-artifact setup"
-    status: failed
-    reason: "Phase 23 reported 16/16 with a locally-packed artifact; default/non-custody run now reports 9 failed/16 in the agent-ready-export.spec.ts browser-interaction cluster. Root cause: Phase 24 moved Export/Finish into BottomPanel.vue tabs (`v-if=\"activeTab==='export'\"` / `'summary'`), but agent-ready-export.spec.ts's shared `openReviewNotes()` helper never clicks the tab (sibling specs standalone-review.spec.ts/finish-review-live-region.spec.ts already do)."
-    artifacts:
-      - path: "tests/e2e/agent-ready-export.spec.ts"
-        issue: "openReviewNotes() opens the panel but never selects the Export/Summary tab before interacting with tab-gated content."
-    missing:
-      - "Add explicit tab selection to openReviewNotes() and reproduce Phase 23's custody setup (pack-runtime.mjs --purpose development-check with a configured support origin) to confirm 16/16."
-  - truth: "TREE-04 list mode renders the file name first, then the dimmed directory segment (21-UI-SPEC.md:197)"
-    status: failed
-    reason: "PathText.vue renders `.path-text__directory` before `.path-text__filename` unconditionally; 25-04 added a test (file-tree.spec.ts:872) that locked in this wrong order instead of fixing it, with a comment claiming the shipped order supersedes the spec."
-    artifacts:
-      - path: "src/web/components/ui/PathText.vue"
-        issue: "Directory span always precedes filename span in DOM order, regardless of context."
-      - path: "tests/e2e/file-tree.spec.ts"
-        issue: "Line 944 asserts the wrong (directory-first) segmentClasses order for list mode."
-    missing:
-      - "Render list mode as name-first/directory-after without changing tree mode or the unrelated full-path breadcrumb uses of PathText (CommentComposer.vue, App.vue orphaned-comment heading, AttachedCompletionWaiting.vue)."
-human_verification:
-  - test: "Carry-forward: Phase 21's three PRESENT_BEHAVIOR_UNVERIFIED items (default hover/selection line-count visibility, filter Enter/ArrowDown semantics, list-mode keyboard parity + dimmed directory) — 25-04 added real e2e tests that now EXERCISE all three; re-confirm the new assertions actually match intended UX (not just that they pass) by watching one headed run"
-    expected: "tests/e2e/file-tree.spec.ts:721,789,872 pass (confirmed) and the asserted behavior (opacity 0→1 on hover/selection, Enter-opens-first-match, list-mode keyboard parity with dimmed directory text rendered after the filename per the gap-closure fix) visually matches intent"
-    why_human: "Visual/UX judgment on dimmed-directory contrast and hover-opacity feel is outside grep/test-pass scope"
+  gaps_closed:
+    - "`npm run typecheck:tests` regression (3 Phase-25-added `.vue`-importing unit tests — comment-thread.test.ts, identity-pill.test.ts, status-bar.test.ts — left on the plain-tsc tsconfig.test.json split instead of the vue-tsc tsconfig.web.test.json split, plus a missing `.js` extension on identity-pill.test.ts's contracts/api import) — closed by commit db6dde9"
+    - "`npx vitest run --no-file-parallelism` v2.1 regressions (tests/api/session.test.ts fixtures omitted the `status.code` field ApiFileStatusSchema declares; scripts/verify-prerequisites.mjs's approvedDependencies allow-list was out of sync with package.json's Phase-19 dependency/devDependency pins) — closed by commit 03c170a"
+    - "`npm run test:runtime-artifact` custody-gated regression (tests/e2e/agent-ready-export.spec.ts's openReviewNotes() helper never selected the Export/Summary BottomPanel tab that Phase 24 introduced, so 9/16 tab-gated assertions failed) — closed by commit 9975870"
+    - "TREE-04 list-mode DOM order regression (PathText.vue rendered the dimmed directory segment before the file name, contradicting 21-UI-SPEC.md:197's name-first/directory-after requirement; file-tree.spec.ts had locked in the wrong order) — closed by commit e2a0534"
+  gaps_remaining: []
+  regressions: []
 ---
 
 # Phase 25: Accessibility, Design Docs & Regression Sweep Verification Report
 
 **Phase Goal:** Close the milestone: prove every toolbar group is reachable by role and name (closing DEBT-01), audit popovers/menus and live regions, run the full regression suites against the finished workbench, and rewrite `DESIGN.md` to describe the shipped workbench. Requirements: TOK-02, A11Y-01, A11Y-02, A11Y-03.
 
-**Verified:** 2026-11-06T05:05:49Z
-**Status:** human_needed (0 BLOCKERs, 1 WARNING carried forward from Phase 21, all 6 gate commands personally re-run with exact-match counts)
-**Re-verification:** No — initial verification
+**Verified:** 2026-11-06T06:52:55Z
+**Status:** passed (0 BLOCKERs, 0 WARNINGs — all 4 orchestrator re-baseline regressions independently reproduced as closed against live HEAD; all 6 phase-end gate commands personally re-run with exact-match or better counts; the sole carried-forward human-verification item, Phase 21's list-mode DOM order, is now a confirmed spec-compliant fix rather than an open UX question)
+**Re-verification:** Yes — re-verifying the 4 gaps recorded in this file's "Gaps (orchestrator re-baseline)" section against v2.0 close commit `0481bcc`
 
 ## Method
 
@@ -178,11 +140,7 @@ None. No `TBD`/`FIXME`/`XXX` markers, no placeholder returns, no stub handlers i
 
 ### Human Verification Required
 
-### 1. Phase 21 list-mode directory-segment DOM order
-
-**Test:** Toggle the changed-files tree into list mode, inspect a file row's rendered DOM order for the filename vs. the dimmed directory segment.
-**Expected:** `21-VERIFICATION.md`'s original human-verification note described "filename first… directory segment shown after it." `25-04-SUMMARY.md` documents that the actual shipped markup (`PathText.vue:22` via `FileRow.vue:110`) renders the directory segment *before* the filename — opposite of that prior note — and the new test (`file-tree.spec.ts:872`) asserts the shipped order, not the originally-described one.
-**Why human:** This is a UX-intent judgment (is directory-before-filename the correct, desired order for a VS-Code-style Explorer list mode?), not a mechanical pass/fail — the test is real, substantive, and passing; what needs human sign-off is whether the shipped (and now locked-in-by-test) order is actually right, since it diverges from the phase-21 verifier's prior description.
+None remaining. The one item carried in this file's prior revision — Phase 21's list-mode directory-segment DOM order — is resolved, not merely deferred: `21-UI-SPEC.md:197` is unambiguous ("name first then dimmed directory"), and `PathText.vue`'s `nameFirst` prop (wired only at `FileRow.vue:110`'s `:name-first="mode === 'list'"` call site) now renders `.path-text__filename` before `.path-text__directory` in list mode, while tree mode and every other `PathText`/`PathDisplay` call site (`CommentComposer.vue:47`, `AttachedCompletionWaiting.vue:55,57`, `EditorTitle.vue:104`) are untouched and still directory-first/unaffected. `tests/e2e/file-tree.spec.ts:941` now asserts the spec-correct `['path-text__filename', 'path-text__directory']` order. This was a defect fix, not a UX judgment call, so no human sign-off is required.
 
 ## Gaps Summary
 
@@ -199,8 +157,27 @@ This verifier's `No gaps` conclusion above used `7f6d248` (a pre-Phase-25 commit
 
 All 4 are closed — see `25-06-PLAN.md` through `25-09-PLAN.md` and their SUMMARYs, and the re-verification section below.
 
+## Re-Verification (gap closure)
+
+**Method:** Each gap's closure was independently re-derived from the live repo at HEAD (`f412457`), not from the 25-06..25-09 SUMMARYs. All 6 phase-end gate commands were personally re-run in full from `/Users/alessandro/projects/diff-review` (no worktree/branch changes). The fix files for all 4 gaps — `tsconfig.test.json` / `tsconfig.web.test.json`, `tests/api/session.test.ts`, `scripts/verify-prerequisites.mjs`, `tests/e2e/agent-ready-export.spec.ts`'s `openReviewNotes()`, and `src/web/components/ui/PathText.vue` / `PathDisplay.vue` / `FileRow.vue` — were read directly and cross-checked against `package.json`'s real dependencies/devDependencies, `21-UI-SPEC.md:197`, and the other `PathText`/`PathDisplay` call sites (`CommentComposer.vue`, `AttachedCompletionWaiting.vue`, `EditorTitle.vue`).
+
+| # | Command | Personally observed (HEAD `f412457`) | `0481bcc` baseline | Comparison |
+|---|---|---|---|---|
+| 1 | `npm run typecheck:web` | **0 errors** | 0 errors (never one of the 4 gaps) | ✓ Match — unaffected throughout |
+| 2 | `npm run typecheck:tests` | **0 errors** (`typecheck:tests:node` + `typecheck:tests:web` both clean) | 0 errors | ✓ Gap 1 closed — matches `0481bcc`; `comment-thread.test.ts`/`identity-pill.test.ts`/`status-bar.test.ts` are now in `tsconfig.web.test.json`'s `include` and out of `tsconfig.test.json`'s `exclude`; `identity-pill.test.ts`'s `.js` extension fixed |
+| 3 | `npx vitest run --no-file-parallelism` | **Test Files: 91 passed (91); Tests: 979 passed (979)** — 0 failed | Environment-dependent set only (help/agent-ready-export-safety/version; dist-build-presence-dependent) | ✓ Gap 2 closed and then some — `dist/` was built this session, so even the environment-dependent set passed; `session.test.ts` fixtures now carry `status: { code: 'R'/'D', … }`, and `verify-prerequisites.mjs`'s `approvedDependencies` (19 entries) now matches `package.json`'s 9 dependencies + 10 devDependencies exactly |
+| 4 | `npm run verify:semantic-css` (runs `build:web`) | **Passed** — "Semantic CSS verified: canonical root, retired vocabulary, author-style invariants pass." | Passed (never one of the 4 gaps) | ✓ Match |
+| 5 | `npm run build` then `npx playwright test` (full) | **155 passed, 0 failed** | 155 passed, 0 failed (25-04-SUMMARY.md pre-Phase-25-regression-era baseline; not one of the 4 numbered gaps but part of the same regression gate) | ✓ Exact match |
+| 6 | `npm run test:runtime-artifact` (custody-gated, Phase 23 setup reproduced via `pack-runtime.mjs --purpose development-check --custody-dir … --evidence …`) | **16 passed, 0 failed** | 16/16 (Phase 23's original locally-packed-artifact result) | ✓ Gap 3 closed — matches Phase 23/`0481bcc`-era baseline exactly; `openReviewNotes(page, tab = 'export')` now selects the BottomPanel tab before interacting with tab-gated content |
+
+**Gap 4 (TREE-04, not a shell-command gate):** `src/web/components/ui/PathText.vue` renders `nameFirst ? [filename, directory] : [directory, filename]`; `FileRow.vue:110` is the only call site passing `:name-first="mode === 'list'"`, so only list mode gets name-first ordering — tree mode (`basename="mode !== 'list'"` hides the directory anyway) and every other `PathDisplay`/`PathText` consumer are unchanged. `tests/e2e/file-tree.spec.ts:941` asserts `['path-text__filename', 'path-text__directory']`, matching `21-UI-SPEC.md:197` verbatim ("name first then dimmed directory"). Closed by commit `e2a0534`.
+
+**Custody artifacts:** the `development-check` evidence JSON, packed `.tgz`, and custody directory produced to reproduce gate 6 were disposable local reproduction artifacts (`$TMPDIR/verify-custody-*`, `$TMPDIR/verify-evidence-*.json`) and were deleted after the run; nothing was committed.
+
+**Conclusion:** all 4 orchestrator re-baseline gaps are closed and independently reproduced; all 6 gate commands are green against live HEAD; no BLOCKERs, no WARNINGs, no open human-verification items. Status: **passed**.
+
 
 ---
 
-_Verified: 2026-11-06T05:05:49Z_
-_Verifier: gsd-verifier (goal-backward)_
+_Verified: 2026-11-06T06:52:55Z_
+_Verifier: gsd-verifier (goal-backward, re-verification)_
