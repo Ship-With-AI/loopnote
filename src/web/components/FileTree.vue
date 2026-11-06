@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, shallowRef, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
 
 import type { SessionFile } from '../../contracts/api.js';
 import type { FileTreeLeaf } from '../../domain/file-tree.js';
@@ -57,6 +57,9 @@ let filterAnnounceTimer: ReturnType<typeof setTimeout> | undefined;
 watch(query, (value) => {
   if (filterAnnounceTimer !== undefined) clearTimeout(filterAnnounceTimer);
   filterAnnounceTimer = setTimeout(() => emit('filterResult', model.value.flatFileRows.length, props.files.length, value), 400);
+});
+onBeforeUnmount(() => {
+  if (filterAnnounceTimer !== undefined) clearTimeout(filterAnnounceTimer);
 });
 
 const totals = computed(() => {
