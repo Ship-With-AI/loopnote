@@ -363,7 +363,7 @@ function focusEditorAtAnchor(side: DiffSide, line: number): void {
 
 defineExpose({ focusComment, focusEditorAtAnchor, layout, nextChange, previousChange, revealComment });
 
-watch(() => [props.composer, props.comments] as const, () => {
+watch(() => [props.composer, props.comments, props.mutationsLocked] as const, () => {
   if (props.composer !== undefined) {
     const activeComposerAnchor = composerAnchor(props.composer.side, props.composer.line);
     if (activeComposerAnchor !== observedComposerAnchor) {

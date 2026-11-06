@@ -469,6 +469,46 @@ test('Refresh saves an off-screen composer before removing its file and stops on
   }
 });
 
+test('Refresh locks composer input during recapture and retries a failed session reload without stale bytes', async ({ browser }) => {
+  const fixture = await createGitFixture();
+  await fixture.write('src/first.ts', 'export const first = 1;\n');
+  await fixture.write('src/second.ts', 'export const second = 2;\n');
+  const running = startGeneratedStandaloneCli(fixture, ['src']);
+  const page = await browser.newPage();
+  const refreshGate = Promise.withResolvers<void>();
+  try {
+    await openGeneratedStandaloneReview(page, await waitForLoopbackUrl(running), 2);
+    await page.getByRole('treeitem', { name: /first\.ts/ }).click();
+    await activateSinglePaneLine(page, 'head', 'export const first = 1;', 1);
+    await page.route('**/api/refresh', async (route) => {
+      await refreshGate.promise;
+      await route.continue();
+    }, { times: 1 });
+    await rm(join(fixture.root, 'src/first.ts'));
+    const refreshing = page.waitForRequest((request) => request.url().endsWith('/api/refresh'));
+    await page.getByRole('button', { name: 'Refresh snapshot', exact: true }).click();
+    await refreshing;
+    await expect.soft(page.locator('.monaco-anchor-zone--composer textarea')).toBeDisabled();
+    refreshGate.resolve();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveAttribute('title', 'src/second.ts');
+
+    await fixture.write('src/second.ts', 'export const second = 99;\n');
+    await page.route('**/api/session', (route) => route.abort('failed'), { times: 1 });
+    const failedSession = page.waitForEvent('requestfailed', {
+      predicate: (request) => request.url().endsWith('/api/session'),
+    });
+    await page.getByRole('button', { name: 'Refresh snapshot', exact: true }).click();
+    await failedSession;
+    await expect(page.getByRole('button', { name: 'Refresh snapshot', exact: true })).toBeEnabled();
+    await page.getByRole('button', { name: 'Refresh snapshot', exact: true }).click();
+    await expect(page.locator('.diff-workspace__editor .view-line').filter({ hasText: 'export const second = 99;' })).toBeVisible();
+  } finally {
+    refreshGate.resolve();
+    await page.close();
+    await stopGeneratedCli(running);
+    await fixture.cleanup();
+  }
+});
 
 test(`${RENAME_MAP.binCommand} <nonexistent-path> fails before launch with a clear error and never opens a browser`, async () => {
   const fixture = await createGitFixture();

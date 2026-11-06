@@ -1051,9 +1051,10 @@ async function runCommands(commands: readonly WorkspaceCommand[]): Promise<void>
 }
 
 async function dispatchWorkspace(event: WorkspaceEvent): Promise<void> {
-  if (attachedMutationLocked.value && (
+  if ((attachedMutationLocked.value || refreshBusy.value) && (
     event.type === 'activate-line'
-    || event.type === 'add-comment'
+    || event.type === 'activate-focused-line'
+    || (event.type === 'add-comment' && (attachedMutationLocked.value || event.fileId === undefined))
     || event.type === 'cancel-composer'
     || event.type === 'confirm-discard'
     || event.type === 'confirm-move'
@@ -1445,11 +1446,7 @@ async function performRefresh(): Promise<void> {
     if (selectedFile.value !== undefined) {
       const resolvedFileId = previousPath === undefined ? undefined : resolvePathToFileId(previousPath, refreshedSession.files);
       if (resolvedFileId !== undefined) {
-        if (resolvedFileId !== selectedFile.value.fileId || delta.modified.includes(previousPath ?? '')) {
-          selectFile(resolvedFileId);
-        } else {
-          selectedFile.value = activeFile(resolvedFileId);
-        }
+        selectFile(resolvedFileId);
       } else {
         const fallbackRows = flatFileRows.value;
         if (fallbackRows.length > 0) {
@@ -1734,7 +1731,7 @@ onBeforeUnmount(() => {
             :single-pane-side="singlePaneSide"
             :base-oid="singlePaneBaseOid"
             :head-oid="singlePaneHeadOid"
-            :mutations-locked="attachedMutationLocked"
+            :mutations-locked="attachedMutationLocked || refreshBusy"
             :render-side-by-side="renderSideBySide"
             :collapsed-by-comment-id="collapsedByCommentId"
             :editing-comment-id="editingCommentId"
