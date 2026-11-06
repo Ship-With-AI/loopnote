@@ -43,6 +43,7 @@ const emit = defineEmits<{
   'update:view-mode': [mode: 'tree' | 'list'];
   'update:line-counts': [mode: 'always' | 'hover' | 'never'];
   'update:comment-badges': [enabled: boolean];
+  filterResult: [matched: number, total: number, query: string];
 }>();
 
 const filterInput = ref<HTMLInputElement>();
@@ -52,6 +53,11 @@ const query = ref('');
 const viewOptionsOpen = ref(false);
 const viewOptionsButton = ref<HTMLButtonElement>();
 const model = shallowRef<FileTreeModel>(createFileTreeModel(props.files));
+let filterAnnounceTimer: ReturnType<typeof setTimeout> | undefined;
+watch(query, (value) => {
+  if (filterAnnounceTimer !== undefined) clearTimeout(filterAnnounceTimer);
+  filterAnnounceTimer = setTimeout(() => emit('filterResult', model.value.flatFileRows.length, props.files.length, value), 400);
+});
 
 const totals = computed(() => {
   let additions = 0;

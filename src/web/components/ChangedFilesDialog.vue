@@ -32,6 +32,7 @@ const emit = defineEmits<{
   'update:view-mode': [mode: 'tree' | 'list'];
   'update:line-counts': [mode: 'always' | 'hover' | 'never'];
   'update:comment-badges': [enabled: boolean];
+  'filter-result': [matched: number, total: number, query: string];
 }>();
 </script>
 
@@ -63,6 +64,7 @@ const emit = defineEmits<{
       @update:view-mode="emit('update:view-mode', $event)"
       @update:line-counts="emit('update:line-counts', $event)"
       @update:comment-badges="emit('update:comment-badges', $event)"
+      @filter-result="(matched, total, query) => emit('filter-result', matched, total, query)"
     />
     <section v-else class="empty-files-pane">
       <h2>{{ emptyHeading }}</h2>

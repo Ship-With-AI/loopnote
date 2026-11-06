@@ -97,6 +97,7 @@ const changedFilesOpen = computed(() => shellDialog.value === 'changed-files');
 const changedFilesRestoreFocus = ref(true);
 const focusActiveFileAfterDialog = ref(false);
 const panelState = createPanelState();
+const PANEL_TAB_LABELS: Record<PanelTab, string> = { comments: 'Comments', summary: 'Summary', export: 'Export' };
 const panelOpen = ref(false);
 const renderSideBySide = ref(true);
 const fileModeByFileId = shallowRef<Map<string, 'source' | 'rendered'>>(new Map());
@@ -364,6 +365,7 @@ function toggleCommentCollapse(commentId: string): void {
   const next = new Map(collapsedByCommentId.value);
   next.set(commentId, !current);
   collapsedByCommentId.value = next;
+  announce(!current ? 'Thread collapsed.' : 'Thread expanded.');
 }
 
 function toggleThreadsCollapsed(): void {
@@ -373,6 +375,7 @@ function toggleThreadsCollapsed(): void {
     next.set(comment.id, collapseAll);
   }
   collapsedByCommentId.value = next;
+  announce(collapseAll ? 'All threads collapsed.' : 'All threads expanded.');
 }
 
 function jumpThread(direction: 'next' | 'previous'): void {
@@ -421,7 +424,7 @@ function undoPendingDelete(commentId: string): void {
   next.delete(commentId);
   locallyHiddenCommentIds.value = next;
   pendingUndos.value = pendingUndos.value.filter((entry) => entry.commentId !== commentId);
-  announce('Comment restored.');
+  announce(`Comment restored. ${openCommentCount.value} open, ${workspaceComments.value.length - openCommentCount.value} resolved.`);
 }
 
 function flushPendingDeletes(): void {
@@ -529,6 +532,11 @@ function openPanel(tab: PanelTab): void {
   void nextTick(() => nextTick(() => panelRef.value?.focusActiveTab()));
 }
 
+function selectPanelTab(tab: PanelTab): void {
+  panelState.setActiveTab(tab);
+  announce(`${PANEL_TAB_LABELS[tab]} tab selected.`);
+}
+
 function commitSidebarWidth(value: number): void {
   panelState.sidebarWidth.value = value;
   panelState.persist();
@@ -542,6 +550,7 @@ function commitPanelHeight(value: number): void {
 function toggleTreeViewMode(mode: TreeViewMode): void {
   panelState.treeViewMode.value = mode;
   panelState.persist();
+  announce(mode === 'list' ? 'Viewing as list.' : 'Viewing as tree.');
 }
 
 function toggleTreeLineCounts(mode: TreeLineCountsMode): void {
@@ -554,10 +563,15 @@ function toggleTreeCommentBadges(enabled: boolean): void {
   panelState.persist();
 }
 
+function handleFilterResult(matched: number, total: number, query: string): void {
+  announce(matched === 0 ? `No changed files match "${query}".` : `${matched} of ${total} files match.`);
+}
+
 function setFileMode(fileId: string, mode: 'source' | 'rendered'): void {
   const next = new Map(fileModeByFileId.value);
   next.set(fileId, mode);
   fileModeByFileId.value = next;
+  announce(mode === 'source' ? 'Showing Markdown source.' : 'Showing rendered Markdown.');
 }
 
 function closeChangedFiles(restoreFocus = true): void {
@@ -1716,7 +1730,7 @@ onBeforeUnmount(() => {
           :is-exact-patch="isExactPatchSession"
           :export-supported="!isUncommittedSession || isStandaloneSession"
           @close="closePanel"
-          @update:active-tab="panelState.setActiveTab"
+          @update:active-tab="selectPanelTab"
           @reveal="revealCommentFromPanel"
           @cancel-summary="if (!attachedMutationLocked) { reviewState?.setSummaryBuffer(reviewDraft?.canonical.summary ?? ''); refreshReviewSnapshot(); }"
           @reload-latest="reloadLatestReview"
@@ -1766,6 +1780,7 @@ onBeforeUnmount(() => {
       @update:view-mode="toggleTreeViewMode"
       @update:line-counts="toggleTreeLineCounts"
       @update:comment-badges="toggleTreeCommentBadges"
+      @filter-result="handleFilterResult"
     />
     <SupportDialog
       v-if="supportEnabled"

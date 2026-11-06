@@ -396,6 +396,10 @@ test('Markdown source/rendered toggle announces exactly once per toggle', async 
 
     await page.getByRole('treeitem', { name: /preview\.md/ }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'docs/preview.md' })).toBeVisible();
+    // The diff editor's async "ready" event (and its "Loaded ..." announcement)
+    // can still be in flight once the heading appears — wait for it to settle
+    // so it doesn't land inside the mode-toggle assertions' version-delta window.
+    await expect(liveRegion(page)).toHaveText('Loaded docs/preview.md.');
 
     await assertAnnouncement(
       page,
