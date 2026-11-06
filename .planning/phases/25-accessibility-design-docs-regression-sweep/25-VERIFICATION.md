@@ -1,15 +1,58 @@
 ---
 phase: 25-accessibility-design-docs-regression-sweep
 verified: 2026-11-06T05:05:49Z
-status: human_needed
+status: gaps_found
 score: 17/17 must-haves verified
 behavior_unverified: 0
 overrides_applied: 0
-re_verification: no — initial verification
+re_verification:
+  previous_status: human_needed
+  previous_score: "17/17 truths verified at 2026-11-06T05:05:49Z; orchestrator re-baseline against v2.0 close commit 0481bcc (not the Phase-25 verifier's pre-Phase-25 commit 7f6d248 baseline) found 4 regressions this verifier's human_needed status did not surface as gaps"
+gaps:
+  - truth: "`npm run typecheck:tests` is 0 errors (CI gate `repository-gates` in `.github/workflows/deploy-supabase-production.yml` runs this on every push to main)"
+    status: failed
+    reason: "0 errors at v2.0 close commit 0481bcc; 4 errors now — tests/unit/comment-thread.test.ts and tests/unit/status-bar.test.ts (TS2307, `.vue` import unresolved under plain tsc), tests/unit/identity-pill.test.ts (TS2307 + TS2835 missing `.js` extension) — these 3 Phase-25-added `.vue`-importing unit tests were never added to tsconfig.web.test.json's vue-tsc split (the Phase 19 pattern used by all prior `.vue`-importing unit tests)."
+    artifacts:
+      - path: "tsconfig.test.json"
+        issue: "Does not exclude the 3 new `.vue`-importing test files from the plain-tsc node config."
+      - path: "tsconfig.web.test.json"
+        issue: "Does not include the 3 new test files in the vue-tsc web config."
+      - path: "tests/unit/identity-pill.test.ts"
+        issue: "Imports '../../src/contracts/api' without the required explicit `.js` extension."
+    missing:
+      - "Move the 3 files to the vue-tsc split and fix the missing extension."
+  - truth: "`npx vitest run --no-file-parallelism` has only the v2.0-era environment-dependent failing set (help/agent-ready-export-safety/version); no v2.1 regressions"
+    status: failed
+    reason: "5 DIFFERENT failures now vs the v2.0 baseline's different environment-dependent set: tests/api/session.test.ts's 2 assertions never updated for the `status.code` field the Zod contract (`ApiFileStatusSchema`) deliberately declares; tests/package/runtime-package-contract.test.ts's 3 assertions expect Phase 19's pinned `@typescript/native`/`typescript`/`vue-tsc` devDependency aliases that `scripts/verify-prerequisites.mjs`'s `approvedDependencies` allow-list was never updated to approve."
+    artifacts:
+      - path: "tests/api/session.test.ts"
+        issue: "Fixtures omit `status.code`, which production always emits (src/server/capabilities.ts, 4 call sites) and the schema declares as optional-but-present."
+      - path: "scripts/verify-prerequisites.mjs"
+        issue: "`approvedDependencies` allow-list is missing `@typescript/native` and has stale `typescript`/`vue-tsc` versions, out of sync with package.json's Phase-19 pins."
+    missing:
+      - "Update session.test.ts fixtures to include status.code; update the allow-list (and its dependent-count assertions) to match package.json."
+  - truth: "`npm run test:runtime-artifact` (custody-gated, run by publish-npm.yml before release) passes 16/16 reproducing Phase 23's locally-packed-artifact setup"
+    status: failed
+    reason: "Phase 23 reported 16/16 with a locally-packed artifact; default/non-custody run now reports 9 failed/16 in the agent-ready-export.spec.ts browser-interaction cluster. Root cause: Phase 24 moved Export/Finish into BottomPanel.vue tabs (`v-if=\"activeTab==='export'\"` / `'summary'`), but agent-ready-export.spec.ts's shared `openReviewNotes()` helper never clicks the tab (sibling specs standalone-review.spec.ts/finish-review-live-region.spec.ts already do)."
+    artifacts:
+      - path: "tests/e2e/agent-ready-export.spec.ts"
+        issue: "openReviewNotes() opens the panel but never selects the Export/Summary tab before interacting with tab-gated content."
+    missing:
+      - "Add explicit tab selection to openReviewNotes() and reproduce Phase 23's custody setup (pack-runtime.mjs --purpose development-check with a configured support origin) to confirm 16/16."
+  - truth: "TREE-04 list mode renders the file name first, then the dimmed directory segment (21-UI-SPEC.md:197)"
+    status: failed
+    reason: "PathText.vue renders `.path-text__directory` before `.path-text__filename` unconditionally; 25-04 added a test (file-tree.spec.ts:872) that locked in this wrong order instead of fixing it, with a comment claiming the shipped order supersedes the spec."
+    artifacts:
+      - path: "src/web/components/ui/PathText.vue"
+        issue: "Directory span always precedes filename span in DOM order, regardless of context."
+      - path: "tests/e2e/file-tree.spec.ts"
+        issue: "Line 944 asserts the wrong (directory-first) segmentClasses order for list mode."
+    missing:
+      - "Render list mode as name-first/directory-after without changing tree mode or the unrelated full-path breadcrumb uses of PathText (CommentComposer.vue, App.vue orphaned-comment heading, AttachedCompletionWaiting.vue)."
 human_verification:
   - test: "Carry-forward: Phase 21's three PRESENT_BEHAVIOR_UNVERIFIED items (default hover/selection line-count visibility, filter Enter/ArrowDown semantics, list-mode keyboard parity + dimmed directory) — 25-04 added real e2e tests that now EXERCISE all three; re-confirm the new assertions actually match intended UX (not just that they pass) by watching one headed run"
-    expected: "tests/e2e/file-tree.spec.ts:721,789,872 pass (confirmed) and the asserted behavior (opacity 0→1 on hover/selection, Enter-opens-first-match, list-mode keyboard parity with dimmed directory text rendered before filename) visually matches intent"
-    why_human: "Visual/UX judgment on dimmed-directory contrast and hover-opacity feel is outside grep/test-pass scope; tests pass mechanically but a human should confirm the DOM-order deviation noted by 25-04-SUMMARY.md (directory segment renders before filename, opposite of 21-VERIFICATION.md's prior wording) is the intended shipped behavior, not a defect"
+    expected: "tests/e2e/file-tree.spec.ts:721,789,872 pass (confirmed) and the asserted behavior (opacity 0→1 on hover/selection, Enter-opens-first-match, list-mode keyboard parity with dimmed directory text rendered after the filename per the gap-closure fix) visually matches intent"
+    why_human: "Visual/UX judgment on dimmed-directory contrast and hover-opacity feel is outside grep/test-pass scope"
 ---
 
 # Phase 25: Accessibility, Design Docs & Regression Sweep Verification Report
@@ -144,6 +187,18 @@ None. No `TBD`/`FIXME`/`XXX` markers, no placeholder returns, no stub handlers i
 ## Gaps Summary
 
 No gaps. All 17 merged must-have truths across the 5 plans resolve VERIFIED against live re-derivation (not SUMMARY narrative): toolbar roles wired and tested, DEBT-01 zero-occurrence, all 18 live-region/keyboard-contract outcomes proven with exact version-delta evidence, Finish-result and anchor-drift consolidation confirmed source-level (no competing live region) and behaviorally (passing tests), DESIGN.md rewrite scoped exactly as locked, all 6 phase-end gate commands reproduce the SUMMARY's claimed counts byte-for-byte, every remaining red command traces to a pre-Phase-25 cause with `git log 7f6d248..HEAD` independently confirming zero Phase-25 commits touched the failing files, and the orchestrator-added Phase 21 e2e coverage is real (not stubbed) and passing. The sole routed item is a UX-judgment question (not a defect) on the Phase 21 list-mode DOM-order deviation, which keeps status at `human_needed` rather than `passed` per the verifier protocol (any non-empty human-verification section forecloses `passed`), with zero BLOCKER or WARNING findings otherwise.
+
+## Gaps (orchestrator re-baseline)
+
+This verifier's `No gaps` conclusion above used `7f6d248` (a pre-Phase-25 commit) as the "pre-existing, not a regression" baseline. The orchestrator re-measured against `0481bcc`, the v2.0 milestone close commit, in a disposable worktree, and found 4 regressions introduced during v2.1 (Phases 19–24) that this report's baseline choice let through as "pre-existing":
+
+1. **`npm run typecheck:tests`: 0 errors at `0481bcc`; 4 errors now.** `tests/unit/comment-thread.test.ts`, `tests/unit/identity-pill.test.ts` (also missing a `.js` extension on `../../src/contracts/api`), and `tests/unit/status-bar.test.ts` import `.vue` files under the plain-`tsc` `tsconfig.test.json` instead of the vue-tsc `tsconfig.web.test.json` split (the Phase 19 pattern every other `.vue`-importing unit test already follows). This script runs in `.github/workflows/deploy-supabase-production.yml`'s `repository-gates` job on every push to `main`, so CI was red.
+2. **`npx vitest run --no-file-parallelism`: a different failing set than `0481bcc`'s environment-dependent one.** `0481bcc`'s failing set (help/agent-ready-export-safety/version) is dist-build-presence-dependent (those tests spawn the packaged `dist/bin/<cmd>.mjs` CLI) and does not fail in this session now that `dist/` has been built — it is genuinely environment-dependent, not fixed by any code change. The 5 failures actually present now are v2.1 regressions: `tests/api/session.test.ts` never updated 2 fixtures for the `status.code` field that `ApiFileStatusSchema` deliberately declares and production always emits; `tests/package/runtime-package-contract.test.ts`'s 3 dependency-contract assertions were never updated for Phase 19's pinned `@typescript/native`/`typescript`/`vue-tsc` devDependency aliases.
+3. **`npm run test:runtime-artifact` (custody-gated, run by `publish-npm.yml` before release): Phase 23 reported 16/16; Phase 25's default/non-custody run reported 9 failed/16.** Reproducing Phase 23's exact custody setup (`node scripts/pack-runtime.mjs --purpose development-check --custody-dir <dir> --evidence <path>` with `LOOPNOTE_RELEASE_SUPPORT_SERVICE_URL` set to a canonical `https://<20-char-ref>.supabase.co` origin, then the 4 `LOOPNOTE_RUNTIME_*` env vars it prints into `npm run test:runtime-artifact`) found the real cause: Phase 24 moved Export/Finish into `BottomPanel.vue`'s tabs (`ExportTab`/`SummaryTab` are `v-if`-gated on `activeTab`), but `tests/e2e/agent-ready-export.spec.ts`'s shared `openReviewNotes()` helper never selects the Export/Summary tab before interacting with tab-gated content — sibling specs (`standalone-review.spec.ts`, `finish-review-live-region.spec.ts`) already click the tab. Export bytes and Finish's canonical result are unaffected; this was a test-only gap.
+4. **TREE-04 list mode renders the dimmed directory before the file name; `21-UI-SPEC.md:197` requires name first, then dimmed directory.** `PathText.vue` rendered `.path-text__directory` before `.path-text__filename` unconditionally. 25-04 discovered this deviation but, instead of fixing it, added a test (`file-tree.spec.ts:872`) that locked in the wrong order and a comment asserting the shipped markup supersedes the spec — and left this report's own Human Verification §1 asking a human to bless the deviation rather than treating it as a defect.
+
+All 4 are closed — see `25-06-PLAN.md` through `25-09-PLAN.md` and their SUMMARYs, and the re-verification section below.
+
 
 ---
 
