@@ -928,6 +928,62 @@ test('anchored gap closure', async ({ page }) => {
   await page.setViewportSize({ width: 1200, height: 1100 });
 });
 
+test('anchored gap closure, verified again', async ({ page }) => {
+  session = {
+    ...session,
+    files: session.files.map((file) => ({
+      ...file,
+      newPath: path(file.fileId === firstFileId ? 'src/first.ts' : 'src/second.ts'),
+    })),
+  };
+  canonicalComments = [{
+    id: 'comment_11111111-1111-4111-8111-111111111111',
+    state: 'open',
+    body: 'Stale comment stays attached to its recorded anchor.',
+    anchor: {
+      version: 'durable-anchor-v1',
+      path: path('src/first.ts'),
+      safeDisplayPath: 'src/first.ts',
+      side: 'head',
+      line: 15,
+      blobOid: 'd'.repeat(40),
+      selectedText: 'export const changed = 2;',
+      context: { before: [], target: { line: 15, text: 'const context15 = 15;' }, after: [] },
+      contextHash: { algorithm: 'sha256-v1', value: 'f'.repeat(64) },
+      uniqueKey: 'e'.repeat(64),
+    },
+    createdAt: '2026-07-21T00:00:00.000Z',
+    updatedAt: '2026-07-21T00:00:00.000Z',
+    verification: { state: 'stale', reason: 'anchor-mismatch' },
+  }];
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await openReview(page);
+
+  const staleNotice = page.getByRole('complementary', {
+    name: 'Some saved comment anchors cannot be verified',
+  });
+  await expect(staleNotice).toBeVisible();
+
+  const liveRegion = page.locator('.session-shell > .visually-hidden[aria-live="polite"]');
+  const staleComment = page.locator('.comment-thread[data-comment-id="comment_11111111-1111-4111-8111-111111111111"]');
+  const before = Number(await liveRegion.locator('span').getAttribute('data-announcement-version'));
+
+  await staleComment.getByRole('button', { name: 'Delete thread' }).click();
+  await expect(staleComment).toHaveCount(0);
+  // The click only begins a 5-second client-side undo window before the real
+  // deleteComment mutation (and its announcement) fires.
+  await page.waitForTimeout(5_500);
+
+  await expect(liveRegion).toHaveText('Comment deleted. 0 open, 0 resolved.');
+  expect(Number(await liveRegion.locator('span').getAttribute('data-announcement-version'))).toBe(before + 1);
+
+  await expect.poll(async () =>
+    liveRegion.locator('span').getAttribute('data-announcement-version')).toBe(String(before + 2));
+  await expect(liveRegion).toHaveText('Saved comment anchors are verified again.');
+  await expect(staleNotice).toHaveCount(0);
+});
+
 test.describe('async comment settlement', () => {
   test.beforeEach(() => {
     resetAsyncSettlementFixture();
