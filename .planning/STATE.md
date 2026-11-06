@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Workbench Redesign
-current_phase: 24
-current_phase_name: Bottom Panel & Export
+current_phase: 25
+current_phase_name: Accessibility, Design Docs & Regression Sweep
 status: verifying
 stopped_at: Completed 20-10-PLAN.md
-last_updated: "2026-11-05T22:22:38.655Z"
-last_activity: 2026-11-05
-last_activity_desc: Phase 23 complete, transitioned to Phase 24
+last_updated: "2026-11-06T01:00:10.635Z"
+last_activity: 2026-11-06
+last_activity_desc: Phase 24 complete, transitioned to Phase 25
 progress:
   total_phases: 7
-  completed_phases: 5
-  total_plans: 41
-  completed_plans: 30
-  percent: 71
+  completed_phases: 6
+  total_plans: 46
+  completed_plans: 41
+  percent: 86
 ---
 
 # Project State
@@ -28,16 +28,16 @@ See: .planning/PROJECT.md (updated 2026-11-04)
 
 ## Current Position
 
-Phase: 24 — Bottom Panel & Export
+Phase: 25 — Accessibility, Design Docs & Regression Sweep
 Plan: Not started
 Status: Phase 23 verified (0 gaps) — human verification pending (see 23-UAT.md)
-Last activity: 2026-11-05 — Phase 23 complete, transitioned to Phase 24
+Last activity: 2026-11-06 — Phase 24 complete, transitioned to Phase 25
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 185
+- Total plans completed: 196
 - Average duration: 23 min
 - Total execution time: 4.7 hours
 

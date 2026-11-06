@@ -69,11 +69,11 @@
 
 ### Review Panel & Export
 
-- [ ] **PANEL-01**: Reviewer sees in the Comments tab every thread grouped by file with its state icon, first line, and side/line; clicking a row opens the file, expands the thread, and scrolls it into view.
-- [ ] **PANEL-02**: Reviewer can edit the overall Markdown summary in the Summary tab with a Saving… / Saved indicator.
-- [ ] **PANEL-03**: Reviewer sees in the Export tab a readiness checklist (open and resolved counts, summary state); when any comment's anchor moved, Export stays disabled until the reviewer acknowledges it.
-- [ ] **PANEL-04**: Reviewer sees after export a receipt with the `review.md` and `review.json` paths, copy actions, and "Copy agent prompt".
-- [ ] **PANEL-05**: Reviewer in an agent-attached session can Finish review from the Export tab behind the same readiness and acknowledgement gate, and the agent receives an unchanged canonical result.
+- [x] **PANEL-01**: Reviewer sees in the Comments tab every thread grouped by file with its state icon, first line, and side/line; clicking a row opens the file, expands the thread, and scrolls it into view.
+- [x] **PANEL-02**: Reviewer can edit the overall Markdown summary in the Summary tab with a Saving… / Saved indicator.
+- [x] **PANEL-03**: Reviewer sees in the Export tab a readiness checklist (open and resolved counts, summary state); when any comment's anchor moved, Export stays disabled until the reviewer acknowledges it.
+- [x] **PANEL-04**: Reviewer sees after export a receipt with the `review.md` and `review.json` paths, copy actions, and "Copy agent prompt".
+- [x] **PANEL-05**: Reviewer in an agent-attached session can Finish review from the Export tab behind the same readiness and acknowledgement gate, and the agent receives an unchanged canonical result.
 
 ### Status Bar
 
@@ -150,11 +150,11 @@ Deferred, tracked but not in the v2.1 roadmap.
 | THREAD-07 | Phase 23 | Complete |
 | THREAD-08 | Phase 23 | Complete |
 | THREAD-09 | Phase 23 | Complete |
-| PANEL-01 | Phase 24 | Pending |
-| PANEL-02 | Phase 24 | Pending |
-| PANEL-03 | Phase 24 | Pending |
-| PANEL-04 | Phase 24 | Pending |
-| PANEL-05 | Phase 24 | Pending |
+| PANEL-01 | Phase 24 | Complete |
+| PANEL-02 | Phase 24 | Complete |
+| PANEL-03 | Phase 24 | Complete |
+| PANEL-04 | Phase 24 | Complete |
+| PANEL-05 | Phase 24 | Complete |
 | STAT-01 | Phase 22 | Complete |
 | STAT-02 | Phase 22 | Complete |
 | STAT-03 | Phase 22 | Complete |

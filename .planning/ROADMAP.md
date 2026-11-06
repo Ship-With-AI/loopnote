@@ -43,7 +43,7 @@ the shell.
 - [x] **Phase 21: Changed-Files Tree** - The changed-files tree is restyled to VS Code Explorer density with hover counts, a path filter, a view-options menu, and full keyboard reachability. (completed 2026-11-05)
 - [x] **Phase 22: Identity & Status Bar** - Comparison identity and drift relocate into a title-bar pill/popover; the status bar carries snapshot/comment counts, one emphasized Export/Finish item, and the support entry. (completed 2026-11-05)
 - [x] **Phase 23: Inline Comment Threads** - A multi-zone Monaco adapter rework renders every comment as an expanded-by-default view-zone thread with its own editor-title navigation icons and ⌥F9/⇧⌥F9 shortcuts, gated by an explicit pointer/keyboard go/no-go spike. (completed 2026-11-05)
-- [ ] **Phase 24: Bottom Panel & Export** - Comments/Summary/Export live in the ⌘J bottom panel, including the agent-attached Finish action behind the export readiness gate.
+- [x] **Phase 24: Bottom Panel & Export** - Comments/Summary/Export live in the ⌘J bottom panel, including the agent-attached Finish action behind the export readiness gate. (completed 2026-11-06)
 - [ ] **Phase 25: Accessibility, Design Docs & Regression Sweep** - A toolbar role/name audit closes DEBT-01, every popover/menu/live-region is keyboard-accessible, the full suite passes with same-phase locator updates, and `DESIGN.md` describes the shipped workbench.
 
 <details>
@@ -246,32 +246,32 @@ Plans:
   3. Reviewer sees an Export tab readiness checklist (open and resolved counts, summary state) that stays disabled until any comment with a moved anchor is acknowledged, and sees the post-export receipt (`review.md`/`review.json` paths, copy actions, "Copy agent prompt").
   4. Reviewer in an agent-attached session can Finish review from the Export tab behind the same readiness/acknowledgement gate, and the agent still receives an unchanged canonical result.
 
-**Plans**: 0/11 plans executed
+**Plans**: 11/11 plans complete
 **Wave 1**
 
-- [ ] 24-01-PLAN.md
-- [ ] 24-02-PLAN.md
-- [ ] 24-03-PLAN.md
-- [ ] 24-04-PLAN.md
-- [ ] 24-05-PLAN.md
-- [ ] 24-06-PLAN.md
+- [x] 24-01-PLAN.md
+- [x] 24-02-PLAN.md
+- [x] 24-03-PLAN.md
+- [x] 24-04-PLAN.md
+- [x] 24-05-PLAN.md
+- [x] 24-06-PLAN.md
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 24-07-PLAN.md
+- [x] 24-07-PLAN.md
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 24-08-PLAN.md
+- [x] 24-08-PLAN.md
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 24-09-PLAN.md
+- [x] 24-09-PLAN.md
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
-- [ ] 24-10-PLAN.md
-- [ ] 24-11-PLAN.md
+- [x] 24-10-PLAN.md
+- [x] 24-11-PLAN.md
 
 **UI hint**: yes
 
@@ -306,7 +306,7 @@ Plans:
 | 21. Changed-Files Tree | v2.1 | 4/4 | Complete    | 2026-11-05 |
 | 22. Identity & Status Bar | v2.1 | 4/4 | Complete    | 2026-11-05 |
 | 23. Inline Comment Threads | v2.1 | 8/8 | Complete    | 2026-11-05 |
-| 24. Bottom Panel & Export | v2.1 | 0/11 | Planned    |  |
+| 24. Bottom Panel & Export | v2.1 | 11/11 | Complete    | 2026-11-06 |
 | 25. Accessibility, Design Docs & Regression Sweep | v2.1 | 0/TBD | Not started | - |
 
 ## Backlog
