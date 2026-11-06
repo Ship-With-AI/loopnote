@@ -287,7 +287,21 @@ Plans:
   3. The full packaged-binary Playwright and integration suites pass against the finished workbench, with every locator any Phase 19–24 rename broke already updated within that same phase rather than deferred here.
   4. Contributors read a `DESIGN.md` whose Composition, Geometry, and Components sections describe the shipped workbench, with no mention of the review rail or identity header band.
 
-**Plans**: TBD
+**Plans**: 0/5 plans executed
+**Wave 1**
+
+- [ ] 25-01-PLAN.md
+- [ ] 25-02-PLAN.md
+- [ ] 25-03-PLAN.md
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 25-05-PLAN.md
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 25-04-PLAN.md
+
 **UI hint**: yes
 
 ## Progress
@@ -307,7 +321,7 @@ Plans:
 | 22. Identity & Status Bar | v2.1 | 4/4 | Complete    | 2026-11-05 |
 | 23. Inline Comment Threads | v2.1 | 8/8 | Complete    | 2026-11-05 |
 | 24. Bottom Panel & Export | v2.1 | 11/11 | Complete    | 2026-11-06 |
-| 25. Accessibility, Design Docs & Regression Sweep | v2.1 | 0/TBD | Not started | - |
+| 25. Accessibility, Design Docs & Regression Sweep | v2.1 | 0/5 | Planned    |  |
 
 ## Backlog
 
