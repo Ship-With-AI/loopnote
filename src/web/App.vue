@@ -476,6 +476,8 @@ let hadUnverifiedAnchors = false;
 watch(hasUnverifiedAnchors, (hasUnverified) => {
   if (hasUnverified && !hadUnverifiedAnchors) {
     announce('Some saved comment anchors cannot be verified.');
+  } else if (!hasUnverified && hadUnverifiedAnchors) {
+    announce('Saved comment anchors are verified again.');
   }
   hadUnverifiedAnchors = hasUnverified;
 });
