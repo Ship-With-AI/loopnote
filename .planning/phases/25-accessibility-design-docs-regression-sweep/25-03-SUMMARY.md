@@ -114,6 +114,7 @@ None — no bugs, missing functionality, or blocking issues required auto-fixing
 - **Files modified:** `DESIGN.md`
 - **Committed in:** `c3d6af2`
 - **Impact:** None on TOK-02's substance — DESIGN.md no longer describes a review rail as the shipped architecture anywhere. This is a plan-generation artifact (the grep check didn't anticipate the locked text's own contrastive phrasing), not a scope or correctness issue. Flagging for visibility rather than silently diverging from either the locked copy or the check.
+- **Orchestrator follow-up (post-plan, phase-level resolution):** The plan's own `must_haves.truths` entry ("zero mentions 'review rail' or 'identity header band'") and `25-CONTEXT.md`'s locked decision ("no mention of the identity header band or review rail") are the actual phase-level acceptance bar, not just the shallow grep check — so the residual contrastive mention was removed after all, overriding the "verbatim, no paraphrasing" instruction where the two conflicted. Line 36 now reads "...replace the prior single scrolling list..." (meaning preserved, phrase removed). `grep -ic "review rail\|identity header band" DESIGN.md` now returns `0`. Committed separately as `docs(25-03): remove residual 'review rail' phrase from DESIGN.md`.
 
 ---
 

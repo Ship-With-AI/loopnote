@@ -33,7 +33,7 @@ Source: the platform-system and editor stacks defined by the canonical root; no 
 - The changed-files pane reads as a ledger: status → path → signed counts → exceptional availability.
 - Reviewable text files do not repeat a visible `Text` badge; unsupported states remain visible and named.
 - The diff names `BASE − REMOVED` and `HEAD + ADDED`; deletion uses a dashed rail and addition a solid rail.
-- The bottom panel's Comments, Summary, and Export tabs replace the review rail's single scrolling list: each tab owns one concern, and thread state is communicated by icon and text together, never by colour alone.
+- The bottom panel's Comments, Summary, and Export tabs replace the prior single scrolling list: each tab owns one concern, and thread state is communicated by icon and text together, never by colour alone.
 
 ## Composition
 
