@@ -317,7 +317,20 @@ Plans:
   3. The selected file, its comments and threads (THREAD-08), any in-progress edit text, and panel/side-bar state survive Refresh; if the selected file disappeared, selection moves to a defined neighbour with one announcement.
   4. A packaged-binary e2e test creates, edits, and deletes files mid-session, triggers Refresh from the title bar, the popover, and ⌥⇧R, and asserts all of the above; full suites stay at the v2.0-baseline-or-better counts.
 
-**Plans**: TBD
+**Plans**: 3 plans
+
+**Wave 1**
+
+- [ ] 25.1-01-PLAN.md — Path→fileId resolution helper (TDD)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 25.1-02-PLAN.md — App.vue session resync + RefreshSummaryPanel wiring
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 25.1-03-PLAN.md — Packaged-binary e2e coverage, all four session kinds
+
 **UI hint**: yes
 
 ## Progress
