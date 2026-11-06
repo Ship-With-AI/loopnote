@@ -264,8 +264,12 @@ test(`packaged ${RENAME_MAP.binCommand} --staged launches a frozen snapshot that
       page.getByRole('heading', { name: 'Some saved comment anchors cannot be verified' }),
     ).toBeVisible();
 
-    // D-15/SNAP-04 (fixed by 14-14 Task 2): the tree-row marker reflects the most recent Refresh's delta until the file is reopened.
-    await expect(treeRow.getByText('Changed', { exact: true })).toBeVisible();
+    // IDENT-04 (25.1-02): the currently-open file's content-addressed fileId changes
+    // across this refresh (its blob changed), so performRefresh()'s path-preservation
+    // resync calls selectFile() on it automatically — clearing the tree-row marker
+    // immediately instead of waiting for a manual reopen (superseding the prior
+    // D-15/SNAP-04 "until the file is reopened" behavior for the open file).
+    await expect(treeRow.getByText('Changed', { exact: true })).toHaveCount(0);
     await treeRow.click();
     await expect(treeRow.getByText('Changed', { exact: true })).toHaveCount(0);
 

@@ -64,6 +64,7 @@ import ReviewStateBadge from './components/ui/ReviewStateBadge.vue';
 import { createFileTreeModel } from './model/file-tree.js';
 import { projectOrphanedCommentGroup } from './model/orphaned-comments.js';
 import { flattenThreadOrder, nextThread, previousThread } from './model/thread-order.js';
+import { resolvePathToFileId } from './model/refresh-resolution.js';
 
 type CanonicalReviewDraft = Readonly<{
   revision: number;
@@ -1412,6 +1413,29 @@ async function performRefresh(): Promise<void> {
       refreshSummary.value = delta;
     }
     recentlyChangedPaths.value = new Set([...delta.added, ...delta.removed, ...delta.modified]);
+    const previousPath = selectedFile.value?.newPath?.display ?? selectedFile.value?.oldPath?.display;
+    const previousIndex = flatFileRows.value.findIndex((row) => row.fileId === selectedFile.value?.fileId);
+    const refreshedSession = await sessionClient.getSession();
+    session.value = refreshedSession;
+    if (selectedFile.value !== undefined) {
+      const resolvedFileId = previousPath === undefined ? undefined : resolvePathToFileId(previousPath, refreshedSession.files);
+      if (resolvedFileId !== undefined) {
+        if (resolvedFileId !== selectedFile.value.fileId) {
+          selectFile(resolvedFileId);
+        }
+      } else {
+        const fallbackRows = flatFileRows.value;
+        if (fallbackRows.length > 0) {
+          const fallbackIndex = Math.min(Math.max(previousIndex, 0), fallbackRows.length - 1);
+          const fallbackRow = fallbackRows[fallbackIndex];
+          const nextPath = fallbackRow.file.newPath?.display ?? fallbackRow.file.oldPath?.display ?? 'Changed file';
+          selectFile(fallbackRow.fileId);
+          if (previousPath !== undefined) {
+            announce(`${previousPath} is no longer in the review; showing ${nextPath}`);
+          }
+        }
+      }
+    }
     const loadedDraft = await sessionClient.getDraft();
     if (loadedDraft.kind === 'current' && workspace !== undefined) {
       const transition = workspace.replaceComments(reconciledWorkspaceComments(loadedDraft.draft));
