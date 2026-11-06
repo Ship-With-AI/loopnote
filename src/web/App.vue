@@ -1641,6 +1641,7 @@ onBeforeUnmount(() => {
             <RefreshSummaryPanel
               v-if="refreshSummary !== undefined"
               v-bind="refreshSummary"
+              :session-files="session?.files ?? []"
               @dismiss="refreshSummary = undefined"
               @select-file="selectFile"
             />

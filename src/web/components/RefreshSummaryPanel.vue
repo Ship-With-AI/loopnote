@@ -2,6 +2,10 @@
 import { computed } from 'vue';
 
 import InlineNotice from './InlineNotice.vue';
+import ReviewStateBadge from './ui/ReviewStateBadge.vue';
+
+import type { SessionFile } from '../../contracts/api.js';
+import { resolvePathsToFileIds } from '../model/refresh-resolution.js';
 
 const props = defineProps<{
   readonly added: readonly string[];
@@ -9,9 +13,18 @@ const props = defineProps<{
   readonly modified: readonly string[];
   readonly staleCount: number;
   readonly orphanedCount: number;
+  readonly sessionFiles: readonly SessionFile[];
 }>();
 
-const emit = defineEmits<{ dismiss: []; 'select-file': [path: string] }>();
+const emit = defineEmits<{ dismiss: []; 'select-file': [fileId: string] }>();
+
+const resolvedFileIds = computed(() =>
+  resolvePathsToFileIds([...props.added, ...props.removed, ...props.modified], props.sessionFiles),
+);
+
+function resolvePath(path: string): string | undefined {
+  return resolvedFileIds.value.get(path);
+}
 
 const headingText = computed(() => {
   const categories: ReadonlyArray<{ count: number; label: string }> = [
@@ -43,7 +56,13 @@ const headingText = computed(() => {
       <h3>Added</h3>
       <ul>
         <li v-for="path in added" :key="path">
-          <button type="button" class="ui-button" @click="emit('select-file', path)">{{ path }}</button>
+          <button v-if="resolvePath(path) !== undefined" type="button" class="ui-button" @click="emit('select-file', resolvePath(path)!)">
+            {{ path }}
+          </button>
+          <span v-else class="refresh-summary-row--removed">
+            {{ path }}
+            <ReviewStateBadge kind="disabled" size="compact" label="Removed" />
+          </span>
         </li>
       </ul>
     </section>
@@ -51,7 +70,13 @@ const headingText = computed(() => {
       <h3>Removed</h3>
       <ul>
         <li v-for="path in removed" :key="path">
-          <button type="button" class="ui-button" @click="emit('select-file', path)">{{ path }}</button>
+          <button v-if="resolvePath(path) !== undefined" type="button" class="ui-button" @click="emit('select-file', resolvePath(path)!)">
+            {{ path }}
+          </button>
+          <span v-else class="refresh-summary-row--removed">
+            {{ path }}
+            <ReviewStateBadge kind="disabled" size="compact" label="Removed" />
+          </span>
         </li>
       </ul>
     </section>
@@ -59,7 +84,13 @@ const headingText = computed(() => {
       <h3>Modified</h3>
       <ul>
         <li v-for="path in modified" :key="path">
-          <button type="button" class="ui-button" @click="emit('select-file', path)">{{ path }}</button>
+          <button v-if="resolvePath(path) !== undefined" type="button" class="ui-button" @click="emit('select-file', resolvePath(path)!)">
+            {{ path }}
+          </button>
+          <span v-else class="refresh-summary-row--removed">
+            {{ path }}
+            <ReviewStateBadge kind="disabled" size="compact" label="Removed" />
+          </span>
         </li>
       </ul>
     </section>
