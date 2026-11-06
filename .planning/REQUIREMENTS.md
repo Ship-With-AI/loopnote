@@ -83,9 +83,9 @@
 
 ### Accessibility & Regression
 
-- [ ] **A11Y-01**: Assistive-technology users reach each toolbar control group by role and name (`getByRole('toolbar' | 'group', { name })`), closing DEBT-01.
-- [ ] **A11Y-02**: Keyboard users can operate every popover and menu, close it with Esc, and get focus returned; each dynamic change (panel tab, thread action, refresh result, export result) is announced by exactly one live region.
-- [ ] **A11Y-03**: Maintainers see the packaged-binary Playwright and integration suites pass against the workbench, with any locator a phase breaks updated within that same phase.
+- [x] **A11Y-01**: Assistive-technology users reach each toolbar control group by role and name (`getByRole('toolbar' | 'group', { name })`), closing DEBT-01.
+- [x] **A11Y-02**: Keyboard users can operate every popover and menu, close it with Esc, and get focus returned; each dynamic change (panel tab, thread action, refresh result, export result) is announced by exactly one live region.
+- [x] **A11Y-03**: Maintainers see the packaged-binary Playwright and integration suites pass against the workbench, with any locator a phase breaks updated within that same phase.
 
 ## Future Requirements
 
@@ -158,9 +158,9 @@ Deferred, tracked but not in the v2.1 roadmap.
 | STAT-01 | Phase 22 | Complete |
 | STAT-02 | Phase 22 | Complete |
 | STAT-03 | Phase 22 | Complete |
-| A11Y-01 | Phase 25 | Pending |
-| A11Y-02 | Phase 25 | Pending |
-| A11Y-03 | Phase 25 | Pending |
+| A11Y-01 | Phase 25 | Complete |
+| A11Y-02 | Phase 25 | Complete |
+| A11Y-03 | Phase 25 | Complete |
 
 **Coverage:**
 

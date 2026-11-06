@@ -28,10 +28,10 @@ See: .planning/PROJECT.md (updated 2026-11-04)
 
 ## Current Position
 
-Phase: 25 — Accessibility, Design Docs & Regression Sweep
-Plan: 03 of 05 (complete) — DESIGN.md rewrite + flaky-spec triage
-Status: 25-01/25-02/25-03 complete; 25-04 and 25-05 remain
-Last activity: 2026-11-06 — Completed 25-03-PLAN.md
+Phase: 25 — Accessibility, Design Docs & Regression Sweep (complete — final phase of v2.1)
+Plan: 05 of 05 (complete) — full regression gate + Phase 21 deferred-item e2e coverage
+Status: 25-01/25-02/25-03/25-05/25-04 all complete; Phase 25 verified (see 25-VERIFICATION.md); milestone v2.1's remaining phase/milestone bookkeeping (audit, archival) is a separate workflow, not run here (--no-transition)
+Last activity: 2026-11-06 — Completed 25-04-PLAN.md, phase verification, and phase-completion bookkeeping (ROADMAP.md, REQUIREMENTS.md)
 
 ## Performance Metrics
 

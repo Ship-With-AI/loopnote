@@ -44,7 +44,7 @@ the shell.
 - [x] **Phase 22: Identity & Status Bar** - Comparison identity and drift relocate into a title-bar pill/popover; the status bar carries snapshot/comment counts, one emphasized Export/Finish item, and the support entry. (completed 2026-11-05)
 - [x] **Phase 23: Inline Comment Threads** - A multi-zone Monaco adapter rework renders every comment as an expanded-by-default view-zone thread with its own editor-title navigation icons and ⌥F9/⇧⌥F9 shortcuts, gated by an explicit pointer/keyboard go/no-go spike. (completed 2026-11-05)
 - [x] **Phase 24: Bottom Panel & Export** - Comments/Summary/Export live in the ⌘J bottom panel, including the agent-attached Finish action behind the export readiness gate. (completed 2026-11-06)
-- [ ] **Phase 25: Accessibility, Design Docs & Regression Sweep** - A toolbar role/name audit closes the accepted toolbar-roles debt, every popover/menu/live-region is keyboard-accessible, the full suite passes with same-phase locator updates, and `DESIGN.md` describes the shipped workbench.
+- [x] **Phase 25: Accessibility, Design Docs & Regression Sweep** - A toolbar role/name audit closes the accepted toolbar-roles debt, every popover/menu/live-region is keyboard-accessible, the full suite passes with same-phase locator updates, and `DESIGN.md` describes the shipped workbench. (completed 2026-11-06)
 
 <details>
 <summary>✅ v2.0 Artifact Review (Phases 13–18) — SHIPPED 2026-11-04</summary>
@@ -287,7 +287,7 @@ Plans:
   3. The full packaged-binary Playwright and integration suites pass against the finished workbench, with every locator any Phase 19–24 rename broke already updated within that same phase rather than deferred here.
   4. Contributors read a `DESIGN.md` whose Composition, Geometry, and Components sections describe the shipped workbench, with no mention of the review rail or identity header band.
 
-**Plans**: 3/5 plans executed
+**Plans**: 5/5 plans complete
 **Wave 1**
 
 - [x] 25-01-PLAN.md
@@ -296,11 +296,11 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 25-05-PLAN.md
+- [x] 25-05-PLAN.md
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 25-04-PLAN.md
+- [x] 25-04-PLAN.md
 
 **UI hint**: yes
 
@@ -321,7 +321,7 @@ Plans:
 | 22. Identity & Status Bar | v2.1 | 4/4 | Complete    | 2026-11-05 |
 | 23. Inline Comment Threads | v2.1 | 8/8 | Complete    | 2026-11-05 |
 | 24. Bottom Panel & Export | v2.1 | 11/11 | Complete    | 2026-11-06 |
-| 25. Accessibility, Design Docs & Regression Sweep | v2.1 | 3/5 | In Progress|  |
+| 25. Accessibility, Design Docs & Regression Sweep | v2.1 | 5/5 | Complete   | 2026-11-06 |
 
 ## Backlog
 
