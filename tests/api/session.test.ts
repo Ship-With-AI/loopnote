@@ -142,7 +142,7 @@ describe('frozen opaque session capabilities', () => {
       files: [
         {
           fileId,
-          status: { kind: 'renamed', similarity: 100 },
+          status: { kind: 'renamed', code: 'R', similarity: 100 },
           oldMode: '100644',
           oldPath: path('src/old.ts'),
           newPath: path('src/new.ts'),
@@ -152,7 +152,7 @@ describe('frozen opaque session capabilities', () => {
         },
         {
           fileId: `file_${'b'.repeat(43)}`,
-          status: { kind: 'deleted' },
+          status: { kind: 'deleted', code: 'D' },
           oldMode: '100644',
           oldPath: path('src/vanished.ts'),
           additions: 0,
@@ -210,7 +210,7 @@ describe('frozen opaque session capabilities', () => {
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({
       fileId,
-      status: { kind: 'renamed', similarity: 100 },
+      status: { kind: 'renamed', code: 'R', similarity: 100 },
       oldMode: '100644',
       newMode: '100644',
       oldPath: path('src/old.ts'),

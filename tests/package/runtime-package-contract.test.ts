@@ -163,7 +163,7 @@ describe('runtime package contract', () => {
     };
 
     expect(approvedDependencies).toEqual(new Map(Object.entries(declared).sort(([left], [right]) => left.localeCompare(right))));
-    expect(assertApprovedDependencies(manifest as { dependencies: Record<string, string>; devDependencies: Record<string, string> })).toBe(18);
+    expect(assertApprovedDependencies(manifest as { dependencies: Record<string, string>; devDependencies: Record<string, string> })).toBe(19);
   });
 
   test('dependencies reject direct additions, removals, and version drift by package name', async () => {
@@ -188,6 +188,6 @@ describe('runtime package contract', () => {
         throw new Error('missing git');
       },
     })).rejects.toThrow(`Git is required but was not found. Install Git, then run ${RENAME_MAP.displayName} again.`);
-    await expect(verifyPrerequisites()).resolves.toBe(18);
+    await expect(verifyPrerequisites()).resolves.toBe(19);
   });
 });

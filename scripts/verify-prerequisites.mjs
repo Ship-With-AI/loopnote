@@ -10,6 +10,7 @@ export const approvedDependencies = new Map([
   ['@playwright/test', '1.61.1'],
   ['@types/markdown-it', '14.1.2'],
   ['@types/node', '24.11.1'],
+  ['@typescript/native', 'npm:typescript@7.0.2'],
   ['@vitejs/plugin-vue', '6.0.7'],
   ['commander', '15.0.0'],
   ['fastify', '5.10.0'],
@@ -17,11 +18,11 @@ export const approvedDependencies = new Map([
   ['monaco-editor', '0.55.1'],
   ['open', '11.0.0'],
   ['supabase', '2.114.0'],
-  ['typescript', '7.0.2'],
+  ['typescript', 'npm:@typescript/typescript6@6.0.2'],
   ['vite', '8.1.4'],
   ['vitest', '4.1.10'],
   ['vue', '3.5.39'],
-  ['vue-tsc', '3.3.7'],
+  ['vue-tsc', '3.3.14'],
   ['zod', '4.4.3'],
 ]);
 
