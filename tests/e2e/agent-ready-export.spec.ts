@@ -286,11 +286,14 @@ async function stopGeneratedCli(running: RunningCli): Promise<void> {
 
 
 
-async function openReviewNotes(page: Page): Promise<void> {
+async function openReviewNotes(page: Page, tab: 'comments' | 'summary' | 'export' = 'export'): Promise<void> {
   const button = page.getByRole('button', { name: 'Toggle panel (⌘J)', exact: true });
   await expect(button).toBeVisible();
   await button.click();
-  await expect(page.getByRole('region', { name: 'Review', exact: true })).toBeVisible();
+  const region = page.getByRole('region', { name: 'Review', exact: true });
+  await expect(region).toBeVisible();
+  const tabLabel = tab === 'export' ? 'Export' : tab === 'summary' ? 'Summary' : 'Comments';
+  await region.getByRole('tab', { name: tabLabel, exact: true }).click();
 }
 
 async function addHeadComment(page: Page, body: string, lineNumber = 10, selectedText = 'export const stableContext10 = 10;'): Promise<void> {
@@ -346,7 +349,7 @@ async function addSinglePaneComment(
 }
 
 async function saveSummary(page: Page, summary: string): Promise<void> {
-  await openReviewNotes(page);
+  await openReviewNotes(page, 'summary');
   await page.getByRole('button', { name: 'Write summary' }).click();
   await page.getByLabel('Review summary (Markdown)').fill(summary);
   const accepted = page.waitForResponse((response) => response.url().includes('/api/draft/mutations'));
@@ -485,9 +488,10 @@ test('installed resume after relaunch preserves accepted review state, completes
   running = startGeneratedCli(fixture, original);
   try {
     await openAcceptanceRuntimeSession(resumedPage, await waitForLoopbackUrl(running));
-    await openReviewNotes(resumedPage);
+    await openReviewNotes(resumedPage, 'summary');
     await expect(resumedPage.locator('.review-summary__preview')).toContainText(summary);
     expect(readOnlyDraft(fixture).bytes).toEqual(accepted.bytes);
+    await resumedPage.getByRole('tab', { name: 'Export', exact: true }).click();
     const exported = resumedPage.waitForResponse((response) => response.url().includes('/api/export'));
     await resumedPage.getByRole('button', { name: 'Export review', exact: true }).click();
 
