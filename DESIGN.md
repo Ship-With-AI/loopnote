@@ -33,11 +33,11 @@ Source: the platform-system and editor stacks defined by the canonical root; no 
 - The changed-files pane reads as a ledger: status → path → signed counts → exceptional availability.
 - Reviewable text files do not repeat a visible `Text` badge; unsupported states remain visible and named.
 - The diff names `BASE − REMOVED` and `HEAD + ADDED`; deletion uses a dashed rail and addition a solid rail.
-- The review rail groups summary, open comments, resolved comments, and export using dividers and state badges rather than interchangeable feature cards.
+- The bottom panel's Comments, Summary, and Export tabs replace the review rail's single scrolling list: each tab owns one concern, and thread state is communicated by icon and text together, never by colour alone.
 
 ## Composition
 
-The selected comparison identity forms the top boundary. Below it, the changed-files ledger, paired diff, and review rail remain visually connected so file choice, code evidence, and feedback read as one workflow. The signature moment is selection continuity: choosing a compact file row immediately updates the named Base/Head canvas while signed counts and comment state stay in view.
+The selected comparison identity forms the top boundary. Below it, the changed-files side bar, paired diff, and bottom panel share one persistent grid so file choice, code evidence, and feedback read as one workflow. The signature moment is selection continuity: choosing a compact file row immediately updates the named Base/Head canvas while the status bar's counts and the bottom panel's thread state stay in view.
 
 ## Motion
 
@@ -45,6 +45,6 @@ Motion is functional only: drawer transitions, focus movement, and pending-state
 
 ## Responsive behavior
 
-- At narrow laptop widths the review rail leaves the persistent grid before the diff becomes unusable.
-- Below the established drawer breakpoint, files and review surfaces open as bounded overlays while the diff retains its local canvas.
-- At phone widths, the files drawer remains inside the viewport, the page itself does not scroll horizontally, and display-state headings use the display role.
+- The workbench supports 1050–1920px without page-level horizontal scroll; only the diff canvas scrolls horizontally (SHELL-06).
+- The side bar and bottom panel are independently shown, hidden, and resized by the reviewer (⌘B / Ctrl+B, ⌘J / Ctrl+J, or their title-bar toggles) rather than opening as breakpoint-driven overlays.
+- Below 1050px the layout is accepted debt (NARROW-01): no phone or narrow-laptop treatment is described or guaranteed.
