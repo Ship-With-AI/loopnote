@@ -504,6 +504,8 @@ for (const [kind, flag] of [
       await page.getByRole('button', { name: 'View as list', exact: true }).click();
       await expect(page.getByRole('option', { name: /third\.ts/ })).toBeVisible();
       await page.getByRole('button', { name: 'View as tree', exact: true }).click();
+      await firstRow.click();
+      await expect(heading).toHaveAttribute('title', firstPath);
       if (kind === 'Working tree') {
         await page.getByRole('button', { name: 'Filter changed files (⌥⌘F)', exact: true }).click();
         await page.locator('#file-tree-filter').fill('first');
@@ -520,6 +522,8 @@ for (const [kind, flag] of [
       await page.locator('.identity-pill').click();
       const popover = page.getByRole('dialog', { name: 'Comparison', exact: true });
       await popover.getByRole('button', { name: /Refresh/ }).click();
+      await expect(heading).toHaveAttribute('title', firstPath);
+      await expect(page.locator('.diff-workspace__editor .view-line').filter({ hasText: 'export const replaced = 99;' })).toBeVisible();
       await expect(page.getByText('1 comment now orphaned', { exact: true })).toBeVisible();
       await expect(page.getByText(commentBody, { exact: true })).toBeVisible();
       await expect(comments).toHaveAccessibleName('Comments: 1 open, 1 stale');
@@ -540,6 +544,7 @@ for (const [kind, flag] of [
         await expect(separator).toHaveAttribute('aria-valuenow', sidebarWidth!);
       }
       // Modified-summary links must also navigate, not only the Added link.
+      await thirdRow.click();
       await page.getByRole('button', { name: firstPath, exact: true }).click();
       await expect(heading).toHaveAttribute('title', firstPath);
       await expect(page.locator('.diff-workspace__editor .view-line').filter({ hasText: 'export const replaced = 99;' })).toBeVisible();

@@ -369,12 +369,16 @@ test('Standalone Refresh resyncs a directory through every entry point and prese
     await page.getByRole('button', { name: 'View as list', exact: true }).click();
     await expect(page.getByRole('option', { name: /third\.ts/ })).toBeVisible();
     await page.getByRole('button', { name: 'View as tree', exact: true }).click();
+    await firstRow.click();
+    await expect(heading).toHaveAttribute('title', firstPath);
 
     const beforeModify = await snapshot.innerText();
     await fixture.write(firstPath, 'export const replaced = 99;\n');
     await page.locator('.identity-pill').click();
     const popover = page.getByRole('dialog', { name: 'Comparison', exact: true });
     await popover.getByRole('button', { name: /Refresh/ }).click();
+    await expect(heading).toHaveAttribute('title', firstPath);
+    await expect(page.locator('.diff-workspace__editor .view-line').filter({ hasText: 'export const replaced = 99;' })).toBeVisible();
     await expect(page.getByText('1 comment now orphaned', { exact: true })).toBeVisible();
     await expect(page.getByText(commentBody, { exact: true })).toBeVisible();
     await expect(comments).toHaveAccessibleName('Comments: 1 open, 1 stale');
@@ -383,6 +387,7 @@ test('Standalone Refresh resyncs a directory through every entry point and prese
     await expect(popover.locator('.identity-popover__row').filter({ hasText: 'Snapshot' }).locator('dd'))
       .toHaveText((await snapshot.innerText()).trim());
     await page.keyboard.press('Escape');
+    await thirdRow.click();
     const modifiedLink = page.getByRole('button', { name: firstPath, exact: true });
     await modifiedLink.focus();
     await page.keyboard.press('Enter');
@@ -414,6 +419,56 @@ test('Standalone Refresh resyncs a directory through every entry point and prese
     await fixture.cleanup();
   }
 });
+test('Refresh saves an off-screen composer before removing its file and stops on a failed save', async ({ browser }) => {
+  const fixture = await createGitFixture();
+  await fixture.write('src/first.ts', 'export const first = 1;\n');
+  await fixture.write('src/second.ts', 'export const second = 2;\n');
+  const running = startGeneratedStandaloneCli(fixture, ['src']);
+  const page = await browser.newPage();
+  try {
+    await openGeneratedStandaloneReview(page, await waitForLoopbackUrl(running), 2);
+    const firstRow = page.getByRole('treeitem', { name: /first\.ts/ });
+    const secondRow = page.getByRole('treeitem', { name: /second\.ts/ });
+    await firstRow.click();
+    await activateSinglePaneLine(page, 'head', 'export const first = 1;', 1);
+    const body = 'Save this before its file leaves the snapshot.';
+    await page.locator('.monaco-anchor-zone--composer textarea').fill(body);
+    await secondRow.click();
+    await rm(join(fixture.root, 'src/first.ts'));
+    let refreshRequests = 0;
+    page.on('request', (request) => {
+      if (request.url().endsWith('/api/refresh')) refreshRequests += 1;
+    });
+    await page.route('**/api/draft/mutations', (route) => route.abort('failed'), { times: 1 });
+    const failedSave = page.waitForEvent('requestfailed', {
+      predicate: (request) => request.url().includes('/api/draft/mutations'),
+    });
+    await page.getByRole('button', { name: 'Refresh snapshot', exact: true }).click();
+    await failedSave;
+    await expect(page.getByRole('button', { name: 'Refresh snapshot', exact: true })).toBeEnabled();
+    expect(refreshRequests).toBe(0);
+    await expect(firstRow).toBeVisible();
+    await firstRow.click();
+    await expect(page.locator('.monaco-anchor-zone--composer textarea')).toHaveValue(body);
+    await secondRow.click();
+
+    const saved = page.waitForResponse((response) => response.url().includes('/api/draft/mutations'));
+    await page.getByRole('button', { name: 'Refresh snapshot', exact: true }).click();
+    const response = await saved;
+    expect(response.status()).toBe(201);
+    expect((await response.json()).draft.comments[0].body).toBe(body);
+    await expect(firstRow).toHaveCount(0);
+    await expect(page.getByRole('heading', { level: 1 })).toHaveAttribute('title', 'src/second.ts');
+    await expect(page.getByRole('button', { name: /^Comments:/ })).toHaveAccessibleName('Comments: 1 open, 1 stale');
+    await expect(page.getByText('1 comment now orphaned', { exact: true })).toBeVisible();
+    expect(refreshRequests).toBe(1);
+  } finally {
+    await page.close();
+    await stopGeneratedCli(running);
+    await fixture.cleanup();
+  }
+});
+
 
 test(`${RENAME_MAP.binCommand} <nonexistent-path> fails before launch with a clear error and never opens a browser`, async () => {
   const fixture = await createGitFixture();

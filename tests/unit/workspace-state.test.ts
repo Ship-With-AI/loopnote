@@ -102,6 +102,27 @@ describe('workspace session state', () => {
     expect(resize.state).toEqual(restored.state);
   });
 
+  it('saves an off-screen composer without changing the selected file', () => {
+    const workspace = createWorkspaceState(['file-a', 'file-b']);
+    workspace.dispatch({ type: 'diff-ready', fileId: 'file-a' });
+    workspace.dispatch({ type: 'activate-line', side: 'head', line: 7 });
+    workspace.dispatch({ type: 'composer-text-changed', text: 'Save my origin, not the selected file' });
+    workspace.dispatch({ type: 'switch-file', fileId: 'file-b' });
+    workspace.dispatch({ type: 'diff-ready', fileId: 'file-b' });
+
+    const saving = workspace.dispatch({ type: 'add-comment', fileId: 'file-a' });
+    expect(saving.state.activeFileId).toBe('file-b');
+    expect(saving.commands).toEqual([{
+      type: 'persist-comment',
+      fileId: 'file-a',
+      requestId: expect.any(Number),
+      side: 'head',
+      line: 7,
+      endLine: undefined,
+      body: 'Save my origin, not the selected file',
+    }]);
+  });
+
   it('uses an exact side-line key: pointer and keyboard activation share it and existing comments win', () => {
     const workspace = createWorkspaceState(['file-a'], comments);
     workspace.dispatch({ type: 'diff-ready', fileId: 'file-a' });

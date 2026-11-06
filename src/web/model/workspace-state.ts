@@ -63,7 +63,7 @@ export type WorkspaceTransition = Readonly<{
 export type WorkspaceEvent =
   | Readonly<{ type: 'activate-focused-line'; side: DiffSide; line: number; endLine?: number }>
   | Readonly<{ type: 'activate-line'; side: DiffSide; line: number; endLine?: number }>
-  | Readonly<{ type: 'add-comment' }>
+  | Readonly<{ type: 'add-comment'; fileId?: string }>
   | Readonly<{ type: 'add-duplicate'; fileId: string; requestId: number; comment: WorkspaceComment }>
   | Readonly<{ type: 'add-failed'; fileId: string; requestId: number; message: string }>
   | Readonly<{ type: 'add-succeeded'; fileId: string; requestId: number; comment: WorkspaceComment }>
@@ -268,21 +268,22 @@ function applyEvent(
     case 'activate-line':
       return activateLine(state, event.side, event.line, event.endLine);
     case 'add-comment': {
-      const current = fileState(state);
+      const fileId = event.fileId ?? state.activeFileId;
+      const current = fileState(state, fileId);
       const composer = current.composer;
       if (composer === undefined || composer.status !== 'ready') {
         return transition(state);
       }
       if (composer.text.trim().length === 0) {
-        return transition(replaceFileState(state, state.activeFileId, {
+        return transition(replaceFileState(state, fileId, {
           ...current,
           composer: { ...composer, validation: 'Write a comment before adding it.' },
         }));
       }
       const pending = { ...composer, status: 'pending' as const, requestId: nextRequestId() };
-      return transition(replaceFileState(state, state.activeFileId, { ...current, composer: pending }), [{
+      return transition(replaceFileState(state, fileId, { ...current, composer: pending }), [{
         type: 'persist-comment',
-        fileId: state.activeFileId,
+        fileId,
         requestId: pending.requestId,
         side: composer.side,
         line: composer.line,

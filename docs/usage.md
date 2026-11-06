@@ -66,7 +66,7 @@ Use **Refresh** in the browser (or the `Alt+Shift+R` shortcut) to capture a new 
 
 Refresh updates the file tree, file navigation, and summary links together. Selection follows the same path when it survives; if it disappears, selection moves to a neighbouring file. Paths absent from the new review appear as noninteractive **Removed** labels.
 
-Existing comment edits, panel/sidebar state, filters, and surviving directory expansion stay intact. A new comment composer is saved against the old snapshot before recapture. The session identifier stays stable while its snapshot chain grows.
+Existing comment edits, panel/sidebar state, filters, and surviving directory expansion stay intact. New comment composers, including those on other files, are saved against the old snapshot before recapture. If a save fails or remains pending, Refresh pauses without replacing the snapshot or discarding text; save or discard that comment before retrying. The session identifier stays stable while its snapshot chain grows.
 
 ## Draft location
 

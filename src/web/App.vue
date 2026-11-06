@@ -1405,11 +1405,16 @@ async function performRefresh(): Promise<void> {
   if (sessionClient === undefined || refreshBusy.value) {
     return;
   }
-  if (unsavedInlineComposerFile.value !== undefined) {
-    await dispatchWorkspace({ type: 'add-comment' });
-  }
   refreshBusy.value = true;
   try {
+    for (const file of reviewableFiles.value) {
+      if ((workspaceState.value?.files[file.fileId]?.composer?.text.trim().length ?? 0) === 0) continue;
+      await dispatchWorkspace({ type: 'add-comment', fileId: file.fileId });
+      if (workspaceState.value?.files[file.fileId]?.composer !== undefined) {
+        announce('Refresh paused. Save or discard unsaved comments first.');
+        return;
+      }
+    }
     const delta = await sessionClient.refreshWorktreeSnapshot();
     if (delta.added.length + delta.removed.length + delta.modified.length > 0) {
       refreshSummary.value = delta;
@@ -1440,8 +1445,10 @@ async function performRefresh(): Promise<void> {
     if (selectedFile.value !== undefined) {
       const resolvedFileId = previousPath === undefined ? undefined : resolvePathToFileId(previousPath, refreshedSession.files);
       if (resolvedFileId !== undefined) {
-        if (resolvedFileId !== selectedFile.value.fileId) {
+        if (resolvedFileId !== selectedFile.value.fileId || delta.modified.includes(previousPath ?? '')) {
           selectFile(resolvedFileId);
+        } else {
+          selectedFile.value = activeFile(resolvedFileId);
         }
       } else {
         const fallbackRows = flatFileRows.value;
