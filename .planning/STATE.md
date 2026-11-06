@@ -3,41 +3,41 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Workbench Redesign
 current_phase: 25.1
-current_phase_name: INSERTED, audit gap closure
 status: verifying
-stopped_at: Completed 25-03-PLAN.md
-last_updated: "2026-11-06T08:26:46.287Z"
+stopped_at: Phase 25.1 verified (11/11); v2.1 remains open for milestone audit
+last_updated: "2026-11-06T19:32:33.840Z"
 last_activity: 2026-11-06
-last_activity_desc: Completed 25-04-PLAN.md, phase verification, and phase-completion bookkeeping (ROADMAP.md, REQUIREMENTS.md)
+last_activity_desc: Phase 25.1 complete
 progress:
-  total_phases: 7
-  completed_phases: 7
-  total_plans: 50
-  completed_plans: 50
+  total_phases: 8
+  completed_phases: 8
+  total_plans: 53
+  completed_plans: 53
   percent: 100
+current_phase_name: refresh-session-resync
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-11-04)
+See: .planning/PROJECT.md (updated 2026-11-06)
 
 **Core value:** A developer can accurately review repository-grounded changes chosen by a developer or coding agent and return precise, drift-detectable feedback the agent can act on.
-**Current focus:** Phase 23 — Inline Comment Threads
+**Current focus:** Phase 25.1 verified; v2.1 milestone audit pending (milestone remains open)
 
 ## Current Position
 
-Phase: 25.1 — Refresh Session Resync (INSERTED, audit gap closure)
-Plan: 05 of 05 (complete) — full regression gate + Phase 21 deferred-item e2e coverage
-Status: 25-01/25-02/25-03/25-05/25-04 all complete; Phase 25 verified (see 25-VERIFICATION.md); milestone v2.1's remaining phase/milestone bookkeeping (audit, archival) is a separate workflow, not run here (--no-transition)
-Last activity: 2026-11-06 — Completed 25-04-PLAN.md, phase verification, and phase-completion bookkeeping (ROADMAP.md, REQUIREMENTS.md)
+Phase: 25.1
+Plan: 3 of 3 — complete
+Status: Phase complete — ready for verification
+Last activity: 2026-11-06 — Phase 25.1 complete
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 196
+- Total plans completed: 199
 - Average duration: 23 min
 - Total execution time: 4.7 hours
 
@@ -119,6 +119,7 @@ Last activity: 2026-11-06 — Completed 25-04-PLAN.md, phase verification, and p
 | Phase 20-shell-frame P09 | 180 | - tasks | - files |
 | Phase 20-shell-frame P10 | 35min | 2 tasks | 0 files |
 | Phase 25 P03 | 45min | 3 tasks | 2 files |
+| Phase 25.1 P03 | 56min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -248,6 +249,12 @@ Decisions are logged in PROJECT.md Key Decisions.
 - [Phase 20-shell-frame]: 20-10 confirmed c0c755c (20-09's deviation commit) already satisfied every A11Y-03 locator gap this plan targeted; zero new code changes needed. — Resolved the test:runtime-artifact custody-gate locally via pack:runtime-artifact's development-check/deployment-check purposes with a synthetic supabase-shaped support origin; no source change required.
 - [Phase 25]: Kept 25-UI-SPEC.md's locked DESIGN.md Components text verbatim despite it containing a contrastive 'review rail's' mention that makes the plan's own grep-count-0 check read 1 — The plan's double-stated 'verbatim, no paraphrasing' instruction for the approved locked design-doc contract outweighs a shallow automated grep heuristic that didn't anticipate the locked text's own contrastive phrasing
 - [Phase 25]: Left test.setTimeout unchanged at 90_000 in rendered-markdown-security.spec.ts and anchored-review.spec.ts — repeat-each=5 (15/15, 25/25 passed) and forced-contention reproduction (15 concurrent pack-runtime.mjs invocations racing each spec's beforeAll lock) both passed well under 90s with no failure, so there was no evidence raising the timeout would fix anything; documented in STATE.md Deferred Items instead
+- [Phase 25.1]: Preserve D-17 autosave of new composers; THREAD-08 preservation tests edit an existing thread rather than keeping a new composer unsaved across recapture.
+- [Phase 25.1]: Save composers by origin file ID before recapture; failed or pending saves pause Refresh, and composer inputs remain locked until it settles.
+- [Phase 25.1]: Always reload the surviving selected file after a successful session fetch: file IDs can stay stable and an empty retry delta cannot validate cached bytes.
+- [Phase 25.1]: Use flatFileRows tree order for reducer navigation and remap retained per-file state by effective path.
+- [Phase 25.1]: Preserve the stable reviewKey/status-bar session identifier required by Phase 14 D-18.
+- [Phase 25.1]: Use git add -N for an Unstaged addition because untracked paths are outside that inventory.
 
 ### Pending Todos
 
@@ -311,8 +318,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-11-06T02:54:46.022Z
-Stopped at: Completed 25-03-PLAN.md
+Last session: 2026-11-06T19:32:33.835Z
+Stopped at: Phase 25.1 verified (11/11); v2.1 remains open for milestone audit
 Resume file: None
 
 ## Operator Next Steps

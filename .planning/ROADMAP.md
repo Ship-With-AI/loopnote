@@ -45,7 +45,7 @@ the shell.
 - [x] **Phase 23: Inline Comment Threads** - A multi-zone Monaco adapter rework renders every comment as an expanded-by-default view-zone thread with its own editor-title navigation icons and ⌥F9/⇧⌥F9 shortcuts, gated by an explicit pointer/keyboard go/no-go spike. (completed 2026-11-05)
 - [x] **Phase 24: Bottom Panel & Export** - Comments/Summary/Export live in the ⌘J bottom panel, including the agent-attached Finish action behind the export readiness gate. (completed 2026-11-06)
 - [x] **Phase 25: Accessibility, Design Docs & Regression Sweep** - A toolbar role/name audit closes the accepted toolbar-roles debt, every popover/menu/live-region is keyboard-accessible, the full suite passes with same-phase locator updates, and `DESIGN.md` describes the shipped workbench. (completed 2026-11-06)
-- [ ] **Phase 25.1: Refresh Session Resync (INSERTED)** - Refresh re-syncs the visible session (tree, navigation, editor, status bar) and the post-Refresh summary's file links open their files; closes the v2.1 audit blocker.
+- [x] **Phase 25.1: Refresh Session Resync (INSERTED)** - Refresh re-syncs the visible session (tree, navigation, editor, status bar) and the post-Refresh summary's file links open their files; closes the v2.1 audit blocker. (completed 2026-11-06)
 
 <details>
 <summary>✅ v2.0 Artifact Review (Phases 13–18) — SHIPPED 2026-11-04</summary>
@@ -317,19 +317,19 @@ Plans:
   3. The selected file, its comments and threads (THREAD-08), any in-progress edit text, and panel/side-bar state survive Refresh; if the selected file disappeared, selection moves to a defined neighbour with one announcement.
   4. A packaged-binary e2e test creates, edits, and deletes files mid-session, triggers Refresh from the title bar, the popover, and ⌥⇧R, and asserts all of the above; full suites stay at the v2.0-baseline-or-better counts.
 
-**Plans**: 3 plans
+**Plans**: 3/3 plans complete
 
 **Wave 1**
 
-- [ ] 25.1-01-PLAN.md — Path→fileId resolution helper (TDD)
+- [x] 25.1-01-PLAN.md — Path→fileId resolution helper (TDD)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 25.1-02-PLAN.md — App.vue session resync + RefreshSummaryPanel wiring
+- [x] 25.1-02-PLAN.md — App.vue session resync + RefreshSummaryPanel wiring
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 25.1-03-PLAN.md — Packaged-binary e2e coverage, all four session kinds
+- [x] 25.1-03-PLAN.md — Packaged-binary e2e coverage, all four session kinds
 
 **UI hint**: yes
 
@@ -351,7 +351,7 @@ Plans:
 | 23. Inline Comment Threads | v2.1 | 8/8 | Complete    | 2026-11-05 |
 | 24. Bottom Panel & Export | v2.1 | 11/11 | Complete    | 2026-11-06 |
 | 25. Accessibility, Design Docs & Regression Sweep | v2.1 | 5/5 | Complete   | 2026-11-06 |
-| 25.1. Refresh Session Resync | v2.1 | 0/0 | Not started | - |
+| 25.1. Refresh Session Resync | v2.1 | 3/3 | Complete    | 2026-11-06 |
 
 ## Backlog
 
