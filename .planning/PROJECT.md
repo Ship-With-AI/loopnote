@@ -25,6 +25,8 @@ Known deferred at close (STATE.md Deferred Items): the terminal `r` refresh need
 human check (Phase 14), and multi-file `workingTreeChangedAfterFinalSnapshot.paths` lacks a
 test (Phase 17).
 
+**Current development:** v2.1 Phase 25.1 (Refresh Session Resync) verified on 2026-11-06. All 8 phases / 53 plans are complete; the milestone remains open pending a fresh audit, with no release or automatic transition performed.
+
 <details>
 <summary>State at v1.6 / v1.5 close (2026-09-15)</summary>
 
@@ -287,11 +289,11 @@ Validated in v2.0 Phases 14–18 (Artifact Review):
 Validated in v2.1 Phase 19: Typecheck Foundation — `vue-tsc@3.3.14` paired with the `typescript`/`@typescript/native` dual-alias scheme typechecks the whole `src/web/` tree (`tsconfig.web.json` widened from a seven-file allowlist to a full-tree `include` glob); the 19-error/4-file backlog is fixed; `npm run typecheck:web` is wired into CI's `repository-gates` job and exits 0 with no baseline/allowlist; `build:node`'s native TypeScript 7 output is proven byte-identical across the swap.
 
 - [x] `.vue` components are typechecked. — v2.1 (Phase 19)
+- [x] Base→Head identity, drift, and Refresh live in a title-bar pill and popover. — v2.1; Refresh session/content/navigation and draft-safety gaps validated in Phase 25.1 (Refresh Session Resync).
 
 ### Active
 
 - [ ] VS Code-inspired workbench shell replaces the identity header band, review rail, toolbars, and footer.
-- [ ] Base→Head identity, drift, and Refresh live in a title-bar pill and popover.
 - [ ] Changed files render as a VS Code Explorer-density tree.
 - [ ] Reviewers can resolve, reopen, delete, and reply to comment threads inline (removed by quick task `260915-jbv`).
 - [ ] Comments, summary, and export live in a bottom panel closed while reading.
@@ -421,4 +423,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with the current product state and feedback.
 
 ---
-*Last updated: 2026-11-04 — v2.1 Phase 19 (Typecheck Foundation) complete*
+*Last updated: 2026-11-06 — Phase 25.1 verified; v2.1 milestone audit pending*
