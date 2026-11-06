@@ -694,3 +694,94 @@ test('agent-attached: attachedFact overlay and Finish review entry point in the 
     await repository.cleanup();
   }
 });
+
+test('bottom panel tab keyboard navigation wraps Comments↔Export; status bar opens+focuses a tab; ⌘J/title-bar toggle never force tab or focus (packaged binary)', async ({ browser }) => {
+  const repository = await createGitFixture();
+  const running = spawnCli(repository, {
+    launchOptions: {
+      base: { label: 'Base fixture', revision: repository.baseRef },
+      head: { label: 'Head fixture', revision: repository.headRef },
+    },
+  });
+  try {
+    const url = await waitForLoopbackUrl(running);
+    const page = await browser.newPage();
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(url, { waitUntil: 'domcontentloaded' });
+
+    await assertShellRegionsPresent(page);
+
+    const toggleButton = page.getByRole('button', { name: 'Toggle panel (⌘J)', exact: true });
+    const panel = page.locator('.workbench-shell__panel');
+    const commentsTab = panel.getByRole('tab', { name: 'Comments', exact: true });
+    const summaryTab = panel.getByRole('tab', { name: 'Summary', exact: true });
+    const exportTab = panel.getByRole('tab', { name: 'Export', exact: true });
+
+    // (a) With a tab button focused, ArrowLeft/ArrowRight move focus AND activate the
+    // adjacent tab (`BottomPanel.vue`'s `moveTab`), wrapping Comments↔Export at the ends.
+    await openPanel(page);
+    await expect(commentsTab).toHaveAttribute('aria-selected', 'true');
+    await commentsTab.focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(summaryTab).toBeFocused();
+    await expect(summaryTab).toHaveAttribute('aria-selected', 'true');
+    await page.keyboard.press('ArrowRight');
+    await expect(exportTab).toBeFocused();
+    await expect(exportTab).toHaveAttribute('aria-selected', 'true');
+    // Wrap forward past Export back to Comments.
+    await page.keyboard.press('ArrowRight');
+    await expect(commentsTab).toBeFocused();
+    await expect(commentsTab).toHaveAttribute('aria-selected', 'true');
+    // Wrap backward past Comments back to Export.
+    await page.keyboard.press('ArrowLeft');
+    await expect(exportTab).toBeFocused();
+    await expect(exportTab).toHaveAttribute('aria-selected', 'true');
+
+    // (c) Contrast: the title-bar toggle icon opens/closes the panel without forcing
+    // `activeTab` or moving focus. Close/reopen while Export is active (from the arrow
+    // navigation above) and confirm it stays on Export, with focus landing on the
+    // toggle button itself (the element actually clicked) rather than any tab.
+    await toggleButton.click();
+    await expect(toggleButton).toHaveAttribute('aria-pressed', 'false');
+    await toggleButton.click();
+    await expect(toggleButton).toHaveAttribute('aria-pressed', 'true');
+    await expect(exportTab).toHaveAttribute('aria-selected', 'true');
+    await expect(toggleButton).toBeFocused();
+    await expect(page.locator('[role="tab"]:focus')).toHaveCount(0);
+
+    // Same contract for ⌘J/Ctrl+J: close/reopen via the keyboard shortcut and confirm
+    // Export is still active and focus never jumped onto a tab button (the panel's
+    // `v-if="open"` destroys its tab buttons on close, so the browser's default focus
+    // fallback — not any app code — is what holds focus here).
+    await page.keyboard.press('Control+j');
+    await expect(toggleButton).toHaveAttribute('aria-pressed', 'false');
+    await page.keyboard.press('Control+j');
+    await expect(toggleButton).toHaveAttribute('aria-pressed', 'true');
+    await expect(exportTab).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('[role="tab"]:focus')).toHaveCount(0);
+
+    // (b) With the panel closed, the status bar's comment-count item opens the panel on
+    // Comments with focus moved to that tab's button (`App.vue`'s `openPanel` →
+    // `panelState.setActiveTab` + the double-`nextTick` `focusActiveTab()` hop).
+    await toggleButton.click();
+    await expect(toggleButton).toHaveAttribute('aria-pressed', 'false');
+    const statusBar = page.locator('.statusbar');
+    await statusBar.getByRole('button', { name: 'Comments: 0', exact: true }).click();
+    await expect(toggleButton).toHaveAttribute('aria-pressed', 'true');
+    await expect(commentsTab).toHaveAttribute('aria-selected', 'true');
+    await expect(commentsTab).toBeFocused();
+
+    // The emphasized Export item does the same for the Export tab.
+    await toggleButton.click();
+    await expect(toggleButton).toHaveAttribute('aria-pressed', 'false');
+    await statusBar.getByRole('button', { name: 'Export', exact: true }).click();
+    await expect(toggleButton).toHaveAttribute('aria-pressed', 'true');
+    await expect(exportTab).toHaveAttribute('aria-selected', 'true');
+    await expect(exportTab).toBeFocused();
+
+    await page.close();
+  } finally {
+    await stopGeneratedCli(running);
+    await repository.cleanup();
+  }
+});
