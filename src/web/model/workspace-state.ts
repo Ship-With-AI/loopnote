@@ -92,6 +92,7 @@ export interface WorkspaceController {
   dispatch(event: WorkspaceEvent): WorkspaceTransition;
   getState(): WorkspaceState;
   replaceComments(comments: readonly WorkspaceComment[]): WorkspaceTransition;
+  replaceFiles(fileIds: readonly string[], previousFileIds?: ReadonlyMap<string, string>): WorkspaceTransition;
   toRepositoryDraft(): RepositoryDraftPayload;
 }
 
@@ -441,6 +442,7 @@ export function createWorkspaceState(
     throw new Error('Workspace state requires at least one opaque file ID.');
   }
   const initialFiles = Object.fromEntries(fileIds.map((fileId) => [fileId, EMPTY_FILE_STATE]));
+  let currentFileIds = fileIds;
   let nextRequestId = 1;
   let state: WorkspaceState = {
     activeFileId: fileIds[0]!,
@@ -452,7 +454,7 @@ export function createWorkspaceState(
 
   return {
     dispatch(event) {
-      const next = applyEvent(state, fileIds, event, () => nextRequestId++);
+      const next = applyEvent(state, currentFileIds, event, () => nextRequestId++);
       state = next.state;
       return next;
     },
@@ -462,6 +464,19 @@ export function createWorkspaceState(
     replaceComments(comments) {
       state = { ...state, comments: [...comments] };
       return transition(state, [{ type: 'rebuild-annotations', fileId: state.activeFileId }]);
+    },
+    replaceFiles(fileIds, previousFileIds) {
+      const files: Record<string, WorkspaceFileState> = {};
+      for (const fileId of fileIds) {
+        files[fileId] = state.files[previousFileIds?.get(fileId) ?? fileId] ?? EMPTY_FILE_STATE;
+      }
+      currentFileIds = fileIds;
+      state = {
+        ...state,
+        files,
+        readyFileId: state.readyFileId !== null && state.readyFileId in files ? state.readyFileId : null,
+      };
+      return transition(state);
     },
     toRepositoryDraft() {
       return { comments: state.comments };

@@ -64,6 +64,10 @@ An uncommitted (`--staged`, `--unstaged`, `--worktree`) or standalone-file sessi
 
 Use **Refresh** in the browser (or the `Alt+Shift+R` shortcut) to capture a new snapshot of the same source and scope. After Refresh, Loopnote shows a summary of which files were added, removed, or modified since the previous snapshot, and reclassifies every existing comment as current, stale, or orphaned — with its recorded evidence intact and without moving it to a different line.
 
+Refresh updates the file tree, file navigation, and summary links together. Selection follows the same path when it survives; if it disappears, selection moves to a neighbouring file. Paths absent from the new review appear as noninteractive **Removed** labels.
+
+Existing comment edits, panel/sidebar state, filters, and surviving directory expansion stay intact. A new comment composer is saved against the old snapshot before recapture. The session identifier stays stable while its snapshot chain grows.
+
 ## Draft location
 
 Loopnote stores a draft at:

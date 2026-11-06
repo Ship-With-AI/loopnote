@@ -398,7 +398,13 @@ watch(
 watch(
   () => props.files,
   (files) => {
-    applyModel(model.value.replaceFiles(files));
+    const nextModel = model.value.replaceFiles(files);
+    if (props.initialSelectedFileId !== undefined) {
+      // Parent resyncs selection by path; apply it only after the new IDs exist.
+      model.value = nextModel.selectFile(props.initialSelectedFileId);
+    } else {
+      applyModel(nextModel);
+    }
   },
 );
 </script>

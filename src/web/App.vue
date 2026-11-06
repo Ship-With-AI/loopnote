@@ -209,7 +209,10 @@ const supportEnabled = computed(() => session.value?.support?.enabled === true);
 
 const patchSnapshotUnavailable = computed(() => patchStatus.value?.kind === 'snapshotUnavailable');
 const patchDrifted = computed(() => patchStatus.value?.kind === 'drifted');
-const reviewableFiles = computed(() => session.value?.files.filter((file) => file.availability.kind === 'text') ?? []);
+const flatFileRows = computed(() => createFileTreeModel(session.value?.files ?? []).flatFileRows);
+const reviewableFiles = computed(() => flatFileRows.value
+  .filter(({ file }) => file.availability.kind === 'text')
+  .map(({ file }) => file));
 const capturedFilesChanged = computed(() =>
   session.value?.files.filter(
     (file) => file.availability.kind === 'unsupported' && file.availability.reason === 'changed-during-capture',
@@ -327,7 +330,6 @@ const liveWorkspaceComments = computed(() =>
   workspaceComments.value.filter((comment) => !locallyHiddenCommentIds.value.has(comment.id)),
 );
 const orphanedGroups = computed(() => projectOrphanedCommentGroup(liveWorkspaceComments.value));
-const flatFileRows = computed(() => createFileTreeModel(session.value?.files ?? []).flatFileRows);
 const threadOrder = computed(() => flattenThreadOrder(liveWorkspaceComments.value, flatFileRows.value));
 const hasThreadsAnywhere = computed(() => threadOrder.value.length > 0);
 const currentFileLiveComments = computed(() =>
@@ -683,7 +685,7 @@ function initializeReviewDraft(
   draftRevision.value = draft.revision;
   reviewState = createReviewDraftState(reviewCanonical(draft));
   refreshReviewSnapshot();
-  const reviewable = session.value?.files.filter((file) => file.availability.kind === 'text') ?? [];
+  const reviewable = reviewableFiles.value;
   if (reviewable.length > 0) {
     workspace = createWorkspaceState(reviewable.map((file) => file.fileId), comments);
     workspaceState.value = workspace.getState();
@@ -1415,8 +1417,26 @@ async function performRefresh(): Promise<void> {
     recentlyChangedPaths.value = new Set([...delta.added, ...delta.removed, ...delta.modified]);
     const previousPath = selectedFile.value?.newPath?.display ?? selectedFile.value?.oldPath?.display;
     const previousIndex = flatFileRows.value.findIndex((row) => row.fileId === selectedFile.value?.fileId);
+    const previousFileIdsByPath = new Map<string, string>();
+    for (const file of reviewableFiles.value) {
+      const path = file.newPath?.display ?? file.oldPath?.display;
+      if (path !== undefined) previousFileIdsByPath.set(path, file.fileId);
+    }
     const refreshedSession = await sessionClient.getSession();
     session.value = refreshedSession;
+    const fileIds = reviewableFiles.value.map((file) => file.fileId);
+    if (workspace === undefined && fileIds.length > 0) {
+      workspace = createWorkspaceState(fileIds);
+    }
+    if (workspace !== undefined) {
+      const previousFileIds = new Map<string, string>();
+      for (const file of reviewableFiles.value) {
+        const path = file.newPath?.display ?? file.oldPath?.display;
+        const previousId = path === undefined ? undefined : previousFileIdsByPath.get(path);
+        if (previousId !== undefined) previousFileIds.set(file.fileId, previousId);
+      }
+      workspaceState.value = workspace.replaceFiles(fileIds, previousFileIds).state;
+    }
     if (selectedFile.value !== undefined) {
       const resolvedFileId = previousPath === undefined ? undefined : resolvePathToFileId(previousPath, refreshedSession.files);
       if (resolvedFileId !== undefined) {
@@ -1433,8 +1453,15 @@ async function performRefresh(): Promise<void> {
           if (previousPath !== undefined) {
             announce(`${previousPath} is no longer in the review; showing ${nextPath}`);
           }
+        } else {
+          requestVersion += 1;
+          selectedFile.value = undefined;
+          selectedContent.value = undefined;
+          diffLoading.value = false;
         }
       }
+    } else if (reviewableFiles.value[0] !== undefined) {
+      selectFile(reviewableFiles.value[0].fileId);
     }
     const loadedDraft = await sessionClient.getDraft();
     if (loadedDraft.kind === 'current' && workspace !== undefined) {
