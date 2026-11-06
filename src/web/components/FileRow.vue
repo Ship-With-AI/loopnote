@@ -107,7 +107,7 @@ const commentBadgeLabel = computed(
       @click="emit('activate', leaf.fileId)"
     >
       <span class="ft" aria-hidden="true" :style="{ color: `var(${fileTypeMark.tone})` }">{{ fileTypeMark.text }}</span>
-      <PathDisplay :file="leaf.file" :basename="mode !== 'list'" :query="query" :class="`name-tone--${nameTone}`" />
+      <PathDisplay :file="leaf.file" :basename="mode !== 'list'" :name-first="mode === 'list'" :query="query" :class="`name-tone--${nameTone}`" />
       <span v-if="showCommentBadge" class="cbadge" :aria-label="commentBadgeLabel">
         <UiIcon name="comment" />
         <span aria-hidden="true">{{ openCommentCount }}</span>

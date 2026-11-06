@@ -6,6 +6,7 @@ import { highlightMatches } from '../../model/file-tree.js';
 const props = defineProps<{
   display: string;
   basename?: boolean;
+  nameFirst?: boolean;
   query?: string;
 }>();
 
@@ -19,5 +20,6 @@ const filenameSegments = computed(() => highlightMatches(filename.value, props.q
 </script>
 
 <template>
-  <span class="path-text"><span v-if="!basename" class="path-text__directory"><template v-for="(segment, index) in directorySegments" :key="index"><mark v-if="segment.matched">{{ segment.text }}</mark><template v-else>{{ segment.text }}</template></template></span><span class="path-text__filename"><template v-for="(segment, index) in filenameSegments" :key="index"><mark v-if="segment.matched">{{ segment.text }}</mark><template v-else>{{ segment.text }}</template></template></span></span>
+  <span v-if="nameFirst" class="path-text"><span class="path-text__filename"><template v-for="(segment, index) in filenameSegments" :key="index"><mark v-if="segment.matched">{{ segment.text }}</mark><template v-else>{{ segment.text }}</template></template></span><span v-if="!basename" class="path-text__directory"><template v-for="(segment, index) in directorySegments" :key="index"><mark v-if="segment.matched">{{ segment.text }}</mark><template v-else>{{ segment.text }}</template></template></span></span>
+  <span v-else class="path-text"><span v-if="!basename" class="path-text__directory"><template v-for="(segment, index) in directorySegments" :key="index"><mark v-if="segment.matched">{{ segment.text }}</mark><template v-else>{{ segment.text }}</template></template></span><span class="path-text__filename"><template v-for="(segment, index) in filenameSegments" :key="index"><mark v-if="segment.matched">{{ segment.text }}</mark><template v-else>{{ segment.text }}</template></template></span></span>
 </template>

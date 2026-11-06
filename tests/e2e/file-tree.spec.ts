@@ -926,13 +926,10 @@ test('packaged file tree list mode keeps tree keyboard semantics and dims the di
     );
     expect(listFileIdsInOrder).toEqual(treeFileIdsInOrder);
 
-    // Dimmed-directory rendering (21-VERIFICATION.md §3): each list row
-    // shows a muted `.path-text__directory` segment, dimmed via
-    // `--text-muted`. Per PathText.vue's actual template
-    // (src/web/components/ui/PathText.vue), the directory span precedes the
-    // filename span in DOM order; 21-VERIFICATION.md's "filename first"
-    // wording does not match the shipped markup — see this plan's SUMMARY
-    // for the deviation note.
+    // Dimmed-directory rendering (21-VERIFICATION.md §3, corrected by
+    // 25-gap-04): each list row shows a muted `.path-text__directory`
+    // segment, dimmed via `--text-muted`, rendered AFTER the filename —
+    // matching 21-UI-SPEC.md:197's "name first, then dimmed directory".
     const controlListRow = list.locator(`[role="option"][data-file-id="${controlFileId}"]`);
     await expect(controlListRow.locator('.path-text__directory')).toBeVisible();
     await expect(controlListRow.locator('.path-text__directory')).toContainText('control/');
@@ -941,7 +938,7 @@ test('packaged file tree list mode keeps tree keyboard semantics and dims the di
     const segmentClasses = await controlListRow
       .locator('.path-text__directory, .path-text__filename')
       .evaluateAll((elements) => elements.map((element) => element.className));
-    expect(segmentClasses).toEqual(['path-text__directory', 'path-text__filename']);
+    expect(segmentClasses).toEqual(['path-text__filename', 'path-text__directory']);
 
     // Keyboard parity with tree mode: Home/End/ArrowUp/ArrowDown move
     // focus, Enter/Space activate — same keys, same resulting file order.
