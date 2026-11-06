@@ -7,7 +7,7 @@ tags: [file-tree, path-text, a11y, gap-closure]
 requires: []
 provides:
   - "List mode renders file name first, then dimmed directory, per 21-UI-SPEC.md:197"
-affects: [milestone-v2.1-closeout, A11Y-03, TOK-02]
+affects: [milestone-v2.1-closeout, A11Y-03]
 
 tech-stack:
   added: []
