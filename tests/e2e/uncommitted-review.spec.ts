@@ -14,6 +14,7 @@ import {
   symlinkSync,
   writeFileSync,
 } from 'node:fs';
+import { rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -411,6 +412,165 @@ test('Alt+Shift+R triggers the same real server-side refresh as the Refresh butt
     await fixture.cleanup();
   }
 });
+
+for (const [kind, flag] of [
+  ['Staged', '--staged'],
+  ['Unstaged', '--unstaged'],
+  ['Working tree', '--worktree'],
+] as const) {
+  test(`${kind} Refresh resyncs files through every entry point and preserves review state`, async ({ browser }) => {
+    const fixture = await createGitFixture();
+    const firstPath = 'src/first.ts';
+    const secondPath = 'src/second.ts';
+    const thirdPath = 'src/third.ts';
+    const firstContent = 'export const first = 1;\nexport const stable = true;\n';
+    if (kind !== 'Staged') {
+      await fixture.write(firstPath, 'export const first = 0;\nexport const stable = true;\n');
+      await fixture.write(secondPath, 'export const second = 0;\n');
+      fixture.git(['add', '--', firstPath, secondPath]);
+      fixture.git(['commit', '-m', 'seed refresh files']);
+    }
+    await fixture.write(firstPath, firstContent);
+    await fixture.write(secondPath, 'export const second = 2;\n');
+    if (kind === 'Staged') fixture.git(['add', '--', firstPath, secondPath]);
+    const running = startGeneratedUncommittedCli(fixture, [flag]);
+    const page = await browser.newPage();
+    try {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await openGeneratedUncommittedReview(page, await waitForLoopbackUrl(running));
+      const firstRow = page.getByRole('treeitem', { name: /first\.ts/ });
+      const thirdRow = page.getByRole('treeitem', { name: /third\.ts/ });
+      const heading = page.getByRole('heading', { level: 1 });
+      const snapshot = page.locator('.statusbar__left');
+      const comments = page.getByRole('button', { name: /^Comments:/ });
+      await expect(page.locator('.tree-footer')).toContainText('2 files');
+      await firstRow.click();
+      await activateSinglePaneLine(page, 'head', 'export const first = 1;', 1);
+      const composer = page.locator('.monaco-anchor-zone--composer');
+      const commentBody = `${kind} comment survives Refresh.`;
+      await composer.locator('textarea').fill(commentBody);
+      const saved = page.waitForResponse((response) => response.url().includes('/api/draft/mutations'));
+      await composer.locator('button').filter({ hasText: 'Add comment' }).click();
+      expect((await saved).status()).toBe(201);
+      await expect(comments).toHaveAccessibleName('Comments: 1 open');
+      const thread = page.locator('.comment-thread').filter({ hasText: commentBody });
+
+      const panelToggle = page.getByRole('button', { name: 'Toggle panel (⌘J)', exact: true });
+      const sidebarToggle = page.getByRole('button', { name: 'Toggle side bar (⌘B)', exact: true });
+      const separator = page.getByRole('separator', { name: 'Resize side bar', exact: true });
+      let sidebarWidth: string | null = null;
+      if (kind === 'Staged') {
+        // D-17 auto-saves new composers; THREAD-08 instead preserves existing-thread edits.
+        await thread.getByRole('button', { name: 'Edit comment', exact: true }).click();
+        await thread.getByRole('textbox', { name: 'Edit comment', exact: true }).fill('Still writing this comment.');
+      } else if (kind === 'Unstaged') {
+        await panelToggle.click();
+        await page.getByRole('tab', { name: 'Summary', exact: true }).click();
+        const bounds = await separator.boundingBox();
+        if (bounds === null) throw new Error('Visible sidebar resize handle has no bounds');
+        await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+        await page.mouse.down();
+        await page.mouse.move(bounds.x + bounds.width / 2 + 40, bounds.y + bounds.height / 2);
+        await page.mouse.up();
+        sidebarWidth = await separator.getAttribute('aria-valuenow');
+      }
+
+      const beforeAdd = await snapshot.innerText();
+      await fixture.write(thirdPath, 'export const third = 3;\n');
+      if (kind === 'Staged') fixture.git(['add', '--', thirdPath]);
+      // Unstaged inventory excludes untracked paths; intent-to-add exposes a real index→worktree addition.
+      if (kind === 'Unstaged') fixture.git(['add', '-N', '--', thirdPath]);
+      await page.getByRole('button', { name: 'Refresh snapshot', exact: true }).click();
+      await expect(thirdRow).toBeVisible();
+      await expect(page.locator('.tree-footer')).toContainText('3 files');
+      await expect(snapshot).toHaveText(beforeAdd);
+      await expect(comments).toHaveAccessibleName('Comments: 1 open');
+      await expect(heading).toHaveAttribute('title', firstPath);
+      if (kind === 'Staged') {
+        await expect(thread.getByRole('textbox', { name: 'Edit comment', exact: true })).toHaveValue('Still writing this comment.');
+        await thread.getByRole('button', { name: 'Cancel edit', exact: true }).click();
+      } else if (kind === 'Unstaged') {
+        await expect(page.getByRole('region', { name: 'Review', exact: true })).toBeVisible();
+        await expect(page.getByRole('tab', { name: 'Summary', exact: true })).toHaveAttribute('aria-selected', 'true');
+        await expect(separator).toHaveAttribute('aria-valuenow', sidebarWidth!);
+      }
+      await page.getByRole('button', { name: thirdPath, exact: true }).click();
+      await expect(heading).toHaveAttribute('title', thirdPath);
+      await expect(page.getByRole('button', { name: 'Next file', exact: true })).toBeDisabled();
+      await page.keyboard.press('Alt+ArrowUp');
+      await expect(heading).toHaveAttribute('title', secondPath);
+      await page.keyboard.press('Alt+ArrowDown');
+      await expect(heading).toHaveAttribute('title', thirdPath);
+      await page.getByRole('button', { name: 'View as list', exact: true }).click();
+      await expect(page.getByRole('option', { name: /third\.ts/ })).toBeVisible();
+      await page.getByRole('button', { name: 'View as tree', exact: true }).click();
+      if (kind === 'Working tree') {
+        await page.getByRole('button', { name: 'Filter changed files (⌥⌘F)', exact: true }).click();
+        await page.locator('#file-tree-filter').fill('first');
+        await expect(thirdRow).toHaveCount(0);
+        await expect(page.locator('.tree-footer')).toHaveText('1 of 3 files');
+      } else if (kind === 'Unstaged') {
+        await sidebarToggle.click();
+        await expect(sidebarToggle).toHaveAttribute('aria-pressed', 'false');
+      }
+
+      const beforeModify = await snapshot.innerText();
+      await fixture.write(firstPath, 'export const replaced = 99;\n');
+      if (kind === 'Staged') fixture.git(['add', '--', firstPath]);
+      await page.locator('.identity-pill').click();
+      const popover = page.getByRole('dialog', { name: 'Comparison', exact: true });
+      await popover.getByRole('button', { name: /Refresh/ }).click();
+      await expect(page.getByText('1 comment now orphaned', { exact: true })).toBeVisible();
+      await expect(page.getByText(commentBody, { exact: true })).toBeVisible();
+      await expect(comments).toHaveAccessibleName('Comments: 1 open, 1 stale');
+      await expect(snapshot).toHaveText(beforeModify);
+      await expect(popover.getByRole('button', { name: /Refresh/ })).toBeEnabled();
+      await expect(popover.locator('.identity-popover__row').filter({ hasText: 'Snapshot' }).locator('dd'))
+        .toHaveText((await snapshot.innerText()).trim());
+      await page.keyboard.press('Escape');
+      if (kind === 'Working tree') {
+        await expect(page.locator('#file-tree-filter')).toHaveValue('first');
+        await expect(page.locator('.tree-footer')).toHaveText('1 of 3 files');
+        await expect(thirdRow).toHaveCount(0);
+        await page.getByRole('button', { name: 'Clear filter', exact: true }).click();
+      } else if (kind === 'Unstaged') {
+        await expect(sidebarToggle).toHaveAttribute('aria-pressed', 'false');
+        await expect(page.getByRole('tab', { name: 'Summary', exact: true })).toHaveAttribute('aria-selected', 'true');
+        await sidebarToggle.click();
+        await expect(separator).toHaveAttribute('aria-valuenow', sidebarWidth!);
+      }
+      // Modified-summary links must also navigate, not only the Added link.
+      await page.getByRole('button', { name: firstPath, exact: true }).click();
+      await expect(heading).toHaveAttribute('title', firstPath);
+      await expect(page.locator('.diff-workspace__editor .view-line').filter({ hasText: 'export const replaced = 99;' })).toBeVisible();
+      await thirdRow.click();
+      await expect(heading).toHaveAttribute('title', thirdPath);
+      // The last file falls back to its predecessor in this fixture's sorted file list.
+      const fallbackPath = [firstPath, secondPath].sort().at(-1)!;
+      const beforeRemove = await snapshot.innerText();
+      if (kind !== 'Working tree') fixture.git(['reset', '--', thirdPath]);
+      await rm(join(fixture.root, thirdPath));
+      await page.keyboard.press('Alt+Shift+KeyR');
+      await expect(page.getByRole('heading', { name: 'Since previous snapshot: 1 removed', exact: true })).toBeVisible();
+      await expect(thirdRow).toHaveCount(0);
+      await expect(page.locator('.tree-footer')).toContainText('2 files');
+      await expect(heading).toHaveAttribute('title', fallbackPath);
+      await expect(page.locator('.visually-hidden[aria-live="polite"]'))
+        .toHaveText(`${thirdPath} is no longer in the review; showing ${fallbackPath}`);
+      await expect(snapshot).toHaveText(beforeRemove);
+      const removed = page.locator('.refresh-summary-row--removed').filter({ hasText: thirdPath });
+      await expect(removed).toBeVisible();
+      await expect(removed.getByText('Removed', { exact: true })).toBeVisible();
+      await expect(page.getByRole('button', { name: thirdPath, exact: true })).toHaveCount(0);
+      await expect(page.getByText(commentBody, { exact: true })).toBeVisible();
+      await expect(comments).toHaveAccessibleName('Comments: 1 open, 1 stale');
+    } finally {
+      await page.close();
+      await stopGeneratedCli(running);
+      await fixture.cleanup();
+    }
+  });
+}
 
 test(`a second ${RENAME_MAP.binCommand} --staged launch on different staged content offers "Resume previous uncommitted review?", and accepting it copies the first session\'s comment into the new draft`, async ({ browser }) => {
   const fixture = await createGitFixture();

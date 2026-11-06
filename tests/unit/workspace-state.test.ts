@@ -270,6 +270,36 @@ describe('workspace session state', () => {
     expect(accepted.commands).toEqual([{ type: 'focus-comment', commentId: 'comment-head-9' }]);
   });
 
+  it('resyncs file navigation after additions, removals and content-ID changes without losing retained view state', () => {
+    const workspace = createWorkspaceState(['file-a', 'file-b'], comments);
+    workspace.dispatch({ type: 'diff-ready', fileId: 'file-a' });
+    workspace.dispatch({ type: 'view-changed', scrollTop: 120, side: 'head', line: 7, context: 'all-revealed' });
+    workspace.dispatch({ type: 'activate-line', side: 'head', line: 7 });
+    workspace.dispatch({ type: 'composer-text-changed', text: 'Keep this draft' });
+    workspace.replaceFiles(['new-a', 'file-c', 'file-b'], new Map([['new-a', 'file-a']]));
+    expect(Object.keys(workspace.getState().files)).toEqual(['new-a', 'file-c', 'file-b']);
+    expect(workspace.getState().files['new-a']).toMatchObject({
+      scrollTop: 120,
+      context: 'all-revealed',
+      composer: { text: 'Keep this draft' },
+    });
+    expect(workspace.getState().comments).toEqual(comments);
+    expect(workspace.dispatch({ type: 'switch-file', fileId: 'new-a' }).state.activeFileId).toBe('new-a');
+    expect(workspace.dispatch({ type: 'next-file' }).state.activeFileId).toBe('file-c');
+    expect(workspace.dispatch({ type: 'next-file' }).state.activeFileId).toBe('file-b');
+    workspace.replaceFiles(['new-a', 'file-c']);
+    expect(workspace.getState().files['file-b']).toBeUndefined();
+    expect(workspace.dispatch({ type: 'switch-file', fileId: 'file-c' }).state.activeFileId).toBe('file-c');
+    expect(workspace.dispatch({ type: 'previous-file' }).state.activeFileId).toBe('new-a');
+    expect(workspace.dispatch({ type: 'switch-file', fileId: 'file-b' }).state.activeFileId).toBe('new-a');
+    workspace.replaceFiles([]);
+    expect(Object.keys(workspace.getState().files)).toEqual([]);
+    expect(workspace.dispatch({ type: 'next-file' }).commands).toEqual([]);
+    expect(workspace.getState().comments).toEqual(comments);
+    workspace.replaceFiles(['file-d']);
+    expect(workspace.dispatch({ type: 'switch-file', fileId: 'file-d' }).state.activeFileId).toBe('file-d');
+  });
+
   it('navigates deterministic file order and delegates change movement to the public adapter command', () => {
     const workspace = createWorkspaceState(['file-a', 'file-b']);
     workspace.dispatch({ type: 'diff-ready', fileId: 'file-a' });
