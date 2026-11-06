@@ -60,7 +60,7 @@ defineExpose({ focusSidebarToggle });
       />
       <span v-if="attachedFact !== ''" class="attached-fact" :title="attachedFact">{{ attachedFact }}</span>
     </div>
-    <div class="titlebar__right">
+    <div class="titlebar__right" role="toolbar" aria-label="Title bar actions">
       <button
         v-if="showRefresh"
         type="button"

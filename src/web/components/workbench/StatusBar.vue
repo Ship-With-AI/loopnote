@@ -61,7 +61,7 @@ defineExpose({ focusSupport });
       <UiIcon name="lock" />
       <span>{{ identifier }}</span>
     </div>
-    <div class="statusbar__right">
+    <div class="statusbar__right" role="toolbar" aria-label="Status bar actions">
       <button
         type="button"
         class="statusbar__item"
