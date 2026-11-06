@@ -192,7 +192,9 @@ async function openReviewNotes(page: Page): Promise<void> {
   const button = page.getByRole('button', { name: 'Toggle panel (⌘J)', exact: true });
   await expect(button).toBeVisible();
   await button.click();
-  await expect(page.getByRole('region', { name: 'Review', exact: true })).toBeVisible();
+  const region = page.getByRole('region', { name: 'Review', exact: true });
+  await expect(region).toBeVisible();
+  await region.getByRole('tab', { name: 'Export', exact: true }).click();
 }
 
 test.beforeAll(() => {
