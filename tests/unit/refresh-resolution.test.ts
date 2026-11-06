@@ -34,12 +34,12 @@ describe('refresh resolution', () => {
     oldPath: 'src/modified-old.ts',
     newPath: 'src/modified.ts',
   });
-  const unchangedOldOnly = sessionFile({
-    fileId: 'file_unchanged',
-    status: 'unchanged',
-    oldPath: 'src/unchanged.ts',
+  const oldPathOnly = sessionFile({
+    fileId: 'file_old_path_only',
+    status: 'modified',
+    oldPath: 'src/old-path-only.ts',
   });
-  const files: readonly SessionFile[] = Object.freeze([added, deleted, modifiedBoth, unchangedOldOnly]);
+  const files: readonly SessionFile[] = Object.freeze([added, deleted, modifiedBoth, oldPathOnly]);
 
   it('resolves an added file by its newPath display', () => {
     expect(resolvePathToFileId('src/added.ts', files)).toBe('file_added');
@@ -50,8 +50,8 @@ describe('refresh resolution', () => {
     expect(resolvePathToFileId('src/modified-old.ts', files)).toBeUndefined();
   });
 
-  it('falls back to oldPath.display when newPath is absent (unchanged file)', () => {
-    expect(resolvePathToFileId('src/unchanged.ts', files)).toBe('file_unchanged');
+  it('falls back to oldPath.display when newPath is absent (no status-kind override)', () => {
+    expect(resolvePathToFileId('src/old-path-only.ts', files)).toBe('file_old_path_only');
   });
 
   it('resolves a deleted-but-listed file by its oldPath display', () => {
