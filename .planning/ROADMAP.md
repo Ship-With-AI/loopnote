@@ -8,7 +8,7 @@
 - **[v1.3 Agent Review Handoff](./milestones/v1.3-ROADMAP.md)** — Phases 12–15, 14 plans, 42 tasks, 17/17 requirements, shipped 2026-08-06.
 - **[v1.4 Voluntary Support](./milestones/v1.4-ROADMAP.md)** — Phases 01–02, 22 plans, 30 tasks, 12/12 requirements, shipped 2026-09-04.
 - **[v1.5 MIT Distribution](./milestones/v1.5-ROADMAP.md)** — Phases 03–07, 23 plans, 69 tasks, 18/19 requirements (ACC-04 blocked), shipped 2026-09-15.
-- **[v1.6 Workspace Restyle](./milestones/v1.6-ROADMAP.md)** — Phases 08–12, 31 plans, 24/24 requirements, shipped 2026-09-14 (`tech_debt`: DEBT-01 accepted).
+- **[v1.6 Workspace Restyle](./milestones/v1.6-ROADMAP.md)** — Phases 08–12, 31 plans, 24/24 requirements, shipped 2026-09-14 (`tech_debt`: toolbar-roles gap accepted, closed in Phase 25).
 - **[v2.0 Artifact Review](./milestones/v2.0-ROADMAP.md)** — Phases 13–18 (incl. 17.1), 70 plans, 196 tasks, 35/35 requirements, shipped 2026-11-04 (no milestone audit; 4 verification items deferred — see `STATE.md`).
 - 🚧 **v2.1 Workbench Redesign** — Phases 19–25, 45 requirements mapped (in progress, revised 2026-11-04).
 
@@ -28,7 +28,7 @@ Foundation → Shell Frame → Changed-Files Tree → Identity & Status Bar → 
 Bottom Panel & Export → Accessibility, Design Docs & Regression Sweep). Phase 19 is ready to plan
 — see `STATE.md` Current Position. **Cross-cutting constraint:** any Playwright/integration
 locator a phase's renames break must be updated within that same phase (tracked by A11Y-03,
-closed in Phase 25); DEBT-01 in the Backlog below is scheduled as A11Y-01 in Phase 25. Thread
+closed in Phase 25); the toolbar-roles accessibility gap is closed by A11Y-01 in Phase 25. Thread
 navigation (previous/next thread, collapse-all, ⌥F9/⇧⌥F9) ships with the thread phase (23), not
 the shell.
 
@@ -44,7 +44,7 @@ the shell.
 - [x] **Phase 22: Identity & Status Bar** - Comparison identity and drift relocate into a title-bar pill/popover; the status bar carries snapshot/comment counts, one emphasized Export/Finish item, and the support entry. (completed 2026-11-05)
 - [x] **Phase 23: Inline Comment Threads** - A multi-zone Monaco adapter rework renders every comment as an expanded-by-default view-zone thread with its own editor-title navigation icons and ⌥F9/⇧⌥F9 shortcuts, gated by an explicit pointer/keyboard go/no-go spike. (completed 2026-11-05)
 - [x] **Phase 24: Bottom Panel & Export** - Comments/Summary/Export live in the ⌘J bottom panel, including the agent-attached Finish action behind the export readiness gate. (completed 2026-11-06)
-- [ ] **Phase 25: Accessibility, Design Docs & Regression Sweep** - A toolbar role/name audit closes DEBT-01, every popover/menu/live-region is keyboard-accessible, the full suite passes with same-phase locator updates, and `DESIGN.md` describes the shipped workbench.
+- [ ] **Phase 25: Accessibility, Design Docs & Regression Sweep** - A toolbar role/name audit closes the accepted toolbar-roles debt, every popover/menu/live-region is keyboard-accessible, the full suite passes with same-phase locator updates, and `DESIGN.md` describes the shipped workbench.
 
 <details>
 <summary>✅ v2.0 Artifact Review (Phases 13–18) — SHIPPED 2026-11-04</summary>
@@ -282,7 +282,7 @@ Plans:
 **Requirements**: TOK-02, A11Y-01, A11Y-02, A11Y-03
 **Success Criteria** (what must be TRUE):
 
-  1. Assistive-technology users reach every toolbar control group — title bar, side bar, editor title, bottom panel, status bar — by `getByRole('toolbar' | 'group', { name })`, closing DEBT-01.
+  1. Assistive-technology users reach every toolbar control group — title bar, side bar, editor title, bottom panel, status bar — by `getByRole('toolbar' | 'group', { name })`.
   2. Keyboard users can operate every popover and menu, close it with Esc, and get focus returned; each dynamic change (panel tab, thread action, refresh result, export result) is announced by exactly one live region.
   3. The full packaged-binary Playwright and integration suites pass against the finished workbench, with every locator any Phase 19–24 rename broke already updated within that same phase rather than deferred here.
   4. Contributors read a `DESIGN.md` whose Composition, Geometry, and Components sections describe the shipped workbench, with no mention of the review rail or identity header band.
@@ -347,20 +347,6 @@ milestone can decide explicitly whether to adopt them:
   `vue-tsc@3.3.7` resolves `typescript/lib/tsc` at startup but `typescript@7.0.2` no longer
   exposes that subpath, so it dies with `ERR_PACKAGE_PATH_NOT_EXPORTED` before reading any
   config. Closing this gap needs a TypeScript/vue-tsc pairing decision, not just an npm script.
-
-### Accepted debt from v1.6
-
-- **DEBT-01** (v1.6 milestone audit D-01, owner: the surface that next touches the review
-  toolbar) — Reviewers using assistive technology cannot reach the diff-navigation and review-toolbar
-  control groups by role and name. Three layout containers in
-  `src/web/components/ReviewToolbar.vue` carry `aria-label` without a queryable `role`, so
-  `getByRole('group', { name: 'Diff navigation' })` resolves to `generic` and cannot reach them:
-  `:20` (`Diff navigation`), `:22` (`File navigation`), `:47` (`Change navigation`).
-  `getByRole('group'` appears zero times in `tests/`. Pre-existing, not a v1.6 regression —
-  `12-UI-SPEC.md:182` deliberately scoped this fix out of Phase 12. Accepted at v1.6 close.
-  **Re-scoped 2026-09-15:** was four containers; quick task `260915-jbv` deleted the fourth
-  (`review-toolbar__group--actions`) along with the Review and Keyboard help buttons.
-  **Scheduled in v2.1 as A11Y-01** (Phase 25: Accessibility, Design Docs & Regression Sweep).
 
 ### Deferred from v1.6 scope
 

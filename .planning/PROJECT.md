@@ -34,8 +34,8 @@ Distribution on 2026-09-15 (distribution). The two milestones were closed on sep
 branches and reconciled when `restyle` merged into `main`; see `MILESTONES.md` for the
 reconciliation note.
 
-**v1.6 Workspace Restyle** — audit status `tech_debt`, archiveable with one accepted item
-(DEBT-01, see `ROADMAP.md` Backlog). The whole browser review workspace renders from one
+**v1.6 Workspace Restyle** — audit status `tech_debt`, archiveable with one accepted item,
+now closed. The whole browser review workspace renders from one
 canonical semantic token root, with the typed Monaco theme derived byte-identically from it at
 build time. The changed-file tree is dense rows with signed counts and directory descendant
 counts, plus a filter that prunes rather than rebuilds so expansion identity and selection
@@ -92,7 +92,7 @@ within hours of being widened.
 - Inline Monaco view-zone comment threads with Open / Resolved / Anchor-moved states, resolve / reopen / delete / reply, expanded by default with a session-scoped collapse-all toggle, and cross-file thread navigation.
 - Export readiness, stale-anchor acknowledgement gate, and receipt in the bottom panel.
 - Workbench geometry tokens over the unchanged Loopnote colour roles; `DESIGN.md` Composition/Geometry and the token contract rewritten to match.
-- Toolbar groups reachable by role and name (closes DEBT-01).
+- Toolbar groups reachable by role and name.
 - `.vue` components brought under typechecking via a TypeScript/vue-tsc pairing decision.
 
 **Design source:** sketches 001–004 (`.planning/sketches/`), skill `sketch-findings-loopnote`.
@@ -295,7 +295,7 @@ Validated in v2.1 Phase 19: Typecheck Foundation — `vue-tsc@3.3.14` paired wit
 - [ ] Changed files render as a VS Code Explorer-density tree.
 - [ ] Reviewers can resolve, reopen, delete, and reply to comment threads inline (removed by quick task `260915-jbv`).
 - [ ] Comments, summary, and export live in a bottom panel closed while reading.
-- [ ] Assistive technology reaches toolbar control groups by role and name (DEBT-01).
+- [ ] Assistive technology reaches toolbar control groups by role and name.
 - [ ] `DESIGN.md` describes the workbench.
 
 ### Out of Scope
@@ -328,7 +328,7 @@ Accepted v1.4 debt is bounded to a stale deleted-suite filename in the deploymen
 
 Workspace surface since quick task `260915-jbv` (2026-09-15) has no Details dialog, Review comments rail, or keyboard help; comment resolve/reopen/edit/delete and stale/orphaned anchor records are not reachable in the UI. The proposed v2.1 workbench redesign restores inline thread actions.
 
-Accepted debt carried into v2.1: DEBT-01 toolbar roles, `.vue` files outside typechecking, two nondeterministic Playwright specs and one order-sensitive agent-export spec (STATE.md Deferred Items).
+Accepted debt carried into v2.1: `.vue` files outside typechecking, two nondeterministic Playwright specs and one order-sensitive agent-export spec (STATE.md Deferred Items).
 ## Constraints
 
 - **Runtime**: Node.js 24 LTS with TypeScript end to end — one language across CLI, server, shared contracts, and UI, using the current supported LTS baseline.
