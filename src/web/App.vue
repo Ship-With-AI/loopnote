@@ -1074,11 +1074,13 @@ function selectFile(fileId: string): void {
 function revealCommentFromPanel(commentId: string, fileId: string, side: WorkspaceComment['side'], line: number): void {
   if (fileId !== selectedFile.value?.fileId) selectFile(fileId);
   collapsedByCommentId.value = new Map([...collapsedByCommentId.value, [commentId, false]]);
+  // Three nested ticks: file switch (selectFile, if cross-file) -> diff remount ->
+  // thread expand, each needs its own tick before the comment header element exists.
   void nextTick(() => {
     diffWorkspace.value?.revealComment(side, line);
     void nextTick(() => {
       void nextTick(() => {
-        (document.querySelector(`[data-comment-id="${commentId}"] .thread-header`) as HTMLElement | null)?.focus();
+        (document.querySelector(`[data-comment-id="${CSS.escape(commentId)}"] .thread-header`) as HTMLElement | null)?.focus();
       });
     });
   });
@@ -1126,7 +1128,7 @@ function handleKeydown(event: KeyboardEvent): void {
   }
   if (chromeKey === 's') {
     event.preventDefault();
-    if (panelOpen.value && panelState.activeTab.value === 'summary') saveSummary();
+    if (!shellModalOpen.value && panelOpen.value && panelState.activeTab.value === 'summary') saveSummary();
     return;
   }
   const target = event.target;

@@ -6,6 +6,7 @@ import { RENAME_MAP } from '../../domain/product-identity.js';
 import type { AppendLoopnoteIgnoreResult, ExportDirectoryRevealResult, FinishReviewResult } from '../../contracts/api.js';
 import type { AttachedLifecycle, ReviewExportState, ReviewPendingOperation } from '../model/review-draft-state.js';
 import type { WorkspaceComment } from '../model/workspace-state.js';
+import AttachedCompletionWaiting from './AttachedCompletionWaiting.vue';
 import ExportReadinessSummary from './ExportReadinessSummary.vue';
 import DriftExportAcknowledgement from './DriftExportAcknowledgement.vue';
 import ExportProgress from './ExportProgress.vue';
@@ -284,46 +285,21 @@ watch(() => props.exportState.phase, (phase) => {
           <button type="button" class="ui-button ui-button--primary" :disabled="exportState.pending" @click="emit('export')">Export review again</button>
           <p class="export-section__support">Creates <code>review.json</code> and <code>review.md</code> together from accepted revision {{ revision }}. This does not apply, stage, commit, or push changes.</p>
         </template>
-        <template v-else>
-          <section class="attached-completion" aria-labelledby="finish-attached-review-heading">
-            <header class="attached-completion__heading">
-              <h3 id="finish-attached-review-heading">Finish attached review</h3>
-              <ReviewStateBadge kind="open" label="Waiting" />
-            </header>
-            <p class="attached-completion__waiting">The requesting agent is waiting. Only Finish review returns the accepted summary and comments. Exporting, closing, reloading, or disconnecting leaves this review unfinished.</p>
-            <div v-if="attachedNoFeedback" class="inline-notice">
-              <div class="inline-notice__content">
-                <h4>No feedback added</h4>
-                <p>This review has no accepted summary or comments. You can still finish and return an empty review result, or add feedback first.</p>
-              </div>
-            </div>
-            <div v-if="hasUnsavedText" class="inline-notice inline-notice--warning">
-              <div class="inline-notice__content">
-                <h4>Unsaved text must be reviewed</h4>
-                <p>Save or discard unsaved summary or comment text before finishing. The requesting agent only receives the accepted review.</p>
-                <button type="button" class="ui-button" @click="emit('reviewUnsavedText')">Review unsaved text</button>
-              </div>
-            </div>
-            <div v-if="unsavedInlineComposerFile !== undefined" class="inline-notice inline-notice--warning" role="region" aria-labelledby="inline-composer-finish-block-heading">
-              <div class="inline-notice__content">
-                <h4 id="inline-composer-finish-block-heading">Inline comment draft must be reviewed</h4>
-                <p><PathText :display="unsavedInlineComposerFile.display" /> has unsaved text. Save or discard it before finishing.</p>
-                <button type="button" class="ui-button" @click="emit('reviewInlineComposer', unsavedInlineComposerFile.fileId)">
-                  Review draft in <PathText :display="unsavedInlineComposerFile.display" />
-                </button>
-              </div>
-            </div>
-            <p v-if="!attachedBlockedByUnsavedText && attachedBlockedByPending" class="attached-completion__pending" role="status">Saving review changes…</p>
-            <div v-else-if="!attachedBlockedByUnsavedText && attachedBlockedByConflict" class="inline-notice inline-notice--warning">
-              <div class="inline-notice__content">
-                <h4>Review changed before finish</h4>
-                <p>Accepted revision {{ conflict?.expectedRevision }} is no longer current. Latest revision is {{ conflict?.actualRevision }}. No feedback was returned. Reload the latest review, check the comments and summary, then choose Finish review again.</p>
-                <button type="button" class="ui-button" @click="emit('reloadLatest')">Reload latest</button>
-              </div>
-            </div>
-            <button ref="completionAction" type="button" class="ui-button ui-button--primary attached-completion__action" :disabled="attachedReady !== true" @click="finishAttachedReview">Finish review</button>
-          </section>
-        </template>
+        <AttachedCompletionWaiting
+          v-else
+          :attached-no-feedback="attachedNoFeedback"
+          :has-unsaved-text="hasUnsavedText"
+          :unsaved-inline-composer-file="unsavedInlineComposerFile"
+          :attached-blocked-by-unsaved-text="attachedBlockedByUnsavedText"
+          :attached-blocked-by-pending="attachedBlockedByPending"
+          :attached-blocked-by-conflict="attachedBlockedByConflict"
+          :conflict="conflict"
+          :attached-ready="attachedReady"
+          @review-unsaved-text="emit('reviewUnsavedText')"
+          @review-inline-composer="emit('reviewInlineComposer', $event)"
+          @reload-latest="emit('reloadLatest')"
+          @finish-review="emit('finishReview')"
+        />
       </template>
 
       <template v-else>
@@ -345,46 +321,21 @@ watch(() => props.exportState.phase, (phase) => {
           <button type="button" class="ui-button ui-button--primary" :disabled="exportState.pending" @click="emit('export')">{{ exportState.phase === 'exported' ? 'Export review again' : 'Export review' }}</button>
           <p class="export-section__support">Creates <code>review.json</code> and <code>review.md</code> together from accepted revision {{ revision }}. This does not apply, stage, commit, or push changes.</p>
         </template>
-        <template v-else>
-          <section class="attached-completion" aria-labelledby="finish-attached-review-heading">
-            <header class="attached-completion__heading">
-              <h3 id="finish-attached-review-heading">Finish attached review</h3>
-              <ReviewStateBadge kind="open" label="Waiting" />
-            </header>
-            <p class="attached-completion__waiting">The requesting agent is waiting. Only Finish review returns the accepted summary and comments. Exporting, closing, reloading, or disconnecting leaves this review unfinished.</p>
-            <div v-if="attachedNoFeedback" class="inline-notice">
-              <div class="inline-notice__content">
-                <h4>No feedback added</h4>
-                <p>This review has no accepted summary or comments. You can still finish and return an empty review result, or add feedback first.</p>
-              </div>
-            </div>
-            <div v-if="hasUnsavedText" class="inline-notice inline-notice--warning">
-              <div class="inline-notice__content">
-                <h4>Unsaved text must be reviewed</h4>
-                <p>Save or discard unsaved summary or comment text before finishing. The requesting agent only receives the accepted review.</p>
-                <button type="button" class="ui-button" @click="emit('reviewUnsavedText')">Review unsaved text</button>
-              </div>
-            </div>
-            <div v-if="unsavedInlineComposerFile !== undefined" class="inline-notice inline-notice--warning" role="region" aria-labelledby="inline-composer-finish-block-heading">
-              <div class="inline-notice__content">
-                <h4 id="inline-composer-finish-block-heading">Inline comment draft must be reviewed</h4>
-                <p><PathText :display="unsavedInlineComposerFile.display" /> has unsaved text. Save or discard it before finishing.</p>
-                <button type="button" class="ui-button" @click="emit('reviewInlineComposer', unsavedInlineComposerFile.fileId)">
-                  Review draft in <PathText :display="unsavedInlineComposerFile.display" />
-                </button>
-              </div>
-            </div>
-            <p v-if="!attachedBlockedByUnsavedText && attachedBlockedByPending" class="attached-completion__pending" role="status">Saving review changes…</p>
-            <div v-else-if="!attachedBlockedByUnsavedText && attachedBlockedByConflict" class="inline-notice inline-notice--warning">
-              <div class="inline-notice__content">
-                <h4>Review changed before finish</h4>
-                <p>Accepted revision {{ conflict?.expectedRevision }} is no longer current. Latest revision is {{ conflict?.actualRevision }}. No feedback was returned. Reload the latest review, check the comments and summary, then choose Finish review again.</p>
-                <button type="button" class="ui-button" @click="emit('reloadLatest')">Reload latest</button>
-              </div>
-            </div>
-            <button ref="completionAction" type="button" class="ui-button ui-button--primary attached-completion__action" :disabled="attachedReady !== true" @click="finishAttachedReview">Finish review</button>
-          </section>
-        </template>
+        <AttachedCompletionWaiting
+          v-else
+          :attached-no-feedback="attachedNoFeedback"
+          :has-unsaved-text="hasUnsavedText"
+          :unsaved-inline-composer-file="unsavedInlineComposerFile"
+          :attached-blocked-by-unsaved-text="attachedBlockedByUnsavedText"
+          :attached-blocked-by-pending="attachedBlockedByPending"
+          :attached-blocked-by-conflict="attachedBlockedByConflict"
+          :conflict="conflict"
+          :attached-ready="attachedReady"
+          @review-unsaved-text="emit('reviewUnsavedText')"
+          @review-inline-composer="emit('reviewInlineComposer', $event)"
+          @reload-latest="emit('reloadLatest')"
+          @finish-review="emit('finishReview')"
+        />
       </template>
 
       <GitignoreStatus

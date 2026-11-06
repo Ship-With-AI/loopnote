@@ -73,6 +73,7 @@ function sideLineLabel(row: CommentsTabRow): string {
           :aria-expanded="!isCollapsed(group.leaf.fileId)"
           @click="toggleFileGroup(group.leaf.fileId)"
           @keydown.enter="toggleFileGroup(group.leaf.fileId)"
+          @keydown.space.prevent="toggleFileGroup(group.leaf.fileId)"
         >
           <span class="directory-row__disclosure" aria-hidden="true">{{ isCollapsed(group.leaf.fileId) ? '▸' : '▾' }}</span>
           <span class="ft" aria-hidden="true" :style="{ color: `var(${groupMark(group.leaf).tone})` }">{{ groupMark(group.leaf).text }}</span>
@@ -90,6 +91,7 @@ function sideLineLabel(row: CommentsTabRow): string {
             tabindex="0"
             @click="emit('reveal', row.comment.id, group.leaf.fileId, row.comment.side, row.comment.line)"
             @keydown.enter="emit('reveal', row.comment.id, group.leaf.fileId, row.comment.side, row.comment.line)"
+            @keydown.space.prevent="emit('reveal', row.comment.id, group.leaf.fileId, row.comment.side, row.comment.line)"
           >
             <UiIcon :name="BUCKET_ICON[row.bucket]" class="comments-tab__row-icon" />
             <span class="comments-tab__row-text">{{ row.comment.body }}</span>
