@@ -309,6 +309,7 @@ test('standalone: Standalone identity, Refresh present, Export emphasized', asyn
     await assertExportItem(page, true);
     await openPanel(page);
     const dialog = page.locator('.workbench-shell__panel');
+    await dialog.getByRole('tab', { name: 'Export', exact: true }).click();
     await expect(dialog.getByRole('button', { name: 'Export review', exact: true })).toBeVisible();
 
     await page.close();
@@ -671,6 +672,7 @@ test('agent-attached: attachedFact overlay and Finish review entry point in the 
     // out of scope until Phase 22, per this plan's own task instructions.
     await openPanel(page);
     const panel = page.locator('.workbench-shell__panel');
+    await panel.getByRole('tab', { name: 'Export', exact: true }).click();
     await expect(panel.getByRole('heading', { name: 'Finish attached review' })).toBeVisible();
     const finishButton = panel.getByRole('button', { name: 'Finish review', exact: true });
     await expect(finishButton).toBeVisible();
