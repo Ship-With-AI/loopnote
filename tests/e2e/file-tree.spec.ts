@@ -718,6 +718,277 @@ test('packaged file tree view-options menu persists line-count mode and comment-
   }
 });
 
+test('packaged file tree keeps line counts hidden until a real hover or a keyboard selection in the default hover mode', async ({
+  browser,
+  page,
+}, testInfo) => {
+  assertChromiumPrerequisite(browser, testInfo);
+  const repository = await createFileTreeFixture();
+  const running = startGeneratedCli(repository);
+  const browserErrors: string[] = [];
+  page.on('pageerror', (error) => browserErrors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') {
+      browserErrors.push(message.text());
+    }
+  });
+
+  try {
+    await page.goto(await waitForLoopbackUrl(running));
+    await expect.poll(() => browserErrors).toEqual([]);
+
+    const navigation = page.getByRole('navigation', { name: 'Changed files' });
+    const tree = navigation.getByRole('tree', { name: 'Changed files' });
+    await expect(tree).toBeVisible();
+
+    const trackedRow = tree.getByRole('treeitem', {
+      name: /tracked\.txt.*Text.*\d+ additions?.*1 deletion.*modified/i,
+    });
+    const copiedRow = tree.getByRole('treeitem', {
+      name: /copied from copy-source\.ts to copy-target\.ts.*Text.*copied/i,
+    });
+    const renamedRow = tree.getByRole('treeitem', {
+      name: /renamed from src\/deep\/only\/rename-source\.ts to src\/deep\/only\/renamed\.ts.*Text.*renamed/i,
+    });
+
+    // Select tracked.txt explicitly, then move the real mouse off every row
+    // so copiedRow/renamedRow start out neither selected nor hovered — the
+    // default-mode scenario from 21-VERIFICATION.md's "Human Verification
+    // Required" §1.
+    await trackedRow.click();
+    await expect(trackedRow).toHaveAttribute('aria-selected', 'true');
+    await navigation.locator('.tree-footer').hover();
+    await expect(copiedRow).not.toHaveAttribute('aria-selected', 'true');
+    await expect(renamedRow).not.toHaveAttribute('aria-selected', 'true');
+    await expect(copiedRow.locator('.line-counts')).toHaveCSS('opacity', '0');
+    await expect(renamedRow.locator('.line-counts')).toHaveCSS('opacity', '0');
+
+    // A real mouse hover over an unselected, previously-unhovered row makes
+    // its +N -N counts visible, with no view-options menu interaction.
+    await copiedRow.hover();
+    await expect(copiedRow.locator('.line-counts')).toHaveCSS('opacity', '1');
+    await navigation.locator('.tree-footer').hover();
+    await expect(copiedRow.locator('.line-counts')).toHaveCSS('opacity', '0');
+
+    // Keyboard-selecting a different row, with the mouse never touching
+    // it, also reveals its counts. Locator.focus() dispatches a real DOM
+    // focus event with no mouse movement — in this app every row's
+    // `@focus` handler runs the same `model.focusRow()` path arrow-key
+    // navigation uses, which selects the file as well as focusing it.
+    await expect(renamedRow).not.toHaveAttribute('aria-selected', 'true');
+    await renamedRow.focus();
+    await expect(renamedRow).toHaveAttribute('aria-selected', 'true');
+    await expect(renamedRow.locator('.line-counts')).toHaveCSS('opacity', '1');
+    await expect.poll(() => browserErrors).toEqual([]);
+  } finally {
+    await stopGeneratedCli(running);
+    await repository.cleanup();
+  }
+});
+
+test('packaged file tree filter Enter opens the first match and ArrowDown moves focus into the tree without closing the filter', async ({
+  browser,
+  page,
+}, testInfo) => {
+  assertChromiumPrerequisite(browser, testInfo);
+  const repository = await createFileTreeFixture();
+  const running = startGeneratedCli(repository);
+  const fileRequests: FileRequestEvidence[] = [];
+  const browserErrors: string[] = [];
+  page.on('pageerror', (error) => browserErrors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') {
+      browserErrors.push(message.text());
+    }
+  });
+  page.on('request', (request) => {
+    const evidence = captureFileRequest(request);
+    if (evidence !== undefined) {
+      fileRequests.push(evidence);
+    }
+  });
+
+  try {
+    await page.goto(await waitForLoopbackUrl(running));
+    await expect.poll(() => browserErrors).toEqual([]);
+
+    const navigation = page.getByRole('navigation', { name: 'Changed files' });
+    const tree = navigation.getByRole('tree', { name: 'Changed files' });
+    const filterButton = navigation.getByRole('button', { name: /Filter changed files/ });
+    const filter = navigation.getByRole('searchbox', { name: 'Filter changed files' });
+    await expect(tree).toBeVisible();
+
+    await filterButton.click();
+    await filter.fill('collision');
+    const treeitemsAfterFilter = tree.locator('[role="treeitem"]');
+    await expect(treeitemsAfterFilter).toHaveCount(3);
+    const rowsAfterFilter = await treeitemsAfterFilter.evaluateAll((elements) =>
+      elements.map((element) => ({
+        rowId: element.getAttribute('data-row-id'),
+        fileId: element.getAttribute('data-file-id'),
+        isDirectory: element.hasAttribute('aria-expanded'),
+      })),
+    );
+    const firstMatch = rowsAfterFilter.find((row) => !row.isDirectory);
+    expect(firstMatch?.fileId).not.toBeNull();
+
+    // Enter opens/selects the first visible matching file (21-VERIFICATION.md
+    // "Human Verification Required" §2, first half).
+    await filter.press('Enter');
+    const selectedLeaf = tree.locator('[role="treeitem"][aria-selected="true"]');
+    await expect(selectedLeaf).toHaveAttribute('data-file-id', firstMatch!.fileId!);
+    await expect
+      .poll(() => fileRequests.some((request) => request.pathname === `/api/files/${firstMatch!.fileId}/content`))
+      .toBe(true);
+    // Enter also moves real DOM focus onto the newly-activated row (every
+    // FileTree selection change re-focuses its row via applyModel's
+    // focusModelRow()) — the filter itself stays open with its value
+    // intact, which is what §2 actually requires.
+    await expect(selectedLeaf).toBeFocused();
+    await expect(filter).toBeVisible();
+    await expect(filter).toHaveValue('collision');
+
+    // Re-focus the filter (a plain input click, not a row interaction) so
+    // ArrowDown's own filter-keydown branch — not the tree's — is what
+    // gets exercised next.
+    await filter.click();
+    await expect(filter).toBeFocused();
+
+    // ArrowDown moves keyboard focus into the tree without closing or
+    // clearing the filter (§2, second half).
+    await page.keyboard.press('ArrowDown');
+    await expect(filter).toBeVisible();
+    await expect(filter).toHaveValue('collision');
+    const focusedTreeitem = tree.locator('[role="treeitem"]:focus');
+    await expect(focusedTreeitem).toHaveCount(1);
+    await expect(focusedTreeitem).toHaveAttribute('data-row-id', firstMatch!.rowId!);
+    await expect.poll(() => browserErrors).toEqual([]);
+  } finally {
+    await stopGeneratedCli(running);
+    await repository.cleanup();
+  }
+});
+
+test('packaged file tree list mode keeps tree keyboard semantics and dims the directory segment', async ({
+  browser,
+  page,
+}, testInfo) => {
+  assertChromiumPrerequisite(browser, testInfo);
+  const repository = await createFileTreeFixture();
+  const running = startGeneratedCli(repository);
+  const fileRequests: FileRequestEvidence[] = [];
+  const browserErrors: string[] = [];
+  page.on('pageerror', (error) => browserErrors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') {
+      browserErrors.push(message.text());
+    }
+  });
+  page.on('request', (request) => {
+    const evidence = captureFileRequest(request);
+    if (evidence !== undefined) {
+      fileRequests.push(evidence);
+    }
+  });
+
+  try {
+    await page.goto(await waitForLoopbackUrl(running));
+    await expect.poll(() => browserErrors).toEqual([]);
+
+    const navigation = page.getByRole('navigation', { name: 'Changed files' });
+    const tree = navigation.getByRole('tree', { name: 'Changed files' });
+    await expect(tree).toBeVisible();
+
+    // control/line\nbreak.ts is added (not renamed/copied), so it renders
+    // through PathDisplay's single-PathText branch — unlike the renamed/
+    // copied rows, which render two PathText instances (old + new) and
+    // would make a directory/filename DOM-order assertion ambiguous.
+    const controlRow = tree.getByRole('treeitem', { name: /control\/line\\nbreak\.ts/ });
+    const controlFileId = await controlRow.getAttribute('data-file-id');
+    expect(controlFileId).not.toBeNull();
+
+    const treeFileIdsInOrder = await tree.locator('[role="treeitem"]').evaluateAll((elements) =>
+      elements
+        .filter((element) => !element.hasAttribute('aria-expanded'))
+        .map((element) => element.getAttribute('data-file-id')),
+    );
+    expect(treeFileIdsInOrder.length).toBeGreaterThan(1);
+
+    const listToggle = navigation.getByRole('button', { name: /View as (list|tree)/ });
+    await listToggle.click();
+    const list = navigation.getByRole('listbox', { name: 'Changed files' });
+    await expect(list).toBeVisible();
+    await expect(tree).toHaveCount(0);
+
+    const listRows = list.locator('[role="option"]');
+    const listFileIdsInOrder = await listRows.evaluateAll((elements) =>
+      elements.map((element) => element.getAttribute('data-file-id')),
+    );
+    expect(listFileIdsInOrder).toEqual(treeFileIdsInOrder);
+
+    // Dimmed-directory rendering (21-VERIFICATION.md §3): each list row
+    // shows a muted `.path-text__directory` segment, dimmed via
+    // `--text-muted`. Per PathText.vue's actual template
+    // (src/web/components/ui/PathText.vue), the directory span precedes the
+    // filename span in DOM order; 21-VERIFICATION.md's "filename first"
+    // wording does not match the shipped markup — see this plan's SUMMARY
+    // for the deviation note.
+    const controlListRow = list.locator(`[role="option"][data-file-id="${controlFileId}"]`);
+    await expect(controlListRow.locator('.path-text__directory')).toBeVisible();
+    await expect(controlListRow.locator('.path-text__directory')).toContainText('control/');
+    await expect(controlListRow.locator('.path-text__filename')).toContainText('line\\nbreak.ts');
+    await expect(controlListRow.locator('.path-text__directory')).toHaveCSS('color', 'rgb(167, 177, 189)');
+    const segmentClasses = await controlListRow
+      .locator('.path-text__directory, .path-text__filename')
+      .evaluateAll((elements) => elements.map((element) => element.className));
+    expect(segmentClasses).toEqual(['path-text__directory', 'path-text__filename']);
+
+    // Keyboard parity with tree mode: Home/End/ArrowUp/ArrowDown move
+    // focus, Enter/Space activate — same keys, same resulting file order.
+    const firstRow = listRows.first();
+    const lastRow = listRows.last();
+    const secondRow = listRows.nth(1);
+    const lastRowFileId = listFileIdsInOrder.at(-1);
+    const secondRowFileId = listFileIdsInOrder[1];
+    expect(lastRowFileId).not.toBeNull();
+    expect(secondRowFileId).not.toBeNull();
+
+    await firstRow.focus();
+    await page.keyboard.press('Home');
+    await expect(firstRow).toBeFocused();
+    await page.keyboard.press('End');
+    await expect(lastRow).toBeFocused();
+    await page.keyboard.press('ArrowUp');
+    await expect(lastRow).not.toBeFocused();
+    await page.keyboard.press('ArrowDown');
+    await expect(lastRow).toBeFocused();
+
+    await page.keyboard.press('Space');
+    await expect(lastRow).toHaveAttribute('aria-selected', 'true');
+    await expect
+      .poll(() => fileRequests.some((request) => request.pathname === `/api/files/${lastRowFileId}/content`))
+      .toBe(true);
+
+    // Enter on a row other than the already-selected `firstRow` (whichever
+    // file loaded by default on page open) so a fresh content fetch proves
+    // the key actually activates, not merely that the row was already open.
+    await page.keyboard.press('Home');
+    await expect(firstRow).toBeFocused();
+    await page.keyboard.press('ArrowDown');
+    await expect(secondRow).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(secondRow).toHaveAttribute('aria-selected', 'true');
+    await expect
+      .poll(() => fileRequests.some((request) => request.pathname === `/api/files/${secondRowFileId}/content`))
+      .toBe(true);
+
+    await expect.poll(() => browserErrors).toEqual([]);
+  } finally {
+    await stopGeneratedCli(running);
+    await repository.cleanup();
+  }
+});
+
 test('component tree replacement preserves opaque state without selecting again', async ({
   browser,
   page,
