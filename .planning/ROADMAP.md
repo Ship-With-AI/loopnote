@@ -45,6 +45,7 @@ the shell.
 - [x] **Phase 23: Inline Comment Threads** - A multi-zone Monaco adapter rework renders every comment as an expanded-by-default view-zone thread with its own editor-title navigation icons and ⌥F9/⇧⌥F9 shortcuts, gated by an explicit pointer/keyboard go/no-go spike. (completed 2026-11-05)
 - [x] **Phase 24: Bottom Panel & Export** - Comments/Summary/Export live in the ⌘J bottom panel, including the agent-attached Finish action behind the export readiness gate. (completed 2026-11-06)
 - [x] **Phase 25: Accessibility, Design Docs & Regression Sweep** - A toolbar role/name audit closes the accepted toolbar-roles debt, every popover/menu/live-region is keyboard-accessible, the full suite passes with same-phase locator updates, and `DESIGN.md` describes the shipped workbench. (completed 2026-11-06)
+- [ ] **Phase 25.1: Refresh Session Resync (INSERTED)** - Refresh re-syncs the visible session (tree, navigation, editor, status bar) and the post-Refresh summary's file links open their files; closes the v2.1 audit blocker.
 
 <details>
 <summary>✅ v2.0 Artifact Review (Phases 13–18) — SHIPPED 2026-11-04</summary>
@@ -304,6 +305,21 @@ Plans:
 
 **UI hint**: yes
 
+### Phase 25.1: Refresh Session Resync (INSERTED)
+
+**Goal**: Reviewers who Refresh an uncommitted or standalone session see the recaptured file set everywhere — changed-files tree, file navigation, editor, status bar — and every jump link in the post-Refresh summary opens its file. Closes the v2.1 milestone-audit blocker (`.planning/v2.1-MILESTONE-AUDIT.md`): `performRefresh()` never re-syncs `session.value` (pre-existing since v2.0 Phase 14), and `RefreshSummaryPanel` emits paths into the fileId-keyed `selectFile()`.
+**Depends on**: Phase 25
+**Requirements**: IDENT-04, SHELL-05 (gap closure)
+**Success Criteria** (what must be TRUE):
+
+  1. After Refresh in a Staged, Unstaged, Working-tree, or standalone session where files were added, removed, and modified since capture, the changed-files tree, flat list, footer totals, ⌥↑/⌥↓ order, status bar, and identity pill/popover all reflect the new snapshot without a reload.
+  2. Every added/removed/modified link in the post-Refresh summary opens its file (removed files resolve to their unavailable/deleted state, not a no-op), by mouse and keyboard.
+  3. The selected file, its comments and threads (THREAD-08), any in-progress edit text, and panel/side-bar state survive Refresh; if the selected file disappeared, selection moves to a defined neighbour with one announcement.
+  4. A packaged-binary e2e test creates, edits, and deletes files mid-session, triggers Refresh from the title bar, the popover, and ⌥⇧R, and asserts all of the above; full suites stay at the v2.0-baseline-or-better counts.
+
+**Plans**: TBD
+**UI hint**: yes
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -322,6 +338,7 @@ Plans:
 | 23. Inline Comment Threads | v2.1 | 8/8 | Complete    | 2026-11-05 |
 | 24. Bottom Panel & Export | v2.1 | 11/11 | Complete    | 2026-11-06 |
 | 25. Accessibility, Design Docs & Regression Sweep | v2.1 | 5/5 | Complete   | 2026-11-06 |
+| 25.1. Refresh Session Resync | v2.1 | 0/0 | Not started | - |
 
 ## Backlog
 

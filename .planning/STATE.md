@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Workbench Redesign
-current_phase: 25
-current_phase_name: Accessibility, Design Docs & Regression Sweep
+current_phase: 25.1
+current_phase_name: INSERTED, audit gap closure
 status: verifying
 stopped_at: Completed 25-03-PLAN.md
-last_updated: "2026-11-06T02:54:46.027Z"
+last_updated: "2026-11-06T08:26:46.287Z"
 last_activity: 2026-11-06
-last_activity_desc: Phase 24 complete, transitioned to Phase 25
+last_activity_desc: Completed 25-04-PLAN.md, phase verification, and phase-completion bookkeeping (ROADMAP.md, REQUIREMENTS.md)
 progress:
   total_phases: 7
-  completed_phases: 6
-  total_plans: 46
-  completed_plans: 44
-  percent: 86
+  completed_phases: 7
+  total_plans: 50
+  completed_plans: 50
+  percent: 100
 ---
 
 # Project State
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-11-04)
 
 ## Current Position
 
-Phase: 25 — Accessibility, Design Docs & Regression Sweep (complete — final phase of v2.1)
+Phase: 25.1 — Refresh Session Resync (INSERTED, audit gap closure)
 Plan: 05 of 05 (complete) — full regression gate + Phase 21 deferred-item e2e coverage
 Status: 25-01/25-02/25-03/25-05/25-04 all complete; Phase 25 verified (see 25-VERIFICATION.md); milestone v2.1's remaining phase/milestone bookkeeping (audit, archival) is a separate workflow, not run here (--no-transition)
 Last activity: 2026-11-06 — Completed 25-04-PLAN.md, phase verification, and phase-completion bookkeeping (ROADMAP.md, REQUIREMENTS.md)
@@ -269,6 +269,7 @@ None yet.
 - 2026-09-08: Reconciled v1.5 MIT Distribution after the user explicitly abandoned proprietary restrictions. Phase order, all 19 requirement assignments, runtime-only packaging and unrelated publication safety gates remain unchanged.
 - 2026-10-30: Created v2.0 Artifact Review roadmap — Phases 13–18 (continuing from v1.6's Phase 12), coarse-granularity consolidation of research's suggested 8-phase structure into 6: 13 Single-Pane File Rendering, 14 Uncommitted Source Review & Frozen Snapshots, 15 Standalone File Review, 16 Rendered Markdown Preview, 17 Agent Protocol Extension & Marketplace Skill, 18 Product Repositioning Copy (last). 30/30 v2.0 requirements mapped, zero orphans; Phases 14, 15, 17 flagged for deeper research during planning per `research/SUMMARY.md`.
 - Phase 17.1 inserted after Phase 17: Full project rename (new name TBD): npm package, CLI command, .cumpa/ state dir with migration, request kind, GitHub repo, marketplace skill; before Phase 18 copy
+- Phase 25.1 inserted after Phase 25: Refresh Session Resync: v2.1 audit blocker — performRefresh() never re-syncs session.value; RefreshSummaryPanel select-file path/fileId mismatch (pre-existing since v2.0 Phase 14, required by IDENT-04/SHELL-05) (URGENT)
 
 ### Quick Tasks Completed
 
