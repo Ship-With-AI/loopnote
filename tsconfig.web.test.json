@@ -17,13 +17,16 @@
     "tests/integration/**/*.ts",
     "tests/unit/agent-ready-export-state.test.ts",
     "tests/unit/comment-groups.test.ts",
+    "tests/unit/comment-thread.test.ts",
     "tests/unit/draft-reconciliation.test.ts",
     "tests/unit/file-tree.test.ts",
+    "tests/unit/identity-pill.test.ts",
     "tests/unit/line-mapping.test.ts",
     "tests/unit/markdown-preview.test.ts",
     "tests/unit/monaco-diff-adapter.test.ts",
     "tests/unit/monaco-diff-semantics.test.ts",
     "tests/unit/monaco-theme.test.ts",
+    "tests/unit/status-bar.test.ts",
     "tests/unit/token-contract.test.ts",
     "tests/unit/workspace-state.test.ts"
   ]

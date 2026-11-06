@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { SessionResponse } from '../../src/contracts/api';
+import type { SessionResponse } from '../../src/contracts/api.js';
 import {
   identityAccessibleName,
   identityCanRefresh,

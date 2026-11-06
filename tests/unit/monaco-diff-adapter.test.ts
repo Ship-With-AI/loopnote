@@ -17,7 +17,7 @@ const mocks = vi.hoisted(() => {
     const removeZone = vi.fn();
     const layoutZone = vi.fn();
     return {
-      addAction: vi.fn(() => disposable()),
+      addAction: vi.fn((_descriptor: monaco.editor.IActionDescriptor) => disposable()),
       addZone,
       changeViewZones: vi.fn((change: (accessor: { addZone: typeof addZone; layoutZone: typeof layoutZone; removeZone: typeof removeZone }) => void) =>
         change({ addZone, layoutZone, removeZone })),
@@ -456,7 +456,7 @@ describe('PublicMonacoDiffAdapter keyed thread zones', () => {
     const nextThreadKeybinding = monaco.KeyMod.Alt | monaco.KeyMod.Shift | monaco.KeyCode.F9;
 
     for (const editor of [mocks.originalEditor, mocks.modifiedEditor]) {
-      const registrations = editor.addAction.mock.calls.map((call: [{ id: string; keybindings: number[] }]) => call[0]);
+      const registrations = editor.addAction.mock.calls.map((call: [monaco.editor.IActionDescriptor]) => call[0]);
       const previous = registrations.find((call: { id: string }) =>
         call.id.endsWith('.previous-thread-base') || call.id.endsWith('.previous-thread-head'));
       const next = registrations.find((call: { id: string }) =>
