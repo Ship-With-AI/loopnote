@@ -15,6 +15,7 @@ import {
   symlinkSync,
   writeFileSync,
 } from 'node:fs';
+import { rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -309,6 +310,106 @@ test(`packaged ${RENAME_MAP.binCommand} <path> opens a standalone file, accepts 
 
     await page.close();
   } finally {
+    await stopGeneratedCli(running);
+    await fixture.cleanup();
+  }
+});
+
+test('Standalone Refresh resyncs a directory through every entry point and preserves tree expansion', async ({ browser }) => {
+  const fixture = await createGitFixture();
+  const firstPath = 'src/first.ts';
+  const secondPath = 'src/second.ts';
+  const thirdPath = 'src/third.ts';
+  await fixture.write(firstPath, 'export const first = 1;\n');
+  await fixture.write(secondPath, 'export const second = 2;\n');
+  fixture.git(['add', '--', firstPath, secondPath]);
+  fixture.git(['commit', '-m', 'seed standalone refresh files']);
+  const running = startGeneratedStandaloneCli(fixture, ['src']);
+  const page = await browser.newPage();
+  try {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await openGeneratedStandaloneReview(page, await waitForLoopbackUrl(running), 2);
+    const firstRow = page.getByRole('treeitem', { name: /first\.ts/ });
+    const thirdRow = page.getByRole('treeitem', { name: /third\.ts/ });
+    const directory = page.getByRole('treeitem', { name: 'src/', exact: true });
+    const heading = page.getByRole('heading', { level: 1 });
+    const snapshot = page.locator('.statusbar__left');
+    const comments = page.getByRole('button', { name: /^Comments:/ });
+    await firstRow.click();
+    await activateSinglePaneLine(page, 'head', 'export const first = 1;', 1);
+    const composer = page.locator('.monaco-anchor-zone--composer');
+    const commentBody = 'Standalone comment survives Refresh.';
+    await composer.locator('textarea').fill(commentBody);
+    const saved = page.waitForResponse((response) => response.url().includes('/api/draft/mutations'));
+    await composer.locator('button').filter({ hasText: 'Add comment' }).click();
+    expect((await saved).status()).toBe(201);
+    await expect(comments).toHaveAccessibleName('Comments: 1 open');
+    await directory.click();
+    await expect(directory).toHaveAttribute('aria-expanded', 'false');
+
+    const beforeAdd = await snapshot.innerText();
+    await fixture.write(thirdPath, 'export const third = 3;\n');
+    await page.getByRole('button', { name: 'Refresh snapshot', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Since previous snapshot: 1 added', exact: true })).toBeVisible();
+    await expect(directory).toHaveAttribute('aria-expanded', 'false');
+    await expect(snapshot).toHaveText(beforeAdd);
+    await expect(page.locator('.identity-pill')).toContainText('3 files');
+    await expect(page.locator('.tree-footer')).toContainText('3 files');
+    await expect(heading).toHaveAttribute('title', firstPath);
+    await expect(comments).toHaveAccessibleName('Comments: 1 open');
+    await directory.click();
+    await expect(thirdRow).toBeVisible();
+    await page.getByRole('button', { name: thirdPath, exact: true }).click();
+    await expect(heading).toHaveAttribute('title', thirdPath);
+    await expect(page.getByRole('button', { name: 'Next file', exact: true })).toBeDisabled();
+    await page.keyboard.press('Alt+ArrowUp');
+    await expect(heading).toHaveAttribute('title', secondPath);
+    await page.keyboard.press('Alt+ArrowDown');
+    await expect(heading).toHaveAttribute('title', thirdPath);
+    await page.getByRole('button', { name: 'View as list', exact: true }).click();
+    await expect(page.getByRole('option', { name: /third\.ts/ })).toBeVisible();
+    await page.getByRole('button', { name: 'View as tree', exact: true }).click();
+
+    const beforeModify = await snapshot.innerText();
+    await fixture.write(firstPath, 'export const replaced = 99;\n');
+    await page.locator('.identity-pill').click();
+    const popover = page.getByRole('dialog', { name: 'Comparison', exact: true });
+    await popover.getByRole('button', { name: /Refresh/ }).click();
+    await expect(page.getByText('1 comment now orphaned', { exact: true })).toBeVisible();
+    await expect(page.getByText(commentBody, { exact: true })).toBeVisible();
+    await expect(comments).toHaveAccessibleName('Comments: 1 open, 1 stale');
+    await expect(snapshot).toHaveText(beforeModify);
+    await expect(popover.getByRole('button', { name: /Refresh/ })).toBeEnabled();
+    await expect(popover.locator('.identity-popover__row').filter({ hasText: 'Snapshot' }).locator('dd'))
+      .toHaveText((await snapshot.innerText()).trim());
+    await page.keyboard.press('Escape');
+    const modifiedLink = page.getByRole('button', { name: firstPath, exact: true });
+    await modifiedLink.focus();
+    await page.keyboard.press('Enter');
+    await expect(heading).toHaveAttribute('title', firstPath);
+    await expect(page.locator('.diff-workspace__editor .view-line').filter({ hasText: 'export const replaced = 99;' })).toBeVisible();
+    await thirdRow.click();
+    await expect(heading).toHaveAttribute('title', thirdPath);
+    const beforeRemove = await snapshot.innerText();
+    await rm(join(fixture.root, thirdPath));
+    await page.keyboard.press('Alt+Shift+KeyR');
+    await expect(page.getByRole('heading', { name: 'Since previous snapshot: 1 removed', exact: true })).toBeVisible();
+    await expect(thirdRow).toHaveCount(0);
+    await expect(page.locator('.identity-pill')).toContainText('2 files');
+    await expect(page.locator('.tree-footer')).toContainText('2 files');
+    const fallbackPath = [firstPath, secondPath].sort().at(-1)!;
+    await expect(heading).toHaveAttribute('title', fallbackPath);
+    await expect(page.locator('.visually-hidden[aria-live="polite"]'))
+      .toHaveText(`${thirdPath} is no longer in the review; showing ${fallbackPath}`);
+    await expect(snapshot).toHaveText(beforeRemove);
+    const removed = page.locator('.refresh-summary-row--removed').filter({ hasText: thirdPath });
+    await expect(removed).toBeVisible();
+    await expect(removed.getByText('Removed', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: thirdPath, exact: true })).toHaveCount(0);
+    await expect(page.getByText(commentBody, { exact: true })).toBeVisible();
+    await expect(comments).toHaveAccessibleName('Comments: 1 open, 1 stale');
+  } finally {
+    await page.close();
     await stopGeneratedCli(running);
     await fixture.cleanup();
   }
