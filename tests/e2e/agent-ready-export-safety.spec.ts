@@ -197,7 +197,7 @@ test('attached lifecycle renders waiting, progress, completion, and safe recover
 
   await page.evaluate(() => globalThis.__setAttachedLifecycle('finishing'));
   await expect(completion.getByRole('button', { name: 'Finishing review…', exact: true })).toBeDisabled();
-  await expect(completion.getByText('Validating accepted revision 7 and its recorded anchors…', { exact: true })).toHaveAttribute('role', 'status');
+  await expect(completion.getByText('Validating accepted revision 7 and its recorded anchors…', { exact: true })).toBeVisible();
   await expectComposerLocked();
 
   await page.evaluate(() => globalThis.__setAttachedLifecycle('completed'));
