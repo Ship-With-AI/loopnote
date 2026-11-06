@@ -130,7 +130,7 @@ watch(() => props.exportState.phase, (phase) => {
         </header>
 
         <template v-if="attachedLifecycle === 'completed'">
-          <div class="inline-notice inline-notice--success" role="status">
+          <div class="inline-notice inline-notice--success">
             <UiIcon name="check" class="inline-notice__icon" />
             <div class="inline-notice__content">
               <h4 ref="completionSuccess" tabindex="-1">Review finished</h4>
@@ -143,7 +143,7 @@ watch(() => props.exportState.phase, (phase) => {
           <button ref="completionAction" type="button" class="ui-button ui-button--primary attached-completion__action" disabled aria-busy="true">
             <span class="ui-spinner" aria-hidden="true" />Finishing review…
           </button>
-          <p class="attached-completion__progress" role="status" aria-live="polite">Validating accepted revision {{ revision }} and its recorded anchors…</p>
+          <p class="attached-completion__progress">Validating accepted revision {{ revision }} and its recorded anchors…</p>
         </template>
 
         <template v-else-if="attachedLifecycle === 'waitingDisconnected'">

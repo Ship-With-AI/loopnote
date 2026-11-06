@@ -736,6 +736,7 @@ function finishAttachedReview(): void {
   if (!attachedFinishReady.value || current === undefined || sessionClient === undefined) return;
 
   attachedLifecycle.value = 'finishing';
+  announce(`Validating accepted revision ${current.canonical.revision} and its recorded anchors.`);
   attachedResult.value = undefined;
   void sessionClient.finishReview({ expectedRevision: current.canonical.revision }).then((result) => {
     attachedResult.value = result;
@@ -743,6 +744,7 @@ function finishAttachedReview(): void {
       case 'completed':
       case 'alreadyCompleted':
         attachedLifecycle.value = 'completed';
+        announce('Review finished.');
         return;
       case 'deliveryFailed':
         attachedLifecycle.value = 'terminalFailure';

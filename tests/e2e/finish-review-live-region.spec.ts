@@ -204,9 +204,16 @@ test('Finish review announces the validating-start and completed transitions exa
 
     // No second live region remains, proven at each lifecycle state in turn
     // (the progress paragraph only exists while `attachedLifecycle` is
-    // `'finishing'`; the success notice replaces it once completed).
-    await expect(completion.locator('.attached-completion__progress')).not.toHaveAttribute('aria-live');
-    await expect(completion.locator('.attached-completion__progress')).not.toHaveAttribute('role');
+    // `'finishing'`; the success notice replaces it once completed). A
+    // single evaluate reads both attributes in one round trip, since two
+    // separate polling assertions would straddle the fast finishing ->
+    // completed transition.
+    const progressAttributes = await completion.locator('.attached-completion__progress').evaluate((element) => ({
+      ariaLive: element.getAttribute('aria-live'),
+      role: element.getAttribute('role'),
+    }));
+    expect(progressAttributes.ariaLive).toBeNull();
+    expect(progressAttributes.role).toBeNull();
 
     expect((await finished).status()).toBe(201);
 
