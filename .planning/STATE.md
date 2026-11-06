@@ -5,15 +5,15 @@ milestone_name: Workbench Redesign
 current_phase: 25
 current_phase_name: Accessibility, Design Docs & Regression Sweep
 status: verifying
-stopped_at: Completed 20-10-PLAN.md
-last_updated: "2026-11-06T01:00:10.635Z"
+stopped_at: Completed 25-03-PLAN.md
+last_updated: "2026-11-06T02:54:46.027Z"
 last_activity: 2026-11-06
 last_activity_desc: Phase 24 complete, transitioned to Phase 25
 progress:
   total_phases: 7
   completed_phases: 6
   total_plans: 46
-  completed_plans: 41
+  completed_plans: 44
   percent: 86
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-11-04)
 ## Current Position
 
 Phase: 25 — Accessibility, Design Docs & Regression Sweep
-Plan: Not started
-Status: Phase 23 verified (0 gaps) — human verification pending (see 23-UAT.md)
-Last activity: 2026-11-06 — Phase 24 complete, transitioned to Phase 25
+Plan: 03 of 05 (complete) — DESIGN.md rewrite + flaky-spec triage
+Status: 25-01/25-02/25-03 complete; 25-04 and 25-05 remain
+Last activity: 2026-11-06 — Completed 25-03-PLAN.md
 
 ## Performance Metrics
 
@@ -118,6 +118,7 @@ Last activity: 2026-11-06 — Phase 24 complete, transitioned to Phase 25
 | Phase 20-shell-frame P08 | 15min | 2 tasks | 1 files |
 | Phase 20-shell-frame P09 | 180 | - tasks | - files |
 | Phase 20-shell-frame P10 | 35min | 2 tasks | 0 files |
+| Phase 25 P03 | 45min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -245,6 +246,8 @@ Decisions are logged in PROJECT.md Key Decisions.
 - [Phase 20-shell-frame]: 20-08: agent-attached kind reuses plain stdin review-request mechanism, no custody-gated harness needed — Read src/cli/run.ts/capabilities.ts directly: every non-interactive stdin review-request (revisions/uncommitted/files/patch) always wires attachedCompletion server-side, so a plain revisions request over stdin (same mechanism pinned-session.spec.ts's existing 'generated range request' test already uses) reaches attachedLifecycle='waiting' without any custody-gated playwright.runtime-artifact.config.ts registration
 - [Phase ?]: 20-09: Verified locator mappings against actual source; fixed 3 production CSS bugs (editor flex context, session-shell grid-rows, EditorTitle narrow-width/single-pane) surfaced by required full-suite run
 - [Phase 20-shell-frame]: 20-10 confirmed c0c755c (20-09's deviation commit) already satisfied every A11Y-03 locator gap this plan targeted; zero new code changes needed. — Resolved the test:runtime-artifact custody-gate locally via pack:runtime-artifact's development-check/deployment-check purposes with a synthetic supabase-shaped support origin; no source change required.
+- [Phase 25]: Kept 25-UI-SPEC.md's locked DESIGN.md Components text verbatim despite it containing a contrastive 'review rail's' mention that makes the plan's own grep-count-0 check read 1 — The plan's double-stated 'verbatim, no paraphrasing' instruction for the approved locked design-doc contract outweighs a shallow automated grep heuristic that didn't anticipate the locked text's own contrastive phrasing
+- [Phase 25]: Left test.setTimeout unchanged at 90_000 in rendered-markdown-security.spec.ts and anchored-review.spec.ts — repeat-each=5 (15/15, 25/25 passed) and forced-contention reproduction (15 concurrent pack-runtime.mjs invocations racing each spec's beforeAll lock) both passed well under 90s with no failure, so there was no evidence raising the timeout would fix anything; documented in STATE.md Deferred Items instead
 
 ### Pending Todos
 
@@ -307,8 +310,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-11-04T22:23:47.131Z
-Stopped at: Completed 20-10-PLAN.md
+Last session: 2026-11-06T02:54:46.022Z
+Stopped at: Completed 25-03-PLAN.md
 Resume file: None
 
 ## Operator Next Steps

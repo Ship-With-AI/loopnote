@@ -20,7 +20,7 @@
 ### Design Tokens & Contract
 
 - [x] **TOK-01**: Reviewer sees the workspace rendered with workbench geometry tokens (22px rows, 264px side bar, 32/35/24/22px title, editor-title, breadcrumb, and status heights, 4px control and 6px overlay radius, 20px code line height) over unchanged colour roles, and `npm run verify:semantic-css` passes.
-- [ ] **TOK-02**: Contributors read a `DESIGN.md` whose Composition, Geometry, and Components sections describe the shipped workbench, with no review rail or identity header band.
+- [x] **TOK-02**: Contributors read a `DESIGN.md` whose Composition, Geometry, and Components sections describe the shipped workbench, with no review rail or identity header band.
 
 ### Workbench Shell
 
@@ -119,7 +119,7 @@ Deferred, tracked but not in the v2.1 roadmap.
 | TYPE-01 | Phase 19 | Complete |
 | TYPE-02 | Phase 19 | Complete |
 | TOK-01 | Phase 20 | Complete |
-| TOK-02 | Phase 25 | Pending |
+| TOK-02 | Phase 25 | Complete |
 | SHELL-01 | Phase 20 | Complete |
 | SHELL-02 | Phase 20 | Complete |
 | SHELL-03 | Phase 20 | Complete |
