@@ -12,7 +12,6 @@ import DriftExportAcknowledgement from './DriftExportAcknowledgement.vue';
 import ExportProgress from './ExportProgress.vue';
 import ReviewStateBadge from './ui/ReviewStateBadge.vue';
 import UiIcon from './ui/UiIcon.vue';
-import PathText from './ui/PathText.vue';
 import GitignoreStatus from './GitignoreStatus.vue';
 import ExportReceipt from './ExportReceipt.vue';
 
