@@ -10,9 +10,9 @@ A developer can accurately review repository-grounded changes chosen by a develo
 
 ## Current State
 
-**Shipped:** v2.0 Artifact Review on 2026-11-04 (closed without a milestone audit, by
-operator choice). `@shipwithai/loopnote@2.0.0` is `latest` on npm; the `loopnote` command
-replaces `cumpa`, and existing support state migrates once from the old Cumpa path.
+**Published:** `@shipwithai/loopnote@2.1.0` is npm `latest` as of 2026-11-07. The exact CI artifact, signatures/provenance, isolated global install and literal npx consumer are verified; see the [release receipt](./quick/261107-g4w-publish-loopnote-2-1-0-through-verified-/261107-g4w-SUMMARY.md).
+
+**Previously shipped:** v2.0 Artifact Review on 2026-11-04 (closed without a milestone audit, by operator choice). The `loopnote` command replaced `cumpa`, and existing support state migrates once from the old Cumpa path.
 
 v2.0 delivered 35/35 requirements across 7 phases (13–18 plus inserted 17.1), 70 plans:
 single-pane added/deleted files; Staged/Unstaged/Working-tree review from a content-addressed
@@ -25,7 +25,7 @@ Known deferred at close (STATE.md Deferred Items): the terminal `r` refresh need
 human check (Phase 14), and multi-file `workingTreeChangedAfterFinalSnapshot.paths` lacks a
 test (Phase 17).
 
-**Completed locally:** v2.1 Workbench Redesign on 2026-11-07: 8 phases, 53 plans, 45/45 requirements covered under the approved design interpretations. The refreshed milestone audit is `tech_debt`, with no integration blockers; retained debt is explicit in the audit and STATE.md. This source-milestone close is not an npm release: the package remains `@shipwithai/loopnote@2.0.0`, tagging is disabled, and nothing is pushed or published by closeout.
+**Completed milestone:** v2.1 Workbench Redesign on 2026-11-07: 8 phases, 53 plans, 45/45 requirements under the approved design interpretations. The accepted audit remains `tech_debt`, with no integration blocker; retained debt is explicit in the audit and STATE.md. Source closeout preceded separate operator authorization for the main/tag push and npm 2.1.0 publication. The milestone tag `v2.1` and package version `2.1.0` are distinct; no next milestone is scoped.
 
 <details>
 <summary>State at v1.6 / v1.5 close (2026-09-15)</summary>
@@ -317,7 +317,7 @@ No active milestone. Carried-forward candidates remain unscheduled until `/gsd:n
 
 ## Context
 
-Loopnote has completed nine source milestones: the local browser-review-to-agent loop, a GitHub-dark accessible workspace, scalable source discovery, strict agent handoff, voluntary support, MIT distribution, canonical-token restyling, artifact review beyond committed ranges, and the v2.1 workbench redesign. v2.1 is closed locally; npm publication remains at the separately released v2.0 package.
+Loopnote has completed nine source milestones: the local browser-review-to-agent loop, a GitHub-dark accessible workspace, scalable source discovery, strict agent handoff, voluntary support, MIT distribution, canonical-token restyling, artifact review beyond committed ranges, and the v2.1 workbench redesign. The workbench is published in npm 2.1.0 through a separately approved, verified trusted-publishing run.
 
 Committed comparisons remain ordered and frozen to full commit IDs: the displayed change is the merge base of those commits compared with the selected head. Since v2.0, uncommitted (Staged/Unstaged/Working tree) and standalone sessions review a content-addressed snapshot captured at launch instead; dirty bytes enter the review only through that frozen snapshot, and Refresh appends a new snapshot and reclassifies every comment.
 
@@ -418,7 +418,9 @@ Retained debt includes the default panel's below-fold Export/Finish action, the 
 | Refresh every current-session consumer and always reload a surviving selected path | Stable file IDs and an empty retry delta cannot prove cached bytes fresh | ✓ Good — four refreshable kinds plus failed-session-load retry pass current-content assertions |
 | Save every nonempty composer against its origin before recapture; lock mutation while settling | Prevent off-screen draft loss and typing into a stale snapshot | ✓ Good — failed saves pause recapture, retry persists the origin, and mounted input locks |
 | Keep v2.1 desktop-only with draft/export/agent schemas unchanged | Deliver the workbench without silently adding replies, viewed tracking or narrow-layout scope | ✓ Good — those features remain explicitly deferred |
-| Close v2.1 locally with documented debt and tagging disabled | Separate a verified source milestone from registry publication and optional Git tagging | ✓ Approved 2026-11-07 — audit tech_debt accepted; no push, tag or npm release |
+| Close v2.1 locally with documented debt and tagging disabled by default | Separate source completion from registry publication and optional Git tagging | ✓ Approved 2026-11-07 — source closeout only; subsequent main/tag push and npm 2.1.0 publication were separately authorized |
+| Publish 2.1.0 from one SHA-pinned CI candidate with exact-byte approval | Preserve immutable artifact custody, provenance and one-shot publication without collateral deployment | ✓ Verified 2026-11-07 — run 42365448405/1; registry/global/npx checks passed; temporary release transports revoked |
+
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
@@ -437,4 +439,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with the current product state and feedback.
 
 ---
-*Last updated: 2026-11-07 — v2.1 Workbench Redesign completed locally with documented debt; no npm publication*
+*Last updated: 2026-11-07 — npm 2.1.0 published and independently verified; v2.1 milestone debt retained*

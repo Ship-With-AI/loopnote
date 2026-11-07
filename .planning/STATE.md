@@ -4,10 +4,10 @@ milestone: v2.1
 milestone_name: Workbench Redesign
 current_phase: null
 status: complete
-stopped_at: v2.1 completed locally with documented debt; awaiting explicit next-milestone scope
-last_updated: "2026-11-07T10:09:51+00:00"
+stopped_at: npm 2.1.0 published and verified; no next milestone started
+last_updated: "2026-11-07T11:05:50+00:00"
 last_activity: 2026-11-07
-last_activity_desc: v2.1 local closeout complete; archives, retrospective and active-requirements reset recorded
+last_activity_desc: Quick task 261107-g4w published verified npm 2.1.0; temporary release transports revoked
 progress:
   total_phases: 8
   completed_phases: 8
@@ -24,14 +24,14 @@ current_phase_name: null
 See: .planning/PROJECT.md (updated 2026-11-07)
 
 **Core value:** A developer can accurately review repository-grounded changes chosen by a developer or coding agent and return precise, drift-detectable feedback the agent can act on.
-**Current focus:** v2.1 completed locally with documented debt. No next milestone is scoped or active; package remains 2.0.0.
+**Current focus:** v2.1 milestone complete; `@shipwithai/loopnote@2.1.0` published and independently verified. No next milestone is scoped or active.
 
 ## Current Position
 
 Phase: None — completed milestone archived
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-11-07 — v2.1 closed with documented debt; 176 phase artifacts archived, retrospective complete, root requirements removed after safety checkpoint 514f32a
+Last activity: 2026-11-07 — Completed quick task 261107-g4w: verified npm 2.1.0 publication from source 326c0b5 through CI run 42365448405/1
 
 ## Performance Metrics
 
@@ -297,6 +297,7 @@ None yet.
 | 261031-au0 | Fix complete-review-draft e2e regression from Phase 13 single-pane rendering | 2026-10-31 | 25eedc2 | Verified | [261031-au0-fix-complete-review-draft-e2e-regression](./quick/261031-au0-fix-complete-review-draft-e2e-regression/) |
 | 261031-q09 | Fix open-runtime-session helper stale .monaco-diff-editor assertion | 2026-10-31 | 5bde4cd | Verified | [261031-q09-fix-open-runtime-session-helper-stale-mo](./quick/261031-q09-fix-open-runtime-session-helper-stale-mo/) |
 | 261103-gl9 | Fix selector-drift-ui exact-patch fixture ZodError (spec :423/:441) | 2026-11-03 | 7d4fd07 | Verified | [261103-gl9-fix-selector-drift-ui-exact-patch-fixtur](./quick/261103-gl9-fix-selector-drift-ui-exact-patch-fixtur/) |
+| 261107-g4w | Publish verified Loopnote 2.1.0 through trusted npm workflow | 2026-11-07 | 326c0b5 | Verified | [261107-g4w-publish-loopnote-2-1-0-through-verified-](./quick/261107-g4w-publish-loopnote-2-1-0-through-verified-/) |
 
 ## Deferred Items
 
@@ -318,12 +319,12 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-11-07T10:09:51+00:00
-Stopped at: v2.1 completed locally with documented debt; no next milestone started
+Last session: 2026-11-07T11:05:50+00:00
+Stopped at: npm 2.1.0 published and verified; release receipt recorded, no next milestone started
 Resume file: None
 
 ## Operator Next Steps
 
 - Use `/gsd:new-milestone` only after explicit next-scope selection; no next milestone has started.
 - v2.1 evidence lives under `.planning/milestones/v2.1-*`; the original untracked phase `.gitkeep` remains untouched and is not an active plan.
-- Tagging stays disabled; no push or npm publication is part of this closeout.
+- npm 2.1.0 is published and verified; temporary release transports are revoked. Release-receipt updates remain local unless separately authorized for pushing.
