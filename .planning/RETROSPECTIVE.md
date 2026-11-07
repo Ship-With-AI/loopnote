@@ -240,6 +240,61 @@
 
 ---
 
+## Milestone: v2.1 — Workbench Redesign
+
+**Completed locally:** 2026-11-07; implementation 2026-11-04 through 2026-11-06.
+**Scope:** 8 phases (19–25.1), 53 plans, 45/45 requirements under approved design interpretations.
+**Disposition:** Accepted `tech_debt`, no integration blocker; source milestone only, package remains 2.0.0.
+
+### What We Built
+
+A resizable five-region workbench, keyboard-accessible file explorer, comparison/drift controls, inline comment lifecycle, and Comments/Summary/Export panel over the existing review authorities. Whole-tree Vue typing, accessibility/documentation gates, and current-content Refresh completed the cutover without changing draft/export/agent schemas.
+
+### What Worked
+
+- Closing the Vue typecheck gap before decomposition exposed real narrowing and shared-type errors rather than carrying a baseline into the redesign.
+- A measured Monaco overlay-widget spike established usable pointer/keyboard behaviour before building inline thread controls on it.
+- Existing session, persistence and export authorities supported all five session kinds; a source/consumer audit found all 25 named contracts wired.
+- Packaged Refresh scenarios asserted inventory, selected bytes, navigation targets, summary writes and comment/layout preservation, not just a successful response.
+- Independent origin-owned composer settlement, explicit input locking and failed-load retry evidence closed actual data-loss/staleness paths.
+- Evidence-backed metadata reconciliation resolved Phase 22's stale human-needed status and the legacy quick-task unknown status without inventing fresh measurements.
+
+### What Was Inefficient
+
+- SUMMARY metadata lagged delivered behaviour: only 43/45 IDs had canonical completion metadata, and 14 of 53 summaries omitted task totals. Closeout needed manual grounding for PANEL-04/PANEL-05 and a qualified task count.
+- Initial Refresh work still trusted stable file IDs and net comparison deltas. A surviving path could retain old bytes, and retry after a failed session load could report an empty delta; final acceptance needed a dedicated gap-closure plan.
+- An unconfigured 14-pass/2-fail runtime run was not valid configured-runtime evidence. The setup was corrected and all 16 configured checks passed; the rejected run is not current product debt.
+- ROADMAP counts, quick-task status and verifier frontmatter diverged from existing proof. Repairing records at closeout cost avoidable cross-source reconstruction.
+- Canonical milestone closure inferred an active Phase 1 from the version-bearing phase sentence and retained stale approval/continuity text. Explicit final STATE reconciliation was required.
+- Moving the roadmap exposed relative historical links and duplicate-H1 link ambiguity. Rebased paths and explicit title anchors repaired the archive presentation; no live source/test/script/CI phase-path consumers required migration.
+
+### Patterns Established
+
+- Stable identity is not freshness: reload the surviving selected path after recapture, including a net-zero-delta retry.
+- Every nonempty composer belongs to its immutable origin; settle it before capture and lock mutation until settlement/reconciliation completes.
+- Persist layout preferences but keep workflow tab/expansion state session-scoped.
+- One announcement owner per audited outcome; unrelated widget-status regions remain independent.
+- Keep approved design substitutions explicit: real identity data, selector/source-drift acknowledgement rather than per-anchor acknowledgement, and nominal geometry versus measured decorated rows.
+- Archive tracked phase artifacts with a file manifest and byte hashes; preserve unrelated untracked content. All 176 phase artifacts retained their SHA-256, and Backlog stayed byte-for-byte identical.
+
+### Key Lessons
+
+1. Inventory, bytes, selection and mutable buffers are separate Refresh authorities; prove every consumer after recapture, not only the session digest.
+2. Test retry against the persisted baseline after partial success. An empty latest delta does not mean the client has reconciled.
+3. Origin-owned writes and locked editors prevent draft loss more reliably than last-moment warnings.
+4. Distinguish a development-check package, configured runtime custody, and an approved registry publication; none silently authorizes the next.
+5. Record accepted visual proof in verifier metadata and traceability in the same phase-close commit.
+6. After phase archival, MILESTONES/STATE and the archived plans are authoritative; active-directory counters can legitimately report 0/0.
+
+### Cost Observations
+
+- Model mix and session counts: Not measured.
+- Recorded tasks: 91 across 39 summaries; 14 summaries omit totals, so 91 is not exhaustive.
+- Inclusive implementation range `4ebde97^..a4c58a8`: 339 commits including planning/reviews, 283 changed files, +39,562 / −1,984; three calendar dates.
+- Prior final-source proof: 987 aggregate Vitest tests across 92 files, 161 browser checks, 16 configured-runtime checks; fresh close-audit proof: both test typechecks and 42 packaged-browser checks.
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -252,6 +307,7 @@
 | v1.3 | 4 | 14 | Established strict agent handoff, immutable range/patch grounding, explicit Finish, and invocation isolation |
 | v1.4 | 2 | 22 | Established optional capability absence, Supabase webhook authority, immutable live-promotion evidence, and provider-runtime retirement |
 | v2.0 | 7 | 70 | Established frozen content-addressed snapshots for uncommitted/standalone review, additive export-schema supersets, and `RENAME_MAP`-derived identity with a live-tree rename audit |
+| v2.1 | 8 | 53 | Established whole-tree Vue typing, measured Monaco thread controls, origin-owned Refresh settlement/locking, and byte-verified milestone archival |
 
 ### Cumulative Quality
 
@@ -263,6 +319,7 @@
 | v1.3 | Focused Git/API/CLI/package gates passed | 17/17 | 10/10 | 10/10 |
 | v1.4 | Focused Vitest, Deno, and database gates passed | Not applicable | 10/10 local support API | Local and hosted support flows passed | 12/12 | 8/8 | 8/8 |
 | v2.0 | `npm test` incl. rename audit | Fixture-verified worktree inventory | Snapshot/refresh/recovery routes | Packaged-binary e2e per phase (2 pre-existing selector-drift failures fixed by `261103-gl9`) | 35/35 | Not audited | Not audited |
+| v2.1 | 987 aggregate Vitest tests / 92 files (includes Git/API) | Included in aggregate; no split recorded | Included in aggregate; no split recorded | 161 full browser; 16 configured runtime; 42 fresh audit subset | 45/45 under approved design interpretations | 25/25 named contracts wired | 11/11 bounded journey categories wired |
 
 ### Top Lessons (Verified Across Milestones)
 
@@ -274,3 +331,7 @@
 5. Optional hosted functionality should disappear completely when unconfigured rather than expose dormant routes or arbitrary-origin seams.
 6. A superseded phase needs explicit audit disposition even when a later phase removes its runtime and verifies every requirement.
 7. Contradictory planning status (ROADMAP progress, REQUIREMENTS traceability, verification) accumulates silently within a milestone; reconcile it at each phase close, not at milestone close.
+8. Stable IDs do not prove freshness; verify inventory and selected content after recapture, including partial-failure/net-zero-delta retry.
+9. Mutable drafts must settle against immutable origin ownership before recapture; lock editing until the state transition finishes.
+10. Package custody and publication authority are separate; corrected configured-runtime proof does not publish a registry release.
+11. Milestone archives need usable references and complete byte manifests, not empty directories or stale active-phase counters.

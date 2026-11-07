@@ -5,9 +5,9 @@ milestone_name: Workbench Redesign
 current_phase: null
 status: complete
 stopped_at: v2.1 completed locally with documented debt; awaiting explicit next-milestone scope
-last_updated: "2026-11-07T09:57:36+00:00"
+last_updated: "2026-11-07T10:09:51+00:00"
 last_activity: 2026-11-07
-last_activity_desc: v2.1 completed locally and archived; no tag, push or npm publication
+last_activity_desc: v2.1 local closeout complete; archives, retrospective and active-requirements reset recorded
 progress:
   total_phases: 8
   completed_phases: 8
@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-11-07)
 Phase: None — completed milestone archived
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-11-07 — v2.1 completed locally with documented debt; canonical archives and phase archival selected
+Last activity: 2026-11-07 — v2.1 closed with documented debt; 176 phase artifacts archived, retrospective complete, root requirements removed after safety checkpoint 514f32a
 
 ## Performance Metrics
 
@@ -318,7 +318,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-11-07T09:57:36+00:00
+Last session: 2026-11-07T10:09:51+00:00
 Stopped at: v2.1 completed locally with documented debt; no next milestone started
 Resume file: None
 
