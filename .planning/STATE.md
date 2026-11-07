@@ -2,36 +2,36 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Workbench Redesign
-current_phase: 25.1
-status: verifying
-stopped_at: Phase 25.1 verified (11/11); v2.1 remains open for milestone audit
-last_updated: "2026-11-06T19:32:33.840Z"
-last_activity: 2026-11-06
-last_activity_desc: Phase 25.1 complete
+current_phase: null
+status: complete
+stopped_at: v2.1 completed locally with documented debt; awaiting explicit next-milestone scope
+last_updated: "2026-11-07T09:57:36+00:00"
+last_activity: 2026-11-07
+last_activity_desc: v2.1 completed locally and archived; no tag, push or npm publication
 progress:
   total_phases: 8
   completed_phases: 8
   total_plans: 53
   completed_plans: 53
   percent: 100
-current_phase_name: refresh-session-resync
+current_phase_name: null
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-11-06)
+See: .planning/PROJECT.md (updated 2026-11-07)
 
 **Core value:** A developer can accurately review repository-grounded changes chosen by a developer or coding agent and return precise, drift-detectable feedback the agent can act on.
-**Current focus:** Phase 25.1 verified; v2.1 milestone audit pending (milestone remains open)
+**Current focus:** v2.1 completed locally with documented debt. No next milestone is scoped or active; package remains 2.0.0.
 
 ## Current Position
 
-Phase: 25.1
-Plan: 3 of 3 — complete
-Status: Phase complete — ready for verification
-Last activity: 2026-11-06 — Phase 25.1 complete
+Phase: None — completed milestone archived
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-11-07 — v2.1 completed locally with documented debt; canonical archives and phase archival selected
 
 ## Performance Metrics
 
@@ -310,18 +310,20 @@ None yet.
 | uat | Phase 14 `14-UAT.md`: 1 scenario pending (status `testing`) — terminal `r` refresh in a real TTY | Acknowledged | v2.0 close |
 | verification | Phase 14 `14-VERIFICATION.md`: `human_needed` — terminal `r` keypress must match browser Refresh; no harness supplies a TTY | Acknowledged | v2.0 close |
 | verification | Phase 17 `17-VERIFICATION.md`: `human_needed` (14/15) — no test with 2+ dirty files for `workingTreeChangedAfterFinalSnapshot.paths` | Acknowledged | v2.0 close |
-| quick_task | `260915-jbv-remove-details-review-keyboard-help`: status unknown | Acknowledged | v2.0 close |
-| Verification | `tests/unit/token-contract.test.ts`'s Vite-dev-server-reload test ("reloads the virtual token module after styles.css changes in a Vite dev server") exceeds Vitest's default 10s `testTimeout` under default file-parallelism — independently reproduced twice (`.planning/phases/20-shell-frame/20-VERIFICATION.md:239`, `.planning/phases/24-bottom-panel-export/24-01-SUMMARY.md:84`), confirmed absent under `--no-file-parallelism` (`.planning/phases/23-inline-comment-threads/23-VERIFICATION.md:85`); the phase-end gate command `npx vitest run --no-file-parallelism` already avoids the failure mode, so no fix is needed | Deferred | Phase 25 |
-| Verification | `tests/e2e/rendered-markdown-security.spec.ts` and `tests/e2e/anchored-review.spec.ts` share a hypothesized cross-process `pack-runtime.mjs` lock-contention flake (`acquireRuntimePackLock`, `scripts/pack-runtime.mjs:30,143-165`, 300s deadline / 50ms `Atomics.wait` poll; previously flagged in `.planning/phases/22-identity-status-bar/22-REVIEW-FIX.md:64`) — reproduced via `--repeat-each=5` on each spec (15/15 and 25/25 passed) plus a forced-contention run (15 sequential concurrent `pack-runtime.mjs --purpose development-check` invocations racing each spec's own `beforeAll` lock acquisition): both specs still passed (19.0s and 14.2s, well under the 90s `test.setTimeout`), no failure reproduced under either attempt, so `test.setTimeout` is left at `90_000` in both files — raising it would not be evidence-backed | Deferred | Phase 25 |
-| UI | Default 240px bottom-panel height (`src/web/model/panel-state.ts:9` `PANEL_HEIGHT_DEFAULT`) clips the Export tab's primary action (and the attached "Finish review" button) below the fold in 4 of 10 captured states at all 3 tested widths, with no visible scroll affordance beyond the panel's own `overflow-y: auto` (`BottomPanel.vue:227`) — see `.planning/phases/24-bottom-panel-export/24-UI-REVIEW.md` Pillar 5 finding and Priority Fix #1 | Deferred | Phase 25 |
-| Design | The `stale` ("Anchor moved") Comments-tab state is unreachable through any live user action: every server-side `verifyAnchor` implementation (`src/server/capabilities.ts:457-480,773-796,1055-1080,1412-1437`) returns `{ state: 'orphaned' }` the instant `blobOid` differs and only builds a comparable anchor once `blobOid` already matches, so the deterministic rebuild can never disagree with the recorded anchor; pre-existing, not introduced by Phase 24 — see `.planning/phases/24-bottom-panel-export/24-UI-REVIEW.md` Pillar 6 finding and Priority Fix #2 | Deferred | Phase 25 |
+| quick_task | `260915-jbv-remove-details-review-keyboard-help`: historical unknown status reconciled against its completion summary and commits `dbd8a70`, `3d3ff54`, `9642c11`; summary now carries `status: complete` | Resolved 2026-11-07 | v2.0 close |
+| Verification | `tests/unit/token-contract.test.ts`'s Vite-dev-server-reload test ("reloads the virtual token module after styles.css changes in a Vite dev server") exceeds Vitest's default 10s `testTimeout` under default file-parallelism — independently reproduced twice (`.planning/milestones/v2.1-phases/20-shell-frame/20-VERIFICATION.md:239`, `.planning/milestones/v2.1-phases/24-bottom-panel-export/24-01-SUMMARY.md:84`), confirmed absent under `--no-file-parallelism` (`.planning/milestones/v2.1-phases/23-inline-comment-threads/23-VERIFICATION.md:85`); the phase-end gate command `npx vitest run --no-file-parallelism` already avoids the failure mode, so no fix is needed | Deferred | Phase 25 |
+| Verification | `tests/e2e/rendered-markdown-security.spec.ts` and `tests/e2e/anchored-review.spec.ts` share a hypothesized cross-process `pack-runtime.mjs` lock-contention flake (`acquireRuntimePackLock`, `scripts/pack-runtime.mjs:30,143-165`, 300s deadline / 50ms `Atomics.wait` poll; previously flagged in `.planning/milestones/v2.1-phases/22-identity-status-bar/22-REVIEW-FIX.md:64`) — reproduced via `--repeat-each=5` on each spec (15/15 and 25/25 passed) plus a forced-contention run (15 sequential concurrent `pack-runtime.mjs --purpose development-check` invocations racing each spec's own `beforeAll` lock acquisition): both specs still passed (19.0s and 14.2s, well under the 90s `test.setTimeout`), no failure reproduced under either attempt, so `test.setTimeout` is left at `90_000` in both files — raising it would not be evidence-backed | Deferred | Phase 25 |
+| UI | Default 240px bottom-panel height (`src/web/model/panel-state.ts:9` `PANEL_HEIGHT_DEFAULT`) clips the Export tab's primary action (and the attached "Finish review" button) below the fold in 4 of 10 captured states at all 3 tested widths, with no visible scroll affordance beyond the panel's own `overflow-y: auto` (`BottomPanel.vue:227`) — see `.planning/milestones/v2.1-phases/24-bottom-panel-export/24-UI-REVIEW.md` Pillar 5 finding and Priority Fix #1 | Deferred | Phase 25 |
+| Design | The `stale` ("Anchor moved") Comments-tab state is unreachable through any live user action: every server-side `verifyAnchor` implementation (`src/server/capabilities.ts:457-480,773-796,1055-1080,1412-1437`) returns `{ state: 'orphaned' }` the instant `blobOid` differs and only builds a comparable anchor once `blobOid` already matches, so the deterministic rebuild can never disagree with the recorded anchor; pre-existing, not introduced by Phase 24 — see `.planning/milestones/v2.1-phases/24-bottom-panel-export/24-UI-REVIEW.md` Pillar 6 finding and Priority Fix #2 | Deferred | Phase 25 |
 
 ## Session Continuity
 
-Last session: 2026-11-06T19:32:33.835Z
-Stopped at: Phase 25.1 verified (11/11); v2.1 remains open for milestone audit
+Last session: 2026-11-07T09:57:36+00:00
+Stopped at: v2.1 completed locally with documented debt; no next milestone started
 Resume file: None
 
 ## Operator Next Steps
 
-- Start the next milestone with `/gsd:new-milestone` (v2.1 workbench redesign; inputs: `.planning/sketches/MANIFEST.md`, `sketch-findings-loopnote` skill, ROADMAP Backlog DEBT-01)
+- Use `/gsd:new-milestone` only after explicit next-scope selection; no next milestone has started.
+- v2.1 evidence lives under `.planning/milestones/v2.1-*`; the original untracked phase `.gitkeep` remains untouched and is not an active plan.
+- Tagging stays disabled; no push or npm publication is part of this closeout.

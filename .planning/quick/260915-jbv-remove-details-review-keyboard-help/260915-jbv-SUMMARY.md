@@ -1,3 +1,8 @@
+---
+status: complete
+reconciled: 2026-11-07
+---
+
 # Quick Task 260915-jbv Summary
 
 Removed the Details dialog, Review rail, and in-app Keyboard help outright, including their component trees, styles, and retired-surface tests.
@@ -46,3 +51,7 @@ Comment management through the rail; browsing stale/orphan anchor records; compa
 - `selector-drift-ui` had one real regression: its fixture treated removed Details metadata calls as failures. The retry now models only the two `/content` requests (one failure, then recovery); `npx playwright test tests/integration/selector-drift-ui.spec.ts` passed 5/5.
 - `GET /api/files/:fileId` and `SessionClient.getFileMetadata()` remain but are now dead code: the removed Details dialog was their only UI caller.
 - `responsive-session.spec.ts` passed after blurring the retargeted Next change focus subject before the next 320px drawer interaction. The focus tooltip can overlay a sibling control at that width; that is existing `UiTooltip` overlay behavior exposed by the test sequence, not an app regression.
+
+## Milestone-audit metadata reconciliation (2026-11-07)
+
+The open-artifact scanner reported `unknown` because this historical summary lacked a `status` field, not because its implementation was missing. Commits `dbd8a70`, `3d3ff54`, and `9642c11` were independently confirmed in history. The completion record above and PROJECT.md's historical capability-loss note agree on the delivered scope. Added `status: complete`; no historical test was rerun or relabeled. External-prerequisite limitations and the orphan-metadata-route debt remain documented above and in STATE.md.

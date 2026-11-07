@@ -1,7 +1,7 @@
 ---
 phase: 22-identity-status-bar
 verified: 2026-11-05T16:30:00Z
-status: human_needed
+status: passed
 score: 20/20 must-haves verified
 behavior_unverified: 0
 overrides_applied: 0
@@ -9,7 +9,10 @@ post_verification_remediation:
   - "WARNING 1 (missing ♡ Support prefix) fixed in d4c80a3 — orchestrator added the <span aria-hidden=\"true\">♡</span> prefix; existing accessible-name assertions in agent-ready-export.spec.ts/public-support-states.spec.ts/support-dialog.spec.ts re-run and still pass unmodified, confirming the fix didn't break the accessible name."
   - "WARNING 2 (workbench-shell-smoke.spec.ts coverage gap) fixed in bd2ab92 — orchestrator added per-kind .statusbar__left identifier and 💬 comment-count assertions to all 4 identity tests; re-run, 8/8 pass."
   - "WARNING 3 (custody-gated pre-existing-failure claim not independently reproduced) resolved by the orchestrator: ran the custody-gated check twice personally — once against a disposable e7bb68c git worktree (14/16... actually 13/15 for agent-ready-export.spec.ts alone, same 2 failures by exact error signature), once against current main (14/16 across agent-ready-export.spec.ts + package-assets.spec.ts, identical 2 failures). Confirms pre-existing/environment-caused, not a Phase 22 regression."
-human_verification:
+reconciled: 2026-11-07
+reconciliation_evidence: 22-UI-REVIEW.md
+human_verification: []
+resolved_human_verification:
   - test: "At every viewport width 1050px down to 761px, confirm .identity-pill's rendered box never visually overlaps or intercepts clicks on .titlebar__right's sidebar-toggle/panel-toggle buttons (long Base/Head branch names, worktree glyphs, and drift-warning state all increase pill content width)."
     expected: "Pill ellipsizes/truncates inside its flex-shrunk host at every width in range; sidebar-toggle and panel-toggle remain clickable at all times."
     why_human: "CSS reasoning (read .identity-pill/.identity-pill-host/.titlebar__center rules) and the existing geometry overlap test in responsive-session.spec.ts (which checks only .titlebar__center's own children, not .titlebar__center vs .titlebar__right) both support this being fixed by 53fcf33, but no automated test asserts non-overlap between the pill and the right-side toggle buttons across the continuous width range — only a single discrete width (761px) is geometry-checked, and only within .titlebar__center."
@@ -25,8 +28,8 @@ human_verification:
 
 **Phase Goal:** Already-shipped comparison-identity drift-detection logic relocates into a title-bar pill/popover; the status bar carries snapshot/comment-count/Export/support entry points, including the agent-attached Finish action in its one emphasized slot.
 **Verified:** 2026-11-05T16:30:00Z
-**Status:** human_needed
-**Re-verification:** No — initial verification
+**Status:** passed
+**Re-verification:** Initial verification followed by the post-execution UI audit; status reconciled on 2026-11-07 against its retained evidence.
 
 ## Goal Achievement
 
@@ -100,3 +103,27 @@ _Verifier: the agent (gsd-verifier)_
 ## Post-review fixes
 
 - **2026-11-05, commit `517aacc`:** `gsd-ui-auditor` post-execution UI audit found human-verification item 2 ("popover anchoring at window edges") FAILED against the real packaged build: `.identity-popover` centers itself on `.identity-pill-host` via `left:50%; transform:translateX(-50%)`, which only accounts for the pill's own (possibly off-center) box, not the viewport. On the agent-attached session (`.attached-fact` badge widens the title bar's right-hand group, pushing the pill left-of-center within `.titlebar__center`), opening the popover at a 500px-wide real-Chromium viewport rendered it 42px off the left edge of the viewport — clipping the "Comparison" heading to "omparison", hiding the Base/Head/Merge base row `<dt>` labels entirely, and cutting the Copy button in half. Verified with real `getBoundingClientRect()` measurements (`popLeft: -42`) and a screenshot before the fix. Fixed in `IdentityPopover.vue` by measuring the rendered panel on open/resize (`clampToViewport()`) and nudging it back on-screen by the shortfall, reusing the same 8px per-side margin the existing width rule (`min(440px, calc(100vw - var(--space-4)))`) already reserves — pure measurement-based repositioning, no popper/floating-ui dependency added. Re-verified: re-ran the exact 500px repro post-fix (`popLeft: 8, popRight: 448`, no clipping) plus a sweep of 340/400/500/650/761/1050px and a 320px extreme-narrow case, all within viewport bounds with the expected margin; `npm run typecheck:web` (0 errors), `npm run verify:semantic-css` (pass), `npm run build` (clean) all re-run after the fix.
+
+## Milestone-audit reconciliation (2026-11-07)
+
+All three original human-verification items above were resolved by `22-UI-REVIEW.md`'s real-browser audit, not by assumption or a new test run here. The original requests remain under `resolved_human_verification` as historical context.
+
+- Pill/toggle overlap: zero overlaps across 58 sampled widths from 761–1046px; minimum measured gap 107.42px. This is sampled evidence, not a claim that every continuous width was tested.
+- Popover clipping: commit `517aacc` fixed the observed 500px defect; the audit rechecked 320/340/400/500/650/761/1050px. Retained `FIXED-popover-500.png` was independently inspected during milestone reconciliation.
+- Warning contrast: the audit measured 6.03:1 for the live warning border/dot and 7.50:1 for the production stale-text CSS. The latter used injected production markup because the live `stale` state is unreachable; that separate design debt remains open.
+
+Retained overlap and warning screenshots were also independently inspected. This reconciles stale verification metadata; it does not claim fresh visual measurements or resolve unrelated deferred debt.
+
+### Explicit requirement mapping
+
+The initial report verified these behaviors as descriptive truths but omitted their literal requirement IDs. This table makes the existing evidence traceable; it does not invent a new verification run.
+
+| Requirement | Source plans | Status | Existing evidence |
+|---|---|---|---|
+| IDENT-01 | 22-01, 22-02 | SATISFIED | Truth 1: all eight identity variants; packaged shell identity assertions. |
+| IDENT-02 | 22-02 | SATISFIED | Truth 1: popover details/Copy, Escape and focus return; `22-UI-REVIEW.md` confirms focus trap and post-fix viewport placement. |
+| IDENT-03 | 22-02 | SATISFIED | Truth 2: selector/patch/worktree drift folded into warning state, details guidance and Refresh; real drift/contrast evidence in `22-UI-REVIEW.md`. |
+| IDENT-04 | 22-02, 22-04 | SATISFIED after gap closure | Truth 3 covers entry points/progress; `25.1-VERIFICATION.md` supplies the later real inventory/content resynchronization proof for all four refreshable kinds. |
+| STAT-01 | 22-03 | SATISFIED | Truth 4: snapshot/comment/stale counts, warning ink and Comments-tab entry; `24-VERIFICATION.md` additionally verifies target-tab focus. |
+| STAT-02 | 22-03 | SATISFIED | Truth 4: one emphasized Export/Finish slot, lifecycle labels and busy/disabled state; shell and attached-session packaged coverage. |
+| STAT-03 | 22-03 | SATISFIED | Truth 5: plain voluntary-support action, decorative prefix restored in `d4c80a3`, accessible-name regressions preserved; support does not gate review. |

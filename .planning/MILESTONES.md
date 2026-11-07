@@ -1,5 +1,40 @@
 # Milestones
 
+## v2.1 Workbench Redesign (Completed locally: 2026-11-07)
+
+**Delivered:** A VS Code-inspired browser workbench over the existing review/draft/export/agent authorities, including current-content Refresh with origin-owned draft safety. This is a source-milestone completion, not an npm release.
+
+**Phases completed:** 8 phases (19–25, including inserted 25.1), 53/53 plans.
+**Recorded tasks:** 91 across 39 summaries with totals; 14 summaries omit totals, so 91 is not exhaustive.
+**Requirements:** 45/45 under approved design interpretations; original-wording qualifications remain explicit in the accepted audit.
+**Audit:** `tech_debt`, no integration blocker; 25/25 named contracts and 11/11 bounded journey categories wired, not newly executed test counts.
+**Timeline:** 2026-11-04 → 2026-11-06 implementation; local closeout approved 2026-11-07.
+**Inclusive Git range:** `4ebde973d796db30b513deb1a64550c4ac5181f1^..a4c58a81ada18cbcef2b0a99fe60fc946efa2112` — 339 commits (including planning/review), 283 files changed, +39,562 / −1,984.
+**Source footprint:** 128 tracked `src/**/*.ts` / `src/**/*.vue` files, 31,032 physical lines including unterminated final lines.
+
+**Key accomplishments:**
+
+- Whole-tree Vue typecheck and CI gate.
+- Resizable five-region workbench.
+- Dense, keyboard-accessible file explorer.
+- Comparison identity, drift and status controls.
+- Inline threads and Comments/Summary/Export panel.
+- Accessibility/docs sweep and safe Refresh resynchronization.
+
+**Verification:** Prior final-source gates passed web/test typechecks, semantic CSS, build, 987 aggregate Vitest tests (92 files), 161 browser tests and 16 configured-runtime checks. Fresh close-audit proof passed both test typechecks and 42 packaged-browser checks. Active artifact scan: zero. Configured-runtime proof is a development check, not registry publication acceptance.
+
+**Retained debt:** Default 240px panel scrolling to Export/Finish; unreachable live `stale` anchor state; decorated tree-row density and start-line-only thread headers; display-only file badges; two unused production client wrappers; incomplete SUMMARY metadata; historical advisory/testing, real-TTY, multi-file drift, support/Restore and marketplace-publication items. Replies, viewed tracking and below-1050px layout remain deferred. Full qualifications and provenance live in the audit and STATE.md.
+
+**Archive integrity:** 176 tracked phase artifacts moved with every SHA-256 preserved; unrelated untracked `.planning/phases/25.1-refresh-session-resync/.gitkeep` left byte-for-byte in place. Backlog retained verbatim; historical milestone entries retain their as-of-close statements.
+
+**Closeout repairs:** Canonical closure inferred a spurious active Phase 1 and retained stale approval/continuity fields; reconciled explicitly. Relocated roadmap links were rebased, with explicit archive-title anchors where duplicate historical H1 headings confused Marksman. No source/test/CI phase-path consumers required migration.
+
+**Publication:** Package remains `@shipwithai/loopnote@2.0.0`. `git.create_tag: false` respected; no tag, push, package-version bump or npm publication.
+
+**Archives:** [Roadmap](milestones/v2.1-ROADMAP.md#milestone-v21-workbench-redesign) · [Requirements](milestones/v2.1-REQUIREMENTS.md#requirements-archive-v21-workbench-redesign) · [Accepted audit](milestones/v2.1-MILESTONE-AUDIT.md) · [Phases](milestones/v2.1-phases/)
+
+---
+
 ## v2.0 Artifact Review (Shipped: 2026-11-04)
 
 **Delivered:** Review grounded in any agent-produced artifact, not only committed ranges: single-pane added/deleted files, Staged/Unstaged/Working-tree review from frozen, explicitly refreshable snapshots, standalone file/glob review, rendered Markdown preview with block-anchored comments, and an agent stdin protocol carrying all of it — shipped as Loopnote 2.0.0 after the full Cumpa → Loopnote rename.

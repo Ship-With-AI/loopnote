@@ -25,7 +25,7 @@ Known deferred at close (STATE.md Deferred Items): the terminal `r` refresh need
 human check (Phase 14), and multi-file `workingTreeChangedAfterFinalSnapshot.paths` lacks a
 test (Phase 17).
 
-**Current development:** v2.1 Phase 25.1 (Refresh Session Resync) verified on 2026-11-06. All 8 phases / 53 plans are complete; the milestone remains open pending a fresh audit, with no release or automatic transition performed.
+**Completed locally:** v2.1 Workbench Redesign on 2026-11-07: 8 phases, 53 plans, 45/45 requirements covered under the approved design interpretations. The refreshed milestone audit is `tech_debt`, with no integration blockers; retained debt is explicit in the audit and STATE.md. This source-milestone close is not an npm release: the package remains `@shipwithai/loopnote@2.0.0`, tagging is disabled, and nothing is pushed or published by closeout.
 
 <details>
 <summary>State at v1.6 / v1.5 close (2026-09-15)</summary>
@@ -84,22 +84,24 @@ within hours of being widened.
 
 </details>
 
-## Current Milestone: v2.1 Workbench Redesign
+## Latest Completed Milestone: v2.1 Workbench Redesign
 
 **Goal:** Rebuild the browser review workspace as a VS Code-inspired workbench that gives the diff nearly all the space, keeping Loopnote's palette and every existing review, export, and support behaviour.
 
-**Target features:**
-- Workbench shell: 32px title bar with a Base→Head identity pill and details/drift/refresh popover; resizable files-only side bar; icon-only editor-title actions with VS Code shortcuts and breadcrumbs; bottom panel (Comments / Summary / Export) closed while reading (⌘J); 22px status bar with snapshot, open/stale comments, viewed count, Export, and the voluntary-support item.
-- VS Code Explorer-density changed-files tree: 22px rows, compact folders, right-aligned M/A/D, comment badges, `+/−` counts on hover or selection, path filter, view options, footer totals, keyboard tree navigation.
-- Inline Monaco view-zone comment threads with Open / Resolved / Anchor-moved states, resolve / reopen / delete / reply, expanded by default with a session-scoped collapse-all toggle, and cross-file thread navigation.
-- Export readiness, stale-anchor acknowledgement gate, and receipt in the bottom panel.
-- Workbench geometry tokens over the unchanged Loopnote colour roles; `DESIGN.md` Composition/Geometry and the token contract rewritten to match.
+**Delivered:**
+- Workbench shell: 32px title bar with a Base→Head identity pill and details/drift/refresh popover; resizable files-only side bar; icon-only editor-title actions with VS Code shortcuts and breadcrumbs; bottom panel (Comments / Summary / Export) closed while reading (⌘J); 22px status bar with snapshot, open/stale comments, Export, and voluntary support.
+- VS Code Explorer-density changed-files tree: nominal 22px geometry tokens (decorated rows remain approximately 26px, documented debt), compact folders, right-aligned M/A/D, comment badges, `+/−` counts on hover or selection, path filter, view options, footer totals, and keyboard navigation.
+- Inline Monaco view-zone comment threads with Open / Resolved / Anchor-moved presentation, resolve / reopen / edit / delete with independent Undo windows, expanded-by-default open threads, session-scoped collapse, and cross-file navigation. Replies remain deferred.
+- Export readiness, the approved selector/source-drift acknowledgement gate, and receipts in the bottom panel. No per-comment anchor acknowledgement field was added.
+- Workbench geometry tokens over unchanged Loopnote colour roles; `DESIGN.md` describes the shipped composition, components, and responsive scope.
 - Toolbar groups reachable by role and name.
 - `.vue` components brought under typechecking via a TypeScript/vue-tsc pairing decision.
 
 **Design source:** sketches 001–004 (`.planning/sketches/`), skill `sketch-findings-loopnote`.
 
 **Scope decisions (2026-11-04):** desktop only — layouts below 1050px may regress and are recorded as debt; drafts, the anchor model, V1–V6 exports, the agent stdin protocol, support flow, and all session kinds stay behaviourally unchanged.
+
+**Next milestone:** Not scoped. Replies, per-file viewed tracking, and layouts below 1050px remain deferred; choose future scope with `/gsd:new-milestone`.
 
 Candidates carried forward from v1.5 (still unscheduled):
 
@@ -108,7 +110,6 @@ Candidates carried forward from v1.5 (still unscheduled):
   verified-state portions for the global, npx, and marketplace paths.
 - Correct `SKILL.md`, which still installs `@1.5.0` and claims only 1.5.0 has independent
   release verification; this needs a separate marketplace publication.
-- ~~Bring `.vue` files under typechecking~~ — scheduled in v2.1.
 
 <details>
 <summary>v2.0 Artifact Review (shipped 2026-11-04)</summary>
@@ -199,7 +200,7 @@ blocked under D-07/D-08; see `.planning/milestones/v1.5-ROADMAP.md`.
 - [x] User can launch the application from a Git repository through a CLI that opens a loopback-only browser session.
 - [x] User can interactively select an ordered base and head from local branches and registered worktrees.
 - [x] User can review merge-base-to-head changes in a GitHub-like side-by-side text diff with changed-file navigation and expandable context.
-- [x] User can create, edit, delete, and resolve comments on any visible line on either side of a diff. **Narrowed 2026-09-15 by quick task `260915-jbv`:** creation survives (inline, from the diff gutter); edit, delete, resolve and reopen were removed with the Review comments rail at the owner's explicit instruction. Comments still persist to the draft and still appear in exports.
+- [x] User can create, edit, delete, resolve, and reopen durable line comments. Quick task `260915-jbv` removed the old rail-based lifecycle on 2026-09-15; v2.1 restored it through inline threads, including keyboard editing and independent delete/Undo windows.
 - [x] User can write an overall review summary while the review remains an editable repository-local draft.
 - [x] User can export a completed review as readable Markdown and versioned JSON containing stable Git identities and context anchors for an applying agent.
 
@@ -291,34 +292,36 @@ Validated in v2.1 Phase 19: Typecheck Foundation — `vue-tsc@3.3.14` paired wit
 - [x] `.vue` components are typechecked. — v2.1 (Phase 19)
 - [x] Base→Head identity, drift, and Refresh live in a title-bar pill and popover. — v2.1; Refresh session/content/navigation and draft-safety gaps validated in Phase 25.1 (Refresh Session Resync).
 
+Validated in v2.1 Workbench Redesign:
+
+- ✓ VS Code-inspired, resizable five-region shell with persisted side-bar width/panel height and a panel closed at session start. — v2.1
+- ✓ Explorer-density tree/list navigation, filter, view options, totals, status and comment badges; nominal 22px tokens with decorated-row density retained as documented debt. — v2.1
+- ✓ Inline thread resolve/reopen/edit/delete, keyboard save/cancel, independent Undo, session-scoped expansion, and cross-file navigation. — v2.1
+- ✓ Comments/Summary/Export tabs, debounced summary autosave, reveal/focus chain, receipts, and agent Finish behind existing readiness and approved drift gating, without draft/export/protocol schema changes. — v2.1
+- ✓ Named toolbar/control regions, keyboard popovers, and one announcement owner per audited outcome. — v2.1
+- ✓ Contributor/user documentation describes the workbench and safe Refresh semantics. — v2.1
+
 ### Active
 
-- [ ] VS Code-inspired workbench shell replaces the identity header band, review rail, toolbars, and footer.
-- [ ] Changed files render as a VS Code Explorer-density tree.
-- [ ] Reviewers can resolve, reopen, delete, and reply to comment threads inline (removed by quick task `260915-jbv`).
-- [ ] Comments, summary, and export live in a bottom panel closed while reading.
-- [ ] Assistive technology reaches toolbar control groups by role and name.
-- [ ] `DESIGN.md` describes the workbench.
+No active milestone. Carried-forward candidates remain unscheduled until `/gsd:new-milestone` selects scope.
 
 ### Out of Scope
 
-- ~~Automatic review of staged, unstaged, untracked worktree state~~ — **shipped in v2.0** (Artifact Review); sessions review a frozen snapshot with explicit Refresh rather than live state.
 - Hosting reviews remotely or supporting multiple simultaneous reviewers — the product is a single-developer local tool.
-- Posting reviews to GitHub, GitLab, or another forge — export files are the integration boundary for v1.
+- Posting reviews to GitHub, GitLab, or another forge — exported files remain the integration boundary.
 - Applying requested changes from inside the application — a separate coding agent consumes the export.
 - Image, notebook, binary diff rendering — Loopnote reviews text; Markdown has a rendered preview since v2.0 and Markdown images resolve through a path-safe route, while other unsupported files are identified but not rendered inline.
-- Full GitHub review mechanics such as replies, suggestion patches, approvals, and pending-review submission — v1 provides line comments, resolution, and an overall summary.
+- Full GitHub review mechanics such as replies, suggestion patches, approvals, pending-review submission, and persisted per-file viewed tracking — v2.1 restores inline comment lifecycle, not a new review/draft schema.
 - Publishing credentials, confidential operational material, or content without publication rights — public-source release requires review of tracked content and history; destructive remediation needs separate approval.
 - Shipping TypeScript source, source maps, tests, planning files, or repository history in npm artifacts — consumers receive the compiled runtime-only distribution.
-- ~~User-configurable unified/split diff layout~~ — reversed in Phase 20 (Shell Frame, NAV-01); the editor title's side-by-side/inline toggle is session-scoped, defaults to side-by-side, not persisted across sessions, and disabled for single-pane (added/deleted/type-changed) files.
 
 ## Context
 
-Loopnote has shipped eight milestones: the complete local browser-review-to-agent loop, a GitHub-dark accessible review workspace, scalable local source discovery, strict agent review handoff, optional voluntary support, MIT public distribution, a canonical-token workspace restyle, and artifact review beyond committed ranges.
+Loopnote has completed nine source milestones: the local browser-review-to-agent loop, a GitHub-dark accessible workspace, scalable source discovery, strict agent handoff, voluntary support, MIT distribution, canonical-token restyling, artifact review beyond committed ranges, and the v2.1 workbench redesign. v2.1 is closed locally; npm publication remains at the separately released v2.0 package.
 
 Committed comparisons remain ordered and frozen to full commit IDs: the displayed change is the merge base of those commits compared with the selected head. Since v2.0, uncommitted (Staged/Unstaged/Working tree) and standalone sessions review a content-addressed snapshot captured at launch instead; dirty bytes enter the review only through that frozen snapshot, and Refresh appends a new snapshot and reclassifies every comment.
 
-The browser workspace provides an exact changed-file tree, Monaco side-by-side text diffs, expandable context, keyboard navigation, durable line comments, review summary and comment lifecycle, conflict recovery, selector-drift reporting, and explicit unsupported, stale, and orphaned states.
+Current tracked source comprises 128 TypeScript/Vue files under `src/`, with 31,032 physical lines (including a final unterminated line). The Node/Fastify/Vue/Vite/Monaco stack and server-owned review/persistence/export authorities remain unchanged.
 
 Exports are versioned and machine-validated (schema versions 1–6; V4 standalone, V5/V6 agent-driven uncommitted/standalone with a working-tree drift flag). Canonical JSON owns comparison identities, accepted summary and comments, timestamps, blob identities, and context anchors; Markdown is derived from that validated model. Publication is an atomic pair beneath `.loopnote/exports/`, with hashes and a bounded receipt.
 
@@ -328,9 +331,9 @@ v1.4 shipped 12/12 requirements across two phases, 22 plans, and 30 tasks. Its a
 
 Accepted v1.4 debt is bounded to a stale deleted-suite filename in the deployment verifier contract and one unused local support-status endpoint/client wrapper. Neither affects the verified release flow.
 
-Workspace surface since quick task `260915-jbv` (2026-09-15) has no Details dialog, Review comments rail, or keyboard help; comment resolve/reopen/edit/delete and stale/orphaned anchor records are not reachable in the UI. The proposed v2.1 workbench redesign restores inline thread actions.
+The old Details dialog, Review rail, and keyboard-help surface remain removed. v2.1 restores comment lifecycle through inline Monaco threads and moves Comments/Summary/Export into a bottom panel rather than recreating the rail.
 
-Accepted debt carried into v2.1: `.vue` files outside typechecking, two nondeterministic Playwright specs and one order-sensitive agent-export spec (STATE.md Deferred Items).
+Retained debt includes the default panel's below-fold Export/Finish action, the unreachable live `stale` anchor state, decorated tree-row density, advisory review/reporting cleanup, historical test-load observations, Phase 14 real-TTY Refresh, Phase 17 multi-file drift coverage, and inherited release/support work. See the v2.1 milestone audit and STATE.md; the whole-tree Vue typecheck gap is closed.
 ## Constraints
 
 - **Runtime**: Node.js 24 LTS with TypeScript end to end — one language across CLI, server, shared contracts, and UI, using the current supported LTS baseline.
@@ -344,8 +347,8 @@ Accepted debt carried into v2.1: `.vue` files outside typechecking, two nondeter
 - **Snapshots**: Uncommitted and standalone sessions capture a content-addressed snapshot at launch and never substitute live repository or worktree bytes for it.
 - **Testing**: Vitest for Git, diff, persistence, and export contracts; Playwright for the browser review flow.
 - **Support**: Voluntary support never gates review features; hosted payment authority is optional, credential-free from the local app, and enabled only in the canonical configured release package.
-- **Distribution**: Publish the existing `Ship-With-AI/cumpa` repository and reviewed history only after approval gates; ship MIT-licensed `@shipwithai/cumpa@1.5.0` as a compiled-runtime-only npm package exposing `cumpa`. Trusted publishing uses GitHub OIDC without a long-lived token and preserves eligible automatic provenance.
-- **Licensing**: Cumpa source and compiled releases use the standard MIT license with copyright retained by Alessandro Magionami & Manuel Salvatore Martone. MIT permits commercial use, modification, redistribution, sublicensing, and resale without bespoke permission conditions; third-party rights and notices remain in force. Both licensors must give refreshed assent to the exact MIT text before publication. Voluntary support remains feature-neutral.
+- **Distribution**: Ship only the compiled runtime in MIT-licensed `@shipwithai/loopnote`, exposing `loopnote`; public source/history and immutable older Cumpa artifacts remain intact. Future releases require their own approved candidate and trusted-publishing/provenance workflow; milestone closeout alone grants no npm publication authority.
+- **Licensing**: Loopnote source and compiled releases use standard MIT with copyright retained by Alessandro Magionami & Manuel Salvatore Martone. Third-party rights/notices and exact-text publication approval requirements remain unchanged; voluntary support stays feature-neutral.
 
 ## Key Decisions
 
@@ -372,7 +375,7 @@ Accepted debt carried into v2.1: `.vue` files outside typechecking, two nondeter
 | Keep responsive visual placement separate from semantic source order | Preserve file → Base → Head reading order while matching the desktop composition and narrow reflow | Good — exact-width and keyboard browser evidence passed without duplicate controls or state paths |
 | Keep the 640px side-by-side comparison floor inside one localized viewport | Prevent page-wide overflow without reflowing Monaco or changing Base/Head geometry | Good — 320px and true 400% zoom evidence retained a 640px locally scrollable canvas with document fit |
 | Measure composited rendered contrast and focus geometry against actual browser states | Token-only checks cannot prove translucent diff, selection, status, or clipping behavior | Good — completed UAT accepted the full contrast, focus-inventory, and true-zoom gates |
-| Keep the review sidebar at 288px and compact rows within it | Preserve diff space while keeping status, path, counts, and exceptional availability readable | ⚠️ Revisit — v2.1 workbench sketches choose a 264px resizable side bar with 22px rows |
+| Keep the review sidebar at 288px and compact rows within it | Preserve diff space while retaining readable file context | Superseded — v2.1 uses a 264px default resizable side bar and nominal 22px geometry tokens; decorated row density remains documented debt |
 | Pair Base/Head identity with explicit removed/added text, signed gutters, and structural bars | Make diff meaning clear without relying on red and green | Good — stronger line/intraline fills and CSP-safe Monaco positioning passed focused browser and theme checks |
 | Record shipped product facts and visual rules in root contracts | Prevent future copy and styling work from inventing a second product or design language | Good — final designer checks report no contract, display-scale, numeric-claim, or contact-detail blockers |
 
@@ -404,7 +407,18 @@ Accepted debt carried into v2.1: `.vue` files outside typechecking, two nondeter
 | Anchor rendered-Markdown comments to the block's source line range via an optional `endLine` | Keep one anchor model for Source and Rendered views | Good — single-line anchors stay byte-identical (golden-hash pinned); block ranges highlight fully in Source view |
 | Derive every product-identity form from one `RENAME_MAP` | A literal-by-literal rename silently misses forms | Good — rename-audit test finds zero disallowed `cumpa` hits across 353 tracked files; 12 leftovers caught only by that full-tree scan |
 | Keep the published `@shipwithai/cumpa@1.5.0` identity immutable in historical fixtures | Released artifacts and their evidence cannot be retroactively renamed | Good — pinned public-artifact tests still validate the real 1.5.0 bytes |
-| Close v2.0 without a milestone audit, acknowledging four open verification items | Owner prioritised starting the workbench redesign | — Pending — deferred items tracked in STATE.md |
+| Close v2.0 without a milestone audit, acknowledging four open verification artifacts | Owner prioritised the workbench redesign | Historical close — Phase 14 real-TTY and Phase 17 multi-file coverage remain deferred; legacy quick-task status reconciled in v2.1 |
+| Typecheck the whole Vue tree with the dual TypeScript alias pairing | Catch decomposition errors without abandoning the fast native Node build | ✓ Good — whole-tree Vue and Node/Vue test gates pass; no baseline suppression |
+| Recompose existing authorities into five workbench regions, not a second review model | Preserve every session kind and canonical draft/export/agent contracts | ✓ Good — packaged shell journeys and cross-phase audit cover all five kinds |
+| Register navigation overrides on paired and single-pane Monaco editors | Keep F7/file/thread shortcuts consistent inside and outside the editor | ✓ Good — shared actions and packaged keyboard regressions preserve editor focus semantics |
+| Select Monaco overlay widgets through a real go/no-go spike | Avoid building thread controls on a pointer/keyboard-inert widget technique | ✓ Good — inline thread lifecycle, paired zones, focus return and independent Undo are verified |
+| Persist layout dimensions/options, but keep active panel tab and thread expansion session-scoped | Retain machine preferences without reopening workflow state unexpectedly | ✓ Good — panel starts closed; tree/layout state survives Refresh |
+| Use real identity data and the existing selector/source-drift acknowledgement | Avoid fictional capture times, refs, agent identities or a new per-anchor acknowledgement schema | ✓ Good under approved UI contracts — limitations remain explicit in the milestone audit |
+| Give each audited outcome one live-announcement owner | Prevent duplicate AT feedback without banning independent widget-status regions | ✓ Good — exact outcome/version and keyboard contracts have packaged proof |
+| Refresh every current-session consumer and always reload a surviving selected path | Stable file IDs and an empty retry delta cannot prove cached bytes fresh | ✓ Good — four refreshable kinds plus failed-session-load retry pass current-content assertions |
+| Save every nonempty composer against its origin before recapture; lock mutation while settling | Prevent off-screen draft loss and typing into a stale snapshot | ✓ Good — failed saves pause recapture, retry persists the origin, and mounted input locks |
+| Keep v2.1 desktop-only with draft/export/agent schemas unchanged | Deliver the workbench without silently adding replies, viewed tracking or narrow-layout scope | ✓ Good — those features remain explicitly deferred |
+| Close v2.1 locally with documented debt and tagging disabled | Separate a verified source milestone from registry publication and optional Git tagging | ✓ Approved 2026-11-07 — audit tech_debt accepted; no push, tag or npm release |
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
@@ -423,4 +437,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with the current product state and feedback.
 
 ---
-*Last updated: 2026-11-06 — Phase 25.1 verified; v2.1 milestone audit pending*
+*Last updated: 2026-11-07 — v2.1 Workbench Redesign completed locally with documented debt; no npm publication*
